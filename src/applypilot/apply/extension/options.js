@@ -610,6 +610,239 @@ onSectionChange(name => {
   loadQa();
 });
 
+// ── Credentials section ───────────────────────────────────────────────────────
+//
+// Edit the accounts table — emails + passwords the agent created on
+// employer ATS sites during apply. Passwords show as ••••••• by default
+// with a per-row "show" toggle.
+
+let _credentialsRows = [];
+
+function credShellHTML() {
+  return `
+  <div id="cred-warning" style="font-size:12px;color:#fcd34d;background:#422006;padding:8px 12px;border-radius:6px;margin-bottom:12px">
+    ⚠ Passwords are stored in plaintext (the agent needs them to log back into ATS sites).
+    Anyone with shell access to your machine can read them. Keep the database file safe.
+  </div>
+  <div id="cred-list">Loading…</div>`;
+}
+
+function credRowHTML(r) {
+  return `
+  <tr data-id="${r.id}" style="border-bottom:1px solid #1e293b;vertical-align:top">
+    <td style="padding:10px 14px"><strong>${esc(r.site || '—')}</strong><br>
+      <span style="font-size:11px;color:#94a3b8">${esc(r.domain || '')}</span></td>
+    <td style="padding:10px 14px">
+      <input type="text" data-cred="email" value="${esc(r.email || '')}"
+        style="width:100%;padding:6px 8px;background:#0f172a;border:1px solid #2d2d4e;color:#e2e8f0;border-radius:4px;font-size:13px"/>
+    </td>
+    <td style="padding:10px 14px">
+      <div style="display:flex;gap:4px;align-items:center">
+        <input type="password" data-cred="password" value="${esc(r.password || '')}"
+          style="flex:1;padding:6px 8px;background:#0f172a;border:1px solid #2d2d4e;color:#e2e8f0;border-radius:4px;font-size:13px;font-family:monospace"/>
+        <button class="btn btn-secondary" data-cred-action="reveal" data-id="${r.id}"
+          style="padding:4px 8px;font-size:11px" title="Show password">👁</button>
+      </div>
+    </td>
+    <td style="padding:10px 14px;font-size:11px;color:#94a3b8;max-width:200px">
+      <textarea data-cred="notes" placeholder="(no notes)"
+        style="width:100%;height:48px;padding:6px 8px;background:#0f172a;border:1px solid #2d2d4e;color:#e2e8f0;border-radius:4px;font-size:11px;resize:vertical">${esc(r.notes || '')}</textarea>
+      <div style="margin-top:4px;color:#64748b">created ${esc((r.created_at || '').slice(0, 10))}</div>
+    </td>
+    <td style="padding:10px 14px;text-align:right;white-space:nowrap">
+      <button class="btn"           data-cred-action="save"   data-id="${r.id}" style="padding:4px 10px;font-size:11px">Save</button>
+      <button class="btn btn-warn"  data-cred-action="delete" data-id="${r.id}" style="padding:4px 10px;font-size:11px;margin-left:4px">Delete</button>
+    </td>
+  </tr>`;
+}
+
+function renderCredentials() {
+  const list = document.getElementById('cred-list');
+  if (!_credentialsRows.length) {
+    list.innerHTML = `<div class="placeholder">
+      No accounts yet. The apply agent stores credentials here when it
+      creates an account on an ATS site (Workday, iCIMS, etc.) during
+      a HITL signup flow.
+    </div>`;
+    return;
+  }
+  const head = `<thead><tr style="border-bottom:1px solid #2d2d4e">
+    <th style="text-align:left;padding:10px 14px;color:#94a3b8;font-weight:500;font-size:12px">Site</th>
+    <th style="text-align:left;padding:10px 14px;color:#94a3b8;font-weight:500;font-size:12px">Email</th>
+    <th style="text-align:left;padding:10px 14px;color:#94a3b8;font-weight:500;font-size:12px">Password</th>
+    <th style="text-align:left;padding:10px 14px;color:#94a3b8;font-weight:500;font-size:12px">Notes</th>
+    <th></th>
+  </tr></thead>`;
+  list.innerHTML = `<div class="card" style="padding:0;overflow:hidden">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      ${head}
+      <tbody>${_credentialsRows.map(credRowHTML).join('')}</tbody>
+    </table>
+  </div>`;
+  bindCredRowActions();
+}
+
+async function loadCredentials() {
+  try {
+    const data = await window.AP.probeWorkers('/api/accounts');
+    _credentialsRows = data.rows || [];
+    renderCredentials();
+  } catch (e) {
+    document.getElementById('cred-list').innerHTML =
+      `<div class="placeholder">Could not load accounts. <span style="font-size:11px;color:#475569">${esc(e.message)}</span></div>`;
+  }
+}
+
+function bindCredRowActions() {
+  document.querySelectorAll('[data-cred-action]').forEach(btn => {
+    btn.addEventListener('click', () => credRowAction(btn));
+  });
+}
+
+async function credRowAction(btn) {
+  const action = btn.dataset.credAction;
+  const id     = parseInt(btn.dataset.id, 10);
+  const tr     = btn.closest('tr');
+
+  if (action === 'reveal') {
+    const pw = tr.querySelector('[data-cred="password"]');
+    pw.type = pw.type === 'password' ? 'text' : 'password';
+    btn.textContent = pw.type === 'password' ? '👁' : '🙈';
+    return;
+  }
+  if (action === 'delete') {
+    if (!confirm('Delete this account row? The agent loses login access to this site.')) return;
+    try {
+      await window.AP.probeWorkers(`/api/accounts/${id}`, {
+        method: 'POST', body: JSON.stringify({ action: 'delete' }),
+      });
+      tr.remove();
+    } catch (e) {
+      alert(`Delete failed: ${e.message}`);
+    }
+    return;
+  }
+  if (action === 'save') {
+    const updates = {};
+    tr.querySelectorAll('[data-cred]').forEach(inp => {
+      updates[inp.dataset.cred] = inp.value;
+    });
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      await window.AP.probeWorkers(`/api/accounts/${id}`, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'update', ...updates }),
+      });
+      btn.textContent = '✓';
+      setTimeout(() => { btn.textContent = 'Save'; btn.disabled = false; }, 1200);
+    } catch (e) {
+      btn.textContent = 'Save';
+      btn.disabled = false;
+      alert(`Save failed: ${e.message}`);
+    }
+  }
+}
+
+let _credInitialized = false;
+onSectionChange(name => {
+  if (name !== 'credentials') return;
+  if (!_credInitialized) {
+    document.getElementById('credentials-content').innerHTML = credShellHTML();
+    _credInitialized = true;
+  }
+  loadCredentials();
+});
+
+// ── ATS Sessions section ──────────────────────────────────────────────────────
+//
+// Saved Chrome cookies per ATS platform (greenhouse, workday, …). Lets
+// the user clear a stuck session without rooting around in
+// ~/.applypilot/chrome-sessions/.
+
+function sessShellHTML() {
+  return `
+  <div style="font-size:12px;color:#94a3b8;margin-bottom:12px">
+    ApplyPilot saves your post-login cookies after each successful apply
+    so subsequent runs don't have to re-authenticate. Clear a session
+    here if it's gone stale and the agent can't recover.
+  </div>
+  <div id="sess-list">Loading…</div>`;
+}
+
+function sessRowHTML(s) {
+  const ageStr = s.age_hours == null ? '—'
+    : s.age_hours < 1 ? `${Math.round(s.age_hours * 60)}m ago`
+    : s.age_hours < 24 ? `${s.age_hours.toFixed(1)}h ago`
+    : `${Math.floor(s.age_hours / 24)}d ago`;
+  const statusPill = s.has_cookies
+    ? `<span class="pill pill-ok">✓ saved</span>`
+    : `<span class="pill pill-mute">— empty</span>`;
+  return `
+  <tr style="border-bottom:1px solid #1e293b">
+    <td style="padding:10px 14px"><strong>${esc(s.slug)}</strong></td>
+    <td style="padding:10px 14px">${statusPill}</td>
+    <td style="padding:10px 14px;color:#94a3b8;font-size:12px">${esc(ageStr)}</td>
+    <td style="padding:10px 14px;text-align:right">
+      <button class="btn btn-warn" data-sess-action="clear" data-slug="${esc(s.slug)}"
+        ${s.has_cookies ? '' : 'disabled'}
+        style="padding:4px 10px;font-size:11px">Clear</button>
+    </td>
+  </tr>`;
+}
+
+async function loadSessions() {
+  const list = document.getElementById('sess-list');
+  try {
+    const data = await window.AP.probeWorkers('/api/integrations');
+    const sessions = data.ats_sessions || [];
+    if (!sessions.length) {
+      list.innerHTML = `<div class="placeholder">No saved sessions yet.</div>`;
+      return;
+    }
+    const head = `<thead><tr style="border-bottom:1px solid #2d2d4e">
+      <th style="text-align:left;padding:10px 14px;color:#94a3b8;font-weight:500;font-size:12px">ATS</th>
+      <th style="text-align:left;padding:10px 14px;color:#94a3b8;font-weight:500;font-size:12px">Cookies</th>
+      <th style="text-align:left;padding:10px 14px;color:#94a3b8;font-weight:500;font-size:12px">Saved</th>
+      <th></th>
+    </tr></thead>`;
+    list.innerHTML = `<div class="card" style="padding:0;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        ${head}<tbody>${sessions.map(sessRowHTML).join('')}</tbody>
+      </table></div>`;
+    list.querySelectorAll('[data-sess-action]').forEach(btn => {
+      btn.addEventListener('click', () => sessRowAction(btn));
+    });
+  } catch (e) {
+    list.innerHTML = `<div class="placeholder">Could not load sessions. <span style="font-size:11px;color:#475569">${esc(e.message)}</span></div>`;
+  }
+}
+
+async function sessRowAction(btn) {
+  const slug = btn.dataset.slug;
+  if (!confirm(`Clear the saved ${slug} session? The next apply will need to log in again.`)) return;
+  btn.disabled = true;
+  try {
+    await window.AP.probeWorkers(`/api/sessions/${slug}`, {
+      method: 'POST', body: JSON.stringify({ action: 'clear' }),
+    });
+    await loadSessions();
+  } catch (e) {
+    alert(`Clear failed: ${e.message}`);
+    btn.disabled = false;
+  }
+}
+
+let _sessInitialized = false;
+onSectionChange(name => {
+  if (name !== 'sessions') return;
+  if (!_sessInitialized) {
+    document.getElementById('sessions-content').innerHTML = sessShellHTML();
+    _sessInitialized = true;
+  }
+  loadSessions();
+});
+
 // ── About: populate version + extension ID ────────────────────────────────────
 
 (async () => {

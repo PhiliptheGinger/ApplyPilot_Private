@@ -324,6 +324,8 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self._handle_qa_list()
             elif self.path.startswith("/api/prefs/"):
                 self._handle_prefs_get()
+            elif self.path == "/api/accounts":
+                self._handle_accounts_list()
             else:
                 self.send_response(404)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -358,6 +360,10 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self._handle_qa_mutate()
             elif self.path.startswith("/api/prefs/"):
                 self._handle_prefs_save()
+            elif self.path.startswith("/api/accounts/"):
+                self._handle_account_mutate()
+            elif self.path.startswith("/api/sessions/"):
+                self._handle_session_mutate()
             else:
                 self.send_response(404)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -792,6 +798,101 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self._json_ok({"status": "ok", "action": action})
             except Exception as e:
                 logger.error("HTTP _handle_jobs_mark failed for %s: %s", url, e, exc_info=True)
+                self.send_response(500)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(str(e).encode())
+
+        def _handle_accounts_list(self):
+            """List all rows in the accounts table for the credentials editor.
+
+            Returns full rows including passwords — the page is on
+            chrome-extension://{id} which is already a trusted origin for
+            this user. The UI hides passwords by default with a
+            click-to-reveal toggle.
+            """
+            try:
+                from applypilot.database import get_connection
+                conn = get_connection()
+                rows = conn.execute(
+                    "SELECT id, site, domain, email, password, "
+                    "       created_at, job_url, notes "
+                    "FROM accounts ORDER BY created_at DESC"
+                ).fetchall()
+                self._json_ok({"rows": [dict(r) for r in rows]})
+            except Exception as e:
+                logger.debug("accounts_list error: %s", e)
+                self.send_response(500)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(str(e).encode())
+
+        def _handle_account_mutate(self):
+            """Update or delete an account row by ID."""
+            try:
+                row_id = int(self.path.rsplit("/", 1)[-1])
+            except ValueError:
+                self.send_response(400); self.end_headers(); return
+            body = self._read_body()
+            action = (body.get("action") or "").strip()
+            try:
+                from applypilot.database import get_connection
+                conn = get_connection()
+                if action == "delete":
+                    conn.execute("DELETE FROM accounts WHERE id = ?", (row_id,))
+                    conn.commit()
+                    self._json_ok({"status": "deleted", "id": row_id})
+                    return
+                if action == "update":
+                    fields = []
+                    params: list = []
+                    for col in ("site", "domain", "email", "password", "notes"):
+                        if col in body:
+                            fields.append(f"{col} = ?")
+                            params.append(body[col] or None)
+                    if not fields:
+                        self.send_response(400); self.end_headers(); return
+                    params.append(row_id)
+                    conn.execute(
+                        f"UPDATE accounts SET {', '.join(fields)} WHERE id = ?",
+                        params,
+                    )
+                    conn.commit()
+                    self._json_ok({"status": "updated", "id": row_id})
+                    return
+                self.send_response(400)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(b"action must be 'update' or 'delete'")
+            except Exception as e:
+                logger.debug("account_mutate error: %s", e)
+                self.send_response(500)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(str(e).encode())
+
+        def _handle_session_mutate(self):
+            """Clear a saved ATS session: /api/sessions/{slug}.
+
+            Body: {action: "clear"}. Same backing helper as the
+            `applypilot apply --clear-session` CLI flag.
+            """
+            slug = self.path.rsplit("/", 1)[-1]
+            body = self._read_body()
+            action = (body.get("action") or "").strip()
+            if action != "clear":
+                self.send_response(400)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(b"action must be 'clear'")
+                return
+            try:
+                from applypilot.apply.chrome import clear_ats_session
+                ok = clear_ats_session(slug)
+                self._json_ok({"status": "cleared" if ok else "not_found",
+                               "slug": slug})
+            except Exception as e:
+                logger.debug("session_mutate error: %s", e)
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
