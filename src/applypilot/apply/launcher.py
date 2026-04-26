@@ -318,6 +318,8 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self._handle_focus()
             elif self.path.startswith("/api/jobs"):
                 self._handle_jobs_list()
+            elif self.path == "/api/integrations":
+                self._handle_integrations()
             else:
                 self.send_response(404)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -344,6 +346,8 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self._handle_add_job()
             elif self.path == "/api/jobs/mark":
                 self._handle_jobs_mark()
+            elif self.path == "/api/integrations/gmail/reauth":
+                self._handle_gmail_reauth()
             else:
                 self.send_response(404)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -783,6 +787,29 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self.end_headers()
                 self.wfile.write(str(e).encode())
 
+        def _handle_integrations(self):
+            """Health check for backend integrations (Gmail, ATS sessions).
+
+            Powers the Integrations section of the options page.
+            """
+            try:
+                from applypilot.apply.chrome import list_ats_sessions
+                payload = {
+                    "gmail": _gmail_status(),
+                    "ats_sessions": list_ats_sessions(),
+                }
+                self._json_ok(payload)
+            except Exception as e:
+                logger.debug("integrations error: %s", e)
+                self.send_response(500)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(str(e).encode())
+
+        def _handle_gmail_reauth(self):
+            """Spawn Gmail OAuth subprocess; user completes in browser."""
+            self._json_ok(_trigger_gmail_reauth())
+
         def log_message(self, format, *args):
             pass  # Suppress HTTP logging
 
@@ -834,6 +861,67 @@ def _stop_worker_listener(worker_id: int) -> None:
 # ---------------------------------------------------------------------------
 
 _gmail_token_lock = threading.Lock()
+
+
+def _gmail_status() -> dict:
+    """Report Gmail MCP token freshness for the Integrations panel.
+
+    Returns a dict with keys:
+      configured       — bool (False if creds file missing)
+      status           — "missing" | "expired" | "expiring_soon" | "valid" | "error"
+      expires_at_ms    — int (ms since epoch) when present
+      expires_in_seconds — int seconds remaining (negative if expired)
+      scopes           — string of OAuth scopes granted
+    """
+    creds_path = Path.home() / ".gmail-mcp" / "credentials.json"
+    keys_path = Path.home() / ".gmail-mcp" / "gcp-oauth.keys.json"
+    if not creds_path.exists() or not keys_path.exists():
+        return {"configured": False, "status": "missing"}
+    try:
+        creds = json.loads(creds_path.read_text())
+        expiry_ms = int(creds.get("expiry_date", 0))
+        now_ms = int(time.time() * 1000)
+        delta_s = (expiry_ms - now_ms) // 1000
+        if delta_s < 0:
+            status = "expired"
+        elif delta_s < 300:
+            status = "expiring_soon"
+        else:
+            status = "valid"
+        return {
+            "configured": True,
+            "status": status,
+            "expires_at_ms": expiry_ms,
+            "expires_in_seconds": delta_s,
+            "scopes": creds.get("scope") or "",
+        }
+    except Exception as e:
+        return {"configured": True, "status": "error", "error": str(e)[:200]}
+
+
+def _trigger_gmail_reauth() -> dict:
+    """Spawn the Gmail MCP auth subprocess (detached). Returns immediately.
+
+    The subprocess opens the user's browser to Google's OAuth consent
+    screen, listens on a local port for the callback, exchanges the code,
+    and writes ~/.gmail-mcp/credentials.json. The Integrations panel can
+    poll _gmail_status() until status flips to 'valid'.
+    """
+    try:
+        proc = subprocess.Popen(
+            ["npx", "-y", "@gongrzhe/server-gmail-autoauth-mcp", "auth"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        logger.info("Triggered Gmail re-auth (pid %d)", proc.pid)
+        return {"status": "started", "pid": proc.pid}
+    except FileNotFoundError:
+        return {"status": "error", "error": "npx not found in PATH"}
+    except Exception as e:
+        logger.warning("Gmail re-auth subprocess failed: %s", e)
+        return {"status": "error", "error": str(e)[:200]}
 
 
 def _refresh_gmail_token() -> bool:
