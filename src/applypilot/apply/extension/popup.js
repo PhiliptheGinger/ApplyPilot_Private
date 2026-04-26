@@ -345,6 +345,7 @@ async function handleAction(e) {
       await apiCall(wid, '/api/done', { method: 'POST', body: '{}' });
       expandedHitl.delete(wid);
       delete savedInputs[wid];
+      persistPopupState();
       triggerPoll();
 
     } else if (action === 'handback') {
@@ -356,6 +357,7 @@ async function handleAction(e) {
       closeStream(wid);
       delete savedInputs[wid];
       delete savedOutputs[wid];
+      persistPopupState();
 
       await apiCall(wid, '/api/handback', {
         method: 'POST',
@@ -413,6 +415,24 @@ async function handleAction(e) {
   btn.disabled = false;
 }
 
+// Throttled write to chrome.storage.local. Popup re-renders every 2s and
+// SSE chunks land continuously; without throttling we'd issue dozens of
+// writes per second. 250ms is fast enough to feel live and slow enough to
+// avoid pounding the storage layer.
+let _persistTimer = null;
+function persistPopupState() {
+  if (_persistTimer) return;
+  _persistTimer = setTimeout(() => {
+    _persistTimer = null;
+    try {
+      chrome.storage.local.set({
+        ap_savedOutputs: savedOutputs,
+        ap_savedInputs:  savedInputs,
+      });
+    } catch { /* popup is unloading; storage write may fail silently */ }
+  }, 250);
+}
+
 function appendOutput(wid, text) {
   // Update the live DOM element (if present) and the persisted buffer
   const outEl = document.getElementById(`out-${wid}`);
@@ -423,6 +443,12 @@ function appendOutput(wid, text) {
   if (!savedOutputs[wid]) savedOutputs[wid] = { text: '', visible: true };
   savedOutputs[wid].text += text;
   savedOutputs[wid].visible = true;
+  // Cap per-worker buffer at 256KB so storage doesn't grow unbounded over a
+  // very long agent task. Trim from the front; preserve the tail (most recent).
+  if (savedOutputs[wid].text.length > 256 * 1024) {
+    savedOutputs[wid].text = savedOutputs[wid].text.slice(-256 * 1024);
+  }
+  persistPopupState();
 }
 
 function closeStream(wid) {
@@ -532,13 +558,23 @@ chrome.storage.onChanged.addListener(changes => {
   if (changes.workers) renderAll(changes.workers.newValue);
 });
 
-// Initial load — read both worker state and own worker ID
-chrome.storage.local.get(['workers', 'myWorkerId'], data => {
-  // Only update myWorkerId from storage if it has a value — don't overwrite
-  // the WORKER_CONFIG sync fast-path with null if background.js hasn't run yet.
-  if (data.myWorkerId != null) myWorkerId = data.myWorkerId;
-  renderAll(data.workers);
-});
+// Initial load — read worker state, own worker ID, and persisted popup state.
+// ap_savedOutputs / ap_savedInputs survive popup close (Chrome destroys
+// module-level JS state every time the popup loses focus), so reopening
+// the popup mid-task no longer wipes the agent chat / typed instruction.
+chrome.storage.local.get(
+  ['workers', 'myWorkerId', 'ap_savedOutputs', 'ap_savedInputs'],
+  data => {
+    if (data.myWorkerId != null) myWorkerId = data.myWorkerId;
+    if (data.ap_savedOutputs && typeof data.ap_savedOutputs === 'object') {
+      Object.assign(savedOutputs, data.ap_savedOutputs);
+    }
+    if (data.ap_savedInputs && typeof data.ap_savedInputs === 'object') {
+      Object.assign(savedInputs, data.ap_savedInputs);
+    }
+    renderAll(data.workers);
+  },
+);
 
 // ── Auto-refresh while popup is open ──────────────────────────────────────────
 // Poll directly from worker servers every 2s, bypassing chrome.storage and the
@@ -620,9 +656,15 @@ async function loadJobs() {
   list.innerHTML = '<div class="jobs-loading">Loading…</div>';
   try {
     let resp = null;
-    for (const w of workers) {
+    // First try workers discovered via the background poll. On popup open
+    // this list is briefly empty until refreshFromServers populates it,
+    // so we also fall back to probing every worker port directly.
+    const probeIds = workers.length
+      ? workers.map(w => w.workerId)
+      : Array.from({ length: MAX_WORKERS }, (_, i) => i);
+    for (const wid of probeIds) {
       try {
-        const r = await apiCall(w.workerId, '/api/jobs?limit=50');
+        const r = await apiCall(wid, '/api/jobs?limit=50');
         if (r.ok) { resp = r; break; }
       } catch { /* skip */ }
     }
