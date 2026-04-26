@@ -1603,6 +1603,10 @@ def run_job(job: dict, port: int, worker_id: int = 0,
 
         text_parts: list[str] = []
         screening_qs: list[dict] = []
+        # Maps Claude Code tool_use_id → fully-qualified MCP tool name. Used
+        # below to label tool_result blocks (which only carry the id) so we
+        # can selectively log gmail results and any errors.
+        tool_use_names: dict[str, str] = {}
         with open(worker_log, "a", encoding="utf-8") as lf:
             lf.write(log_header)
 
@@ -1636,8 +1640,13 @@ def run_job(job: dict, port: int, worker_id: int = 0,
                                                 "options": parts[2].strip() if len(parts) > 2 else "",
                                             })
                             elif bt == "tool_use":
+                                full_name = block.get("name", "")
+                                # Remember tool_use_id → name so we can label results below.
+                                tu_id = block.get("id")
+                                if tu_id:
+                                    tool_use_names[tu_id] = full_name
                                 name = (
-                                    block.get("name", "")
+                                    full_name
                                     .replace("mcp__playwright__", "")
                                     .replace("mcp__gmail__", "gmail:")
                                 )
@@ -1659,6 +1668,34 @@ def run_job(job: dict, port: int, worker_id: int = 0,
                                 update_state(worker_id,
                                              actions=cur_actions + 1,
                                              last_action=desc[:35])
+                    elif msg_type == "user":
+                        # Tool results return as user messages. We don't log
+                        # browser_snapshot etc. — the dumps would dwarf the log.
+                        # We DO log gmail results (so we know whether the agent
+                        # actually read an email) and any tool errors.
+                        for block in msg.get("message", {}).get("content", []):
+                            if block.get("type") != "tool_result":
+                                continue
+                            tu_id = block.get("tool_use_id", "")
+                            full_name = tool_use_names.get(tu_id, "")
+                            is_error = bool(block.get("is_error", False))
+                            log_this = is_error or "gmail" in full_name
+                            if not log_this:
+                                continue
+                            content = block.get("content", "")
+                            if isinstance(content, list):
+                                content = "\n".join(
+                                    (c.get("text", "") if isinstance(c, dict) else str(c))
+                                    for c in content
+                                )
+                            preview = str(content).replace("\n", " ")[:500]
+                            short_name = (
+                                full_name
+                                .replace("mcp__playwright__", "")
+                                .replace("mcp__gmail__", "gmail:")
+                            ) or "?"
+                            marker = " [ERROR]" if is_error else ""
+                            lf.write(f"  << {short_name}{marker}: {preview}\n")
                     elif msg_type == "result":
                         stats = {
                             "input_tokens": msg.get("usage", {}).get("input_tokens", 0),
