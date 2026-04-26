@@ -322,6 +322,8 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self._handle_integrations()
             elif self.path.startswith("/api/qa"):
                 self._handle_qa_list()
+            elif self.path.startswith("/api/prefs/"):
+                self._handle_prefs_get()
             else:
                 self.send_response(404)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -354,6 +356,8 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self._handle_qa_create()
             elif self.path.startswith("/api/qa/"):
                 self._handle_qa_mutate()
+            elif self.path.startswith("/api/prefs/"):
+                self._handle_prefs_save()
             else:
                 self.send_response(404)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -788,6 +792,99 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self._json_ok({"status": "ok", "action": action})
             except Exception as e:
                 logger.error("HTTP _handle_jobs_mark failed for %s: %s", url, e, exc_info=True)
+                self.send_response(500)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(str(e).encode())
+
+        # --- Preferences (file editor) ---
+        # Maps URL key → (path, format). Format determines how we validate
+        # before saving — broken YAML/JSON would brick the next pipeline run.
+        _PREFS_FILES = {
+            "profile":         (config.PROFILE_PATH,                                 "json"),
+            "searches":        (config.SEARCH_CONFIG_PATH,                           "yaml"),
+            "company-limits":  (config.APP_DIR / config.COMPANY_LIMITS_PATH_NAME,    "yaml"),
+        }
+
+        def _handle_prefs_get(self):
+            """Read a known prefs file and return raw text + format."""
+            key = self.path.rsplit("/", 1)[-1]
+            entry = self._PREFS_FILES.get(key)
+            if not entry:
+                self.send_response(404)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                return
+            path, fmt = entry
+            try:
+                text = path.read_text(encoding="utf-8") if path.exists() else ""
+                self._json_ok({
+                    "key": key,
+                    "path": str(path),
+                    "format": fmt,
+                    "text": text,
+                    "exists": path.exists(),
+                })
+            except Exception as e:
+                logger.debug("prefs_get error: %s", e)
+                self.send_response(500)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(str(e).encode())
+
+        def _handle_prefs_save(self):
+            """Validate + save a prefs file. Backs up the previous version."""
+            key = self.path.rsplit("/", 1)[-1]
+            entry = self._PREFS_FILES.get(key)
+            if not entry:
+                self.send_response(404)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                return
+            path, fmt = entry
+            body = self._read_body()
+            text = body.get("text")
+            if not isinstance(text, str):
+                self.send_response(400)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(b"text required")
+                return
+
+            # Validate before writing — bad JSON/YAML would crash the pipeline.
+            try:
+                if fmt == "json":
+                    json.loads(text)
+                elif fmt == "yaml":
+                    import yaml
+                    yaml.safe_load(text)
+            except Exception as e:
+                self.send_response(400)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(f"parse error: {e}".encode())
+                return
+
+            try:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                # Snapshot the current file before overwriting (single-slot
+                # backup; previous backup gets overwritten).
+                if path.exists():
+                    backup = path.with_suffix(path.suffix + ".bak")
+                    backup.write_bytes(path.read_bytes())
+                path.write_text(text, encoding="utf-8")
+
+                # Bust the company-limits cache so the change applies on
+                # the next acquire_job() without a pipeline restart.
+                if key == "company-limits":
+                    try:
+                        config._company_limits_cache = None
+                    except Exception:
+                        pass
+                self._json_ok({"status": "saved", "path": str(path),
+                               "bytes": len(text.encode())})
+            except Exception as e:
+                logger.warning("prefs_save error: %s", e)
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()

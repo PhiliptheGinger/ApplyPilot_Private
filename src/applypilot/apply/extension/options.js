@@ -57,28 +57,47 @@ window.addEventListener('hashchange', () => {
 
 // ── Backend helper ────────────────────────────────────────────────────────────
 
+// Custom error so callers can tell a semantic 4xx from a "no worker" outage.
+class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 /**
- * Probe each worker port for an endpoint until one responds OK.
- * Returns the parsed JSON body, or throws if all probes fail.
+ * Probe each worker port for an endpoint until one responds.
+ *   2xx        → return parsed JSON
+ *   4xx        → throw ApiError with the body text immediately
+ *                (validation errors are identical across workers since
+ *                they all hit the same DB; no point probing the rest)
+ *   5xx / net  → record and try the next worker; throw aggregate if all fail
  */
 async function probeWorkers(path, opts = {}) {
-  const errors = [];
+  const transportErrors = [];
   for (let wid = 0; wid < MAX_WORKERS; wid++) {
+    let r;
     try {
-      const r = await fetch(`http://localhost:${BASE_PORT + wid}${path}`, {
+      r = await fetch(`http://localhost:${BASE_PORT + wid}${path}`, {
         headers: { 'Content-Type': 'application/json' },
         signal: AbortSignal.timeout(2000),
         ...opts,
       });
-      if (r.ok) return r.json();
-      errors.push(`worker-${wid}: HTTP ${r.status}`);
     } catch (e) {
-      errors.push(`worker-${wid}: ${e.message}`);
+      transportErrors.push(`worker-${wid}: ${e.message}`);
+      continue;
     }
+    if (r.ok) return r.json();
+    if (r.status >= 400 && r.status < 500) {
+      const detail = await r.text().catch(() => '');
+      throw new ApiError(detail || `HTTP ${r.status}`, r.status);
+    }
+    transportErrors.push(`worker-${wid}: HTTP ${r.status}`);
   }
   throw new Error(
     `No worker responded. Run \`applypilot apply\`. ` +
-    `Probed: ${errors.join('; ')}`
+    `Probed: ${transportErrors.join('; ')}`
   );
 }
 
@@ -240,6 +259,112 @@ function stopIntegrationsPoll() {
 onSectionChange(name => {
   if (name === 'integrations') startIntegrationsPoll();
   else                          stopIntegrationsPoll();
+});
+
+// ── Preferences section ───────────────────────────────────────────────────────
+//
+// Edit the three text-based config files: profile.json, searches.yaml, and
+// company_limits.yaml. Backend parse-validates before writing so a stray
+// comma can't brick the next pipeline run. A single-slot .bak file is
+// kept on every save.
+
+const PREFS_FILES = [
+  { key: 'profile',        label: 'Profile',           hint: 'Personal info, EEO answers, file paths. profile.json — agent reads this for every form fill.' },
+  { key: 'searches',       label: 'Searches',          hint: 'Discovery queries: keywords, locations, salary floor, sites. searches.yaml — applied by `applypilot run discover`.' },
+  { key: 'company-limits', label: 'Company Limits',    hint: 'Per-company in-flight caps to spread applications. company_limits.yaml — read on every acquire_job(), no restart needed.' },
+];
+
+let _activePrefKey = 'profile';
+
+function prefsShellHTML() {
+  const tabs = PREFS_FILES.map(f =>
+    `<a class="pref-tab${f.key === _activePrefKey ? ' active' : ''}" data-pref="${f.key}"
+        style="padding:8px 16px;border-bottom:2px solid transparent;cursor:pointer;color:#94a3b8;font-size:13px;font-weight:500">
+       ${f.label}
+     </a>`
+  ).join('');
+  return `
+  <div style="display:flex;gap:0;border-bottom:1px solid #2d2d4e;margin-bottom:16px">
+    ${tabs}
+  </div>
+  <div id="pref-hint" style="font-size:12px;color:#94a3b8;margin-bottom:8px"></div>
+  <div id="pref-path" style="font-size:11px;color:#475569;margin-bottom:8px;font-family:monospace"></div>
+  <textarea id="pref-text"
+    style="width:100%;height:480px;padding:12px;background:#0f172a;border:1px solid #2d2d4e;color:#e2e8f0;border-radius:6px;font-family:'SF Mono',Menlo,monospace;font-size:12px;line-height:1.5;resize:vertical"></textarea>
+  <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+    <button class="btn" id="pref-save">Save</button>
+    <button class="btn btn-secondary" id="pref-reload">Discard changes</button>
+    <span id="pref-fb" style="margin-left:12px;font-size:12px;color:#94a3b8"></span>
+  </div>`;
+}
+
+function styleActivePrefTab() {
+  document.querySelectorAll('.pref-tab').forEach(tab => {
+    const isActive = tab.dataset.pref === _activePrefKey;
+    tab.classList.toggle('active', isActive);
+    tab.style.borderBottomColor = isActive ? '#818cf8' : 'transparent';
+    tab.style.color              = isActive ? '#818cf8' : '#94a3b8';
+  });
+  const meta = PREFS_FILES.find(f => f.key === _activePrefKey);
+  document.getElementById('pref-hint').textContent = meta?.hint || '';
+}
+
+async function loadPref() {
+  const fb = document.getElementById('pref-fb');
+  fb.textContent = 'Loading…';
+  try {
+    const data = await window.AP.probeWorkers(`/api/prefs/${_activePrefKey}`);
+    document.getElementById('pref-text').value = data.text || '';
+    document.getElementById('pref-path').textContent =
+      `${data.path}${data.exists ? '' : ' (not yet created)'}  ·  ${data.format}`;
+    fb.textContent = '';
+  } catch (e) {
+    fb.textContent = `Error: ${e.message}`;
+  }
+}
+
+async function savePref() {
+  const fb = document.getElementById('pref-fb');
+  fb.textContent = 'Saving…';
+  fb.style.color = '#94a3b8';
+  const text = document.getElementById('pref-text').value;
+  try {
+    const r = await window.AP.probeWorkers(`/api/prefs/${_activePrefKey}`, {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    });
+    fb.textContent = `✓ Saved · ${r.bytes} bytes (.bak written)`;
+    fb.style.color = '#6ee7b7';
+    setTimeout(() => { fb.textContent = ''; fb.style.color = '#94a3b8'; }, 2500);
+  } catch (e) {
+    // Probe error response goes to .message of the rejection
+    fb.textContent = `Save failed: ${e.message}`;
+    fb.style.color = '#fca5a5';
+  }
+}
+
+function bindPrefsShell() {
+  document.querySelectorAll('.pref-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      _activePrefKey = tab.dataset.pref;
+      styleActivePrefTab();
+      loadPref();
+    });
+  });
+  document.getElementById('pref-save').addEventListener('click', savePref);
+  document.getElementById('pref-reload').addEventListener('click', loadPref);
+}
+
+let _prefsInitialized = false;
+onSectionChange(name => {
+  if (name !== 'preferences') return;
+  if (!_prefsInitialized) {
+    document.getElementById('preferences-content').innerHTML = prefsShellHTML();
+    bindPrefsShell();
+    _prefsInitialized = true;
+  }
+  styleActivePrefTab();
+  loadPref();
 });
 
 // ── Q&A Knowledge section ─────────────────────────────────────────────────────
