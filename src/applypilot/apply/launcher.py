@@ -320,6 +320,8 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self._handle_jobs_list()
             elif self.path == "/api/integrations":
                 self._handle_integrations()
+            elif self.path.startswith("/api/qa"):
+                self._handle_qa_list()
             else:
                 self.send_response(404)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -348,6 +350,10 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self._handle_jobs_mark()
             elif self.path == "/api/integrations/gmail/reauth":
                 self._handle_gmail_reauth()
+            elif self.path == "/api/qa":
+                self._handle_qa_create()
+            elif self.path.startswith("/api/qa/"):
+                self._handle_qa_mutate()
             else:
                 self.send_response(404)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -782,6 +788,144 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self._json_ok({"status": "ok", "action": action})
             except Exception as e:
                 logger.error("HTTP _handle_jobs_mark failed for %s: %s", url, e, exc_info=True)
+                self.send_response(500)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(str(e).encode())
+
+        def _handle_qa_list(self):
+            """List/search qa_knowledge rows for the options-page editor.
+
+            Query params: q (free text), ats, source, outcome, limit, offset.
+            """
+            from urllib.parse import parse_qs, urlparse as _up
+            qs = parse_qs(_up(self.path).query)
+            q       = (qs.get("q",       [""])[0] or "").strip()
+            ats     = (qs.get("ats",     [""])[0] or "").strip()
+            source  = (qs.get("source",  [""])[0] or "").strip()
+            outcome = (qs.get("outcome", [""])[0] or "").strip()
+            limit   = max(1, min(int(qs.get("limit",  ["200"])[0]), 500))
+            offset  = max(0, int(qs.get("offset", ["0"])[0]))
+            try:
+                from applypilot.database import get_connection
+                conn = get_connection()
+                where = ["1=1"]
+                params: list = []
+                if q:
+                    where.append("(LOWER(question_text) LIKE ? OR LOWER(answer_text) LIKE ?)")
+                    needle = f"%{q.lower()}%"
+                    params += [needle, needle]
+                if ats:
+                    where.append("ats_slug = ?")
+                    params.append(ats)
+                if source:
+                    where.append("answer_source = ?")
+                    params.append(source)
+                if outcome:
+                    where.append("outcome = ?")
+                    params.append(outcome)
+                where_sql = " AND ".join(where)
+                total = conn.execute(
+                    f"SELECT COUNT(*) FROM qa_knowledge WHERE {where_sql}",
+                    params,
+                ).fetchone()[0]
+                rows = conn.execute(
+                    f"SELECT id, question_text, answer_text, answer_source, "
+                    f"field_type, ats_slug, options_json, outcome, "
+                    f"created_at, updated_at "
+                    f"FROM qa_knowledge WHERE {where_sql} "
+                    f"ORDER BY updated_at DESC NULLS LAST, created_at DESC "
+                    f"LIMIT ? OFFSET ?",
+                    [*params, limit, offset],
+                ).fetchall()
+                self._json_ok({"rows": [dict(r) for r in rows], "total": total})
+            except Exception as e:
+                logger.debug("qa_list error: %s", e)
+                self.send_response(500)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(str(e).encode())
+
+        def _handle_qa_create(self):
+            """Insert a new qa_knowledge row from the options-page editor."""
+            body = self._read_body()
+            question = (body.get("question") or "").strip()
+            answer   = (body.get("answer")   or "").strip()
+            if not question or not answer:
+                self.send_response(400)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(b"question and answer required")
+                return
+            source     = (body.get("source")     or "human").strip() or "human"
+            field_type = (body.get("field_type") or "").strip() or None
+            ats_slug   = (body.get("ats_slug")   or "").strip() or None
+            try:
+                from applypilot.database import store_qa
+                row_id = store_qa(question, answer, source=source,
+                                  field_type=field_type, ats_slug=ats_slug)
+                self._json_ok({"status": "created", "id": row_id})
+            except Exception as e:
+                logger.debug("qa_create error: %s", e)
+                self.send_response(500)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(str(e).encode())
+
+        def _handle_qa_mutate(self):
+            """Update or delete a qa_knowledge row by ID.
+
+            Path: /api/qa/{id}. Body action: "update" | "delete".
+            Update fields: question_text, answer_text, answer_source,
+            field_type, options_json, ats_slug, outcome.
+            """
+            from datetime import datetime as _dt, timezone as _tz
+            from applypilot.database import get_connection, question_key
+            try:
+                row_id = int(self.path.rsplit("/", 1)[-1])
+            except ValueError:
+                self.send_response(400); self.end_headers(); return
+            body = self._read_body()
+            action = (body.get("action") or "").strip()
+            try:
+                conn = get_connection()
+                if action == "delete":
+                    conn.execute("DELETE FROM qa_knowledge WHERE id = ?", (row_id,))
+                    conn.commit()
+                    self._json_ok({"status": "deleted", "id": row_id})
+                    return
+                if action == "update":
+                    fields = []
+                    params: list = []
+                    for col in (
+                        "question_text", "answer_text", "answer_source",
+                        "field_type", "options_json", "ats_slug", "outcome",
+                    ):
+                        if col in body:
+                            fields.append(f"{col} = ?")
+                            params.append(body[col] or None)
+                            # Recompute question_key whenever question_text changes
+                            if col == "question_text" and body[col]:
+                                fields.append("question_key = ?")
+                                params.append(question_key(body[col]))
+                    if not fields:
+                        self.send_response(400); self.end_headers(); return
+                    fields.append("updated_at = ?")
+                    params.append(_dt.now(_tz.utc).isoformat())
+                    params.append(row_id)
+                    conn.execute(
+                        f"UPDATE qa_knowledge SET {', '.join(fields)} WHERE id = ?",
+                        params,
+                    )
+                    conn.commit()
+                    self._json_ok({"status": "updated", "id": row_id})
+                    return
+                self.send_response(400)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(b"action must be 'update' or 'delete'")
+            except Exception as e:
+                logger.debug("qa_mutate error: %s", e)
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
