@@ -542,6 +542,14 @@ setInterval(() => {
     : `Auto-refreshing every 2s (last: ${secs}s ago)`;
 }, 1000);
 
+// Open the full-page settings UI (Integrations, Q&A, Preferences, etc.).
+// Closes the popup so we don't end up with the small popup hanging around
+// behind the new tab.
+document.getElementById('btn-settings').addEventListener('click', () => {
+  chrome.runtime.openOptionsPage();
+  window.close();
+});
+
 document.getElementById('btn-refresh').addEventListener('click', async () => {
   // Manual refresh: bypass the 2s timer and fetch immediately.
   await refreshFromServers();
