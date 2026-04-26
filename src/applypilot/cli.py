@@ -195,7 +195,7 @@ def apply(
         ),
     ),
     max_score: Optional[int] = typer.Option(None, "--max-score", help="Maximum fit score for job selection (useful for testing on lower-score jobs)."),
-    model: str = typer.Option("haiku", "--model", "-m", help="Claude model name."),
+    model: str = typer.Option("sonnet", "--model", "-m", help="Claude model name (sonnet | haiku | opus)."),
     continuous: bool = typer.Option(False, "--continuous", "-c", help="Run forever, polling for new jobs."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Preview actions without submitting."),
     headless: bool = typer.Option(False, "--headless", help="Run browsers in headless mode."),
