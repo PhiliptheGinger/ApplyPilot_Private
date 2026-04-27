@@ -2041,7 +2041,12 @@ def run_job(job: dict, port: int, worker_id: int = 0,
         # success-path memo (apply/successful_paths.py). Populated as
         # tool_use blocks stream in; persisted on RESULT:APPLIED.
         tool_calls: list[dict] = []
-        with open(worker_log, "a", encoding="utf-8") as lf:
+        # buffering=1 → line-buffered. Without this Python defaults to
+        # 8KB block buffering for text-mode files, which means short
+        # tool-call entries (~30 bytes each) accumulate invisibly until
+        # 250+ have happened or run_job exits. Flushing per-line keeps
+        # `tail -f worker-0.log` actually live during long apply runs.
+        with open(worker_log, "a", encoding="utf-8", buffering=1) as lf:
             lf.write(log_header)
 
             for line in proc.stdout:
