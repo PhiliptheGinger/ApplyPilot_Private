@@ -46,6 +46,14 @@ logger = logging.getLogger(__name__)
 # phase, which is the tail).
 MAX_STEPS = 60
 
+# A memo older than this is dropped on read — ATS form layouts change
+# (Greenhouse rolls UI updates, employers add screening questions, etc.)
+# and a stale path that no longer matches the current form is worse
+# than no path: the agent follows the wrong sequence and burns tokens
+# self-correcting. 30 days is conservative; bump down if we start seeing
+# stale-memo misfires.
+MAX_AGE_DAYS = 30
+
 PATHS_DIR = config.APP_DIR / "successful_paths"
 
 
@@ -102,17 +110,41 @@ def save_path(ats_slug: str, steps: list[dict],
 
 
 def load_path(ats_slug: str) -> dict | None:
-    """Read the cached successful path for ``ats_slug``, or return None."""
+    """Read the cached successful path for ``ats_slug``, or return None.
+
+    Memos older than ``MAX_AGE_DAYS`` are treated as not-present (the file
+    stays on disk for inspection but isn't returned to the agent prompt).
+    Stale paths reflect form layouts that have likely changed and would
+    mislead the agent more than help it.
+    """
     if not ats_slug:
         return None
     path = PATHS_DIR / f"{ats_slug}.json"
     if not path.exists():
         return None
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        payload = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         logger.debug("Could not load successful path for %s", ats_slug, exc_info=True)
         return None
+    captured_iso = payload.get("captured_at")
+    if captured_iso:
+        try:
+            captured_at = datetime.fromisoformat(captured_iso)
+            if captured_at.tzinfo is None:
+                captured_at = captured_at.replace(tzinfo=timezone.utc)
+            age = datetime.now(timezone.utc) - captured_at
+            if age.total_seconds() > MAX_AGE_DAYS * 86400:
+                logger.info(
+                    "Skipping stale memo for %s — age %.1f days exceeds %d-day cutoff",
+                    ats_slug, age.total_seconds() / 86400, MAX_AGE_DAYS,
+                )
+                return None
+        except Exception:
+            # Malformed timestamp → treat as fresh (safer than dropping a
+            # potentially useful memo on a parse glitch).
+            logger.debug("Could not parse captured_at for %s", ats_slug, exc_info=True)
+    return payload
 
 
 def format_path_for_prompt(payload: dict | None) -> str | None:

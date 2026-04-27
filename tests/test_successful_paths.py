@@ -136,3 +136,63 @@ def test_first_save_always_writes(tmp_paths_dir):
                     duration_ms=999_000)
     assert out is not None
     assert load_path("ashby") is not None
+
+
+# ── Age-based eviction ──────────────────────────────────────────────────────
+
+def test_load_skips_stale_memo(tmp_paths_dir):
+    """A memo older than MAX_AGE_DAYS should not be returned to callers."""
+    import json as _json
+    from datetime import datetime, timezone, timedelta
+    from applypilot.apply.successful_paths import (
+        save_path, load_path, MAX_AGE_DAYS, PATHS_DIR,
+    )
+    # Save a memo with a 99-days-ago captured_at by hand-editing the file
+    save_path("greenhouse", [{"tool": "x", "summary": "step"}],
+              duration_ms=240_000)
+    out_path = PATHS_DIR / "greenhouse.json"
+    payload = _json.loads(out_path.read_text())
+    payload["captured_at"] = (
+        datetime.now(timezone.utc) - timedelta(days=MAX_AGE_DAYS + 5)
+    ).isoformat()
+    out_path.write_text(_json.dumps(payload))
+
+    assert load_path("greenhouse") is None, "stale memo should be hidden"
+
+
+def test_load_returns_fresh_memo(tmp_paths_dir):
+    """A memo younger than MAX_AGE_DAYS is returned normally."""
+    from applypilot.apply.successful_paths import save_path, load_path
+    save_path("greenhouse", [{"tool": "x", "summary": "step"}],
+              duration_ms=240_000)
+    loaded = load_path("greenhouse")
+    assert loaded is not None
+    assert loaded["ats_slug"] == "greenhouse"
+
+
+def test_stale_memo_overwritten_by_new_save(tmp_paths_dir):
+    """A stale memo is invisible to the keep-fastest check, so any new
+    save (even a slow one) replaces it."""
+    import json as _json
+    from datetime import datetime, timezone, timedelta
+    from applypilot.apply.successful_paths import (
+        save_path, load_path, MAX_AGE_DAYS, PATHS_DIR,
+    )
+    # Plant a "fast but ancient" memo at 50 days old
+    save_path("greenhouse", [{"tool": "fast", "summary": "fast ancient"}],
+              duration_ms=100_000)
+    out_path = PATHS_DIR / "greenhouse.json"
+    payload = _json.loads(out_path.read_text())
+    payload["captured_at"] = (
+        datetime.now(timezone.utc) - timedelta(days=MAX_AGE_DAYS + 20)
+    ).isoformat()
+    out_path.write_text(_json.dumps(payload))
+
+    # A newer SLOW save should still win because the ancient one is stale
+    result = save_path("greenhouse",
+                       [{"tool": "slow", "summary": "slow but recent"}],
+                       duration_ms=900_000)
+    assert result is not None
+    loaded = load_path("greenhouse")
+    assert loaded["steps"][0]["summary"] == "slow but recent"
+    assert loaded["duration_ms"] == 900_000
