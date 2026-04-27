@@ -1923,6 +1923,13 @@ def run_job(job: dict, port: int, worker_id: int = 0,
             logger.debug("dry_run gate injection failed; falling back to prompt-only",
                          exc_info=True)
 
+    # Wipe stale resume / cover-letter / MCP-config copies from the previous
+    # job BEFORE build_prompt writes the fresh files. Earlier this wipe sat
+    # AFTER build_prompt and silently deleted the resume the agent was
+    # about to upload — agent then burned ~5 tool calls hunting for files
+    # in the legacy `current/` directory before copying them into worker-0.
+    reset_worker_dir(worker_id)
+
     # Read tailored resume text
     resume_path = job.get("tailored_resume_path")
     txt_path = Path(resume_path).with_suffix(".txt") if resume_path else None
@@ -2010,7 +2017,8 @@ def run_job(job: dict, port: int, worker_id: int = 0,
     # "credit balance is too low" on an unfunded API account.
     env.pop("ANTHROPIC_API_KEY", None)
 
-    worker_dir = reset_worker_dir(worker_id)
+    # worker_dir was wiped+recreated above, before build_prompt populated it.
+    worker_dir = config.APPLY_WORKER_DIR / f"worker-{worker_id}"
 
     update_state(worker_id, status="applying", job_title=job["title"],
                  company=job.get("site", ""), score=job.get("fit_score", 0),
