@@ -682,7 +682,14 @@ def _suppress_restore_nag(profile_dir: Path, worker_id: int | None = None) -> No
         _EXTRA_STALE = {
             "eloakdpcfbnnadhnohionnmicpmedapk",  # old path-derived source-dir ID (no key)
             "lafmhibgcablhganbgeffcppmpfjlmpn",  # previously computed wrong key-derived ID
+            "almfihgbaclbghnagbfecfpppmjfmlnp",  # static manifest-key ID (pre per-install
+                                                  # random key, decision #38). Was hardcoded
+                                                  # as APPLYPILOT_EXT_ID until the runtime
+                                                  # computation fix; existing installs may
+                                                  # have it polluting pinned_extensions.
         }
+        # Don't list our actual runtime ID as stale.
+        _EXTRA_STALE.discard(APPLYPILOT_EXT_ID)
         # Delete from settings unconditionally (the keep_prefix check would have spared these
         # since they pointed to the worker ext dir, causing the duplicate-dir loading bug).
         for bad_id in _EXTRA_STALE:
