@@ -843,6 +843,19 @@ in the KNOWN SCREENING ANSWERS section. The form will still be open in the brows
    - Wait 2 seconds for the page to reload in English.
    - browser_snapshot to confirm the page is now in English before continuing to step 2.
    If the page is already in English, skip this step entirely.
+1b. ATS IFRAME SHORTCUT (any site — run BEFORE step 2's snapshot):
+   Application forms embedded as iframes (Greenhouse-on-Databricks, Lever-on-Stripe, etc.) are
+   2-3× slower to fill because every snapshot includes the parent page's noise and every
+   click needs an iframe-relative ref. Skip the parent and load the form as a top-level page:
+     browser_evaluate: function() {{
+       const f = document.querySelector(
+         'iframe[src*="greenhouse.io"], iframe[src*="lever.co"], iframe[src*="ashbyhq.com"], '
+         + 'iframe[src*="workdayjobs.com"], iframe[src*="myworkdayjobs.com"], '
+         + 'iframe[src*="icims.com"], iframe[src*="smartrecruiters.com"], iframe[src*="jobvite.com"]');
+       return f ? f.src : null;
+     }}
+   If it returns a URL, browser_navigate there immediately, then continue with step 2 on
+   the new page. If null, continue normally.
 2. browser_snapshot to read the page. Then run CAPTCHA DETECT (see CAPTCHA section). If a CAPTCHA is found, solve it before continuing.
 3. LOCATION CHECK. Read the page for location info. If not eligible, output RESULT and stop.
 4. Find and click the Apply button. If email-only (page says "email resume to X"):
