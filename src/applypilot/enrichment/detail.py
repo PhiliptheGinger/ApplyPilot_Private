@@ -640,6 +640,9 @@ def _mark_enrich_result(
     if status in ("ok", "partial"):
         # Rewrite embedded-ATS URLs (?gh_jid=N etc.) to their canonical
         # ATS form so the apply agent never has to navigate the iframe.
+        # canonicalize_application_url consults both the static slug map
+        # AND the runtime cache populated by scrape_detail_page when it
+        # finds a job-boards.greenhouse.io iframe on an unknown host.
         from applypilot.discovery.url_normalize import canonicalize_application_url
         canonical = canonicalize_application_url(application_url) if application_url else application_url
         conn.execute(
@@ -675,6 +678,43 @@ def _mark_enrich_result(
         # retriable: no transition — job stays in 'discovered' for retry loop
 
 
+def _learn_greenhouse_slug_from_iframe(page, parent_url: str) -> None:
+    """If the rendered page embeds a Greenhouse iframe, register the slug.
+
+    Called once per enriched page so aggregator-discovered URLs (LinkedIn,
+    Indeed, BuiltIn) on unknown employer hosts gradually teach the
+    canonicalizer the right slug for that host. After registration, the
+    next encounter rewrites without an HTML fetch.
+    """
+    if not parent_url or not parent_url.startswith(("http://", "https://")):
+        return
+    parent_host = urlparse(parent_url).netloc.lower()
+    if parent_host.startswith("www."):
+        parent_host = parent_host[4:]
+    if not parent_host or parent_host.endswith("greenhouse.io"):
+        return
+    try:
+        from applypilot.discovery.url_normalize import (
+            lookup_slug, parse_greenhouse_slug_from_iframe_src,
+            register_runtime_slug,
+        )
+        if lookup_slug(parent_host):
+            return  # already known
+        srcs = page.evaluate(
+            "() => Array.from(document.querySelectorAll('iframe'))"
+            ".map(f => f.src).filter(s => s && s.includes('greenhouse.io'))"
+        )
+        for src in (srcs or []):
+            slug = parse_greenhouse_slug_from_iframe_src(src)
+            if slug:
+                register_runtime_slug(parent_host, slug)
+                return
+    except Exception:
+        # Iframe sniffing is best-effort; don't fail enrichment over it.
+        logger.debug("greenhouse iframe slug sniff failed for %s",
+                     parent_url[:80], exc_info=True)
+
+
 def scrape_detail_page(page, url: str) -> dict:
     """Full cascade for one detail page."""
     result: dict = {
@@ -705,6 +745,11 @@ def scrape_detail_page(page, url: str) -> dict:
             result["error"] = err_str[:200]
         result["elapsed"] = time.time() - t0
         return result
+
+    # Best-effort: learn the greenhouse slug for this employer host so
+    # canonicalize_application_url can rewrite ?gh_jid=N URLs the next
+    # time discovery encounters this host.
+    _learn_greenhouse_slug_from_iframe(page, url)
 
     intel = collect_detail_intelligence(page)
 
