@@ -1,69 +1,46 @@
 """Lever ATS direct API scraper.
 
 Scrapes Lever-powered career sites (Highspot, Outreach, Rover, Plaid,
-…) via the public postings endpoint. Zero LLM, zero browser — pure
-HTTP.
+…) via the public postings endpoint at
+``https://api.lever.co/v0/postings/{slug}?mode=json``.
 
-Postings API: https://api.lever.co/v0/postings/{slug}?mode=json
-
-Company slugs configured in ``config/lever_employers.yaml``. Same
-shape and life-cycle as ``discovery/greenhouse.py``.
+Slugs in ``config/lever_employers.yaml``. The fetch + DB plumbing lives
+in :mod:`applypilot.discovery.ats_common` — this module only owns the
+Lever-specific URL template and per-posting normalizer.
 """
-
 from __future__ import annotations
 
-import json
 import logging
-import sqlite3
-import time
-import urllib.error
-import urllib.request
 from datetime import datetime, timezone
 
-import yaml
-
-from applypilot import config
-from applypilot.config import CONFIG_DIR
-from applypilot.database import commit_with_retry, get_connection, init_db
-from applypilot.discovery.greenhouse import _location_ok, _load_location_filter, _strip_html
+from applypilot.discovery.ats_common import (
+    fetch_with_retry,
+    insert_normalized_jobs,
+    load_employers_yaml,
+    run_ats_crawl,
+)
+from applypilot.discovery.greenhouse import _location_ok, _strip_html
 
 log = logging.getLogger(__name__)
 
-
 LEVER_API = "https://api.lever.co/v0/postings/{slug}?mode=json"
-_HEADERS = {
-    "User-Agent": "ApplyPilot/1.0 (job-discovery)",
-    "Accept": "application/json",
-}
+_DEFAULT_SITE = "Lever"
+_STRATEGY = "lever_api"
 
 
-# ── Employer registry ─────────────────────────────────────────────────
+# ── Employer registry (kept for backwards compat with imports) ──────
 
 def load_employers() -> dict:
-    """Load Lever employer registry from config/lever_employers.yaml."""
-    path = CONFIG_DIR / "lever_employers.yaml"
-    if not path.exists():
-        log.warning("lever_employers.yaml not found at %s", path)
-        return {}
-    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    return data.get("employers", {})
+    return load_employers_yaml("lever_employers.yaml")
 
 
-# ── HTTP fetch ────────────────────────────────────────────────────────
-
-def _fetch_json(url: str, timeout: float = 20.0):
-    req = urllib.request.Request(url, headers=_HEADERS)
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
-
-
-# ── Per-employer scrape ───────────────────────────────────────────────
+# ── Lever-specific normalization ────────────────────────────────────
 
 def _location_string(posting: dict) -> str:
-    """Lever scatters location across categories.location + workplaceType.
+    """Compose location from categories.location + workplaceType + allLocations.
 
-    Returns a human-readable composite, with workplaceType prepended for
-    `remote` (so the location filter's remote-allowlist can fire).
+    Treats ``on-site`` as the default-omit; remote/hybrid surface in the
+    string so the downstream filter's remote-allowlist fires.
     """
     cats = posting.get("categories") or {}
     parts: list[str] = []
@@ -73,7 +50,6 @@ def _location_string(posting: dict) -> str:
     loc = cats.get("location")
     if loc:
         parts.append(str(loc))
-    # Lever sometimes lists multiple allLocations
     extra = cats.get("allLocations") or []
     if isinstance(extra, list):
         for e in extra:
@@ -83,24 +59,20 @@ def _location_string(posting: dict) -> str:
 
 
 def _description_text(posting: dict) -> str:
-    """Compose a plain-text description from Lever's HTML and lists fields."""
+    """Plain-text body composed from description + lists + additional."""
     parts: list[str] = []
-    desc_html = posting.get("description") or ""
-    if desc_html:
-        parts.append(_strip_html(desc_html))
-    # Lever's `lists` is an array of {text, content} sections (e.g. "What
-    # you'll do", "Requirements").
+    if posting.get("description"):
+        parts.append(_strip_html(posting["description"]))
     for section in posting.get("lists") or []:
-        title = section.get("text") or ""
         body = section.get("content") or ""
         if not body:
             continue
+        title = section.get("text") or ""
         if title:
             parts.append(f"\n{title}")
         parts.append(_strip_html(body))
-    additional = posting.get("additional") or ""
-    if additional:
-        parts.append(_strip_html(additional))
+    if posting.get("additional"):
+        parts.append(_strip_html(posting["additional"]))
     return "\n\n".join(p for p in parts if p)
 
 
@@ -110,41 +82,23 @@ def scrape_one_employer(
     accept_locs: list[str],
     max_retries: int = 2,
 ) -> tuple[list[dict], str | None]:
-    """Fetch all postings for one Lever board.
-
-    Returns (jobs, error). ``jobs`` is a list of normalized dicts
-    matching the shape used by ``_insert_jobs``.
-    """
+    """Fetch all postings for one Lever board → list of normalized job dicts."""
     url = LEVER_API.format(slug=slug)
-    last_err: str | None = None
-
-    postings: list[dict] = []
-    for attempt in range(max_retries):
-        try:
-            data = _fetch_json(url)
-            postings = data if isinstance(data, list) else []
-            break
-        except urllib.error.HTTPError as e:
-            last_err = f"HTTP {e.code} {e.reason}"
-            if e.code == 404:
-                return [], last_err
-            time.sleep(2 + attempt * 3)
-        except Exception as e:
-            last_err = f"{type(e).__name__}: {e}"
-            time.sleep(2 + attempt * 3)
-    else:
-        return [], last_err or "unknown error"
-
+    payload, err = fetch_with_retry(url, max_retries=max_retries)
+    if err:
+        return [], err
+    postings = payload if isinstance(payload, list) else []
     name = emp.get("name", slug)
+
     out: list[dict] = []
     for posting in postings:
         location = _location_string(posting)
         if not _location_ok(location, accept_locs):
             continue
         hosted_url = posting.get("hostedUrl")
-        apply_url = posting.get("applyUrl") or hosted_url
         if not hosted_url:
             continue
+        apply_url = posting.get("applyUrl") or hosted_url
 
         description = _description_text(posting)
         # Lever timestamps are ms-since-epoch; convert to ISO if present.
@@ -152,7 +106,7 @@ def scrape_one_employer(
         posted_at: str | None = None
         if isinstance(created, (int, float)) and created > 0:
             posted_at = datetime.fromtimestamp(
-                created / 1000, tz=timezone.utc
+                created / 1000, tz=timezone.utc,
             ).isoformat()
 
         out.append({
@@ -169,102 +123,22 @@ def scrape_one_employer(
     return out, None
 
 
-# ── DB insert ─────────────────────────────────────────────────────────
-
-def _insert_jobs(conn: sqlite3.Connection, jobs: list[dict]) -> tuple[int, int]:
-    """Insert jobs. Returns (new, existing). Mirrors greenhouse._insert_jobs."""
-    new = 0
-    existing = 0
-    now = datetime.now(timezone.utc).isoformat()
-
-    for job in jobs:
-        url = job.get("url")
-        if not url:
-            continue
-        full_description = job.get("full_description")
-        detail_scraped_at = now if full_description else None
-        site = job.get("employer_name", "Lever")
-        strategy = "lever_api"
-        initial_state = "enriched" if full_description else "discovered"
-        try:
-            conn.execute(
-                "INSERT INTO jobs (url, title, salary, description, location, site, strategy, "
-                "discovered_at, posted_at, full_description, application_url, "
-                "detail_scraped_at, state) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (url, job.get("title"), None, job.get("description"),
-                 job.get("location"), site, strategy, now,
-                 job.get("posted_at"), full_description,
-                 job.get("application_url"), detail_scraped_at, initial_state),
-            )
-            conn.execute(
-                "INSERT INTO job_state_transitions "
-                "(job_url, from_state, to_state, at, reason, metadata) "
-                "VALUES (?, NULL, ?, ?, ?, ?)",
-                (url, initial_state, now, f"discovered via {strategy}", None),
-            )
-            new += 1
-        except sqlite3.IntegrityError:
-            existing += 1
-
-    commit_with_retry(conn)
-    return new, existing
+# Kept exposed (some tests + pipeline.py still call this name)
+def _insert_jobs(conn, jobs):
+    return insert_normalized_jobs(conn, jobs, _DEFAULT_SITE, _STRATEGY)
 
 
-# ── Public entry point ────────────────────────────────────────────────
+# ── Public entry point ─────────────────────────────────────────────
 
 def run_lever_discovery(employers: dict | None = None, workers: int = 1) -> dict:
-    """Discover jobs from Lever-powered career sites.
-
-    Args:
-        employers: Override the employer registry (for tests).
-        workers: Currently unused — fetches are sequential.
-
-    Returns:
-        {'found', 'new', 'existing', 'employers', 'errors'}
-    """
+    """Discover jobs from Lever-powered career sites."""
     if employers is None:
         employers = load_employers()
+    return run_ats_crawl("Lever", _DEFAULT_SITE, _STRATEGY,
+                         employers, scrape_one_employer)
 
-    if not employers:
-        log.warning("No Lever employers configured. Create config/lever_employers.yaml.")
-        return {"found": 0, "new": 0, "existing": 0, "employers": 0, "errors": []}
 
-    accept_locs = _load_location_filter()
-    conn = get_connection()
-    init_db()
-
-    grand_new = 0
-    grand_existing = 0
-    grand_found = 0
-    errors: list[str] = []
-
-    log.info("Lever crawl: %d employers", len(employers))
-    for slug, emp in employers.items():
-        name = emp.get("name", slug)
-        try:
-            jobs, err = scrape_one_employer(slug, emp, accept_locs)
-            if err:
-                log.warning("  [%s] %s", slug, err)
-                errors.append(f"{slug}: {err}")
-                continue
-            new, existing = _insert_jobs(conn, jobs)
-            grand_new += new
-            grand_existing += existing
-            grand_found += len(jobs)
-            log.info("  [%s] %s: %d found (%d new, %d existing)",
-                     slug, name, len(jobs), new, existing)
-        except Exception as e:
-            log.exception("Lever scrape failed for %s: %s", slug, e)
-            errors.append(f"{slug}: {e}")
-
-    log.info("Lever crawl done: %d found (%d new, %d existing) across %d employers",
-             grand_found, grand_new, grand_existing, len(employers))
-
-    return {
-        "found": grand_found,
-        "new": grand_new,
-        "existing": grand_existing,
-        "employers": len(employers),
-        "errors": errors,
-    }
+# Kept for backwards compat (was imported by tests before the refactor).
+def _fetch_json(url, timeout=20.0):  # pragma: no cover
+    from applypilot.discovery.ats_common import _fetch_json as _f
+    return _f(url, timeout)

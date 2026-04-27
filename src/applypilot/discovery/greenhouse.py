@@ -139,25 +139,12 @@ def scrape_one_employer(
     Returns (jobs, error) — jobs is a list of normalized dicts, error is
     non-None if the fetch failed.
     """
+    from applypilot.discovery.ats_common import fetch_with_retry
     url = GREENHOUSE_API.format(slug=slug) + "?content=true"
-    last_err: str | None = None
-
-    for attempt in range(max_retries):
-        try:
-            data = _fetch_json(url)
-            break
-        except urllib.error.HTTPError as e:
-            last_err = f"HTTP {e.code} {e.reason}"
-            if e.code == 404:
-                return [], last_err
-            time.sleep(2 + attempt * 3)
-        except Exception as e:
-            last_err = f"{type(e).__name__}: {e}"
-            time.sleep(2 + attempt * 3)
-    else:
-        return [], last_err or "unknown error"
-
-    jobs_raw = data.get("jobs", [])
+    data, err = fetch_with_retry(url, max_retries=max_retries)
+    if err:
+        return [], err
+    jobs_raw = (data or {}).get("jobs", [])
     name = emp.get("name", slug)
 
     out = []
@@ -194,106 +181,19 @@ def scrape_one_employer(
     return out, None
 
 
-# ── DB insert ─────────────────────────────────────────────────────────
+# ── DB insert / driver ────────────────────────────────────────────────
+# Both sit in ats_common now; thin shims kept here for any external
+# imports (existing tests reference greenhouse._insert_jobs by name).
 
 def _insert_jobs(conn: sqlite3.Connection, jobs: list[dict]) -> tuple[int, int]:
-    """Insert jobs. Returns (new, existing)."""
-    new = 0
-    existing = 0
-    now = datetime.now(timezone.utc).isoformat()
+    from applypilot.discovery.ats_common import insert_normalized_jobs
+    return insert_normalized_jobs(conn, jobs, "Greenhouse", "greenhouse_api")
 
-    for job in jobs:
-        url = job.get("url")
-        if not url:
-            continue
-
-        full_description = job.get("full_description")
-        detail_scraped_at = now if full_description else None
-        site = job.get("employer_name", "Greenhouse")
-        strategy = "greenhouse_api"
-
-        initial_state = "enriched" if full_description else "discovered"
-        try:
-            conn.execute(
-                "INSERT INTO jobs (url, title, salary, description, location, site, strategy, "
-                "discovered_at, posted_at, full_description, application_url, "
-                "detail_scraped_at, state) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (url, job.get("title"), None, job.get("description"), job.get("location"),
-                 site, strategy, now, job.get("posted_at"), full_description,
-                 job.get("application_url"), detail_scraped_at, initial_state),
-            )
-            conn.execute(
-                "INSERT INTO job_state_transitions "
-                "(job_url, from_state, to_state, at, reason, metadata) "
-                "VALUES (?, NULL, ?, ?, ?, ?)",
-                (url, initial_state, now, f"discovered via {strategy}", None),
-            )
-            new += 1
-        except sqlite3.IntegrityError:
-            existing += 1
-
-    commit_with_retry(conn)
-    return new, existing
-
-
-# ── Public entry point ────────────────────────────────────────────────
 
 def run_greenhouse_discovery(employers: dict | None = None, workers: int = 1) -> dict:
-    """Discover jobs from Greenhouse-powered career sites.
-
-    Args:
-        employers: Override the employer registry (for tests). Loads from YAML if None.
-        workers: Currently unused — HTTP fetches are sequential for simplicity.
-
-    Returns:
-        {'found': int, 'new': int, 'existing': int, 'employers': int, 'errors': list}
-    """
+    """Discover jobs from Greenhouse-powered career sites."""
+    from applypilot.discovery.ats_common import run_ats_crawl
     if employers is None:
         employers = load_employers()
-
-    if not employers:
-        log.warning("No Greenhouse employers configured. Create config/greenhouse_employers.yaml.")
-        return {"found": 0, "new": 0, "existing": 0, "employers": 0, "errors": []}
-
-    accept_locs = _load_location_filter()
-
-    conn = get_connection()
-    init_db()
-
-    grand_new = 0
-    grand_existing = 0
-    grand_found = 0
-    errors: list[str] = []
-
-    log.info("Greenhouse crawl: %d employers", len(employers))
-
-    for slug, emp in employers.items():
-        name = emp.get("name", slug)
-        try:
-            jobs, err = scrape_one_employer(slug, emp, accept_locs)
-            if err:
-                log.warning("  [%s] %s", slug, err)
-                errors.append(f"{slug}: {err}")
-                continue
-
-            new, existing = _insert_jobs(conn, jobs)
-            grand_new += new
-            grand_existing += existing
-            grand_found += len(jobs)
-            log.info("  [%s] %s: %d found (%d new, %d existing)",
-                     slug, name, len(jobs), new, existing)
-        except Exception as e:
-            log.exception("Greenhouse scrape failed for %s: %s", slug, e)
-            errors.append(f"{slug}: {e}")
-
-    log.info("Greenhouse crawl done: %d found (%d new, %d existing) across %d employers",
-             grand_found, grand_new, grand_existing, len(employers))
-
-    return {
-        "found": grand_found,
-        "new": grand_new,
-        "existing": grand_existing,
-        "employers": len(employers),
-        "errors": errors,
-    }
+    return run_ats_crawl("Greenhouse", "Greenhouse", "greenhouse_api",
+                         employers, scrape_one_employer)

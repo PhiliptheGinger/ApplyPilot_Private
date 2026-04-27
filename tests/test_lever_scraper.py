@@ -95,8 +95,8 @@ def test_description_text_handles_empty_posting():
 
 @pytest.fixture
 def mock_lever_api(monkeypatch):
-    """Patch _fetch_json to return canned data."""
-    from applypilot.discovery import lever
+    """Patch the shared fetch helper to return canned data."""
+    from applypilot.discovery import ats_common
     captured = {"url": None}
 
     def fake_fetch(url, timeout=20.0):
@@ -131,7 +131,7 @@ def mock_lever_api(monkeypatch):
             },
         ]
 
-    monkeypatch.setattr(lever, "_fetch_json", fake_fetch)
+    monkeypatch.setattr(ats_common, "_fetch_json", fake_fetch)
     return captured
 
 

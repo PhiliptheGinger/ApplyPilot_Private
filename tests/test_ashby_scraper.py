@@ -68,8 +68,8 @@ def test_location_string_handles_secondary_dict_form():
 
 @pytest.fixture
 def mock_ashby_api(monkeypatch):
-    """Patch _fetch_json to return canned data."""
-    from applypilot.discovery import ashby
+    """Patch the shared fetch helper to return canned data."""
+    from applypilot.discovery import ats_common
     captured = {"url": None}
 
     def fake_fetch(url, timeout=20.0):
@@ -114,7 +114,7 @@ def mock_ashby_api(monkeypatch):
             ],
         }
 
-    monkeypatch.setattr(ashby, "_fetch_json", fake_fetch)
+    monkeypatch.setattr(ats_common, "_fetch_json", fake_fetch)
     return captured
 
 
