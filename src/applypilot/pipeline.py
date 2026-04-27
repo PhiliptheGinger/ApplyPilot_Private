@@ -89,6 +89,7 @@ DISCOVERY_SOURCES: dict[str, str] = {
     "workday":      "Workday corporate career sites",
     "greenhouse":   "Greenhouse ATS public board API",
     "lever":        "Lever ATS public postings API",
+    "ashby":        "Ashby ATS public posting API",
     "amazon":       "amazon.jobs public search API",
     "costco":       "careers.costco.com public API (Issaquah HQ)",
     "smartextract": "Smart extract (AI-powered scraping, incl. Dice via sites.yaml)",
@@ -196,6 +197,17 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
             log.error("Lever scraper failed: %s", e)
             console.print(f"  [red]Lever error:[/red] {e}")
             stats["lever"] = f"error: {e}"
+
+    if "ashby" in active:
+        console.print("  [cyan]Ashby ATS scraper...[/cyan]")
+        try:
+            from applypilot.discovery.ashby import run_ashby_discovery
+            run_ashby_discovery(workers=workers)
+            stats["ashby"] = "ok"
+        except Exception as e:
+            log.error("Ashby scraper failed: %s", e)
+            console.print(f"  [red]Ashby error:[/red] {e}")
+            stats["ashby"] = f"error: {e}"
 
     if "amazon" in active:
         console.print("  [cyan]Amazon.jobs scraper...[/cyan]")
