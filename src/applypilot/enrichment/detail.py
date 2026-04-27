@@ -638,12 +638,16 @@ def _mark_enrich_result(
         now = datetime.now(timezone.utc).isoformat()
 
     if status in ("ok", "partial"):
+        # Rewrite embedded-ATS URLs (?gh_jid=N etc.) to their canonical
+        # ATS form so the apply agent never has to navigate the iframe.
+        from applypilot.discovery.url_normalize import canonicalize_application_url
+        canonical = canonicalize_application_url(application_url) if application_url else application_url
         conn.execute(
             "UPDATE jobs SET full_description = ?, application_url = ?, "
             "detail_scraped_at = ?, detail_error = NULL, "
             "detail_error_category = NULL, enrich_attempts = 0, "
             "enrich_next_retry_at = NULL WHERE url = ?",
-            (full_description, application_url, now, url),
+            (full_description, canonical, now, url),
         )
         transition_state(
             conn, url, "enriched",

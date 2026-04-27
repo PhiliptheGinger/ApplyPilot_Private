@@ -1232,6 +1232,7 @@ def store_jobs(conn: sqlite3.Connection, jobs: list[dict],
     new = 0
     existing = 0
 
+    from applypilot.discovery.url_normalize import canonicalize_application_url
     for job in jobs:
         url = job.get("url")
         if not url:
@@ -1242,6 +1243,9 @@ def store_jobs(conn: sqlite3.Connection, jobs: list[dict],
         # Skip URLs that are still relative (unresolvable)
         if not url.startswith("http://") and not url.startswith("https://"):
             continue
+        # Rewrite embedded-ATS URLs (e.g. Databricks ?gh_jid → canonical
+        # Greenhouse) so the apply agent never sees the iframe parent.
+        url = canonicalize_application_url(url)
 
         try:
             conn.execute(
