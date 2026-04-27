@@ -71,6 +71,35 @@ def _patch_manifest_key(manifest_path: Path) -> None:
     manifest_path.write_text(_json.dumps(data, indent=2), encoding="utf-8")
 
 
+def _compute_extension_id(pubkey_b64: str) -> str:
+    """Derive the Chrome extension ID from the manifest's `key` field.
+
+    Chrome computes:
+      1. base64-decode the public key (DER format)
+      2. sha256 hash → 32 bytes
+      3. Take first 16 bytes (= 32 hex nibbles)
+      4. Map each hex nibble 0-f → a-p
+
+    Per-install random keys (decision #38) mean we can't hardcode the ID
+    anywhere — pinning, ext_settings entries, popup URLs all need to
+    compute it from the same key the manifest uses.
+    """
+    import base64 as _b64
+    import hashlib as _hashlib
+    raw = _b64.b64decode(pubkey_b64)
+    digest = _hashlib.sha256(raw).hexdigest()[:32]
+    return "".join(chr(ord("a") + int(c, 16)) for c in digest)
+
+
+def _applypilot_ext_id() -> str:
+    """Return the ID Chrome assigns our extension on this install.
+
+    Memoized via _get_or_create_extension_key (which itself caches to
+    disk on first call), so repeated lookups are cheap.
+    """
+    return _compute_extension_id(_get_or_create_extension_key())
+
+
 # --- Port table (audit #11 — centralize all port literals here) -------------
 # CDP port base — each worker uses BASE_CDP_PORT + worker_id
 BASE_CDP_PORT = 9222
@@ -597,10 +626,13 @@ def _suppress_restore_nag(profile_dir: Path, worker_id: int | None = None) -> No
         })
 
         # --- 4. Extension registration and pinning ---
-        # APPLYPILOT_EXT_ID is derived from the RSA key in manifest.json ("key" field).
-        # sha256(base64decode(key))[:16bytes] mapped nibble→a-p.
-        # Verified: base64.b64decode(key) | sha256 | first 32 hex nibbles → a-p
-        APPLYPILOT_EXT_ID = "almfihgbaclbghnagbfecfpppmjfmlnp"
+        # The extension ID is derived from manifest.json's "key" field. Per
+        # decision #38 we generate a per-install random RSA key, so the ID
+        # differs across installs — must be computed at runtime.
+        # The previous hardcoded literal "almfihgbac..." was the static-key
+        # ID and never matched any actual loaded extension after #38;
+        # that's why the user kept seeing "extension unpinned every run".
+        APPLYPILOT_EXT_ID = _applypilot_ext_id()
 
         ext_dir = prefs.setdefault("extensions", {})
 
