@@ -1911,6 +1911,18 @@ def run_job(job: dict, port: int, worker_id: int = 0,
     if not skip_tab_reset:
         _reset_browser_tabs(port)
 
+    # Hard dry-run gate: install a CDP-side script that blocks form
+    # submits and clicks on submit-style buttons. Belt to the prompt's
+    # suspenders — even if the model ignores the prompt instruction
+    # (Haiku has done this), the click never reaches a handler.
+    if dry_run:
+        try:
+            from applypilot.apply.chrome import inject_dry_run_gate
+            inject_dry_run_gate(port)
+        except Exception:
+            logger.debug("dry_run gate injection failed; falling back to prompt-only",
+                         exc_info=True)
+
     # Read tailored resume text
     resume_path = job.get("tailored_resume_path")
     txt_path = Path(resume_path).with_suffix(".txt") if resume_path else None

@@ -56,6 +56,146 @@ def _get_or_create_extension_key() -> str:
     return pubkey_b64
 
 
+_DRY_RUN_GATE_JS = r"""
+(function() {
+  if (window.__ap_dry_run_gate_installed) return;
+  window.__ap_dry_run_gate_installed = true;
+  // Block form submits outright.
+  document.addEventListener('submit', e => {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    try { console.log('[ApplyPilot] dry-run: form submit blocked', e.target); } catch (_) {}
+  }, true);
+  // Block clicks on anything that looks like a final-submit affordance.
+  // We match generously by visible text + aria-label, not by element type
+  // alone — many ATS submit controls are <a role="button"> or custom
+  // <div onclick>, not <button type="submit">.
+  const SUBMIT_RE =
+    /\b(submit application|submit my application|submit and apply|submit$|apply now|send application|finish application|complete application|complete and submit)\b/i;
+  document.addEventListener('click', e => {
+    let t = e.target;
+    if (!t) return;
+    if (t.nodeType !== 1) t = t.parentElement;
+    const candidate = t && t.closest && t.closest(
+      'button, input[type=submit], input[type=button], a[role=button], [role=button], [data-action*=submit i]'
+    );
+    if (!candidate) return;
+    const text = (
+      (candidate.innerText || candidate.value || '') + ' ' +
+      (candidate.getAttribute('aria-label') || '') + ' ' +
+      (candidate.getAttribute('title') || '')
+    ).trim();
+    if (SUBMIT_RE.test(text)) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      try {
+        candidate.style.outline = '3px dashed #fbbf24';
+        candidate.style.outlineOffset = '2px';
+        candidate.title = 'ApplyPilot dry-run: this button is disabled';
+      } catch (_) {}
+      try { console.log('[ApplyPilot] dry-run: submit click blocked:', text); } catch (_) {}
+    }
+  }, true);
+})();
+"""
+
+
+def inject_dry_run_gate(cdp_port: int) -> bool:
+    """Install a JS gate that blocks form submits + submit-button clicks.
+
+    Used when the apply pipeline runs with --dry-run. Connects to the
+    browser-level CDP target, calls Page.addScriptToEvaluateOnNewDocument
+    so the gate persists across navigations, and Runtime.evaluate the
+    same script in every existing page so it covers the current tab too.
+
+    Earlier, dry-run was prompt-only ("don't click submit"). Haiku
+    sometimes ignored that and submitted real applications. A code-side
+    gate is non-negotiable: even if the agent fires `browser_click
+    Submit`, the click event is intercepted at the capture phase and
+    preventDefault'd before any handler runs.
+
+    Returns True on success, False on any failure (in which case the
+    caller should fall back to the prompt-only override).
+    """
+    import urllib.request
+    import websocket  # type: ignore
+
+    try:
+        # Browser-level WS endpoint (covers all targets via the dispatcher).
+        info = json.loads(urllib.request.urlopen(
+            f"http://localhost:{cdp_port}/json/version", timeout=3,
+        ).read())
+        browser_ws = info.get("webSocketDebuggerUrl")
+        if not browser_ws:
+            return False
+    except Exception:
+        logger.debug("dry_run_gate: could not fetch CDP /json/version", exc_info=True)
+        return False
+
+    msg_id = [0]
+
+    def _send(ws, method, params=None, session_id=None):
+        msg_id[0] += 1
+        req = {"id": msg_id[0], "method": method}
+        if params is not None:
+            req["params"] = params
+        if session_id is not None:
+            req["sessionId"] = session_id
+        ws.send(json.dumps(req))
+        # Drain until we see our response (skip events).
+        for _ in range(40):
+            raw = ws.recv()
+            try:
+                resp = json.loads(raw)
+            except Exception:
+                continue
+            if resp.get("id") == msg_id[0]:
+                return resp
+        return None
+
+    try:
+        ws = websocket.create_connection(browser_ws, timeout=5)
+    except Exception:
+        logger.debug("dry_run_gate: ws connect failed", exc_info=True)
+        return False
+
+    try:
+        # Find every page target so we can inject into each one.
+        targets_resp = _send(ws, "Target.getTargets") or {}
+        page_targets = [
+            t for t in (targets_resp.get("result", {}).get("targetInfos", []) or [])
+            if t.get("type") == "page"
+        ]
+        installed = 0
+        for tgt in page_targets:
+            attach = _send(ws, "Target.attachToTarget",
+                           {"targetId": tgt["targetId"], "flatten": True})
+            if not attach:
+                continue
+            sid = attach.get("result", {}).get("sessionId")
+            if not sid:
+                continue
+            try:
+                _send(ws, "Page.enable", session_id=sid)
+                _send(ws, "Page.addScriptToEvaluateOnNewDocument",
+                      {"source": _DRY_RUN_GATE_JS}, session_id=sid)
+                # Also evaluate immediately so the current page is gated.
+                _send(ws, "Runtime.evaluate",
+                      {"expression": _DRY_RUN_GATE_JS, "awaitPromise": False},
+                      session_id=sid)
+                installed += 1
+            finally:
+                # Best-effort detach so we don't leave a session pinned.
+                _send(ws, "Target.detachFromTarget", {"sessionId": sid})
+        logger.info("Installed dry-run submit-blocker on %d page target(s)", installed)
+        return installed > 0
+    finally:
+        try:
+            ws.close()
+        except Exception:
+            pass
+
+
 def _patch_manifest_key(manifest_path: Path) -> None:
     """Replace the `key` field in an extension manifest.json with our
     per-install random key. Idempotent — calling again with the same key
