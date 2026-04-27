@@ -88,8 +88,51 @@ def test_format_for_prompt_handles_none(tmp_paths_dir):
 
 def test_overwrite_replaces_prior(tmp_paths_dir):
     from applypilot.apply.successful_paths import save_path, load_path
+    # No durations → newer wins (we treat duration-less memos as
+    # always-overwrite for backward compat).
     save_path("lever", [{"tool": "old", "summary": "old run"}])
     save_path("lever", [{"tool": "new", "summary": "new run"}])
     loaded = load_path("lever")
     assert len(loaded["steps"]) == 1
     assert loaded["steps"][0]["summary"] == "new run"
+
+
+def test_keep_fastest_when_durations_present(tmp_paths_dir):
+    """A slower run should NOT overwrite an existing faster memo."""
+    from applypilot.apply.successful_paths import save_path, load_path
+    save_path("greenhouse",
+              [{"tool": "fast", "summary": "fast path step"}],
+              duration_ms=240_000)
+    # Slower run — should be skipped
+    result = save_path("greenhouse",
+                       [{"tool": "slow", "summary": "slow path step"}],
+                       duration_ms=857_000)
+    assert result is None, "save should return None when skipped"
+    loaded = load_path("greenhouse")
+    assert loaded["duration_ms"] == 240_000
+    assert loaded["steps"][0]["summary"] == "fast path step"
+
+
+def test_faster_run_wins_over_existing(tmp_paths_dir):
+    """A faster run should replace a slower memo."""
+    from applypilot.apply.successful_paths import save_path, load_path
+    save_path("greenhouse",
+              [{"tool": "slow", "summary": "first slow run"}],
+              duration_ms=857_000)
+    result = save_path("greenhouse",
+                       [{"tool": "fast", "summary": "second fast run"}],
+                       duration_ms=240_000)
+    assert result is not None
+    loaded = load_path("greenhouse")
+    assert loaded["duration_ms"] == 240_000
+    assert loaded["steps"][0]["summary"] == "second fast run"
+
+
+def test_first_save_always_writes(tmp_paths_dir):
+    """First memo for a slug writes regardless of how slow it is."""
+    from applypilot.apply.successful_paths import save_path, load_path
+    out = save_path("ashby",
+                    [{"tool": "x", "summary": "first time on ashby"}],
+                    duration_ms=999_000)
+    assert out is not None
+    assert load_path("ashby") is not None

@@ -54,14 +54,36 @@ def save_path(ats_slug: str, steps: list[dict],
               duration_ms: int | None = None) -> Path | None:
     """Persist a successful tool-call sequence for ``ats_slug``.
 
+    Keep-fastest semantics: if a memo already exists for ``ats_slug``
+    and its ``duration_ms`` is shorter than the new run's, skip the
+    write so a 14-min iframe-fight doesn't overwrite a clean 4-min run.
+    A new memo with no duration_ms still wins (we treat it as the only
+    source of truth in that case).
+
     Returns the file path written, or None if the slug was empty / no
-    steps were recorded / write failed.
+    steps were recorded / write failed / the existing memo was faster.
     """
     if not ats_slug or not steps:
         return None
+    out_path = PATHS_DIR / f"{ats_slug}.json"
+
+    # Keep the fastest memo. The threshold compares duration_ms; ties go
+    # to the newer entry (it's at least as fast and has any newly-learned
+    # form changes).
+    if duration_ms is not None:
+        existing = load_path(ats_slug)
+        if existing:
+            old_dur = existing.get("duration_ms")
+            if isinstance(old_dur, int) and old_dur > 0 and duration_ms > old_dur:
+                logger.info(
+                    "Skipping memo update for %s — existing %.1fs is "
+                    "faster than new %.1fs",
+                    ats_slug, old_dur / 1000, duration_ms / 1000,
+                )
+                return None
+
     try:
         PATHS_DIR.mkdir(parents=True, exist_ok=True)
-        out_path = PATHS_DIR / f"{ats_slug}.json"
         payload = {
             "ats_slug":    ats_slug,
             "captured_at": datetime.now(timezone.utc).isoformat(),
@@ -70,8 +92,9 @@ def save_path(ats_slug: str, steps: list[dict],
             "steps":       steps[-MAX_STEPS:],
         }
         out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-        logger.info("Saved successful path for %s (%d steps)",
-                    ats_slug, len(payload["steps"]))
+        logger.info("Saved successful path for %s (%d steps, %.1fs)",
+                    ats_slug, len(payload["steps"]),
+                    (duration_ms or 0) / 1000)
         return out_path
     except Exception:
         logger.debug("Could not save successful path", exc_info=True)
