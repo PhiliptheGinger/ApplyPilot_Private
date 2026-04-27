@@ -141,18 +141,97 @@ function _stealthFunction() {
     }
   } catch (_e) {}
 
-  // 3. navigator.plugins — non-empty array (matches real Chrome). Real
-  // PluginArray is hard to fake exactly; fingerprinting libraries mostly
-  // just check `length > 0`, so a plain Array suffices.
+  // 3. navigator.plugins — proper PluginArray-shaped fake.
+  //
+  // Older fingerprinters just checked `navigator.plugins.length`, so a
+  // plain Array sufficed. Modern fingerprinters (creepjs, fpcollect)
+  // also assert `navigator.plugins instanceof PluginArray` and
+  // `navigator.plugins[0] instanceof Plugin`. Setting prototypes on
+  // ordinary objects is the cleanest way to pass those checks without
+  // calling actual constructors (PluginArray / Plugin / MimeType have
+  // no public [[Construct]]).
   try {
-    const fakePlugins = [
-      { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer',
-        description: 'Portable Document Format' },
-      { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai',
-        description: 'Portable Document Format' },
+    function _makeMimeType(type, suffixes, description, plugin) {
+      const m = { type, suffixes, description };
+      Object.defineProperty(m, 'enabledPlugin', { get: () => plugin });
+      try { Object.setPrototypeOf(m, MimeType.prototype); } catch (_) {}
+      return m;
+    }
+    function _makePlugin(name, filename, description, mimes) {
+      const p = { name, filename, description };
+      mimes.forEach((m, i) => { p[i] = _makeMimeType(m.type, m.suffixes, m.description, p); });
+      Object.defineProperty(p, 'length', { get: () => mimes.length });
+      p.item = function (i) { return this[i] || null; };
+      p.namedItem = function (n) {
+        for (let i = 0; i < this.length; i++) {
+          if (this[i] && this[i].type === n) return this[i];
+        }
+        return null;
+      };
+      try { Object.setPrototypeOf(p, Plugin.prototype); } catch (_) {}
+      return p;
+    }
+
+    const _plugins = [
+      _makePlugin('PDF Viewer',           'internal-pdf-viewer',
+                  'Portable Document Format',
+                  [{ type: 'application/pdf', suffixes: 'pdf', description: '' },
+                   { type: 'text/pdf',        suffixes: 'pdf', description: '' }]),
+      _makePlugin('Chrome PDF Viewer',    'internal-pdf-viewer',
+                  'Portable Document Format',
+                  [{ type: 'application/pdf', suffixes: 'pdf', description: '' },
+                   { type: 'text/pdf',        suffixes: 'pdf', description: '' }]),
+      _makePlugin('Chromium PDF Viewer',  'internal-pdf-viewer',
+                  'Portable Document Format',
+                  [{ type: 'application/pdf', suffixes: 'pdf', description: '' },
+                   { type: 'text/pdf',        suffixes: 'pdf', description: '' }]),
+      _makePlugin('Microsoft Edge PDF Viewer', 'internal-pdf-viewer',
+                  'Portable Document Format',
+                  [{ type: 'application/pdf', suffixes: 'pdf', description: '' },
+                   { type: 'text/pdf',        suffixes: 'pdf', description: '' }]),
+      _makePlugin('WebKit built-in PDF',  'internal-pdf-viewer',
+                  'Portable Document Format',
+                  [{ type: 'application/pdf', suffixes: 'pdf', description: '' },
+                   { type: 'text/pdf',        suffixes: 'pdf', description: '' }]),
     ];
+
+    const _pluginArray = Object.create(PluginArray.prototype);
+    _plugins.forEach((p, i) => { _pluginArray[i] = p; });
+    Object.defineProperty(_pluginArray, 'length', { get: () => _plugins.length });
+    _pluginArray.item = function (i) { return this[i] || null; };
+    _pluginArray.namedItem = function (n) {
+      for (let i = 0; i < this.length; i++) {
+        if (this[i] && this[i].name === n) return this[i];
+      }
+      return null;
+    };
+    _pluginArray.refresh = function () {};
+
     Object.defineProperty(navigator, 'plugins', {
-      get: () => fakePlugins,
+      get: () => _pluginArray,
+      configurable: true,
+    });
+
+    // navigator.mimeTypes — populated from the plugins above so it isn't
+    // an empty MimeTypeArray (creepjs flags that as inconsistent with a
+    // populated plugin list).
+    const _mimeArray = Object.create(MimeTypeArray.prototype);
+    let _mIdx = 0;
+    for (const p of _plugins) {
+      for (let i = 0; i < p.length; i++) {
+        _mimeArray[_mIdx++] = p[i];
+      }
+    }
+    Object.defineProperty(_mimeArray, 'length', { get: () => _mIdx });
+    _mimeArray.item = function (i) { return this[i] || null; };
+    _mimeArray.namedItem = function (n) {
+      for (let i = 0; i < this.length; i++) {
+        if (this[i] && this[i].type === n) return this[i];
+      }
+      return null;
+    };
+    Object.defineProperty(navigator, 'mimeTypes', {
+      get: () => _mimeArray,
       configurable: true,
     });
   } catch (_e) {}

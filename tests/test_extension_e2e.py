@@ -128,6 +128,12 @@ def test_stealth_overrides_apply_in_main_world(cft_available):
                           stealthMarker: window.__ap_stealth_loaded === true,
                           webdriverUndefined: navigator.webdriver === undefined,
                           pluginsLength: navigator.plugins.length,
+                          // Modern fingerprinters check the type, not just length
+                          pluginsIsArray: navigator.plugins instanceof PluginArray,
+                          firstIsPlugin: navigator.plugins.length > 0
+                            && navigator.plugins[0] instanceof Plugin,
+                          mimeTypesIsArray: navigator.mimeTypes instanceof MimeTypeArray,
+                          mimeTypesNonEmpty: navigator.mimeTypes.length > 0,
                           chromeRuntime: !!(window.chrome && window.chrome.runtime),
                           languages: navigator.languages.length,
                         }),
@@ -140,6 +146,12 @@ def test_stealth_overrides_apply_in_main_world(cft_available):
                     f"stealth.js not loaded in MAIN world; got {results}"
                 assert results["webdriverUndefined"] is True
                 assert results["pluginsLength"] >= 1
+                assert results["pluginsIsArray"] is True, \
+                    "navigator.plugins must pass `instanceof PluginArray`"
+                assert results["firstIsPlugin"] is True, \
+                    "individual plugin entries must pass `instanceof Plugin`"
+                assert results["mimeTypesIsArray"] is True
+                assert results["mimeTypesNonEmpty"] is True
                 assert results["chromeRuntime"] is True
                 assert results["languages"] >= 1
             finally:
