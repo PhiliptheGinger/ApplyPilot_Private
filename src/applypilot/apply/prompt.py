@@ -693,6 +693,17 @@ def build_prompt(job: dict, tailored_resume: str,
     else:
         submit_instruction = "BEFORE clicking Submit/Apply, take a snapshot and review EVERY field on the page. Verify all data matches the APPLICANT PROFILE and TAILORED RESUME -- name, email, phone, location, work auth, resume uploaded, cover letter if applicable. If anything is wrong or missing, fix it FIRST. Only click Submit after confirming everything is correct."
 
+    # Look up the per-ATS successful-path memo. If present, the prompt
+    # gets a "PRIOR SUCCESSFUL PATH" section that summarizes the tool-call
+    # sequence from the last successful apply on this ATS — a hint, not a
+    # script. See apply/successful_paths.py.
+    from applypilot.apply.chrome import detect_ats
+    from applypilot.apply.successful_paths import load_path, format_path_for_prompt
+    _job_url_for_ats = job.get("application_url") or job.get("url") or ""
+    _ats_slug = detect_ats(_job_url_for_ats)
+    prior_path_block = format_path_for_prompt(load_path(_ats_slug)) if _ats_slug else None
+    prior_path_section = (prior_path_block + "\n\n") if prior_path_block else ""
+
     prompt = f"""You are an autonomous job application agent. Your ONE mission: get this candidate an interview. You have all the information and tools. Think strategically. Act decisively. Submit the application.
 
 IMPORTANT: You are running on a REAL computer with FULL filesystem access. You are NOT in a sandbox. You CAN read/write files, upload documents, and access the local filesystem. The resume and cover letter paths below are real files on disk — use them directly.
@@ -717,7 +728,7 @@ Cover Letter {doc_format.upper()} (upload if asked): {cl_upload_path or "N/A"}
 == APPLICANT PROFILE ==
 {profile_summary}
 
-== YOUR MISSION ==
+{prior_path_section}== YOUR MISSION ==
 Submit a complete, accurate application. Use the profile and resume as source data -- adapt to fit each form's format.
 
 If something unexpected happens and these instructions don't cover it, figure it out yourself. You are autonomous. Navigate pages, read content, try buttons, explore the site. The goal is always the same: submit the application. Do whatever it takes to reach that goal.

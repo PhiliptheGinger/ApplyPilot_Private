@@ -2037,6 +2037,10 @@ def run_job(job: dict, port: int, worker_id: int = 0,
         # below to label tool_result blocks (which only carry the id) so we
         # can selectively log gmail results and any errors.
         tool_use_names: dict[str, str] = {}
+        # Per-job ordered list of tool calls — captured for the per-ATS
+        # success-path memo (apply/successful_paths.py). Populated as
+        # tool_use blocks stream in; persisted on RESULT:APPLIED.
+        tool_calls: list[dict] = []
         with open(worker_log, "a", encoding="utf-8") as lf:
             lf.write(log_header)
 
@@ -2093,6 +2097,7 @@ def run_job(job: dict, port: int, worker_id: int = 0,
                                     desc = name
 
                                 lf.write(f"  >> {desc}\n")
+                                tool_calls.append({"tool": name, "summary": desc})
                                 ws = get_state(worker_id)
                                 cur_actions = ws.actions if ws else 0
                                 update_state(worker_id,
@@ -2194,6 +2199,14 @@ def run_job(job: dict, port: int, worker_id: int = 0,
                 if canonical == "applied" and job_url:
                     from applypilot.database import mark_qa_outcome
                     mark_qa_outcome(job_url, "accepted")
+                # Memo the successful tool-call sequence for this ATS so
+                # the next first-of-its-kind apply gets a "prior path"
+                # hint in its prompt (apply/successful_paths.py).
+                if canonical == "applied" and job_ats:
+                    from applypilot.apply.successful_paths import save_path
+                    save_path(job_ats, tool_calls,
+                              job_url=job.get("application_url") or job_url,
+                              duration_ms=duration_ms)
                 display = "ALREADY APPLIED" if result_status == "ALREADY_APPLIED" else canonical.upper()
                 add_event(f"[W{worker_id}] {display} ({elapsed}s): {(job.get('title') or '')[:30]}")
                 update_state(worker_id, status=canonical,
@@ -2257,6 +2270,12 @@ def run_job(job: dict, port: int, worker_id: int = 0,
             add_event(f"[W{worker_id}] INFERRED {label} ({elapsed}s): {(job.get('title') or '')[:30]}")
             update_state(worker_id, status="applied",
                          last_action=f"{label} (inferred, {elapsed}s)")
+            # Same memoization as the literal-RESULT path above.
+            if job_ats:
+                from applypilot.apply.successful_paths import save_path
+                save_path(job_ats, tool_calls,
+                          job_url=job.get("application_url") or job_url,
+                          duration_ms=duration_ms)
             return "applied", duration_ms, screening_qs
         if inferred:
             add_event(f"[W{worker_id}] INFERRED {inferred.upper()} ({elapsed}s): {(job.get('title') or '')[:30]}")
