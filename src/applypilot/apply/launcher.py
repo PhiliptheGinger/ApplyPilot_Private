@@ -354,6 +354,8 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self._handle_jobs_mark()
             elif self.path == "/api/integrations/gmail/reauth":
                 self._handle_gmail_reauth()
+            elif self.path == "/api/no-hitl":
+                self._handle_no_hitl_toggle()
             elif self.path == "/api/qa":
                 self._handle_qa_create()
             elif self.path.startswith("/api/qa/"):
@@ -1151,6 +1153,21 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
         def _handle_gmail_reauth(self):
             """Spawn Gmail OAuth subprocess; user completes in browser."""
             self._json_ok(_trigger_gmail_reauth())
+
+        def _handle_no_hitl_toggle(self):
+            """Flip the per-worker no-hitl flag from the popup chip.
+
+            Body: {enabled: bool}. Mutates worker_state["no_hitl"];
+            _run_hitl reads this live each pause, so the change takes
+            effect immediately for the next HITL trigger.
+            """
+            body = self._read_body()
+            enabled = bool(body.get("enabled"))
+            with _worker_state_lock:
+                ws = _worker_state.get(worker_id)
+                if ws is not None:
+                    ws["no_hitl"] = enabled
+            self._json_ok({"workerId": worker_id, "noHitl": enabled})
 
         def log_message(self, format, *args):
             pass  # Suppress HTTP logging

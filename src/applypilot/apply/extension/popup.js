@@ -259,7 +259,11 @@ function renderCard(w) {
           <div class="job-title">${esc(w.jobTitle || '—')}</div>
           <div class="job-meta">
             <span class="status-label ${statusClass}">${statusText}</span>
-            ${w.noHitl ? ' · <span title="--no-hitl mode: pauses auto-park instead of waiting" style="color:#fbbf24">⏭ no-hitl</span>' : ''}
+             · <button class="hitl-toggle" data-action="toggle-no-hitl" data-wid="${wid}"
+                  title="Click to ${w.noHitl ? 'wait for HITL on this worker' : 'park needs_human jobs and move on'}"
+                  style="background:none;border:none;padding:0 2px;cursor:pointer;font-size:inherit;color:${w.noHitl ? '#fbbf24' : '#475569'}">
+                ${w.noHitl ? '⏭ no-hitl' : '⏸ hitl-on'}
+              </button>
             ${w.jobCompany ? ` · ${esc(w.jobCompany)}` : ''}${w.jobSite ? ` · ${esc(w.jobSite)}` : ''}
           </div>
         </div>
@@ -317,6 +321,20 @@ async function handleAction(e) {
     lastFocusedAt  = Date.now() / 1000;
     renderAll(workers);   // immediate highlight update
     apiCall(wid, '/api/focus').catch(() => {});
+    return;
+  }
+
+  // Flip the per-worker no-hitl mode. Don't disable the button while
+  // pending — it's a tiny request and the popup re-renders from the
+  // next /api/status poll anyway.
+  if (action === 'toggle-no-hitl') {
+    e.stopPropagation();   // don't trigger the card-top focus handler
+    const w = workers.find(x => x.workerId === wid);
+    const next = !(w && w.noHitl);
+    apiCall(wid, '/api/no-hitl', {
+      method: 'POST',
+      body: JSON.stringify({ enabled: next }),
+    }).then(() => triggerPoll()).catch(() => {});
     return;
   }
 

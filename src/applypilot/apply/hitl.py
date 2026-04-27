@@ -538,6 +538,17 @@ def _run_hitl(
     # 1. Persist the needs_human row.
     mark_needs_human(job["url"], reason, navigate_url, instructions, duration_ms)
 
+    # The popup's "no-hitl" toggle mutates worker_state["no_hitl"] live;
+    # honor that in preference to the caller's CLI-time default so a user
+    # can flip into park-and-move-on mode mid-run (and back) without
+    # killing the pipeline.
+    from applypilot.apply import launcher
+    with launcher._worker_state_lock:
+        _ws = launcher._worker_state.get(worker_id) or {}
+        _live_no_hitl = _ws.get("no_hitl")
+    if _live_no_hitl is not None:
+        no_hitl = bool(_live_no_hitl)
+
     # 2. --no-hitl: park the job and bail.
     if no_hitl:
         if add_event:
