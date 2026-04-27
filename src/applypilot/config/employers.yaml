@@ -311,3 +311,26 @@ employers:
     tenant: "expedia"
     site_id: "search"
     base_url: "https://expedia.wd108.myworkdayjobs.com"
+
+  # ── Mega-corps verified 2026-04-26 (P2.6) ─────────────────────────────
+  # Found by scraping each company's careers landing page for
+  # myworkdayjobs URLs + brute-forcing common site_id values, then
+  # confirming the CXS jobs API returned a non-zero total.
+
+  tmobile:
+    name: "T-Mobile"
+    tenant: "tmobile"
+    site_id: "External"
+    base_url: "https://tmobile.wd1.myworkdayjobs.com"
+
+  boeing:
+    name: "Boeing"
+    tenant: "boeing"
+    site_id: "External_Careers"
+    base_url: "https://boeing.wd1.myworkdayjobs.com"
+
+  accenture:
+    name: "Accenture"
+    tenant: "accenture"
+    site_id: "AccentureCareers"
+    base_url: "https://accenture.wd103.myworkdayjobs.com"
