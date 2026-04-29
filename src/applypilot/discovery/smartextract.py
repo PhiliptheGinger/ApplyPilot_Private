@@ -24,13 +24,10 @@ from urllib.parse import quote_plus
 
 import yaml
 from bs4 import BeautifulSoup
-try:
-    # Patchright is a Playwright drop-in with TLS-fingerprint and JS-stealth
-    # patches that bypass Cloudflare/Akamai bot challenges (the cause of
-    # PowerToFly/FlexJobs/Remote.co timing out under vanilla playwright).
-    from patchright.sync_api import sync_playwright
-except ImportError:
-    from playwright.sync_api import sync_playwright
+# Patchright (Playwright drop-in with TLS-fingerprint and JS-stealth patches)
+# is a hard dependency — see pyproject.toml. Used everywhere we drive a
+# browser so Cloudflare/Akamai don't reject us at the protocol level.
+from patchright.sync_api import sync_playwright
 
 from applypilot import config
 from applypilot.config import CONFIG_DIR
