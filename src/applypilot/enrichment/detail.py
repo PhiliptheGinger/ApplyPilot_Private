@@ -21,7 +21,12 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright
+try:
+    # Patchright is a drop-in Playwright replacement with TLS-fingerprint
+    # patches that bypass Cloudflare/Akamai challenges.
+    from patchright.sync_api import sync_playwright
+except ImportError:
+    from playwright.sync_api import sync_playwright
 
 from applypilot.database import commit_with_retry, init_db, transition_state
 from applypilot.llm import get_client

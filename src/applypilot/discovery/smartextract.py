@@ -24,7 +24,13 @@ from urllib.parse import quote_plus
 
 import yaml
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright
+try:
+    # Patchright is a Playwright drop-in with TLS-fingerprint and JS-stealth
+    # patches that bypass Cloudflare/Akamai bot challenges (the cause of
+    # PowerToFly/FlexJobs/Remote.co timing out under vanilla playwright).
+    from patchright.sync_api import sync_playwright
+except ImportError:
+    from playwright.sync_api import sync_playwright
 
 from applypilot import config
 from applypilot.config import CONFIG_DIR
@@ -184,8 +190,15 @@ def collect_page_intelligence(url: str, headless: bool = True) -> dict:
         page = context.new_page()
         page.on("response", on_response)
 
-        page.goto(url, timeout=60000)
-        page.wait_for_load_state("networkidle", timeout=60000)
+        page.goto(url, timeout=60000, wait_until="domcontentloaded")
+        # networkidle never fires on tracker-heavy sites (PowerToFly,
+        # SimplyHired, etc.) because analytics keep pinging. Wait for it
+        # opportunistically but don't fail the whole crawl if it never
+        # settles — DOM is already loaded by the time goto returned.
+        try:
+            page.wait_for_load_state("networkidle", timeout=10000)
+        except Exception:
+            pass
 
         intel["page_title"] = page.title()
 
@@ -659,13 +672,15 @@ PAGE HTML:
 
 # -- LLM helpers -------------------------------------------------------------
 
-def ask_llm(prompt: str, max_tokens: int = 8192) -> tuple[str, float, dict]:
+def ask_llm(prompt: str, max_tokens: int = 8192, quality: bool = False) -> tuple[str, float, dict]:
     """Send prompt to LLM. Returns (response_text, seconds_taken, metadata).
 
     Default max_tokens=8192 because Gemini 2.5+ thinking tokens consume the
     output budget; 4096 was hitting truncation (raw=`{` or empty after fences).
+    quality=True routes to the quality fallback chain (Pro → GPT-4 → Sonnet)
+    for harder pages where the fast model returns empty/unparseable JSON.
     """
-    client = get_client()
+    client = get_client(quality=quality)
     t0 = time.time()
     text = client.ask(prompt, temperature=0.0, max_tokens=max_tokens)
     elapsed = time.time() - t0
@@ -813,7 +828,12 @@ def execute_api_response(intel: dict, plan: dict) -> list[dict]:
 
 def execute_css_selectors(intel: dict) -> tuple[dict, list[dict]]:
     """Phase 2: Send full cleaned page HTML to LLM for card detection + selector generation.
-    Returns (selectors, jobs)."""
+    Returns (selectors, jobs).
+
+    On parse failure or empty response from the fast model (truncated thinking
+    tokens, sometimes the response is just the ```json fence), retries once
+    with the quality fallback chain.
+    """
     full_html = intel.get("full_html", "")
     if not full_html:
         log.warning("No page HTML captured")
@@ -824,18 +844,38 @@ def execute_css_selectors(intel: dict) -> tuple[dict, list[dict]]:
 
     prompt = FULL_PAGE_SELECTOR_PROMPT.format(page_html=cleaned)
 
-    try:
-        raw, elapsed, meta = ask_llm(prompt)
-    except Exception as e:
-        log.error("LLM_ERROR in Phase 2: %s", e)
-        return {}, []
+    selectors: dict | None = None
+    for attempt, quality in enumerate([False, True]):
+        try:
+            raw, elapsed, meta = ask_llm(prompt, quality=quality)
+        except Exception as e:
+            log.error("LLM_ERROR in Phase 2 (quality=%s): %s", quality, e)
+            continue
 
-    log.info("Phase 2 LLM: %d chars, %.1fs", meta['response_chars'], elapsed)
+        log.info("Phase 2 LLM (quality=%s): %d chars, %.1fs",
+                 quality, meta['response_chars'], elapsed)
 
-    try:
-        selectors = extract_json(raw)
-    except Exception as e:
-        log.error("PARSE_ERROR in Phase 2: %s | raw: %s", e, raw[:500])
+        # Truncated/empty responses (just ```json with no body, or short raw `{`)
+        # bypass the parser entirely so we can escalate before logging an error.
+        stripped = raw.strip().lstrip("`").strip("json").strip()
+        if not stripped or stripped in ("{", "}"):
+            if attempt == 0:
+                log.warning("Phase 2 returned empty/truncated body — escalating to quality model")
+                continue
+            log.error("Phase 2 empty after quality retry — giving up | raw: %s", raw[:500])
+            return {}, []
+
+        try:
+            selectors = extract_json(raw)
+            break
+        except Exception as e:
+            if attempt == 0:
+                log.warning("PARSE_ERROR in Phase 2 (fast) — escalating to quality model: %s", e)
+                continue
+            log.error("PARSE_ERROR in Phase 2 (quality): %s | raw: %s", e, raw[:500])
+            return {}, []
+
+    if selectors is None:
         return {}, []
 
     if "error" in selectors:
@@ -925,19 +965,45 @@ def _run_one_site(name: str, url: str, no_headful: bool = False) -> dict:
     log.info("[2] Phase 1: Strategy selection (%s chars briefing)", f"{len(briefing):,}")
 
     prompt = STRATEGY_PROMPT.format(briefing=briefing)
-    try:
-        raw, elapsed, meta = ask_llm(prompt)
-    except Exception as e:
-        log.error("LLM_ERROR: %s", e)
-        return {"name": name, "status": "LLM_ERROR", "error": str(e)}
+    plan = None
+    raw = ""
+    last_err: Exception | None = None
+    for attempt, quality in enumerate([False, True]):
+        try:
+            raw, elapsed, meta = ask_llm(prompt, quality=quality)
+        except Exception as e:
+            last_err = e
+            if attempt == 0:
+                log.warning("Phase 1 LLM_ERROR (fast) — escalating to quality: %s", e)
+                continue
+            log.error("Phase 1 LLM_ERROR (quality): %s", e)
+            return {"name": name, "status": "LLM_ERROR", "error": str(e)}
 
-    log.info("LLM: %d chars, %.1fs", meta["response_chars"], elapsed)
+        log.info("LLM (quality=%s): %d chars, %.1fs",
+                 quality, meta["response_chars"], elapsed)
 
-    try:
-        plan = extract_json(raw)
-    except Exception as e:
-        log.error("PARSE_ERROR: %s | raw: %s", e, raw[:500])
-        return {"name": name, "status": "PARSE_ERROR", "error": str(e), "raw": raw}
+        stripped = raw.strip().lstrip("`").strip("json").strip()
+        if not stripped or stripped in ("{", "}"):
+            if attempt == 0:
+                log.warning("Phase 1 empty/truncated — escalating to quality")
+                continue
+            log.error("Phase 1 empty after quality retry | raw: %s", raw[:500])
+            return {"name": name, "status": "PARSE_ERROR", "error": "empty response", "raw": raw}
+
+        try:
+            plan = extract_json(raw)
+            break
+        except Exception as e:
+            last_err = e
+            if attempt == 0:
+                log.warning("PARSE_ERROR in Phase 1 (fast) — escalating to quality: %s", e)
+                continue
+            log.error("PARSE_ERROR: %s | raw: %s", e, raw[:500])
+            return {"name": name, "status": "PARSE_ERROR", "error": str(e), "raw": raw}
+
+    if plan is None:
+        return {"name": name, "status": "PARSE_ERROR",
+                "error": str(last_err) if last_err else "no plan", "raw": raw}
 
     strategy = plan.get("strategy", "?")
     reasoning = plan.get("reasoning", "?")
