@@ -28,7 +28,7 @@ from playwright.sync_api import sync_playwright
 
 from applypilot import config
 from applypilot.config import CONFIG_DIR
-from applypilot.database import init_db, get_stats, commit_with_retry
+from applypilot.database import init_db, get_stats, commit_with_retry, write_with_retry
 from applypilot.llm import get_client
 
 log = logging.getLogger(__name__)
@@ -99,41 +99,43 @@ def _store_jobs_filtered(
 ) -> tuple[int, int]:
     """Store jobs with location filtering. Returns (new, existing)."""
     now = datetime.now(timezone.utc).isoformat()
-    new = 0
-    existing = 0
-    filtered = 0
+    counts = {"new": 0, "existing": 0, "filtered": 0}
 
-    for job in jobs:
-        url = job.get("url")
-        if not url:
-            continue
-        if not _location_ok(job.get("location"), accept_locs, reject_locs):
-            filtered += 1
-            continue
-        description = job.get("description")
-        initial_state = "enriched" if description and len(description) > 200 else "discovered"
-        try:
-            conn.execute(
-                "INSERT INTO jobs (url, title, salary, description, location, site, strategy, "
-                "discovered_at, state) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (url, job.get("title"), job.get("salary"), description,
-                 job.get("location"), site, strategy, now, initial_state),
-            )
-            conn.execute(
-                "INSERT INTO job_state_transitions "
-                "(job_url, from_state, to_state, at, reason, metadata) "
-                "VALUES (?, NULL, ?, ?, ?, ?)",
-                (url, initial_state, now, f"discovered via {strategy}", None),
-            )
-            new += 1
-        except sqlite3.IntegrityError:
-            existing += 1
+    def _do_inserts() -> None:
+        counts["new"] = 0
+        counts["existing"] = 0
+        counts["filtered"] = 0
+        for job in jobs:
+            url = job.get("url")
+            if not url:
+                continue
+            if not _location_ok(job.get("location"), accept_locs, reject_locs):
+                counts["filtered"] += 1
+                continue
+            description = job.get("description")
+            initial_state = "enriched" if description and len(description) > 200 else "discovered"
+            try:
+                conn.execute(
+                    "INSERT INTO jobs (url, title, salary, description, location, site, strategy, "
+                    "discovered_at, state) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (url, job.get("title"), job.get("salary"), description,
+                     job.get("location"), site, strategy, now, initial_state),
+                )
+                conn.execute(
+                    "INSERT INTO job_state_transitions "
+                    "(job_url, from_state, to_state, at, reason, metadata) "
+                    "VALUES (?, NULL, ?, ?, ?, ?)",
+                    (url, initial_state, now, f"discovered via {strategy}", None),
+                )
+                counts["new"] += 1
+            except sqlite3.IntegrityError:
+                counts["existing"] += 1
 
-    if filtered:
-        log.info("Filtered %d jobs (wrong location)", filtered)
-    commit_with_retry(conn)
-    return new, existing
+    write_with_retry(conn, _do_inserts)
+    if counts["filtered"]:
+        log.info("Filtered %d jobs (wrong location)", counts["filtered"])
+    return counts["new"], counts["existing"]
 
 
 # -- Page intelligence collector ---------------------------------------------

@@ -21,7 +21,7 @@ import yaml
 
 from applypilot import config
 from applypilot.config import CONFIG_DIR
-from applypilot.database import commit_with_retry, get_connection, init_db
+from applypilot.database import commit_with_retry, get_connection, init_db, write_with_retry
 
 log = logging.getLogger(__name__)
 
@@ -303,41 +303,43 @@ def fetch_details(employer: dict, jobs: list[dict]) -> list[dict]:
 def store_results(conn: sqlite3.Connection, jobs: list[dict], employers: dict) -> tuple[int, int]:
     """Store corporate jobs in DB. Returns (new, existing)."""
     now = datetime.now(timezone.utc).isoformat()
-    new = 0
-    existing = 0
+    counts = {"new": 0, "existing": 0}
 
-    for job in jobs:
-        url = job.get("apply_url", "")
-        if not url:
-            emp = employers.get(job.get("employer_key", ""), {})
-            if emp and job.get("external_path"):
-                url = f"{emp['base_url']}/{emp['site_id']}{job['external_path']}"
-        if not url:
-            continue
+    def _do_inserts() -> None:
+        counts["new"] = 0
+        counts["existing"] = 0
+        for job in jobs:
+            url = job.get("apply_url", "")
+            if not url:
+                emp = employers.get(job.get("employer_key", ""), {})
+                if emp and job.get("external_path"):
+                    url = f"{emp['base_url']}/{emp['site_id']}{job['external_path']}"
+            if not url:
+                continue
 
-        description = job.get("full_description", "")
-        short_desc = description[:500] if description else None
-        full_description = description if len(description) > 200 else None
-        detail_scraped_at = now if full_description else None
-        detail_error = job.get("detail_error")
+            description = job.get("full_description", "")
+            short_desc = description[:500] if description else None
+            full_description = description if len(description) > 200 else None
+            detail_scraped_at = now if full_description else None
+            detail_error = job.get("detail_error")
 
-        site = job.get("employer_name", "Corporate")
-        strategy = "workday_api"
+            site = job.get("employer_name", "Corporate")
+            strategy = "workday_api"
 
-        try:
-            conn.execute(
-                "INSERT INTO jobs (url, title, salary, description, location, site, strategy, "
-                "discovered_at, full_description, application_url, detail_scraped_at, detail_error) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (url, job.get("title"), None, short_desc, job.get("location"),
-                 site, strategy, now, full_description, url, detail_scraped_at, detail_error),
-            )
-            new += 1
-        except sqlite3.IntegrityError:
-            existing += 1
+            try:
+                conn.execute(
+                    "INSERT INTO jobs (url, title, salary, description, location, site, strategy, "
+                    "discovered_at, full_description, application_url, detail_scraped_at, detail_error) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (url, job.get("title"), None, short_desc, job.get("location"),
+                     site, strategy, now, full_description, url, detail_scraped_at, detail_error),
+                )
+                counts["new"] += 1
+            except sqlite3.IntegrityError:
+                counts["existing"] += 1
 
-    commit_with_retry(conn)
-    return new, existing
+    write_with_retry(conn, _do_inserts)
+    return counts["new"], counts["existing"]
 
 
 def _process_one(

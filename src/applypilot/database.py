@@ -1229,37 +1229,40 @@ def store_jobs(conn: sqlite3.Connection, jobs: list[dict],
         Tuple of (new_count, duplicate_count).
     """
     now = datetime.now(timezone.utc).isoformat()
-    new = 0
-    existing = 0
+    counts = {"new": 0, "existing": 0}
 
     from applypilot.discovery.url_normalize import canonicalize_application_url
-    for job in jobs:
-        url = job.get("url")
-        if not url:
-            continue
 
-        # Normalize relative URLs to absolute
-        url = _resolve_url(url, site) or url
-        # Skip URLs that are still relative (unresolvable)
-        if not url.startswith("http://") and not url.startswith("https://"):
-            continue
-        # Rewrite embedded-ATS URLs (e.g. Databricks ?gh_jid → canonical
-        # Greenhouse) so the apply agent never sees the iframe parent.
-        url = canonicalize_application_url(url)
+    def _do_inserts() -> None:
+        counts["new"] = 0
+        counts["existing"] = 0
+        for job in jobs:
+            url = job.get("url")
+            if not url:
+                continue
 
-        try:
-            conn.execute(
-                "INSERT INTO jobs (url, title, salary, description, location, site, strategy, discovered_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (url, job.get("title"), job.get("salary"), job.get("description"),
-                 job.get("location"), site, strategy, now),
-            )
-            new += 1
-        except sqlite3.IntegrityError:
-            existing += 1
+            # Normalize relative URLs to absolute
+            url = _resolve_url(url, site) or url
+            # Skip URLs that are still relative (unresolvable)
+            if not url.startswith("http://") and not url.startswith("https://"):
+                continue
+            # Rewrite embedded-ATS URLs (e.g. Databricks ?gh_jid → canonical
+            # Greenhouse) so the apply agent never sees the iframe parent.
+            url = canonicalize_application_url(url)
 
-    commit_with_retry(conn)
-    return new, existing
+            try:
+                conn.execute(
+                    "INSERT INTO jobs (url, title, salary, description, location, site, strategy, discovered_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (url, job.get("title"), job.get("salary"), job.get("description"),
+                     job.get("location"), site, strategy, now),
+                )
+                counts["new"] += 1
+            except sqlite3.IntegrityError:
+                counts["existing"] += 1
+
+    write_with_retry(conn, _do_inserts)
+    return counts["new"], counts["existing"]
 
 
 def store_account(conn: sqlite3.Connection, account: dict,

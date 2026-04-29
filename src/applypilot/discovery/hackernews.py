@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 import httpx
 
 from applypilot import config
-from applypilot.database import commit_with_retry, init_db
+from applypilot.database import commit_with_retry, init_db, write_with_retry
 from applypilot.llm import get_client
 
 log = logging.getLogger(__name__)
@@ -202,24 +202,29 @@ def _store_hn_job(conn: sqlite3.Connection, job: dict, thread_title: str) -> boo
     # HN comments are always the full text — enrich immediately when present.
     initial_state = "enriched" if description else "discovered"
 
-    try:
-        conn.execute(
-            "INSERT INTO jobs (url, title, salary, description, location, site, strategy, "
-            "discovered_at, full_description, detail_scraped_at, state) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (url, title, salary, description, location,
-             f"HN: {company}", "hackernews", now, description, now, initial_state),
-        )
-        conn.execute(
-            "INSERT INTO job_state_transitions "
-            "(job_url, from_state, to_state, at, reason, metadata) "
-            "VALUES (?, NULL, ?, ?, ?, ?)",
-            (url, initial_state, now, "discovered via hackernews", None),
-        )
-        commit_with_retry(conn)
-        return True
-    except sqlite3.IntegrityError:
-        return False
+    integrity_failed = {"v": False}
+
+    def _do_inserts() -> None:
+        integrity_failed["v"] = False
+        try:
+            conn.execute(
+                "INSERT INTO jobs (url, title, salary, description, location, site, strategy, "
+                "discovered_at, full_description, detail_scraped_at, state) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (url, title, salary, description, location,
+                 f"HN: {company}", "hackernews", now, description, now, initial_state),
+            )
+            conn.execute(
+                "INSERT INTO job_state_transitions "
+                "(job_url, from_state, to_state, at, reason, metadata) "
+                "VALUES (?, NULL, ?, ?, ?, ?)",
+                (url, initial_state, now, "discovered via hackernews", None),
+            )
+        except sqlite3.IntegrityError:
+            integrity_failed["v"] = True
+
+    write_with_retry(conn, _do_inserts)
+    return not integrity_failed["v"]
 
 
 def run_hn_discovery(

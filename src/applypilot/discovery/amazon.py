@@ -23,7 +23,7 @@ from html.parser import HTMLParser
 import yaml
 
 from applypilot import config
-from applypilot.database import commit_with_retry, get_connection, init_db
+from applypilot.database import commit_with_retry, get_connection, init_db, write_with_retry
 
 log = logging.getLogger(__name__)
 
@@ -194,43 +194,42 @@ def search_amazon_jobs(
 # ── DB insert ─────────────────────────────────────────────────────────
 
 def _insert_jobs(conn: sqlite3.Connection, jobs: list[dict]) -> tuple[int, int]:
-    new = 0
-    existing = 0
+    counts = {"new": 0, "existing": 0}
     now = datetime.now(timezone.utc).isoformat()
 
-    for job in jobs:
-        url = job.get("url")
-        if not url:
-            continue
-        full_description = job.get("full_description")
-        detail_scraped_at = now if full_description else None
-        posted_at = job.get("posted_date") or None
-        # Jobs with descriptions skip the `discovered` state and start at
-        # `enriched` since Amazon returns full text in the search response.
-        initial_state = "enriched" if full_description else "discovered"
-        try:
-            conn.execute(
-                "INSERT INTO jobs (url, title, salary, description, location, site, strategy, "
-                "discovered_at, posted_at, full_description, application_url, "
-                "detail_scraped_at, state) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (url, job.get("title"), None, job.get("description"), job.get("location"),
-                 "Amazon", "amazon_jobs", now, posted_at, full_description,
-                 job.get("application_url"), detail_scraped_at, initial_state),
-            )
-            # Audit: initial transition from NULL → initial_state
-            conn.execute(
-                "INSERT INTO job_state_transitions "
-                "(job_url, from_state, to_state, at, reason, metadata) "
-                "VALUES (?, NULL, ?, ?, ?, ?)",
-                (url, initial_state, now, "discovered via amazon_jobs", None),
-            )
-            new += 1
-        except sqlite3.IntegrityError:
-            existing += 1
+    def _do_inserts() -> None:
+        counts["new"] = 0
+        counts["existing"] = 0
+        for job in jobs:
+            url = job.get("url")
+            if not url:
+                continue
+            full_description = job.get("full_description")
+            detail_scraped_at = now if full_description else None
+            posted_at = job.get("posted_date") or None
+            initial_state = "enriched" if full_description else "discovered"
+            try:
+                conn.execute(
+                    "INSERT INTO jobs (url, title, salary, description, location, site, strategy, "
+                    "discovered_at, posted_at, full_description, application_url, "
+                    "detail_scraped_at, state) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (url, job.get("title"), None, job.get("description"), job.get("location"),
+                     "Amazon", "amazon_jobs", now, posted_at, full_description,
+                     job.get("application_url"), detail_scraped_at, initial_state),
+                )
+                conn.execute(
+                    "INSERT INTO job_state_transitions "
+                    "(job_url, from_state, to_state, at, reason, metadata) "
+                    "VALUES (?, NULL, ?, ?, ?, ?)",
+                    (url, initial_state, now, "discovered via amazon_jobs", None),
+                )
+                counts["new"] += 1
+            except sqlite3.IntegrityError:
+                counts["existing"] += 1
 
-    commit_with_retry(conn)
-    return new, existing
+    write_with_retry(conn, _do_inserts)
+    return counts["new"], counts["existing"]
 
 
 # ── Public entry point ────────────────────────────────────────────────
