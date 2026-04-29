@@ -657,11 +657,15 @@ PAGE HTML:
 
 # -- LLM helpers -------------------------------------------------------------
 
-def ask_llm(prompt: str) -> tuple[str, float, dict]:
-    """Send prompt to LLM. Returns (response_text, seconds_taken, metadata)."""
+def ask_llm(prompt: str, max_tokens: int = 8192) -> tuple[str, float, dict]:
+    """Send prompt to LLM. Returns (response_text, seconds_taken, metadata).
+
+    Default max_tokens=8192 because Gemini 2.5+ thinking tokens consume the
+    output budget; 4096 was hitting truncation (raw=`{` or empty after fences).
+    """
     client = get_client()
     t0 = time.time()
-    text = client.ask(prompt, temperature=0.0, max_tokens=4096)
+    text = client.ask(prompt, temperature=0.0, max_tokens=max_tokens)
     elapsed = time.time() - t0
     meta = {
         "finish_reason": "stop",
@@ -707,12 +711,15 @@ def resolve_json_path_raw(data, path: str):
             if not part:
                 continue
             if part.startswith("[") and part.endswith("]"):
-                idx = int(part[1:-1])
-                current = current[idx]
+                inner = part[1:-1]
+                if inner.lstrip("-").isdigit():
+                    current = current[int(inner)]
+                else:
+                    current = current[inner]
             else:
                 current = current[part]
         return current
-    except (KeyError, IndexError, TypeError):
+    except (KeyError, IndexError, TypeError, ValueError):
         return None
 
 
@@ -726,8 +733,11 @@ def resolve_json_path(data, path: str):
             if not part:
                 continue
             if part.startswith("[") and part.endswith("]"):
-                idx = int(part[1:-1])
-                current = current[idx]
+                inner = part[1:-1]
+                if inner.lstrip("-").isdigit():
+                    current = current[int(inner)]
+                else:
+                    current = current[inner]
             else:
                 current = current[part]
         if isinstance(current, (str, int, float)):
@@ -739,7 +749,7 @@ def resolve_json_path(data, path: str):
                 return ", ".join(str(item.get("name", item.get("text", ""))) for item in current[:3])
             return ", ".join(str(x) for x in current[:3])
         return str(current) if current else None
-    except (KeyError, IndexError, TypeError):
+    except (KeyError, IndexError, TypeError, ValueError):
         return None
 
 

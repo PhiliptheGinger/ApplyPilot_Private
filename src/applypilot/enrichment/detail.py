@@ -18,12 +18,12 @@ import sqlite3
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 
-from applypilot.database import init_db, transition_state
+from applypilot.database import commit_with_retry, init_db, transition_state
 from applypilot.llm import get_client
 
 log = logging.getLogger(__name__)
@@ -148,7 +148,7 @@ def resolve_all_urls(conn: sqlite3.Connection) -> dict:
             conn.execute("UPDATE jobs SET application_url = ? WHERE url = ?", (new_app, url))
             app_resolved += 1
 
-    conn.commit()
+    commit_with_retry(conn)
     return {"resolved": resolved, "failed": failed, "already_absolute": already_absolute,
             "app_resolved": app_resolved}
 
@@ -230,7 +230,7 @@ def resolve_wttj_urls(conn: sqlite3.Connection) -> int:
                         updated += 1
                     break
 
-    conn.commit()
+    commit_with_retry(conn)
     return updated
 
 
@@ -892,7 +892,7 @@ def scrape_site_batch(
                         now=now,
                     )
 
-                conn.commit()
+                commit_with_retry(conn)
 
                 if i < len(jobs) - 1:
                     time.sleep(delay)

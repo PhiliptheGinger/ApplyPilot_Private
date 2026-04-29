@@ -1258,7 +1258,7 @@ def store_jobs(conn: sqlite3.Connection, jobs: list[dict],
         except sqlite3.IntegrityError:
             existing += 1
 
-    conn.commit()
+    commit_with_retry(conn)
     return new, existing
 
 
