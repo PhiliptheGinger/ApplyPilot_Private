@@ -264,7 +264,7 @@ def init_db(db_path: Path | str | None = None) -> sqlite3.Connection:
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_qa_key ON qa_knowledge(question_key)"
     )
-    conn.commit()
+    commit_with_retry(conn)
 
     # Run migrations for any columns added after initial schema
     ensure_columns(conn)
@@ -424,7 +424,7 @@ def ensure_columns(conn: sqlite3.Connection | None = None) -> list[str]:
     conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_state ON jobs(state)")
 
     if changed:
-        conn.commit()
+        commit_with_retry(conn)
 
     return changed
 
@@ -683,7 +683,7 @@ def backfill_states(conn: sqlite3.Connection | None = None) -> dict[str, int]:
         )
 
     if candidates:
-        conn.commit()
+        commit_with_retry(conn)
 
     return counts
 
@@ -788,7 +788,7 @@ def backfill_categories(conn: sqlite3.Connection | None = None) -> int:
         updated += 1
 
     if updated:
-        conn.commit()
+        commit_with_retry(conn)
     return updated
 
 
@@ -845,7 +845,7 @@ def reset_by_category(category: str,
                        needs_human_instructions = NULL
         WHERE apply_category = ?
     """, (category,))
-    conn.commit()
+    commit_with_retry(conn)
     return cursor.rowcount
 
 
@@ -1190,7 +1190,7 @@ def backfill_companies(conn: sqlite3.Connection | None = None) -> int:
             updated += 1
 
     if updated:
-        conn.commit()
+        commit_with_retry(conn)
     return updated
 
 
@@ -1288,7 +1288,7 @@ def store_account(conn: sqlite3.Connection, account: dict,
             notes,
         ),
     )
-    conn.commit()
+    commit_with_retry(conn)
 
 
 def get_accounts_for_prompt(conn: sqlite3.Connection | None = None) -> dict[str, dict]:
@@ -1478,7 +1478,7 @@ def upsert_account(domain: str, email: str, password: str | None,
         conn.execute(
             f"UPDATE accounts SET {', '.join(updates)} WHERE id = ?", params
         )
-        conn.commit()
+        commit_with_retry(conn)
         return "updated"
     else:
         conn.execute(
@@ -1486,7 +1486,7 @@ def upsert_account(domain: str, email: str, password: str | None,
             "VALUES (?, ?, ?, ?, ?, ?)",
             (site or domain.split(".")[0], domain, email, password, notes, now),
         )
-        conn.commit()
+        commit_with_retry(conn)
         return "created"
 
 
@@ -1496,7 +1496,7 @@ def delete_account(domain: str,
     if conn is None:
         conn = get_connection()
     cursor = conn.execute("DELETE FROM accounts WHERE domain = ?", (domain,))
-    conn.commit()
+    commit_with_retry(conn)
     return cursor.rowcount
 
 
@@ -1782,7 +1782,7 @@ def create_stub_job(email: dict, classification: str,
         (url, title.strip() or extracted_company or "Unknown Position",
          company, email_date, now, classification, now),
     )
-    conn.commit()
+    commit_with_retry(conn)
     return url
 
 
@@ -1818,7 +1818,7 @@ def store_tracking_email(email: dict, conn: sqlite3.Connection | None = None) ->
             email.get("classified_at"),
         ),
     )
-    conn.commit()
+    commit_with_retry(conn)
 
 
 def store_tracking_person(person: dict, conn: sqlite3.Connection | None = None) -> None:
@@ -1835,7 +1835,7 @@ def store_tracking_person(person: dict, conn: sqlite3.Connection | None = None) 
             person.get("first_seen_at"),
         ),
     )
-    conn.commit()
+    commit_with_retry(conn)
 
 
 _TRACKING_PRIORITY = {
@@ -1883,7 +1883,7 @@ def update_tracking_status(job_url: str, new_status: str,
             "UPDATE jobs SET tracking_status = ?, tracking_updated_at = ? WHERE url = ?",
             (new_status, now, job_url),
         )
-        conn.commit()
+        commit_with_retry(conn)
         # Also emit a state-machine transition so the canonical `state`
         # column matches. transition_state validates against
         # VALID_TRANSITIONS — if the job isn't in a state that legally
@@ -1913,7 +1913,7 @@ def update_job_tracking_fields(job_url: str, fields: dict,
     set_clauses = ", ".join(f"{k} = ?" for k in fields)
     values = list(fields.values()) + [job_url]
     conn.execute(f"UPDATE jobs SET {set_clauses} WHERE url = ?", values)
-    conn.commit()
+    commit_with_retry(conn)
 
 
 def get_tracking_emails(job_url: str, conn: sqlite3.Connection | None = None) -> list[dict]:
@@ -2020,7 +2020,7 @@ def store_qa(question: str, answer: str, source: str = "agent",
              field_type, options_json, ats_slug, job_url, now,
              now),
         )
-        conn.commit()
+        commit_with_retry(conn)
         row = conn.execute(
             "SELECT id FROM qa_knowledge WHERE question_key = ? AND answer_text = ?",
             (key, answer),
@@ -2165,7 +2165,7 @@ def mark_qa_outcome(job_url: str, outcome: str,
         "UPDATE qa_knowledge SET outcome = ?, updated_at = ? WHERE job_url = ?",
         (outcome, now, job_url),
     )
-    conn.commit()
+    commit_with_retry(conn)
     return cursor.rowcount
 
 

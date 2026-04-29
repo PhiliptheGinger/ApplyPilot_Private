@@ -72,6 +72,7 @@ from applypilot.apply.result_handlers import (
     _record_job_history,
 )
 from applypilot.database import (
+    commit_with_retry,
     get_connection,
     transition_state,
 )
@@ -124,7 +125,7 @@ def _probe_for_reconnect(worker_id: int, port: int) -> tuple[int | None, str | N
                 "UPDATE jobs SET apply_status = NULL, agent_id = NULL WHERE url = ?",
                 (job_url,),
             )
-            conn.commit()
+            commit_with_retry(conn)
             add_event(
                 f"[W{worker_id}] Found interrupted job: {title[:40]} — will resume"
             )
@@ -645,7 +646,7 @@ def main(limit: int = 1, target_url: str | None = None,
             except Exception:
                 logger.debug("startup re-queue transition failed for %s",
                              _nh_url[:60], exc_info=True)
-        _boot_conn.commit()
+        commit_with_retry(_boot_conn)
         console.print(f"[yellow]Re-queued {_nh_count} needs_human job(s) from previous session[/yellow]")
         logger.info("Startup: re-queued %d needs_human jobs from previous session", _nh_count)
 

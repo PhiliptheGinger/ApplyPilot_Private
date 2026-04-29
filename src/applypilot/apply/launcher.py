@@ -32,6 +32,7 @@ from applypilot import config
 from applypilot.database import (
     get_connection,
     categorize_apply_result,
+    commit_with_retry,
     get_in_flight_by_company,
     transition_state,
 )
@@ -744,7 +745,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                     "VALUES (?, ?, ?, datetime('now'))",
                     (url, title or "Unknown Position", site),
                 )
-                conn.commit()
+                commit_with_retry(conn)
                 logger.info("[W%d] Added job via extension: %s", worker_id, url[:80])
                 self._json_ok({"status": "queued"})
             except Exception as e:
@@ -795,7 +796,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                         apply_error=NULL, apply_attempts=0, agent_id=NULL WHERE url=?""", (url,))
                     transition_state(conn, url, "ready_to_apply",
                         reason="HTTP handler reset", force=True)
-                conn.commit()
+                commit_with_retry(conn)
                 logger.info("[W%d] Manual mark '%s': %s", worker_id, action, url[:70])
                 self._json_ok({"status": "ok", "action": action})
             except Exception as e:
@@ -842,7 +843,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 conn = get_connection()
                 if action == "delete":
                     conn.execute("DELETE FROM accounts WHERE id = ?", (row_id,))
-                    conn.commit()
+                    commit_with_retry(conn)
                     self._json_ok({"status": "deleted", "id": row_id})
                     return
                 if action == "update":
@@ -859,7 +860,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                         f"UPDATE accounts SET {', '.join(fields)} WHERE id = ?",
                         params,
                     )
-                    conn.commit()
+                    commit_with_retry(conn)
                     self._json_ok({"status": "updated", "id": row_id})
                     return
                 self.send_response(400)
@@ -1091,7 +1092,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 conn = get_connection()
                 if action == "delete":
                     conn.execute("DELETE FROM qa_knowledge WHERE id = ?", (row_id,))
-                    conn.commit()
+                    commit_with_retry(conn)
                     self._json_ok({"status": "deleted", "id": row_id})
                     return
                 if action == "update":
@@ -1117,7 +1118,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                         f"UPDATE qa_knowledge SET {', '.join(fields)} WHERE id = ?",
                         params,
                     )
-                    conn.commit()
+                    commit_with_retry(conn)
                     self._json_ok({"status": "updated", "id": row_id})
                     return
                 self.send_response(400)
@@ -1405,7 +1406,7 @@ def _db_retry_commit(conn: "sqlite3.Connection", timeout: float = 300.0) -> None
     delay = 2.0
     while True:
         try:
-            conn.commit()
+            commit_with_retry(conn)
             return
         except sqlite3.OperationalError as exc:
             if "locked" not in str(exc).lower() or time.monotonic() >= deadline:
@@ -1608,7 +1609,7 @@ def acquire_job(target_url: str | None = None,
             transition_state(conn, row["url"], "manual_only",
                              reason="acquire_job: manual ATS",
                              force=True)
-            conn.commit()
+            commit_with_retry(conn)
             logger.info("Skipping manual ATS: %s", row["url"][:80])
             return None
 
@@ -1627,7 +1628,7 @@ def acquire_job(target_url: str | None = None,
                          metadata={"worker_id": worker_id},
                          force=True)
 
-        conn.commit()
+        commit_with_retry(conn)
 
         return dict(row)
     except Exception:
