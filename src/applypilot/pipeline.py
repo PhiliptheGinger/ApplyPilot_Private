@@ -92,6 +92,7 @@ DISCOVERY_SOURCES: dict[str, str] = {
     "ashby":        "Ashby ATS public posting API",
     "amazon":       "amazon.jobs public search API",
     "costco":       "careers.costco.com public API (Issaquah HQ)",
+    "builtin":      "builtin.com (config-driven cities + categories)",
     "smartextract": "Smart extract (AI-powered scraping, incl. Dice via sites.yaml)",
     "hackernews":   "Hacker News 'Who is Hiring?' thread",
 }
@@ -230,6 +231,17 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
             log.error("Costco scraper failed: %s", e)
             console.print(f"  [red]Costco error:[/red] {e}")
             stats["costco"] = f"error: {e}"
+
+    if "builtin" in active:
+        console.print("  [cyan]BuiltIn (builtin.com) scraper...[/cyan]")
+        try:
+            from applypilot.discovery.builtin import run_builtin_discovery
+            run_builtin_discovery(workers=workers)
+            stats["builtin"] = "ok"
+        except Exception as e:
+            log.error("BuiltIn scraper failed: %s", e)
+            console.print(f"  [red]BuiltIn error:[/red] {e}")
+            stats["builtin"] = f"error: {e}"
 
     if "smartextract" in active:
         console.print("  [cyan]Smart extract (AI-powered scraping)...[/cyan]")
