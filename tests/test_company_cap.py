@@ -52,10 +52,55 @@ def test_in_flight_skips_null_company(tmp_db, seed_job):
     from applypilot.database import get_in_flight_by_company
     conn = tmp_db()
     seed_job(conn, url_suffix="n1", company=None, apply_status="applied",
-             applied_at=_iso(1))
+             applied_at=_iso(1), application_url=None, site="linkedin",
+             strategy="linkedin")
     result = get_in_flight_by_company(conn)
     assert None not in result
     assert "" not in result
+
+
+def test_in_flight_buckets_via_application_url_slug(tmp_db, seed_job):
+    """Regression: a LinkedIn-discovered Temporal job (company=NULL,
+    site='linkedin', strategy='linkedin', apply URL points at
+    boards.greenhouse.io/temporaltechnologies/...) MUST bucket under
+    'temporaltechnologies'. Pre-fix, get_in_flight_by_company keyed by
+    LOWER(company) or LOWER(site) and missed the bucket entirely, so
+    the per-company cap silently passed even at 3+ applies."""
+    from applypilot.database import get_in_flight_by_company
+    conn = tmp_db()
+    seed_job(
+        conn, url_suffix="lkd-temporal",
+        company=None, site="linkedin", strategy="linkedin",
+        application_url="https://job-boards.greenhouse.io/temporaltechnologies/jobs/4290103007",
+        apply_status="applied", applied_at=_iso(2),
+    )
+    result = get_in_flight_by_company(conn)
+    assert "temporaltechnologies" in result
+    assert len(result["temporaltechnologies"]) == 1
+
+
+def test_in_flight_uses_same_key_as_acquire_job(tmp_db, seed_job):
+    """The cap bucket key must match exactly what acquire_job uses to
+    look up the in-flight count, otherwise lookups miss and the cap
+    quietly fails open."""
+    from applypilot.database import get_in_flight_by_company
+    from applypilot.scoring.tailor import resolve_company_key
+    conn = tmp_db()
+    job_kwargs = dict(
+        company=None, site="Temporal Technologies", strategy="greenhouse_api",
+        application_url="https://job-boards.greenhouse.io/temporaltechnologies/jobs/123",
+    )
+    seed_job(conn, url_suffix="t1", apply_status="applied",
+             applied_at=_iso(1), **job_kwargs)
+
+    # Whatever key acquire_job derives, get_in_flight_by_company should
+    # bucket the same row under the same key.
+    acquire_key = resolve_company_key(job_kwargs)
+    in_flight = get_in_flight_by_company(conn)
+    assert acquire_key in in_flight, (
+        f"acquire-time key {acquire_key!r} not in in_flight buckets "
+        f"{sorted(in_flight)!r}"
+    )
 
 
 def test_acquire_job_blocks_over_cap(tmp_db, seed_job, monkeypatch, tmp_path):

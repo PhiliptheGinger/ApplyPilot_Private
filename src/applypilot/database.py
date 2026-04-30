@@ -1646,55 +1646,45 @@ def get_applied_jobs(conn: sqlite3.Connection | None = None) -> list[dict]:
 
 def get_in_flight_by_company(conn: sqlite3.Connection | None = None,
                              max_window_days: int = 365) -> dict[str, list[str]]:
-    """Return {company_lower: [timestamp_iso, ...]} for all recent in-flight jobs.
+    """Return ``{company_key: [timestamp_iso, ...]}`` for in-flight jobs.
 
-    "In-flight" = apply_status IN ('applied', 'in_progress', 'needs_human').
-    `manual` and `failed` are excluded — the company didn't see those.
+    "In-flight" = ``apply_status IN ('applied', 'in_progress', 'needs_human')``.
+    ``manual`` and ``failed`` are excluded — the company didn't see those.
 
-    Timestamp is COALESCE(applied_at, last_attempted_at). NULL-company rows
-    and rows with TRIM(company) == '' are skipped; the caller handles
-    NULL/empty-company exemption separately.
+    The company-key derivation MUST match what ``acquire_job`` uses at
+    cap-check time, otherwise lookup misses. We delegate to
+    :func:`applypilot.scoring.tailor.resolve_company_key`, which inspects
+    (in order): explicit ``company`` column, ATS-tenant slug embedded in
+    ``application_url`` (Greenhouse / Lever / Ashby / Workday), and finally
+    ``site`` for direct-employer scrapers. Rows that resolve to None are
+    skipped — caller handles NULL-company exemption separately.
 
     max_window_days bounds the query scan. Default 365d comfortably covers
-    any reasonable `window_days` override in ~/.applypilot/company_limits.yaml;
-    callers filter the returned lists by their own per-company window.
+    any reasonable ``window_days`` override in
+    ``~/.applypilot/company_limits.yaml``; callers filter the returned
+    lists by their own per-company window.
     """
     if conn is None:
         conn = get_connection()
 
-    # Two sources for the company key:
-    # 1. `company` column (extracted from application_url) when populated.
-    # 2. `site` column, only for direct-employer scrapers (Greenhouse,
-    #    Workday, Lever, Ashby, Amazon, etc.) where `site` == employer name.
-    # Aggregator sites (LinkedIn, Indeed, SimplyHired) with NULL company
-    # are excluded — we can't identify the real employer.
+    # Lazy import to avoid a circular cycle (tailor → database).
+    from applypilot.scoring.tailor import resolve_company_key
+
     rows = conn.execute("""
-        SELECT LOWER(company) AS co,
+        SELECT company, site, strategy, application_url, url,
                COALESCE(applied_at, last_attempted_at) AS ts
         FROM jobs
         WHERE apply_status IN ('applied', 'in_progress', 'needs_human')
-          AND company IS NOT NULL AND TRIM(company) != ''
           AND COALESCE(applied_at, last_attempted_at) IS NOT NULL
           AND COALESCE(applied_at, last_attempted_at) > datetime('now', ?)
-        UNION ALL
-        SELECT LOWER(site) AS co,
-               COALESCE(applied_at, last_attempted_at) AS ts
-        FROM jobs
-        WHERE apply_status IN ('applied', 'in_progress', 'needs_human')
-          AND (company IS NULL OR TRIM(company) = '')
-          AND strategy IN ('greenhouse_api', 'workday_api', 'lever_api',
-                           'ashby_api', 'amazon_jobs', 'microsoft_careers',
-                           'apple_jobs', 'google_careers', 'meta_careers',
-                           'twilio_greenhouse')
-          AND site IS NOT NULL AND TRIM(site) != ''
-          AND COALESCE(applied_at, last_attempted_at) IS NOT NULL
-          AND COALESCE(applied_at, last_attempted_at) > datetime('now', ?)
-    """, (f"-{max_window_days} days", f"-{max_window_days} days")).fetchall()
+    """, (f"-{max_window_days} days",)).fetchall()
 
     from collections import defaultdict
     out: dict[str, list[str]] = defaultdict(list)
     for r in rows:
-        out[r["co"]].append(r["ts"])
+        key = resolve_company_key(dict(r))
+        if key:
+            out[key].append(r["ts"])
     return dict(out)
 
 
