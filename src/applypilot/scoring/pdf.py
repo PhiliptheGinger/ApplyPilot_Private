@@ -175,13 +175,16 @@ def parse_resume(text: str) -> dict:
 
     for line in lines[body_start:]:
         stripped = line.strip()
-        # Detect section headers (all caps, no leading dash/bullet, longer than 3 chars)
+        # Detect section headers: all-caps line, \u22653 chars, has at least one
+        # letter (otherwise "2010 - 2011" passes the upper() check), no
+        # leading bullet markers.
+        has_letter = any(c.isalpha() for c in stripped)
         if (
             stripped
+            and has_letter
             and stripped == stripped.upper()
-            and not stripped.startswith("-")
+            and not stripped.startswith(("-", "*", "\u2022"))
             and len(stripped) > 3
-            and not stripped.startswith("\u2022")
         ):
             if current_section:
                 sections[current_section] = "\n".join(current_lines).strip()
@@ -333,6 +336,86 @@ def _resolve_entry_lines(entry: dict) -> tuple[str, str, str]:
     return title, sub, meta
 
 
+# ── Education parsing ────────────────────────────────────────────────────
+
+# Just a year range, optionally wrapped in parens — used to recognize the
+# date line in 3-line education entries.
+_EDU_DATE_RE = re.compile(
+    r"""
+    ^\s*\(?\s*
+    (?P<start>\d{4})
+    \s*[-–—]\s*
+    (?P<end>\d{4}|Present|Current)
+    \s*\)?\s*$
+    """,
+    re.VERBOSE | re.IGNORECASE,
+)
+
+
+def parse_education_entries(text: str) -> list[dict]:
+    """Parse the EDUCATION section into structured entries.
+
+    Each entry is a blank-line-separated block of 1–3 lines::
+
+        Institution
+        [studyType, area  |  area-only]
+        [YYYY - YYYY  |  YYYY - Present]
+
+    Legacy single-line ``Field | Institution | Certifications: ...`` rows
+    parse as a fall-back (used by older tailored resumes).
+    """
+    entries: list[dict] = []
+    current: dict | None = None
+
+    for raw in text.strip().split("\n"):
+        line = raw.strip()
+        if not line:
+            if current:
+                entries.append(current)
+                current = None
+            continue
+
+        # Legacy "Field | Institution | Certifications: ..." line — keep
+        # working for the older pipeline-tailored format.
+        if "|" in line:
+            if current:
+                entries.append(current)
+            entries.append({"_legacy_line": line})
+            current = None
+            continue
+
+        # Year-range line attaches to the current entry.
+        if current is not None and (m := _EDU_DATE_RE.match(line)):
+            current["startDate"] = m.group("start")
+            end = m.group("end")
+            if end.lower() not in ("present", "current"):
+                current["endDate"] = end
+            continue
+
+        if current is None:
+            current = {"institution": line}
+            continue
+
+        # Second non-date line: either "Degree, Field" or just "Field".
+        if "studyType" not in current and "area" not in current:
+            if "," in line:
+                study, _, area = line.partition(",")
+                current["studyType"] = study.strip()
+                current["area"] = area.strip()
+            else:
+                current["area"] = line
+            continue
+
+        # Anything beyond that — start a fresh entry (no blank-line break).
+        entries.append(current)
+        current = {"institution": line}
+
+    if current:
+        entries.append(current)
+
+    return entries
+
+
 # ── HTML Template ────────────────────────────────────────────────────────
 
 def build_html(resume: dict) -> str:
@@ -416,7 +499,31 @@ def build_html(resume: dict) -> str:
         items = _render_entries_html(sections["PROJECTS"])
         proj_html = f'<div class="section"><div class="section-title">Projects</div>{items}</div>'
 
-    # Education / Certifications / Languages — line-per-entry sections.
+    # Education — rich (institution / degree / dates) blocks.
+    def _education_html(text: str) -> str:
+        rows = ""
+        for entry in parse_education_entries(text):
+            if entry.get("_legacy_line"):
+                rows += f'<div class="list-row">{_linkify(entry["_legacy_line"])}</div>'
+                continue
+            inst = entry.get("institution", "")
+            degree_bits = [b for b in (entry.get("studyType"), entry.get("area")) if b]
+            degree_line = ", ".join(degree_bits)
+            dates = ""
+            if entry.get("startDate"):
+                end = entry.get("endDate") or "Present"
+                dates = f"{entry['startDate']} - {end}"
+            rows += '<div class="edu-entry">'
+            if inst:
+                rows += f'<div class="edu-institution">{_linkify(inst)}</div>'
+            if degree_line:
+                rows += f'<div class="edu-degree">{_linkify(degree_line)}</div>'
+            if dates:
+                rows += f'<div class="edu-dates">{dates}</div>'
+            rows += '</div>'
+        return rows
+
+    # Certifications / Languages — flat per-line sections.
     def _list_section_html(label: str, text: str) -> str:
         rows = ""
         for line in text.strip().split("\n"):
@@ -425,7 +532,10 @@ def build_html(resume: dict) -> str:
                 rows += f'<div class="list-row">{_linkify(line)}</div>'
         return f'<div class="section"><div class="section-title">{label}</div>{rows}</div>' if rows else ""
 
-    edu_html = _list_section_html("Education", sections["EDUCATION"]) if "EDUCATION" in sections else ""
+    edu_html = (
+        f'<div class="section"><div class="section-title">Education</div>{_education_html(sections["EDUCATION"])}</div>'
+        if "EDUCATION" in sections else ""
+    )
     cert_html = _list_section_html("Certifications", sections["CERTIFICATIONS"]) if "CERTIFICATIONS" in sections else ""
     lang_html = _list_section_html("Languages", sections["LANGUAGES"]) if "LANGUAGES" in sections else ""
 
@@ -562,6 +672,22 @@ li {{
 }}
 .edu {{
     font-size: 10pt;
+}}
+.edu-entry {{
+    margin-bottom: 3px;
+}}
+.edu-institution {{
+    font-weight: 600;
+    font-size: 10pt;
+    color: #1a3a5c;
+}}
+.edu-degree {{
+    font-size: 9.5pt;
+    color: #1a1a1a;
+}}
+.edu-dates {{
+    font-size: 9pt;
+    color: #555;
 }}
 </style>
 </head>
@@ -926,12 +1052,35 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
     # ── Education ──────────────────────────────────────────────────────
     if "EDUCATION" in sections:
         _add_section_heading("Education")
-        for line in sections["EDUCATION"].strip().split("\n"):
-            line = line.strip()
-            if not line:
+        for entry in parse_education_entries(sections["EDUCATION"]):
+            if entry.get("_legacy_line"):
+                p = doc.add_paragraph()
+                _add_runs_with_links(p, entry["_legacy_line"], font_size=Pt(10))
                 continue
-            p = doc.add_paragraph()
-            _add_runs_with_links(p, line, font_size=Pt(10))
+
+            # Institution: bold (Heading 2-ish weight without the spacing).
+            if entry.get("institution"):
+                p = doc.add_paragraph()
+                p.paragraph_format.space_before = Pt(2)
+                _add_runs_with_links(
+                    p, entry["institution"],
+                    font_size=Pt(10), color=RGBColor(0x1A, 0x3A, 0x5C), bold=True,
+                )
+
+            # Degree + field on one line.
+            degree_bits = [b for b in (entry.get("studyType"), entry.get("area")) if b]
+            if degree_bits:
+                p = doc.add_paragraph()
+                _add_runs_with_links(p, ", ".join(degree_bits), font_size=Pt(9.5))
+
+            # Date range — small gray under the entry.
+            if entry.get("startDate"):
+                end = entry.get("endDate") or "Present"
+                p = doc.add_paragraph()
+                _add_runs_with_links(
+                    p, f"{entry['startDate']} - {end}",
+                    font_size=Pt(9), color=RGBColor(0x55, 0x55, 0x55),
+                )
 
     # ── Certifications ─────────────────────────────────────────────────
     if "CERTIFICATIONS" in sections:

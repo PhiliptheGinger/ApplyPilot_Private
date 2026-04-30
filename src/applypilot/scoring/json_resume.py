@@ -24,7 +24,12 @@ from pathlib import Path
 from typing import Any
 
 # Reuse the existing text parser so we share canonical section semantics.
-from applypilot.scoring.pdf import parse_resume, parse_skills, parse_entries
+from applypilot.scoring.pdf import (
+    parse_education_entries,
+    parse_entries,
+    parse_resume,
+    parse_skills,
+)
 
 _SCHEMA_PATH = Path(__file__).with_name("jsonresume_schema.json")
 _SCHEMA = json.loads(_SCHEMA_PATH.read_text())
@@ -246,13 +251,15 @@ _LANG_ENTRY_RE = re.compile(r"([A-Za-z][A-Za-z -]+?)\s*(?:\(([^)]+)\))?\s*(?:,|$
 # A "project bullet" looks like:  "Name [(...annotation...)]: description text"
 # where Name is a short capitalized identifier (Pursuit, Meridian, ApplyPilot,
 # Lomito, Elminarete, BMW Motorrad diagnostics, OpenAI Parameter Golf, etc.).
+# Separator is a colon — hyphens inside compound words (e.g. "semester-long")
+# previously caused false matches.
 _PROJECT_BULLET_RE = re.compile(
     r"""
     ^
-    (?P<name>[A-Za-z][A-Za-z0-9 &+./'-]+?)        # project name, allow words/spaces
+    (?P<name>[A-Za-z][A-Za-z0-9 &+./'-]+?)        # project name (hyphens ok)
     \s*
     (?:\(\s*(?P<annotation>[^)]{2,200}?)\s*\))?   # optional (annotation)
-    \s*[:—-]\s*                                   # separator
+    \s*:\s*                                       # required colon separator
     (?P<rest>.+)                                  # description
     $
     """,
@@ -274,13 +281,20 @@ def _extract_project(bullet: str) -> dict | None:
     annotation = (m.group("annotation") or "").strip()
     rest = m.group("rest").strip()
 
-    # Project names should look like proper nouns — short, no leading verbs.
-    if len(name) > 60 or " " in name and name.lower().startswith(
-        ("provisioned", "migrated", "rebuilt", "developed", "enhanced",
-         "designed", "built", "led", "managed", "implemented", "contributed",
-         "architected", "reduced", "improved", "engineered", "established",
-         "founded", "debugged", "deployed", "continued", "reverse-engineered")
-    ):
+    # Filter out lines that look like normal verb-led accomplishment bullets
+    # rather than project descriptors. The 120-char ceiling keeps us
+    # tolerant of long descriptive names ("Firmware reverse engineering on
+    # mesh-based communication devices and display peripherals") while
+    # still catching pathological matches.
+    if len(name) > 120:
+        return None
+    if " " in name and name.lower().startswith((
+        "provisioned", "migrated", "rebuilt", "developed", "enhanced",
+        "designed", "built", "led", "managed", "implemented", "contributed",
+        "architected", "reduced", "improved", "engineered", "established",
+        "founded", "debugged", "deployed", "continued", "reverse-engineered",
+        "taught", "translated", "performed", "repaired", "lead",
+    )):
         return None
 
     project: dict = {"name": name, "description": rest}
@@ -554,41 +568,18 @@ def to_json_resume(text: str) -> dict:
     certificates: list[dict] = []
     languages: list[dict] = []
 
-    # Master format: separate EDUCATION / CERTIFICATIONS / LANGUAGES
-    # sections, two-line per education entry (institution / degree).
+    # Master format: rich EDUCATION blocks with institution / degree / dates,
+    # parsed via the shared helper in scoring.pdf.
     if "EDUCATION" in sections:
-        edu_lines = [
-            ln.strip() for ln in sections["EDUCATION"].strip().split("\n")
-            if ln.strip()
-        ]
-        if edu_lines:
-            # Pair institution + degree lines.
-            i = 0
-            while i < len(edu_lines):
-                line = edu_lines[i]
-                # Legacy single-line: "Field | Institution | Certifications: ..."
-                if "|" in line:
-                    edu, certs = _parse_education_line(line)
-                    education.append(edu)
-                    certificates.extend(certs)
-                    i += 1
-                else:
-                    entry = {"institution": line}
-                    # Look ahead for a "Degree, Field" or "Degree" line.
-                    if i + 1 < len(edu_lines) and "|" not in edu_lines[i + 1]:
-                        nxt = edu_lines[i + 1]
-                        # Heuristic: avoid swallowing the next section's first line.
-                        # But in our master, EDUCATION has just two lines.
-                        if "," in nxt:
-                            study, _, area = nxt.partition(",")
-                            entry["studyType"] = study.strip()
-                            entry["area"] = area.strip()
-                        else:
-                            entry["studyType"] = nxt.strip()
-                        i += 2
-                    else:
-                        i += 1
-                    education.append(entry)
+        for entry in parse_education_entries(sections["EDUCATION"]):
+            if legacy := entry.pop("_legacy_line", None):
+                # Older "Field | Institution | Certifications: ..." line —
+                # fall back to the line-level extractor.
+                edu, certs = _parse_education_line(legacy)
+                education.append(edu)
+                certificates.extend(certs)
+            else:
+                education.append(entry)
 
     # Standalone CERTIFICATIONS section (master format).
     if "CERTIFICATIONS" in sections:
@@ -817,7 +808,8 @@ def from_json_resume(jr: dict) -> str:
             out.append("")
         out.append("")
 
-    # Education
+    # Education — emit institution / degree+area / date-range, blank line
+    # between entries (matches the master format).
     education = jr.get("education") or []
     if education:
         out.append("EDUCATION")
@@ -826,11 +818,15 @@ def from_json_resume(jr: dict) -> str:
             inst = e.get("institution") or ""
             study = e.get("studyType") or ""
             area = e.get("area") or ""
+            start = e.get("startDate")
+            end = e.get("endDate")
             if inst:
                 out.append(inst)
             degree_line = ", ".join(b for b in (study, area) if b)
             if degree_line:
                 out.append(degree_line)
+            if start:
+                out.append(f"{start} - {end}" if end else f"{start} - Present")
             out.append("")
         out.append("")
 
