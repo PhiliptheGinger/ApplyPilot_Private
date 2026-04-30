@@ -1535,6 +1535,14 @@ def acquire_job(target_url: str | None = None,
 
             # Fetch candidates. No more soft-sort deprioritization — hard cap
             # is enforced in Python below via get_company_limit().
+            #
+            # Duplicate-application guard: aggregators (LinkedIn especially)
+            # repost the same Greenhouse/Lever/Workday posting under multiple
+            # listing URLs. We've measured 17× repostings on a single
+            # Overstory job. Without this NOT EXISTS, each variant would be
+            # eligible to fire after the first applies. Skip any candidate
+            # whose application_url matches another row that's already in
+            # flight (applied, in_progress, or needs_human).
             candidates = conn.execute(f"""
                 SELECT j.url, j.title, j.site, j.application_url,
                        j.tailored_resume_path, j.fit_score, j.location,
@@ -1550,7 +1558,15 @@ def acquire_job(target_url: str | None = None,
                   AND {url_filter}
                   {company_excl}
                   {age_filter}
-                ORDER BY j.fit_score DESC, j.url
+                  AND NOT EXISTS (
+                      SELECT 1 FROM jobs j2
+                      WHERE j2.application_url = j.application_url
+                        AND j2.application_url IS NOT NULL
+                        AND j2.application_url != ''
+                        AND j2.url != j.url
+                        AND j2.apply_status IN ('applied', 'in_progress', 'needs_human')
+                  )
+                ORDER BY j.fit_score DESC, j.discovered_at DESC, j.url
                 LIMIT 100
             """, (min_score, *company_excl_params, *age_params)).fetchall()
 
