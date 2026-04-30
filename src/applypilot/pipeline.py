@@ -538,6 +538,17 @@ def _run_stage_streaming(
                                 stage, passes, _STREAM_POLL_INTERVAL)
                     if stop_event.wait(timeout=_STREAM_POLL_INTERVAL):
                         break
+                # Pending count looks like work but the runner did nothing
+                # (cap-blocked, all candidates filtered, etc.). Back off so
+                # we don't hot-loop logging the same "no jobs" message every
+                # millisecond — let upstream produce real new work first.
+                elif isinstance(result, dict):
+                    progress = sum(int(result.get(k, 0) or 0) for k in
+                                   ("approved", "failed", "errors", "processed",
+                                    "ok", "partial", "error", "new"))
+                    if progress == 0:
+                        if stop_event.wait(timeout=_STREAM_POLL_INTERVAL):
+                            break
             except Exception as e:
                 log.error("Stage '%s' error (pass %d): %s", stage, passes, e)
                 passes += 1

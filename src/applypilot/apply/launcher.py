@@ -1553,6 +1553,8 @@ def acquire_job(target_url: str | None = None,
                   AND (j.apply_status IS NULL OR j.apply_status = 'failed')
                   AND (j.apply_attempts IS NULL OR j.apply_attempts < {config.DEFAULTS["max_apply_attempts"]})
                   AND j.fit_score >= ?
+                  AND j.application_url IS NOT NULL
+                  AND j.application_url != ''
                   {max_score_filter}
                   AND {site_filter}
                   AND {url_filter}
@@ -1613,7 +1615,30 @@ def acquire_job(target_url: str | None = None,
             return None
 
         from applypilot.config import is_manual_ats
-        apply_url = row["application_url"] or row["url"]
+
+        # Defensive: the SELECT already filters NULL/empty application_urls
+        # via WHERE, but if any path mutates the row before this point we'd
+        # rather mark it manual_only than fall through to row["url"] (the
+        # listing URL on aggregators) and have the agent try to "apply" by
+        # navigating to a LinkedIn page.
+        if not (row["application_url"] or "").strip():
+            conn.execute(
+                "UPDATE jobs SET apply_status = 'manual', "
+                "apply_error = 'no application_url', "
+                "apply_category = 'manual_only' WHERE url = ?",
+                (row["url"],),
+            )
+            transition_state(conn, row["url"], "manual_only",
+                             reason="acquire_job: missing application_url",
+                             force=True)
+            commit_with_retry(conn)
+            logger.warning(
+                "acquire_job: candidate had no application_url; "
+                "marked manual_only: %s", row["url"][:80],
+            )
+            return None
+
+        apply_url = row["application_url"]
         if is_manual_ats(apply_url):
             conn.execute(
                 "UPDATE jobs SET apply_status = 'manual', apply_error = 'manual ATS', "
