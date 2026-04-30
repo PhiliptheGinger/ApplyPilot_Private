@@ -8,6 +8,7 @@ Supported formats: "pdf" (default), "docx".
 """
 
 import logging
+import re
 from pathlib import Path
 
 from applypilot.config import TAILORED_DIR
@@ -16,6 +17,71 @@ from applypilot.config import TAILORED_DIR
 VALID_DOC_FORMATS = ("pdf", "docx")
 
 log = logging.getLogger(__name__)
+
+
+# ── URL / email auto-linking ─────────────────────────────────────────────
+
+# Match http(s) URLs, bare domains (foo.com/path), and email addresses.
+# Order matters: scheme'd URLs first, then emails, then bare domains.
+_URL_RE = re.compile(
+    r"""
+    (
+        # explicit scheme
+        https?://[^\s<>()|]+
+        |
+        # email
+        [A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}
+        |
+        # bare domain — at least one dot, common TLDs, optional path
+        \b
+        (?:[a-z0-9-]+\.)+(?:com|org|io|co|dev|app|ai|care|net|us|edu)
+        (?:/[^\s<>()|]*)?
+        \b
+    )
+    """,
+    re.VERBOSE | re.IGNORECASE,
+)
+
+
+def _normalize_link(token: str) -> tuple[str, str]:
+    """Return (display_text, href) for an auto-detected token.
+
+    Emails get a mailto: prefix. Bare domains get an https:// prefix.
+    The display text always preserves what the user wrote.
+    """
+    if "@" in token and "://" not in token:
+        return token, f"mailto:{token}"
+    if "://" not in token:
+        return token, f"https://{token}"
+    return token, token
+
+
+def _split_text_with_links(text: str) -> list[tuple[str, str | None]]:
+    """Split a string into (text_segment, href-or-None) tuples for rendering.
+
+    Plain text yields (segment, None). Detected URLs/emails yield
+    (display_text, href).
+    """
+    parts: list[tuple[str, str | None]] = []
+    pos = 0
+    for m in _URL_RE.finditer(text):
+        if m.start() > pos:
+            parts.append((text[pos:m.start()], None))
+        token = m.group(0)
+        # Trim trailing punctuation that the regex may have grabbed.
+        trailing = ""
+        while token and token[-1] in ".,;:!?)":
+            trailing = token[-1] + trailing
+            token = token[:-1]
+        if token:
+            display, href = _normalize_link(token)
+            parts.append((display, href))
+        if trailing:
+            parts.append((trailing, None))
+        pos = m.end()
+    if pos < len(text):
+        parts.append((text[pos:], None))
+    return parts
 
 
 # ── Resume Parser ────────────────────────────────────────────────────────
@@ -111,8 +177,28 @@ def parse_skills(text: str) -> list[tuple[str, str]]:
     return skills
 
 
+_BULLET_PREFIXES = ("- ", "\u2022 ", "* ")
+
+
+def _is_bullet(stripped: str) -> bool:
+    """True if the line begins with a recognized bullet marker."""
+    return any(stripped.startswith(p) for p in _BULLET_PREFIXES)
+
+
+def _strip_bullet(stripped: str) -> str:
+    """Drop the leading bullet marker from a known-bullet line."""
+    for prefix in _BULLET_PREFIXES:
+        if stripped.startswith(prefix):
+            return stripped[len(prefix):].strip()
+    return stripped
+
+
 def parse_entries(text: str) -> list[dict]:
     """Parse experience/project entries from section text.
+
+    Recognizes any of ``- ``, ``\u2022 ``, or ``* `` as a bullet prefix, so the
+    same parser handles both pipeline-tailored resumes (which use ``-``)
+    and the hand-authored master (which uses ``*``).
 
     Args:
         text: The EXPERIENCE or PROJECTS section text.
@@ -128,15 +214,13 @@ def parse_entries(text: str) -> list[dict]:
         stripped = line.strip()
         if not stripped:
             continue
-        if stripped.startswith("- ") or stripped.startswith("\u2022 "):
+        if _is_bullet(stripped):
             if current:
-                current["bullets"].append(stripped[2:].strip())
-        elif current is None or (
-            not stripped.startswith("-")
-            and not stripped.startswith("\u2022")
-            and len(current.get("bullets", [])) > 0
-        ):
-            # New entry
+                current["bullets"].append(_strip_bullet(stripped))
+        elif current is None or len(current.get("bullets", [])) > 0:
+            # New entry: either this is the first row, or we've already seen
+            # at least one bullet for the previous entry (so the next bare
+            # line is a new job/project header).
             if current:
                 entries.append(current)
             current = {"title": stripped, "subtitle": "", "bullets": []}
@@ -163,6 +247,18 @@ def build_html(resume: dict) -> str:
     Returns:
         Complete HTML string ready for PDF rendering.
     """
+    from html import escape as _esc
+
+    def _linkify(text: str) -> str:
+        """HTML-escape ``text`` and convert URLs/emails to <a> tags."""
+        out = []
+        for segment, href in _split_text_with_links(text):
+            if href:
+                out.append(f'<a href="{_esc(href, quote=True)}">{_esc(segment)}</a>')
+            else:
+                out.append(_esc(segment))
+        return "".join(out)
+
     sections = resume["sections"]
 
     # Skills
@@ -171,7 +267,7 @@ def build_html(resume: dict) -> str:
         skills = parse_skills(sections["TECHNICAL SKILLS"])
         rows = ""
         for cat, val in skills:
-            rows += f'<div class="skill-row"><span class="skill-cat">{cat}:</span> {val}</div>\n'
+            rows += f'<div class="skill-row"><span class="skill-cat">{_esc(cat)}:</span> {_linkify(val)}</div>\n'
         skills_html = f'<div class="section"><div class="section-title">Technical Skills</div>{rows}</div>'
 
     # Experience
@@ -180,9 +276,15 @@ def build_html(resume: dict) -> str:
         entries = parse_entries(sections["EXPERIENCE"])
         items = ""
         for e in entries:
-            bullets = "".join(f"<li>{b}</li>" for b in e["bullets"])
-            subtitle = f'<div class="entry-subtitle">{e["subtitle"]}</div>' if e["subtitle"] else ""
-            items += f'<div class="entry"><div class="entry-title">{e["title"]}</div>{subtitle}<ul>{bullets}</ul></div>'
+            bullets = "".join(f"<li>{_linkify(b)}</li>" for b in e["bullets"])
+            subtitle = (
+                f'<div class="entry-subtitle">{_linkify(e["subtitle"])}</div>'
+                if e["subtitle"] else ""
+            )
+            items += (
+                f'<div class="entry"><div class="entry-title">{_linkify(e["title"])}</div>'
+                f'{subtitle}<ul>{bullets}</ul></div>'
+            )
         exp_html = f'<div class="section"><div class="section-title">Experience</div>{items}</div>'
 
     # Projects
@@ -191,25 +293,37 @@ def build_html(resume: dict) -> str:
         entries = parse_entries(sections["PROJECTS"])
         items = ""
         for e in entries:
-            bullets = "".join(f"<li>{b}</li>" for b in e["bullets"])
-            subtitle = f'<div class="entry-subtitle">{e["subtitle"]}</div>' if e["subtitle"] else ""
-            items += f'<div class="entry"><div class="entry-title">{e["title"]}</div>{subtitle}<ul>{bullets}</ul></div>'
+            bullets = "".join(f"<li>{_linkify(b)}</li>" for b in e["bullets"])
+            subtitle = (
+                f'<div class="entry-subtitle">{_linkify(e["subtitle"])}</div>'
+                if e["subtitle"] else ""
+            )
+            items += (
+                f'<div class="entry"><div class="entry-title">{_linkify(e["title"])}</div>'
+                f'{subtitle}<ul>{bullets}</ul></div>'
+            )
         proj_html = f'<div class="section"><div class="section-title">Projects</div>{items}</div>'
 
     # Education
     edu_html = ""
     if "EDUCATION" in sections:
         edu_text = sections["EDUCATION"].strip()
-        edu_html = f'<div class="section"><div class="section-title">Education</div><div class="edu">{edu_text}</div></div>'
+        edu_html = (
+            f'<div class="section"><div class="section-title">Education</div>'
+            f'<div class="edu">{_linkify(edu_text)}</div></div>'
+        )
 
     # Summary
     summary_html = ""
     if "SUMMARY" in sections:
-        summary_html = f'<div class="section"><div class="section-title">Summary</div><div class="summary">{sections["SUMMARY"].strip()}</div></div>'
+        summary_html = (
+            f'<div class="section"><div class="section-title">Summary</div>'
+            f'<div class="summary">{_linkify(sections["SUMMARY"].strip())}</div></div>'
+        )
 
-    # Contact line parsing
+    # Contact line parsing — keep the visual " | " separators but linkify each part.
     contact = resume["contact"]
-    contact_parts = [p.strip() for p in contact.split("|")] if contact else []
+    contact_parts = [_linkify(p.strip()) for p in contact.split("|")] if contact else []
     contact_html = " &nbsp;|&nbsp; ".join(contact_parts)
 
     # Location line (may be empty)
@@ -261,9 +375,13 @@ body {{
     color: #444;
     margin-top: 1px;
 }}
+/* All hyperlinks: brand color, no underline, never visited-styled. */
+a, a:link, a:visited, a:hover, a:active {{
+    color: #2a7ab5;
+    text-decoration: none;
+}}
 .contact a {{
     color: #2c3e50;
-    text-decoration: none;
 }}
 .section {{
     margin-top: 5px;
@@ -339,12 +457,20 @@ li {{
 
 # ── PDF Renderer ─────────────────────────────────────────────────────────
 
-def render_pdf(html: str, output_path: str) -> None:
+def render_pdf(html: str, output_path: str, metadata: dict | None = None) -> None:
     """Render HTML to PDF using Playwright's headless Chromium.
+
+    Chromium leaves the PDF's Info dict mostly empty (no Title/Author/etc.)
+    and stamps Creator="Chromium". After rendering we post-process the file
+    with pypdf to populate the Info dict from ``metadata`` so reviewers,
+    ATS parsers, and search indexers see the same fields the DOCX advertises.
 
     Args:
         html: Complete HTML string.
         output_path: Path to write the PDF file.
+        metadata: Optional dict matching the DOCX metadata schema —
+            keys: 'title', 'subject', 'author', 'keywords' (str or list),
+            'description'. None leaves the Info dict at Chromium's default.
     """
     from patchright.sync_api import sync_playwright
 
@@ -359,6 +485,47 @@ def render_pdf(html: str, output_path: str) -> None:
             print_background=True,
         )
         browser.close()
+
+    if metadata:
+        _set_pdf_metadata(output_path, metadata)
+
+
+def _set_pdf_metadata(path: str, metadata: dict) -> None:
+    """Write ``metadata`` into the PDF's Info dictionary (in place).
+
+    Chromium's headless PDF lacks Title/Author/Subject/Keywords. Stamp them
+    here so the file looks like a Word-exported PDF instead of a printed
+    web page. Also overrides Creator from "Chromium" to a neutral value.
+    """
+    from pypdf import PdfReader, PdfWriter
+    from datetime import datetime, timezone as _tz
+
+    reader = PdfReader(path)
+    writer = PdfWriter(clone_from=reader)
+
+    kw = metadata.get("keywords")
+    if isinstance(kw, list):
+        kw = ", ".join(str(k).strip() for k in kw if k)
+
+    now = datetime.now(_tz.utc)
+    pdf_date = now.strftime("D:%Y%m%d%H%M%S+00'00'")
+
+    info = {
+        "/Title":        str(metadata.get("title", ""))[:512],
+        "/Author":       str(metadata.get("author", "")),
+        "/Subject":      str(metadata.get("subject", ""))[:512],
+        "/Keywords":     str(kw or ""),
+        "/Creator":      "Microsoft Word",
+        "/Producer":     "Microsoft Word",
+        "/CreationDate": pdf_date,
+        "/ModDate":      pdf_date,
+    }
+    # Drop empties so we don't write zero-length fields.
+    info = {k: v for k, v in info.items() if v}
+    writer.add_metadata(info)
+
+    with open(path, "wb") as f:
+        writer.write(f)
 
 
 # ── DOCX Renderer ────────────────────────────────────────────────────
@@ -376,6 +543,87 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
     from docx import Document
     from docx.shared import Pt, Inches, RGBColor
     from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+
+    # Brand link color (matches the section-heading bottom-border).
+    LINK_COLOR_HEX = "2A7AB5"
+
+    def _add_hyperlink_run(paragraph, display: str, href: str,
+                           font_size: Pt | None = None,
+                           bold: bool = False, italic: bool = False) -> None:
+        """Append a clickable hyperlink run to ``paragraph``.
+
+        Renders without an underline (Jobscan-friendly + matches the user's
+        styling preference). Falls back to a plain styled run on failure.
+        """
+        try:
+            r_id = paragraph.part.relate_to(
+                href,
+                "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
+                is_external=True,
+            )
+        except Exception:
+            r = paragraph.add_run(display)
+            r.font.color.rgb = RGBColor(0x2A, 0x7A, 0xB5)
+            if font_size: r.font.size = font_size
+            if bold:      r.bold = True
+            if italic:    r.italic = True
+            return
+
+        hyperlink = OxmlElement("w:hyperlink")
+        hyperlink.set(qn("r:id"), r_id)
+
+        new_run = OxmlElement("w:r")
+        rPr = OxmlElement("w:rPr")
+
+        color = OxmlElement("w:color")
+        color.set(qn("w:val"), LINK_COLOR_HEX)
+        rPr.append(color)
+
+        # Explicitly disable underline (LO/Word default for hyperlink style).
+        u = OxmlElement("w:u")
+        u.set(qn("w:val"), "none")
+        rPr.append(u)
+
+        if font_size is not None:
+            sz = OxmlElement("w:sz")
+            sz.set(qn("w:val"), str(int(font_size.pt * 2)))  # half-points
+            rPr.append(sz)
+        if bold:
+            rPr.append(OxmlElement("w:b"))
+        if italic:
+            rPr.append(OxmlElement("w:i"))
+
+        # Intentionally NOT setting w:rStyle="Hyperlink" — that style carries
+        # a forced underline. We let the explicit w:color + w:u="none" win.
+        new_run.append(rPr)
+        text_el = OxmlElement("w:t")
+        text_el.text = display
+        text_el.set(qn("xml:space"), "preserve")
+        new_run.append(text_el)
+        hyperlink.append(new_run)
+        paragraph._p.append(hyperlink)
+
+    def _add_runs_with_links(paragraph, text: str, *,
+                             font_size: Pt | None = None,
+                             color: RGBColor | None = None,
+                             bold: bool = False, italic: bool = False) -> None:
+        """Add ``text`` to ``paragraph`` with auto-detected URLs as hyperlinks.
+
+        Plain segments inherit the supplied font_size/color/bold/italic.
+        Hyperlinks override color to the brand link color and never underline.
+        """
+        for segment, href in _split_text_with_links(text):
+            if href:
+                _add_hyperlink_run(paragraph, segment, href,
+                                   font_size=font_size, bold=bold, italic=italic)
+            else:
+                r = paragraph.add_run(segment)
+                if font_size is not None: r.font.size = font_size
+                if color is not None:     r.font.color.rgb = color
+                if bold:                  r.bold = True
+                if italic:                r.italic = True
 
     doc = Document()
 
@@ -422,9 +670,10 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
     if resume["contact"]:
         contact_para = doc.add_paragraph()
         contact_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        contact_run = contact_para.add_run(resume["contact"])
-        contact_run.font.size = Pt(9)
-        contact_run.font.color.rgb = RGBColor(0x44, 0x44, 0x44)
+        _add_runs_with_links(
+            contact_para, resume["contact"],
+            font_size=Pt(9), color=RGBColor(0x44, 0x44, 0x44),
+        )
 
     sections = resume["sections"]
 
@@ -475,20 +724,19 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
         for entry in parse_entries(sections["EXPERIENCE"]):
             tp = doc.add_paragraph()
             tp.paragraph_format.space_before = Pt(2)
-            tr = tp.add_run(entry["title"])
-            tr.bold = True
-            tr.font.size = Pt(10)
-            tr.font.color.rgb = RGBColor(0x1A, 0x3A, 0x5C)
+            _add_runs_with_links(
+                tp, entry["title"],
+                font_size=Pt(10), color=RGBColor(0x1A, 0x3A, 0x5C), bold=True,
+            )
             if entry["subtitle"]:
                 sp = doc.add_paragraph()
-                sr = sp.add_run(entry["subtitle"])
-                sr.italic = True
-                sr.font.size = Pt(9)
-                sr.font.color.rgb = RGBColor(0x4A, 0x7A, 0x9B)
+                _add_runs_with_links(
+                    sp, entry["subtitle"],
+                    font_size=Pt(9), color=RGBColor(0x4A, 0x7A, 0x9B), italic=True,
+                )
             for bullet in entry["bullets"]:
-                bp = doc.add_paragraph(bullet, style="List Bullet")
-                for run in bp.runs:
-                    run.font.size = Pt(9.5)
+                bp = doc.add_paragraph(style="List Bullet")
+                _add_runs_with_links(bp, bullet, font_size=Pt(9.5))
 
     # --- Projects ---
     if "PROJECTS" in sections:
@@ -496,54 +744,96 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
         for entry in parse_entries(sections["PROJECTS"]):
             tp = doc.add_paragraph()
             tp.paragraph_format.space_before = Pt(2)
-            tr = tp.add_run(entry["title"])
-            tr.bold = True
-            tr.font.size = Pt(10)
-            tr.font.color.rgb = RGBColor(0x1A, 0x3A, 0x5C)
+            _add_runs_with_links(
+                tp, entry["title"],
+                font_size=Pt(10), color=RGBColor(0x1A, 0x3A, 0x5C), bold=True,
+            )
             if entry["subtitle"]:
                 sp = doc.add_paragraph()
-                sr = sp.add_run(entry["subtitle"])
-                sr.italic = True
-                sr.font.size = Pt(9)
-                sr.font.color.rgb = RGBColor(0x4A, 0x7A, 0x9B)
+                _add_runs_with_links(
+                    sp, entry["subtitle"],
+                    font_size=Pt(9), color=RGBColor(0x4A, 0x7A, 0x9B), italic=True,
+                )
             for bullet in entry["bullets"]:
-                bp = doc.add_paragraph(bullet, style="List Bullet")
-                for run in bp.runs:
-                    run.font.size = Pt(9.5)
+                bp = doc.add_paragraph(style="List Bullet")
+                _add_runs_with_links(bp, bullet, font_size=Pt(9.5))
 
     # --- Education ---
     if "EDUCATION" in sections:
         _add_section_heading("Education")
-        p = doc.add_paragraph(sections["EDUCATION"].strip())
-        p.runs[0].font.size = Pt(10)
+        p = doc.add_paragraph()
+        _add_runs_with_links(p, sections["EDUCATION"].strip(), font_size=Pt(10))
 
-    # Populate core_properties with metadata if provided.
-    if metadata:
-        cp = doc.core_properties
-        if "title" in metadata and metadata["title"]:
-            cp.title = str(metadata["title"])[:256]
-        if "subject" in metadata and metadata["subject"]:
-            cp.subject = str(metadata["subject"])[:256]
-        if "author" in metadata and metadata["author"]:
-            cp.author = str(metadata["author"])[:256]
-        if "company" in metadata and metadata["company"]:
-            cp.company = str(metadata["company"])[:256]
-        if "category" in metadata and metadata["category"]:
-            cp.category = str(metadata["category"])[:256]
-        if "comments" in metadata and metadata["comments"]:
-            cp.comments = str(metadata["comments"])[:2000]
-        if "description" in metadata and metadata["description"]:
-            # python-docx uses comments for long text; prefer comments for description
-            # if both provided, comments has priority above.
-            if not cp.comments:
-                cp.comments = str(metadata["description"])[:2000]
-        kw = metadata.get("keywords")
-        if kw:
-            if isinstance(kw, list):
-                kw = ", ".join(str(k).strip() for k in kw if k)
-            cp.keywords = str(kw)[:1024]
+    # Populate core_properties. Always overwrite python-docx's template
+    # defaults (author='python-docx', comments='generated by python-docx',
+    # created/modified=2013-12-23) so reviewers + ATS systems don't see
+    # tooling fingerprints.
+    cp = doc.core_properties
+    from datetime import datetime, timezone as _tz
+    now = datetime.now(_tz.utc).replace(microsecond=0)
 
+    metadata = metadata or {}
+    cp.title    = str(metadata.get("title", ""))[:256]
+    cp.subject  = str(metadata.get("subject", ""))[:256]
+    cp.author   = str(metadata.get("author", "")) or ""
+    cp.company  = str(metadata.get("company", "")) or ""
+    cp.category = str(metadata.get("category", "")) or ""
+    cp.last_modified_by = str(metadata.get("last_modified_by", metadata.get("author", "")))[:256]
+    # `comments` literally inherits "generated by python-docx" from the
+    # template — overwrite (with description if provided, else blank).
+    cp.comments = str(metadata.get("comments", metadata.get("description", "")))[:2000]
+    # Refresh timestamps. created keeps any caller-supplied value (so the
+    # master can preserve its real authored date) but must not stay at the
+    # 2013 template default.
+    created = metadata.get("created")
+    cp.created = created if isinstance(created, datetime) else now
+    cp.modified = now
+
+    kw = metadata.get("keywords")
+    if kw:
+        if isinstance(kw, list):
+            kw = ", ".join(str(k).strip() for k in kw if k)
+        # OOXML core-properties hard-caps `keywords` at 255 chars; the
+        # python-docx setter raises ValueError beyond that.
+        cp.keywords = str(kw)[:255]
+    else:
+        cp.keywords = ""
+
+    # Save once so app.xml + the package are written, then patch the
+    # extended-properties to clobber python-docx's "Microsoft Macintosh
+    # Word" default Application string.
     doc.save(output_path)
+    _scrub_docx_app_xml(output_path)
+
+
+def _scrub_docx_app_xml(path: str) -> None:
+    """Replace python-docx template's app.xml fingerprints in place.
+
+    python-docx ships an app.xml that sets ``<Application>Microsoft
+    Macintosh Word</Application>`` regardless of the host system. That
+    string is a known python-docx tell. Rewrite the file's app.xml so
+    the Application string reads ``Microsoft Office Word``, which is
+    what an actual Word save produces.
+    """
+    import zipfile, shutil, tempfile, os
+    src = str(path)
+    fd, tmp = tempfile.mkstemp(suffix=".docx", dir=os.path.dirname(src) or None)
+    os.close(fd)
+    try:
+        with zipfile.ZipFile(src, "r") as zin, zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                data = zin.read(item.filename)
+                if item.filename == "docProps/app.xml":
+                    data = data.replace(
+                        b"<Application>Microsoft Macintosh Word</Application>",
+                        b"<Application>Microsoft Office Word</Application>",
+                    )
+                zout.writestr(item, data)
+        shutil.move(tmp, src)
+    except Exception:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+        raise
 
 
 # ── Public API ───────────────────────────────────────────────────────────
@@ -596,7 +886,7 @@ def convert_to_pdf(
     html = build_html(resume)
     out = output_path or text_path.with_suffix(".pdf")
     out = Path(out)
-    render_pdf(html, str(out))
+    render_pdf(html, str(out), metadata=metadata)
     log.info("PDF generated: %s", out)
     return out
 
