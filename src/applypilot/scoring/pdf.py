@@ -89,41 +89,84 @@ def _split_text_with_links(text: str) -> list[tuple[str, str | None]]:
 def parse_resume(text: str) -> dict:
     """Parse a structured text resume into sections.
 
-    Expects a format with header lines (name, title, location, contact)
-    followed by ALL-CAPS section headers (SUMMARY, TECHNICAL SKILLS, etc.).
+    Supports two header layouts:
+
+    1. **Pipeline-tailored** (compact): name → title → location → contact,
+       all on consecutive non-blank lines, then a blank, then SUMMARY.
+
+    2. **Master / ATS-friendly** (separated): a contact block (name + 1–2
+       contact lines) → blank line → headline (job title / objective)
+       → blank → SUMMARY.
+
+    The presence of a blank line *inside* the pre-SUMMARY region is what
+    separates the two — a blank break after the contact block means the
+    headline is whatever comes after the break.
 
     Args:
         text: Full resume text.
 
     Returns:
-        {"name": str, "title": str, "location": str, "contact": str, "sections": dict}
+        ``{"name": str, "title": str, "location": str, "contact": str,
+           "sections": dict}``
     """
     lines = [line.rstrip() for line in text.strip().split("\n")]
 
-    # Header: first few lines before SUMMARY
-    header_lines: list[str] = []
+    contact_block: list[str] = []
+    headline_block: list[str] = []
+    saw_break = False
     body_start = 0
     for i, line in enumerate(lines):
         if line.strip().upper() == "SUMMARY":
             body_start = i
             break
-        if line.strip():
-            header_lines.append(line.strip())
+        if not line.strip():
+            if contact_block:
+                saw_break = True
+            continue
+        if saw_break:
+            headline_block.append(line.strip())
+        else:
+            contact_block.append(line.strip())
 
-    name = header_lines[0] if len(header_lines) > 0 else ""
-    title = header_lines[1] if len(header_lines) > 1 else ""
-    # The header may have 3 or 4 lines depending on whether location is included
+    name = contact_block[0] if contact_block else ""
+
+    # Title: the headline block when present (master format), otherwise
+    # the second line of the contact block (compact format).
+    if headline_block:
+        title = " ".join(headline_block)
+    elif len(contact_block) > 1:
+        title = contact_block[1]
+    else:
+        title = ""
+
+    # Location + contact extraction.
     location = ""
     contact = ""
-    if len(header_lines) > 3:
-        location = header_lines[2]
-        contact = header_lines[3]
-    elif len(header_lines) > 2:
-        # Could be location or contact -- check for email/phone indicators
-        if "@" in header_lines[2] or "|" in header_lines[2]:
-            contact = header_lines[2]
-        else:
-            location = header_lines[2]
+    if headline_block:
+        # Master format: contact_block has [name, "City, ST | phone | email", "LinkedIn: ... | GitHub: ..."]
+        rest = contact_block[1:]
+        if rest:
+            first_rest = rest[0]
+            # Detect "City, ST" prefix.
+            loc_m = re.match(r"^([A-Z][A-Za-z .'-]+,\s*[A-Z]{2})\s*\|\s*(.*)$", first_rest)
+            if loc_m:
+                location = loc_m.group(1)
+                rest[0] = loc_m.group(2)
+            else:
+                location = first_rest
+                rest = rest[1:]
+        contact = " | ".join(p for p in rest if p)
+    else:
+        # Compact format: header_lines after name = [title, location, contact] in that order.
+        if len(contact_block) > 3:
+            location = contact_block[2]
+            contact = contact_block[3]
+        elif len(contact_block) > 2:
+            third = contact_block[2]
+            if "@" in third or "|" in third:
+                contact = third
+            else:
+                location = third
 
     # Split body into sections by ALL-CAPS headers
     sections: dict[str, str] = {}
@@ -162,6 +205,10 @@ def parse_resume(text: str) -> dict:
 def parse_skills(text: str) -> list[tuple[str, str]]:
     """Parse skills section into (category, value) pairs.
 
+    Strips any leading bullet marker (``- ``, ``• ``, ``* ``) so the
+    category name comes out clean regardless of whether the source
+    used Markdown-style bullets.
+
     Args:
         text: The TECHNICAL SKILLS section text.
 
@@ -173,7 +220,8 @@ def parse_skills(text: str) -> list[tuple[str, str]]:
         line = line.strip()
         if ":" in line:
             cat, val = line.split(":", 1)
-            skills.append((cat.strip(), val.strip()))
+            cat = re.sub(r"^[\*\-•]\s*", "", cat).strip()
+            skills.append((cat, val.strip()))
     return skills
 
 
@@ -200,11 +248,18 @@ def parse_entries(text: str) -> list[dict]:
     same parser handles both pipeline-tailored resumes (which use ``-``)
     and the hand-authored master (which uses ``*``).
 
+    Captures up to TWO non-bullet lines after the title:
+      - ``subtitle`` \u2014 the line right under the title (team / department,
+        or for legacy entries the date range itself).
+      - ``meta``    \u2014 an optional third line for ``date | location`` data
+        when the entry uses the ATS-friendly 3-line header format.
+
     Args:
         text: The EXPERIENCE or PROJECTS section text.
 
     Returns:
-        List of {"title": str, "subtitle": str, "bullets": list[str]} dicts.
+        List of ``{"title": str, "subtitle": str, "meta": str,
+                   "bullets": list[str]}`` dicts.
     """
     entries: list[dict] = []
     lines = text.strip().split("\n")
@@ -223,9 +278,11 @@ def parse_entries(text: str) -> list[dict]:
             # line is a new job/project header).
             if current:
                 entries.append(current)
-            current = {"title": stripped, "subtitle": "", "bullets": []}
+            current = {"title": stripped, "subtitle": "", "meta": "", "bullets": []}
         elif current and not current["subtitle"]:
             current["subtitle"] = stripped
+        elif current and not current.get("meta"):
+            current["meta"] = stripped
         else:
             if current:
                 current["bullets"].append(stripped)
@@ -234,6 +291,46 @@ def parse_entries(text: str) -> list[dict]:
         entries.append(current)
 
     return entries
+
+
+# \u2500\u2500 Date / metadata-line detection \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+# Catches "February 2024 - May 2025", "2024-2025", "Jan 2024 \u2013 Present",
+# optionally followed by "  |  Location, ST". Used to separate a team
+# subtitle from a date+location meta line.
+_DATE_HEAD_RE = re.compile(
+    r"""
+    ^\s*
+    (?:[A-Za-z]+\s+)?\d{4}             # "February 2024" or just "2024"
+    \s*[-\u2013\u2014]\s*
+    (?:Present|Current|(?:[A-Za-z]+\s+)?\d{4})
+    """,
+    re.VERBOSE | re.IGNORECASE,
+)
+
+
+def _looks_like_date(s: str) -> bool:
+    return bool(s and _DATE_HEAD_RE.match(s))
+
+
+def _resolve_entry_lines(entry: dict) -> tuple[str, str, str]:
+    """Return (title, team_subtitle, dates_and_location).
+
+    Handles both formats:
+      * Legacy 2-line: title + (date-only subtitle).
+      * New 3-line:    title + team subtitle + date+location meta line.
+    """
+    title = entry.get("title", "").strip()
+    sub = entry.get("subtitle", "").strip()
+    meta = entry.get("meta", "").strip()
+
+    if meta and _looks_like_date(meta):
+        # Three-line format: subtitle is the team, meta is date+location.
+        return title, sub, meta
+    if _looks_like_date(sub):
+        # Legacy two-line format: subtitle is the date itself.
+        return title, "", sub
+    return title, sub, meta
 
 
 # ── HTML Template ────────────────────────────────────────────────────────
@@ -270,48 +367,67 @@ def build_html(resume: dict) -> str:
             rows += f'<div class="skill-row"><span class="skill-cat">{_esc(cat)}:</span> {_linkify(val)}</div>\n'
         skills_html = f'<div class="section"><div class="section-title">Technical Skills</div>{rows}</div>'
 
-    # Experience
-    exp_html = ""
-    if "EXPERIENCE" in sections:
-        entries = parse_entries(sections["EXPERIENCE"])
+    def _render_entries_html(section_text: str) -> str:
+        """Render entries with the 3-line ATS header (title / team / date)."""
         items = ""
-        for e in entries:
+        for e in parse_entries(section_text):
+            title, team_subtitle, date_meta = _resolve_entry_lines(e)
             bullets = "".join(f"<li>{_linkify(b)}</li>" for b in e["bullets"])
-            subtitle = (
-                f'<div class="entry-subtitle">{_linkify(e["subtitle"])}</div>'
-                if e["subtitle"] else ""
+            subtitle_html = (
+                f'<div class="entry-subtitle">{_linkify(team_subtitle)}</div>'
+                if team_subtitle else ""
+            )
+            meta_html = (
+                f'<div class="entry-meta">{_linkify(date_meta)}</div>'
+                if date_meta else ""
             )
             items += (
-                f'<div class="entry"><div class="entry-title">{_linkify(e["title"])}</div>'
-                f'{subtitle}<ul>{bullets}</ul></div>'
+                f'<div class="entry">'
+                f'<div class="entry-title">{_linkify(title)}</div>'
+                f'{subtitle_html}{meta_html}'
+                f'<ul>{bullets}</ul>'
+                f'</div>'
             )
-        exp_html = f'<div class="section"><div class="section-title">Experience</div>{items}</div>'
+        return items
+
+    # Professional Experience — accept either "PROFESSIONAL EXPERIENCE"
+    # (master) or "EXPERIENCE" (pipeline-tailored).
+    exp_html = ""
+    exp_section = sections.get("PROFESSIONAL EXPERIENCE") or sections.get("EXPERIENCE")
+    if exp_section:
+        items = _render_entries_html(exp_section)
+        exp_html = (
+            f'<div class="section">'
+            f'<div class="section-title">Professional Experience</div>{items}</div>'
+        )
+
+    # Earlier Experience
+    earlier_html = ""
+    if "EARLIER EXPERIENCE" in sections:
+        items = _render_entries_html(sections["EARLIER EXPERIENCE"])
+        earlier_html = (
+            f'<div class="section">'
+            f'<div class="section-title">Earlier Experience</div>{items}</div>'
+        )
 
     # Projects
     proj_html = ""
     if "PROJECTS" in sections:
-        entries = parse_entries(sections["PROJECTS"])
-        items = ""
-        for e in entries:
-            bullets = "".join(f"<li>{_linkify(b)}</li>" for b in e["bullets"])
-            subtitle = (
-                f'<div class="entry-subtitle">{_linkify(e["subtitle"])}</div>'
-                if e["subtitle"] else ""
-            )
-            items += (
-                f'<div class="entry"><div class="entry-title">{_linkify(e["title"])}</div>'
-                f'{subtitle}<ul>{bullets}</ul></div>'
-            )
+        items = _render_entries_html(sections["PROJECTS"])
         proj_html = f'<div class="section"><div class="section-title">Projects</div>{items}</div>'
 
-    # Education
-    edu_html = ""
-    if "EDUCATION" in sections:
-        edu_text = sections["EDUCATION"].strip()
-        edu_html = (
-            f'<div class="section"><div class="section-title">Education</div>'
-            f'<div class="edu">{_linkify(edu_text)}</div></div>'
-        )
+    # Education / Certifications / Languages — line-per-entry sections.
+    def _list_section_html(label: str, text: str) -> str:
+        rows = ""
+        for line in text.strip().split("\n"):
+            line = line.strip()
+            if line:
+                rows += f'<div class="list-row">{_linkify(line)}</div>'
+        return f'<div class="section"><div class="section-title">{label}</div>{rows}</div>' if rows else ""
+
+    edu_html = _list_section_html("Education", sections["EDUCATION"]) if "EDUCATION" in sections else ""
+    cert_html = _list_section_html("Certifications", sections["CERTIFICATIONS"]) if "CERTIFICATIONS" in sections else ""
+    lang_html = _list_section_html("Languages", sections["LANGUAGES"]) if "LANGUAGES" in sections else ""
 
     # Summary
     summary_html = ""
@@ -327,7 +443,7 @@ def build_html(resume: dict) -> str:
     contact_html = " &nbsp;|&nbsp; ".join(contact_parts)
 
     # Location line (may be empty)
-    location_html = f'<div class="location">{resume["location"]}</div>' if resume["location"] else ""
+    location_html = f'<div class="location">{_esc(resume["location"])}</div>' if resume["location"] else ""
 
     return f"""<!DOCTYPE html>
 <html>
@@ -423,6 +539,11 @@ a, a:link, a:visited, a:hover, a:active {{
     font-size: 9pt;
     color: #4a7a9b;
     font-style: italic;
+    margin-bottom: 0;
+}}
+.entry-meta {{
+    font-size: 9pt;
+    color: #555;
     margin-bottom: 1px;
 }}
 ul {{
@@ -434,6 +555,11 @@ li {{
     margin-bottom: 1px;
     line-height: 1.35;
 }}
+.list-row {{
+    font-size: 9.5pt;
+    margin: 0;
+    line-height: 1.35;
+}}
 .edu {{
     font-size: 10pt;
 }}
@@ -441,16 +567,19 @@ li {{
 </head>
 <body>
 <div class="header">
-    <div class="name">{resume['name']}</div>
-    <div class="title">{resume['title']}</div>
+    <div class="name">{_esc(resume['name'])}</div>
+    <div class="title">{_esc(resume['title'])}</div>
     {location_html}
     <div class="contact">{contact_html}</div>
 </div>
 {summary_html}
 {skills_html}
 {exp_html}
+{earlier_html}
 {proj_html}
 {edu_html}
+{cert_html}
+{lang_html}
 </body>
 </html>"""
 
@@ -634,31 +763,65 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
         section.left_margin = Inches(0.5)
         section.right_margin = Inches(0.5)
 
-    style = doc.styles["Normal"]
-    font = style.font
-    font.name = "Calibri"
-    font.size = Pt(10)
-    font.color.rgb = RGBColor(0x1A, 0x1A, 0x1A)
+    # ── Word built-in style customization ──────────────────────────────
+    # ATS parsers (Workday/Greenhouse/etc.) walk the OOXML style outline
+    # to identify section structure. We use the canonical Title /
+    # Subtitle / Heading 1 / Heading 2 styles and re-skin them to match
+    # the visual design — same look, but now there's a structural map.
 
-    pf = style.paragraph_format
-    pf.space_before = Pt(0)
-    pf.space_after = Pt(0)
-    pf.line_spacing = 1.35
+    def _restyle(name: str, *, size: float, bold: bool = False,
+                 italic: bool = False, color: tuple[int, int, int] = (0x1A, 0x1A, 0x1A),
+                 caps: bool = False,
+                 space_before: float = 0, space_after: float = 0,
+                 line_spacing: float = 1.35) -> Any:
+        s = doc.styles[name]
+        f = s.font
+        f.name = "Calibri"
+        f.size = Pt(size)
+        f.bold = bold
+        f.italic = italic
+        f.color.rgb = RGBColor(*color)
+        f.all_caps = caps
+        pf = s.paragraph_format
+        pf.space_before = Pt(space_before)
+        pf.space_after = Pt(space_after)
+        pf.line_spacing = line_spacing
+        # Strip the standard "based on Heading X" parent-style coupling so
+        # our overrides aren't trampled by Word's defaults.
+        return s
 
-    # --- Header ---
-    name_para = doc.add_paragraph()
+    _restyle("Normal", size=10, color=(0x1A, 0x1A, 0x1A))
+
+    _restyle(
+        "Title", size=18, bold=True, color=(0x1A, 0x3A, 0x5C),
+        space_after=1, line_spacing=1.1,
+    )
+    _restyle(
+        "Subtitle", size=10.5, color=(0x3A, 0x6B, 0x8C),
+        space_after=0, line_spacing=1.2,
+    )
+    _restyle(
+        "Heading 1", size=10, bold=True, color=(0x1A, 0x3A, 0x5C), caps=True,
+        space_before=6, space_after=2,
+    )
+    _restyle(
+        "Heading 2", size=10, bold=True, color=(0x1A, 0x3A, 0x5C),
+        space_before=4, space_after=0,
+    )
+    _restyle(
+        "Heading 3", size=9, italic=True, color=(0x4A, 0x7A, 0x9B),
+        space_after=0,
+    )
+
+    # ── Header (Title + Subtitle + Normal) ─────────────────────────────
+    name_para = doc.add_paragraph(style="Title")
     name_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    name_run = name_para.add_run(resume["name"])
-    name_run.bold = True
-    name_run.font.size = Pt(18)
-    name_run.font.color.rgb = RGBColor(0x1A, 0x3A, 0x5C)
+    name_para.add_run(resume["name"])
 
     if resume["title"]:
-        title_para = doc.add_paragraph()
-        title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        title_run = title_para.add_run(resume["title"])
-        title_run.font.size = Pt(10.5)
-        title_run.font.color.rgb = RGBColor(0x3A, 0x6B, 0x8C)
+        sub_para = doc.add_paragraph(style="Subtitle")
+        sub_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        sub_para.add_run(resume["title"])
 
     if resume["location"]:
         loc_para = doc.add_paragraph()
@@ -678,16 +841,10 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
     sections = resume["sections"]
 
     def _add_section_heading(title: str) -> None:
-        """Add a styled section heading with bottom border."""
-        para = doc.add_paragraph()
-        para.paragraph_format.space_before = Pt(5)
-        para.paragraph_format.space_after = Pt(3)
-        run = para.add_run(title.upper())
-        run.bold = True
-        run.font.size = Pt(10)
-        run.font.color.rgb = RGBColor(0x1A, 0x3A, 0x5C)
-        # Bottom border via XML (closest to the PDF blue line)
-        from docx.oxml.ns import qn
+        """Section heading — Heading 1 style, plus a bottom border."""
+        para = doc.add_paragraph(style="Heading 1")
+        para.add_run(title.upper())
+        # Bottom border via XML (matches the PDF blue underline).
         pPr = para._p.get_or_add_pPr()
         pBdr = pPr.makeelement(qn("w:pBdr"), {})
         bottom = pBdr.makeelement(qn("w:bottom"), {
@@ -699,14 +856,45 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
         pBdr.append(bottom)
         pPr.append(pBdr)
 
-    # --- Summary ---
+    def _render_entries(section_text: str) -> None:
+        """Render PROFESSIONAL EXPERIENCE / PROJECTS / EARLIER EXPERIENCE
+        entries with the 3-line ATS-friendly header (title / team / dates).
+        """
+        for entry in parse_entries(section_text):
+            title, team_subtitle, date_meta = _resolve_entry_lines(entry)
+
+            # Entry title — Heading 2 (gives ATS a clear company/role marker).
+            tp = doc.add_paragraph(style="Heading 2")
+            _add_runs_with_links(tp, title, font_size=Pt(10), bold=True)
+
+            if team_subtitle:
+                sp = doc.add_paragraph(style="Heading 3")
+                _add_runs_with_links(
+                    sp, team_subtitle,
+                    font_size=Pt(9), color=RGBColor(0x4A, 0x7A, 0x9B), italic=True,
+                )
+
+            if date_meta:
+                dp = doc.add_paragraph()
+                _add_runs_with_links(
+                    dp, date_meta,
+                    font_size=Pt(9), color=RGBColor(0x55, 0x55, 0x55),
+                )
+
+            for bullet in entry["bullets"]:
+                bp = doc.add_paragraph(style="List Bullet")
+                _add_runs_with_links(bp, bullet, font_size=Pt(9.5))
+
+    # ── Summary ────────────────────────────────────────────────────────
     if "SUMMARY" in sections:
         _add_section_heading("Summary")
-        p = doc.add_paragraph(sections["SUMMARY"].strip())
-        p.runs[0].font.size = Pt(9.5)
-        p.runs[0].font.color.rgb = RGBColor(0x33, 0x33, 0x33)
+        p = doc.add_paragraph()
+        _add_runs_with_links(
+            p, sections["SUMMARY"].strip(),
+            font_size=Pt(9.5), color=RGBColor(0x33, 0x33, 0x33),
+        )
 
-    # --- Technical Skills ---
+    # ── Technical Skills ───────────────────────────────────────────────
     if "TECHNICAL SKILLS" in sections:
         _add_section_heading("Technical Skills")
         for cat, val in parse_skills(sections["TECHNICAL SKILLS"]):
@@ -715,54 +903,55 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
             cat_run.bold = True
             cat_run.font.size = Pt(9.5)
             cat_run.font.color.rgb = RGBColor(0x1A, 0x3A, 0x5C)
-            val_run = p.add_run(val)
-            val_run.font.size = Pt(9.5)
+            _add_runs_with_links(p, val, font_size=Pt(9.5))
 
-    # --- Experience (Jobscan §4: prefer "Work Experience" over bare "Experience") ---
-    if "EXPERIENCE" in sections:
-        _add_section_heading("Work Experience")
-        for entry in parse_entries(sections["EXPERIENCE"]):
-            tp = doc.add_paragraph()
-            tp.paragraph_format.space_before = Pt(2)
-            _add_runs_with_links(
-                tp, entry["title"],
-                font_size=Pt(10), color=RGBColor(0x1A, 0x3A, 0x5C), bold=True,
-            )
-            if entry["subtitle"]:
-                sp = doc.add_paragraph()
-                _add_runs_with_links(
-                    sp, entry["subtitle"],
-                    font_size=Pt(9), color=RGBColor(0x4A, 0x7A, 0x9B), italic=True,
-                )
-            for bullet in entry["bullets"]:
-                bp = doc.add_paragraph(style="List Bullet")
-                _add_runs_with_links(bp, bullet, font_size=Pt(9.5))
+    # ── Professional Experience (Jobscan §4: prefer the full label) ──
+    # Pipeline-tailored resumes use "EXPERIENCE"; the master uses
+    # "PROFESSIONAL EXPERIENCE". Either lands here.
+    exp_section = sections.get("PROFESSIONAL EXPERIENCE") or sections.get("EXPERIENCE")
+    if exp_section:
+        _add_section_heading("Professional Experience")
+        _render_entries(exp_section)
 
-    # --- Projects ---
+    # ── Earlier Experience ─────────────────────────────────────────────
+    if "EARLIER EXPERIENCE" in sections:
+        _add_section_heading("Earlier Experience")
+        _render_entries(sections["EARLIER EXPERIENCE"])
+
+    # ── Projects ───────────────────────────────────────────────────────
     if "PROJECTS" in sections:
         _add_section_heading("Projects")
-        for entry in parse_entries(sections["PROJECTS"]):
-            tp = doc.add_paragraph()
-            tp.paragraph_format.space_before = Pt(2)
-            _add_runs_with_links(
-                tp, entry["title"],
-                font_size=Pt(10), color=RGBColor(0x1A, 0x3A, 0x5C), bold=True,
-            )
-            if entry["subtitle"]:
-                sp = doc.add_paragraph()
-                _add_runs_with_links(
-                    sp, entry["subtitle"],
-                    font_size=Pt(9), color=RGBColor(0x4A, 0x7A, 0x9B), italic=True,
-                )
-            for bullet in entry["bullets"]:
-                bp = doc.add_paragraph(style="List Bullet")
-                _add_runs_with_links(bp, bullet, font_size=Pt(9.5))
+        _render_entries(sections["PROJECTS"])
 
-    # --- Education ---
+    # ── Education ──────────────────────────────────────────────────────
     if "EDUCATION" in sections:
         _add_section_heading("Education")
-        p = doc.add_paragraph()
-        _add_runs_with_links(p, sections["EDUCATION"].strip(), font_size=Pt(10))
+        for line in sections["EDUCATION"].strip().split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+            p = doc.add_paragraph()
+            _add_runs_with_links(p, line, font_size=Pt(10))
+
+    # ── Certifications ─────────────────────────────────────────────────
+    if "CERTIFICATIONS" in sections:
+        _add_section_heading("Certifications")
+        for line in sections["CERTIFICATIONS"].strip().split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+            p = doc.add_paragraph()
+            _add_runs_with_links(p, line, font_size=Pt(9.5))
+
+    # ── Languages ──────────────────────────────────────────────────────
+    if "LANGUAGES" in sections:
+        _add_section_heading("Languages")
+        for line in sections["LANGUAGES"].strip().split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+            p = doc.add_paragraph()
+            _add_runs_with_links(p, line, font_size=Pt(9.5))
 
     # Populate core_properties. Always overwrite python-docx's template
     # defaults (author='python-docx', comments='generated by python-docx',

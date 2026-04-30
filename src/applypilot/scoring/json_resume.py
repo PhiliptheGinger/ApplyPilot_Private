@@ -372,55 +372,17 @@ def _parse_education_line(line: str) -> tuple[dict, list[dict]]:
 
 # ── Public conversion API ────────────────────────────────────────────────
 
-def to_json_resume(text: str, *, normalize_sections: bool = True) -> dict:
+def to_json_resume(text: str) -> dict:
     """Convert the master ``resume.txt`` format into a JSON Resume document.
 
     Args:
         text: Full text of the master resume.
-        normalize_sections: If True (default), apply the same section-name
-            normalization the DOCX renderer uses (PROFESSIONAL EXPERIENCE →
-            EXPERIENCE, EDUCATION & CERTIFICATIONS → EDUCATION, etc.).
 
     Returns:
         A dict matching the JSON Resume schema. May validate cleanly via
         :func:`validate`; missing optional fields are simply omitted rather
         than left empty.
     """
-    if normalize_sections:
-        # Mirror the same one-shot normalization used elsewhere in this
-        # module. Keep it in sync with /tmp/render_master.py logic.
-        lines = text.strip().split("\n")
-        if not any(ln.strip() == "SUMMARY" for ln in lines):
-            try:
-                rest_idx = next(
-                    i for i, ln in enumerate(lines[3:], start=3) if ln.strip()
-                )
-                headline = lines[rest_idx].strip()
-                summary_text = lines[rest_idx + 1].strip()
-                body_start = next(
-                    i for i, ln in enumerate(lines[rest_idx + 2:], start=rest_idx + 2)
-                    if ln.strip()
-                )
-                location_line = lines[1].strip()
-                contact_line = lines[2].strip()
-                location = "Seattle, WA"
-                rest_contact = location_line.replace(f"{location} | ", "")
-                contact_combined = f"{rest_contact} | {contact_line}"
-                body = "\n".join(lines[body_start:])
-                body = body.replace("PROFESSIONAL EXPERIENCE", "EXPERIENCE")
-                body = body.replace("\nEARLIER EXPERIENCE\n", "\n")
-                body = body.replace("EDUCATION & CERTIFICATIONS", "EDUCATION")
-                text = (
-                    f"{lines[0].strip()}\n"
-                    f"{headline}\n"
-                    f"{location}\n"
-                    f"{contact_combined}\n\n"
-                    f"SUMMARY\n{summary_text}\n\n"
-                    f"{body}\n"
-                )
-            except (StopIteration, IndexError):
-                pass  # leave text alone — parser will do its best
-
     parsed = parse_resume(text)
 
     # ── basics ──────────────────────────────────────────────────────────
@@ -448,16 +410,27 @@ def to_json_resume(text: str, *, normalize_sections: bool = True) -> dict:
     }
 
     # ── work ────────────────────────────────────────────────────────────
+    # Accept either the master's "PROFESSIONAL EXPERIENCE" + separate
+    # "EARLIER EXPERIENCE" sections, or the pipeline-tailored "EXPERIENCE"
+    # section that bundles both.
+    exp_blocks: list[tuple[str, bool]] = []  # (text, is_earlier)
+    if "PROFESSIONAL EXPERIENCE" in sections:
+        exp_blocks.append((sections["PROFESSIONAL EXPERIENCE"], False))
+    elif "EXPERIENCE" in sections:
+        exp_blocks.append((sections["EXPERIENCE"], False))
+    if "EARLIER EXPERIENCE" in sections:
+        exp_blocks.append((sections["EARLIER EXPERIENCE"], True))
+
     work: list[dict] = []
-    if "EXPERIENCE" in sections:
-        for entry in parse_entries(sections["EXPERIENCE"]):
+    for block_text, is_earlier_section in exp_blocks:
+        for entry in parse_entries(block_text):
             title = entry.get("title", "").strip()
             subtitle = entry.get("subtitle", "").strip()
+            meta = entry.get("meta", "").strip()
 
-            # Earlier-experience single-liners: full job in one line. They
-            # have the shape "Company (...) | Position (Year - Year): ...".
-            # When two consecutive one-liners appear, parse_entries collapses
-            # the second into the first's `subtitle` slot — split it back out.
+            # Legacy single-line earlier-experience entries (kept for
+            # pipeline-tailored resumes that still emit them) — split if
+            # parse_entries collapsed two consecutive lines.
             if _looks_like_earlier(title):
                 if e := _parse_earlier_line(title):
                     work.append(e)
@@ -466,17 +439,55 @@ def to_json_resume(text: str, *, normalize_sections: bool = True) -> dict:
                         work.append(e)
                 continue
 
-            split = _split_title_pipes(title)
-            start, end = _parse_date_range(subtitle)
+            # Disambiguate which line carries dates: 3-line format puts the
+            # dates in ``meta``; legacy 2-line format puts them in subtitle.
+            date_line = ""
+            team_subtitle = ""
+            if meta and _DATE_RANGE_RE.match(meta.split("|")[0].strip()):
+                date_line = meta
+                team_subtitle = subtitle
+            elif subtitle and _DATE_RANGE_RE.match(subtitle.split("|")[0].strip()):
+                date_line = subtitle
+            else:
+                team_subtitle = subtitle
+
+            # Split "<dates> | <location>" if present.
+            date_part, location_part = date_line, ""
+            if "|" in date_line:
+                date_part, _, location_part = date_line.partition("|")
+                date_part = date_part.strip()
+                location_part = location_part.strip()
+            start, end = _parse_date_range(date_part)
+
+            # Title supports both formats:
+            #   - "Position at Company"           (master, ATS-friendly)
+            #   - "Company | Position | ..."      (legacy pipe form)
+            position = company = company_url = ""
+            if " at " in title and "|" not in title:
+                position, _, company = title.rpartition(" at ")
+                position = position.strip()
+                company = company.strip()
+            else:
+                split = _split_title_pipes(title)
+                company = split["name"] or ""
+                position = split["position"] or ""
+                company_url = split["url"] or ""
+                if not location_part and split["location"]:
+                    location_part = split["location"]
+                if not team_subtitle and split["description"]:
+                    team_subtitle = split["description"]
+
             w: dict = {}
-            if split["name"]:        w["name"] = split["name"]
-            if split["location"]:    w["location"] = split["location"]
-            if split["description"]: w["description"] = split["description"]
-            if split["position"]:    w["position"] = split["position"]
-            if split["url"]:         w["url"] = split["url"]
-            if start:                w["startDate"] = start
-            if end:                  w["endDate"] = end
+            if company:        w["name"] = company
+            if location_part:  w["location"] = location_part
+            if team_subtitle:  w["description"] = team_subtitle
+            if position:       w["position"] = position
+            if company_url:    w["url"] = company_url
+            if start:          w["startDate"] = start
+            if end:            w["endDate"] = end
             if entry.get("bullets"): w["highlights"] = list(entry["bullets"])
+            if is_earlier_section:
+                w["_earlier"] = True
             work.append(w)
     if work:
         jr["work"] = work
@@ -538,25 +549,80 @@ def to_json_resume(text: str, *, normalize_sections: bool = True) -> dict:
     if skills:
         jr["skills"] = skills
 
-    # ── education / certificates / languages (from EDUCATION section) ──
+    # ── education / certifications / languages ─────────────────────────
     education: list[dict] = []
     certificates: list[dict] = []
     languages: list[dict] = []
 
+    # Master format: separate EDUCATION / CERTIFICATIONS / LANGUAGES
+    # sections, two-line per education entry (institution / degree).
     if "EDUCATION" in sections:
-        edu_text = sections["EDUCATION"].strip()
-        for line in edu_text.split("\n"):
+        edu_lines = [
+            ln.strip() for ln in sections["EDUCATION"].strip().split("\n")
+            if ln.strip()
+        ]
+        if edu_lines:
+            # Pair institution + degree lines.
+            i = 0
+            while i < len(edu_lines):
+                line = edu_lines[i]
+                # Legacy single-line: "Field | Institution | Certifications: ..."
+                if "|" in line:
+                    edu, certs = _parse_education_line(line)
+                    education.append(edu)
+                    certificates.extend(certs)
+                    i += 1
+                else:
+                    entry = {"institution": line}
+                    # Look ahead for a "Degree, Field" or "Degree" line.
+                    if i + 1 < len(edu_lines) and "|" not in edu_lines[i + 1]:
+                        nxt = edu_lines[i + 1]
+                        # Heuristic: avoid swallowing the next section's first line.
+                        # But in our master, EDUCATION has just two lines.
+                        if "," in nxt:
+                            study, _, area = nxt.partition(",")
+                            entry["studyType"] = study.strip()
+                            entry["area"] = area.strip()
+                        else:
+                            entry["studyType"] = nxt.strip()
+                        i += 2
+                    else:
+                        i += 1
+                    education.append(entry)
+
+    # Standalone CERTIFICATIONS section (master format).
+    if "CERTIFICATIONS" in sections:
+        for line in sections["CERTIFICATIONS"].strip().split("\n"):
+            line = line.strip()
+            if line:
+                certificates.append({"name": line})
+
+    # Standalone LANGUAGES section (master format) — one "Lang — Fluency"
+    # per line, em-dash or parens.
+    if "LANGUAGES" in sections:
+        for line in sections["LANGUAGES"].strip().split("\n"):
             line = line.strip()
             if not line:
                 continue
-            if _LANG_LINE_RE.search(line):
-                lang_match = _LANG_LINE_RE.search(line)
-                if lang_match:
-                    languages = _parse_languages(lang_match.group(1))
+            # Try em-dash / hyphen separator first, then parens.
+            m = re.match(r"^([A-Za-z][A-Za-z -]+?)\s*[—–-]\s*(.+)$", line)
+            if m:
+                languages.append({"language": m.group(1).strip(),
+                                  "fluency": m.group(2).strip()})
                 continue
-            edu, certs = _parse_education_line(line)
-            education.append(edu)
-            certificates.extend(certs)
+            m = re.match(r"^([A-Za-z][A-Za-z -]+?)\s*\(([^)]+)\)\s*$", line)
+            if m:
+                languages.append({"language": m.group(1).strip(),
+                                  "fluency": m.group(2).strip()})
+                continue
+            languages.append({"language": line})
+
+    # Legacy: master used to pack languages onto the trailing EDUCATION line.
+    if not languages and "EDUCATION" in sections:
+        for line in sections["EDUCATION"].strip().split("\n"):
+            if lang_match := _LANG_LINE_RE.search(line):
+                languages = _parse_languages(lang_match.group(1))
+                break
 
     if education:
         jr["education"] = education
@@ -568,35 +634,89 @@ def to_json_resume(text: str, *, normalize_sections: bool = True) -> dict:
     return jr
 
 
-def from_json_resume(jr: dict) -> str:
-    """Render a JSON Resume dict back to the master ``resume.txt`` format.
+def _fmt_dates(w: dict) -> str:
+    """Render JSON Resume dates as human "Mon Year - Mon Year" (or "- Present")."""
+    start = w.get("startDate") or ""
+    end = w.get("endDate") or "Present"
 
-    Section names match the master format (PROFESSIONAL EXPERIENCE,
-    EARLIER EXPERIENCE, EDUCATION & CERTIFICATIONS) so output can drop in
-    as the master directly.
+    def _h(s: str) -> str:
+        if not s or s == "Present":
+            return s
+        parts = s.split("-")
+        if len(parts) >= 2:
+            month_idx = int(parts[1])
+            month_name = ["", "January", "February", "March", "April", "May",
+                          "June", "July", "August", "September", "October",
+                          "November", "December"][month_idx]
+            return f"{month_name} {parts[0]}"
+        return s
+
+    return f"{_h(start)} - {_h(end)}".strip(" -")
+
+
+def from_json_resume(jr: dict) -> str:
+    """Render a JSON Resume dict back to the ATS-friendly master format.
+
+    Output layout:
+
+        Name (preferred)
+        City, ST | phone | email
+        LinkedIn: ... | GitHub: ...
+
+        (blank — header/headline separator)
+
+        HEADLINE / LABEL
+
+        SUMMARY
+        <text>
+
+        TECHNICAL SKILLS
+        * Category: keywords...
+
+        PROFESSIONAL EXPERIENCE
+
+        Position at Company
+        Team / Department subtitle  (optional)
+        Mon YYYY - Mon YYYY | City, ST
+
+        * highlight 1
+        * highlight 2
+
+        EARLIER EXPERIENCE
+        ... (same 3-line format)
+
+        EDUCATION
+        Institution
+        Degree, Area
+
+        CERTIFICATIONS
+        - one per line -
+
+        LANGUAGES
+        Lang — Fluency
     """
     out: list[str] = []
     basics = jr.get("basics", {}) or {}
     name = basics.get("name", "").strip()
     out.append(name)
 
-    # Reconstruct the contact line from email/phone/location/profiles.
+    # Header line 2: City, ST | phone | email
     loc = basics.get("location") or {}
     loc_str = ""
     if loc.get("city") and loc.get("region"):
         loc_str = f"{loc['city']}, {loc['region']}"
     elif loc.get("address"):
         loc_str = loc["address"]
-    contact_bits = []
-    if loc_str:
-        contact_bits.append(loc_str)
-    if basics.get("phone"):
-        contact_bits.append(basics["phone"])
-    if basics.get("email"):
-        contact_bits.append(basics["email"])
-    out.append(" | ".join(contact_bits))
+    contact_bits = [b for b in (
+        loc_str,
+        basics.get("phone"),
+        basics.get("email"),
+    ) if b]
+    if contact_bits:
+        out.append(" | ".join(contact_bits))
 
-    profile_bits = []
+    # Header line 3: profiles
+    profile_bits: list[str] = []
     for p in basics.get("profiles", []) or []:
         net = (p.get("network") or "").strip()
         url = p.get("url") or ""
@@ -606,13 +726,19 @@ def from_json_resume(jr: dict) -> str:
     if profile_bits:
         out.append(" | ".join(profile_bits))
 
+    # Blank lines separating header block from headline.
     out.append("")
     out.append("")
 
     if basics.get("label"):
         out.append(basics["label"])
+        out.append("")
+
     if basics.get("summary"):
+        out.append("SUMMARY")
         out.append(basics["summary"])
+        out.append("")
+        out.append("")
 
     # Skills
     skills = jr.get("skills") or []
@@ -620,95 +746,118 @@ def from_json_resume(jr: dict) -> str:
         out.append("TECHNICAL SKILLS")
         for sk in skills:
             keywords = sk.get("keywords") or []
-            line = f"* {sk.get('name', '')}: {', '.join(keywords)}"
-            out.append(line)
+            out.append(f"* {sk.get('name', '')}: {', '.join(keywords)}")
+        out.append("")
+        out.append("")
 
-    # Work — split into PROFESSIONAL EXPERIENCE (full multi-line entries)
-    # and EARLIER EXPERIENCE (compact one-liners). The `_earlier` marker
-    # is set by `_parse_earlier_line`; everything else renders professional
-    # (even when its highlights got promoted to projects[] and replaced
-    # with a summary).
-    work = jr.get("work") or []
-    early = [w for w in work if w.get("_earlier")]
-    pro   = [w for w in work if not w.get("_earlier")]
-
-    def _fmt_dates(w: dict) -> str:
-        start = w.get("startDate") or ""
-        end = w.get("endDate") or "Present"
-        # Convert YYYY-MM → "Mon YYYY" for human format.
-        def _h(s: str) -> str:
-            if not s or s == "Present":
-                return s
-            parts = s.split("-")
-            if len(parts) >= 2:
-                month_idx = int(parts[1])
-                month_name = ["", "January", "February", "March", "April", "May",
-                              "June", "July", "August", "September", "October",
-                              "November", "December"][month_idx]
-                return f"{month_name} {parts[0]}"
-            return s
-        return f"{_h(start)} - {_h(end)}".strip(" -")
-
-    # When projects[] is populated, fold each project back into the host
-    # work entry's highlights when re-rendering text — so resume.txt round-
-    # trips to the same shape it started in. Group by `entity` (parent
-    # company); use the URL-as-host when no other annotation exists.
+    # Pre-compute project bullets so we can re-attach them under their host
+    # company when rendering work entries.
     projects = jr.get("projects") or []
     project_bullets_by_entity: dict[str, list[str]] = {}
     for p in projects:
         entity = p.get("entity") or ""
-        name = p.get("name", "")
+        pname = p.get("name", "")
         ann = p.get("_annotation")
         if not ann and p.get("url"):
             ann = re.sub(r"^https?://", "", p["url"]).rstrip("/")
-        prefix = name + (f" ({ann})" if ann else "")
+        prefix = pname + (f" ({ann})" if ann else "")
         bullet = f"{prefix}: {p.get('description', '')}".strip()
         project_bullets_by_entity.setdefault(entity, []).append(bullet)
 
-    pro = list(pro)  # avoid mutating the cached list above
+    def _format_entry_block(w: dict) -> list[str]:
+        """Three-line entry header + bullets (matches the master format)."""
+        position = w.get("position") or ""
+        company = w.get("name") or ""
+        team_subtitle = w.get("description") or ""
+        location = w.get("location") or ""
+        dates = _fmt_dates(w)
+
+        # Title line: "Position at Company" — falls back to whichever piece
+        # we have if one's missing.
+        if position and company:
+            title_line = f"{position} at {company}"
+        else:
+            title_line = position or company or ""
+
+        lines: list[str] = []
+        if title_line:
+            lines.append(title_line)
+        if team_subtitle:
+            lines.append(team_subtitle)
+        date_meta = " | ".join(b for b in (dates, location) if b)
+        if date_meta:
+            lines.append(date_meta)
+        # Blank between header and bullets.
+        lines.append("")
+        for h in w.get("highlights", []) or []:
+            lines.append(f"* {h}")
+        # Pull in any project bullets attributed to this employer.
+        for bullet in project_bullets_by_entity.pop(company, []):
+            lines.append(f"* {bullet}")
+        return lines
+
+    # Work split.
+    work = jr.get("work") or []
+    early = [w for w in work if w.get("_earlier")]
+    pro   = [w for w in work if not w.get("_earlier")]
+
     if pro:
         out.append("PROFESSIONAL EXPERIENCE")
+        out.append("")
         for w in pro:
-            out.append(_join_title_pipes(w))
-            d = _fmt_dates(w)
-            if d:
-                out.append(d)
-            entity_name = w.get("name") or ""
-            highlights = list(w.get("highlights") or [])
-            highlights = highlights + project_bullets_by_entity.pop(entity_name, [])
-            for h in highlights:
-                out.append(f"* {h}")
+            out.extend(_format_entry_block(w))
+            out.append("")  # extra blank between entries
+        out.append("")
 
     if early:
         out.append("EARLIER EXPERIENCE")
+        out.append("")
         for w in early:
-            title = _join_title_pipes(w)
-            dates = _fmt_dates(w)
-            summary = w.get("summary", "")
-            line = f"{title} ({dates}): {summary}".strip()
-            out.append(line)
+            out.extend(_format_entry_block(w))
+            out.append("")
+        out.append("")
 
-    # Education + certifications + languages
-    edu = jr.get("education") or []
+    # Education
+    education = jr.get("education") or []
+    if education:
+        out.append("EDUCATION")
+        out.append("")
+        for e in education:
+            inst = e.get("institution") or ""
+            study = e.get("studyType") or ""
+            area = e.get("area") or ""
+            if inst:
+                out.append(inst)
+            degree_line = ", ".join(b for b in (study, area) if b)
+            if degree_line:
+                out.append(degree_line)
+            out.append("")
+        out.append("")
+
+    # Certifications
     certs = jr.get("certificates") or []
-    langs = jr.get("languages") or []
-    if edu or certs or langs:
-        out.append("EDUCATION & CERTIFICATIONS")
-        for e in edu:
-            bits = [b for b in (e.get("area"), e.get("institution")) if b]
-            line = " | ".join(bits)
-            if certs:
-                line += " | Certifications: " + ", ".join(c.get("name", "") for c in certs)
-                certs = []  # only attach to the first edu entry
-            out.append(line)
-        if langs:
-            lang_bits = [
-                f"{l.get('language', '')}" + (f" ({l['fluency']})" if l.get("fluency") else "")
-                for l in langs
-            ]
-            out.append("Languages: " + ", ".join(lang_bits))
+    if certs:
+        out.append("CERTIFICATIONS")
+        out.append("")
+        for c in certs:
+            out.append(c.get("name", ""))
+        out.append("")
+        out.append("")
 
-    return "\n".join(out) + "\n"
+    # Languages
+    langs = jr.get("languages") or []
+    if langs:
+        out.append("LANGUAGES")
+        out.append("")
+        for l in langs:
+            lang = l.get("language") or ""
+            fluency = l.get("fluency") or ""
+            out.append(f"{lang} — {fluency}" if fluency else lang)
+        out.append("")
+
+    # Trim trailing blank-line runs to a single newline.
+    text = "\n".join(out).rstrip() + "\n"
+    return text
 
 
 # ── Validation ───────────────────────────────────────────────────────────
