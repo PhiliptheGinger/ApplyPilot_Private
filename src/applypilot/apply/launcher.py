@@ -1579,19 +1579,44 @@ def acquire_job(target_url: str | None = None,
             in_flight = get_in_flight_by_company(conn)
             now_utc = datetime.now(timezone.utc)
 
+            def _in_flight_count(key: str | None) -> int:
+                """How many in-flight applies for ``key`` in the per-company
+                window (defaults to 30d). Used for both cap enforcement and
+                the round-robin sort below."""
+                if not key:
+                    return 0
+                _, window = _cfg.get_company_limit(key)
+                cutoff = (now_utc - timedelta(days=window)).isoformat()
+                return sum(1 for ts in in_flight.get(key, [])
+                           if ts and ts > cutoff)
+
             def over_cap(job: dict) -> bool:
                 key = resolve_company_key(job)
                 if not key:
                     return False
-                cap, window = _cfg.get_company_limit(key)
+                cap, _ = _cfg.get_company_limit(key)
                 if cap < 0:
                     return False
                 if cap == 0:
                     return True
-                cutoff = (now_utc - timedelta(days=window)).isoformat()
-                count = sum(1 for ts in in_flight.get(key, [])
-                            if ts and ts > cutoff)
-                return count >= cap
+                return _in_flight_count(key) >= cap
+
+            # Round-robin within a run: re-sort candidates so companies with
+            # the FEWEST in-flight applies fire first. Within the same
+            # in-flight count, fit_score wins (and the SQL already sorted
+            # by discovered_at DESC for the third tier). Net effect: we
+            # cycle through every eligible employer once before picking a
+            # second role at any one of them.
+            #
+            # Stable sort preserves SQL ordering for ties — Python's
+            # sorted() is guaranteed stable since 2.3.
+            candidates = sorted(
+                candidates,
+                key=lambda c: (
+                    _in_flight_count(resolve_company_key(dict(c))),
+                    -(c["fit_score"] or 0),
+                ),
+            )
 
             # Pick first candidate whose company is under cap AND ATS lane is free.
             row = None

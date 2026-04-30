@@ -175,3 +175,80 @@ def test_acquire_picks_valid_when_others_are_null(
     job = acquire_job(min_score=10, max_age_days=0)
     assert job is not None
     assert job["url"] == "https://www.linkedin.com/jobs/view/good"
+
+
+def test_acquire_prefers_unapplied_company_over_higher_score(
+    tmp_db, seed_job, monkeypatch
+):
+    """Round-robin within a run: companies with FEWER in-flight applies
+    win over higher-scoring jobs at companies we've already applied to.
+    "Apply to each company at least once before picking a second role."
+    """
+    _setup_apply_env(monkeypatch)
+    from applypilot.apply.launcher import acquire_job
+    from datetime import datetime, timedelta, timezone
+
+    conn = tmp_db()
+    recent = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
+
+    # Acme already has one applied — same company, fresh tailored row at
+    # the highest score. Without round-robin this would fire next.
+    seed_job(
+        conn, url_suffix="acme-applied",
+        company="acme",
+        application_url="https://boards.greenhouse.io/acme/jobs/100",
+        apply_status="applied", applied_at=recent,
+        fit_score=10,
+    )
+    seed_job(
+        conn, url_suffix="acme-pending",
+        company="acme",
+        application_url="https://boards.greenhouse.io/acme/jobs/101",
+        apply_status=None,
+        fit_score=10,
+    )
+
+    # Beta has zero in-flight — lower score but should fire first.
+    seed_job(
+        conn, url_suffix="beta-pending",
+        company="beta",
+        application_url="https://boards.greenhouse.io/beta/jobs/200",
+        apply_status=None,
+        fit_score=9,
+    )
+
+    job = acquire_job(min_score=8, max_age_days=0)
+    assert job is not None
+    assert job["url"].endswith("/beta-pending"), (
+        f"Expected the beta (0-applied) candidate to win over the "
+        f"higher-scored acme one (already applied 1×), got: {job['url']}"
+    )
+
+
+def test_acquire_falls_back_to_higher_score_when_in_flight_tied(
+    tmp_db, seed_job, monkeypatch
+):
+    """When two candidates are at the same in-flight count, fit_score
+    wins (so the round-robin sort is stable + still score-aware)."""
+    _setup_apply_env(monkeypatch)
+    from applypilot.apply.launcher import acquire_job
+
+    conn = tmp_db()
+    seed_job(
+        conn, url_suffix="alpha-9",
+        company="alpha",
+        application_url="https://boards.greenhouse.io/alpha/jobs/1",
+        apply_status=None,
+        fit_score=9,
+    )
+    seed_job(
+        conn, url_suffix="beta-10",
+        company="beta",
+        application_url="https://boards.greenhouse.io/beta/jobs/1",
+        apply_status=None,
+        fit_score=10,
+    )
+
+    job = acquire_job(min_score=8, max_age_days=0)
+    assert job is not None
+    assert job["url"].endswith("/beta-10")
