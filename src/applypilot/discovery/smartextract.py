@@ -120,10 +120,11 @@ def _store_jobs_filtered(
             try:
                 conn.execute(
                     "INSERT INTO jobs (url, title, salary, description, location, site, strategy, "
-                    "discovered_at, state) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "discovered_at, posted_at, state) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (url, job.get("title"), job.get("salary"), description,
-                     job.get("location"), site, strategy, now, initial_state),
+                     job.get("location"), site, strategy, now,
+                     job.get("posted_at"), initial_state),
                 )
                 conn.execute(
                     "INSERT INTO job_state_transitions "
@@ -783,6 +784,12 @@ def execute_json_ld(intel: dict, plan: dict) -> list[dict]:
                 job[field] = None
                 continue
             job[field] = resolve_json_path(entry, path)
+        # datePosted is a fixed schema.org JobPosting field — read it
+        # directly rather than trusting an LLM-chosen path. The api_response
+        # and css_selectors strategies have no reliable date field, so jobs
+        # from those paths keep posted_at = NULL.
+        date_posted = entry.get("datePosted")
+        job["posted_at"] = date_posted if isinstance(date_posted, str) and date_posted else None
         jobs.append(job)
     return jobs
 

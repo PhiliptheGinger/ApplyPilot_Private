@@ -264,6 +264,10 @@ def _fetch_one_detail(employer: dict, job: dict) -> dict:
         job["job_req_id"] = info.get("jobReqId", "")
         job["time_type"] = info.get("timeType", "")
         job["remote_type"] = info.get("remoteType", "")
+        # `startDate` is the ISO posting go-live date (e.g. "2026-05-12").
+        # The search-results `postedOn` is only a relative string
+        # ("Posted 3 Days Ago"), so we don't use it.
+        job["posted_at"] = info.get("startDate") or None
 
     except Exception as e:
         job["full_description"] = ""
@@ -329,10 +333,12 @@ def store_results(conn: sqlite3.Connection, jobs: list[dict], employers: dict) -
             try:
                 conn.execute(
                     "INSERT INTO jobs (url, title, salary, description, location, site, strategy, "
-                    "discovered_at, full_description, application_url, detail_scraped_at, detail_error) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "discovered_at, posted_at, full_description, application_url, "
+                    "detail_scraped_at, detail_error) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (url, job.get("title"), None, short_desc, job.get("location"),
-                     site, strategy, now, full_description, url, detail_scraped_at, detail_error),
+                     site, strategy, now, job.get("posted_at"), full_description, url,
+                     detail_scraped_at, detail_error),
                 )
                 counts["new"] += 1
             except sqlite3.IntegrityError:

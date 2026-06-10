@@ -162,8 +162,17 @@ def _is_email(text: str) -> bool:
     return bool(re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', deobfuscated))
 
 
-def _store_hn_job(conn: sqlite3.Connection, job: dict, thread_title: str) -> bool:
-    """Store one extracted HN job in the DB. Returns True if new."""
+def _store_hn_job(
+    conn: sqlite3.Connection,
+    job: dict,
+    thread_title: str,
+    posted_at: str | None = None,
+) -> bool:
+    """Store one extracted HN job in the DB. Returns True if new.
+
+    posted_at: ISO timestamp of the HN comment's creation time (the
+    employer-reported posting date for "Who is hiring" listings).
+    """
     raw_url = job.get("url")
     contact = job.get("contact")
 
@@ -209,10 +218,10 @@ def _store_hn_job(conn: sqlite3.Connection, job: dict, thread_title: str) -> boo
         try:
             conn.execute(
                 "INSERT INTO jobs (url, title, salary, description, location, site, strategy, "
-                "discovered_at, full_description, detail_scraped_at, state) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "discovered_at, posted_at, full_description, detail_scraped_at, state) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (url, title, salary, description, location,
-                 f"HN: {company}", "hackernews", now, description, now, initial_state),
+                 f"HN: {company}", "hackernews", now, posted_at, description, now, initial_state),
             )
             conn.execute(
                 "INSERT INTO job_state_transitions "
@@ -316,7 +325,15 @@ def run_hn_discovery(
                 skipped += 1
                 continue
 
-            if _store_hn_job(conn, job, thread_title):
+            # Firebase items carry `time` (epoch seconds); Algolia hits carry
+            # `created_at_i`. Either is the comment's creation time — i.e. the
+            # employer-reported posting date for this listing.
+            posted_at = None
+            ts = comment.get("time") or comment.get("created_at_i")
+            if isinstance(ts, (int, float)) and ts > 0:
+                posted_at = datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
+
+            if _store_hn_job(conn, job, thread_title, posted_at=posted_at):
                 new += 1
                 log.info("  + %s @ %s (%s)",
                          job.get("title", "?")[:50],

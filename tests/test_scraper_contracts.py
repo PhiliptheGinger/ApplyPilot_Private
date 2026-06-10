@@ -136,6 +136,32 @@ def test_hackernews_insert_creates_initial_transition(tmp_db):
     assert transitions[0]["to_state"] == "enriched"
 
 
+def test_hackernews_captures_posted_at(tmp_db):
+    """The HN comment creation time is stored in the `posted_at` column."""
+    conn = tmp_db()
+    from applypilot.discovery.hackernews import _store_hn_job
+
+    job = {
+        "url": "https://example.com/hn-job-dated",
+        "title": "Platform Engineer",
+        "company": "StartupCo",
+        "location": "Remote",
+        "description": "Building infra. " * 20,
+    }
+
+    assert _store_hn_job(
+        conn, job, "Ask HN: Who is Hiring? (June 2026)",
+        posted_at="2026-06-02T17:00:00+00:00",
+    ) is True
+
+    row = conn.execute(
+        "SELECT posted_at FROM jobs WHERE url = ?",
+        ("https://example.com/hn-job-dated",),
+    ).fetchone()
+    assert row is not None
+    assert row["posted_at"] == "2026-06-02T17:00:00+00:00"
+
+
 # ---------------------------------------------------------------------------
 # C3 — costco.py
 # ---------------------------------------------------------------------------
@@ -223,3 +249,119 @@ def test_smartextract_insert_creates_initial_transition(tmp_db):
     assert len(transitions) == 1, f"Expected 1 transition, got {len(transitions)}"
     assert transitions[0]["from_state"] is None
     assert transitions[0]["to_state"] == "enriched"
+
+
+def test_smartextract_stores_posted_at_when_present(tmp_db):
+    """Jobs carrying a posted_at key (json_ld path) land in the posted_at column;
+    jobs without it (api_response / css_selectors paths) stay NULL."""
+    conn = tmp_db()
+    from applypilot.discovery.smartextract import _store_jobs_filtered
+
+    jobs = [
+        {
+            "url": "https://company.com/jobs/dated",
+            "title": "Dated Role",
+            "location": "Remote",
+            "description": "Long description. " * 20,
+            "salary": None,
+            "posted_at": "2026-05-30",
+        },
+        {
+            "url": "https://company.com/jobs/undated",
+            "title": "Undated Role",
+            "location": "Remote",
+            "description": "Long description. " * 20,
+            "salary": None,
+        },
+    ]
+
+    new, existing = _store_jobs_filtered(
+        conn, jobs, "CompanySite", "json_ld",
+        accept_locs=[], reject_locs=[],
+    )
+    assert new == 2
+
+    row = conn.execute(
+        "SELECT posted_at FROM jobs WHERE url = ?",
+        ("https://company.com/jobs/dated",),
+    ).fetchone()
+    assert row["posted_at"] == "2026-05-30"
+
+    row = conn.execute(
+        "SELECT posted_at FROM jobs WHERE url = ?",
+        ("https://company.com/jobs/undated",),
+    ).fetchone()
+    assert row["posted_at"] is None
+
+
+def test_smartextract_json_ld_extracts_dateposted():
+    """execute_json_ld reads the standard schema.org datePosted field directly."""
+    from applypilot.discovery.smartextract import execute_json_ld
+
+    intel = {
+        "json_ld": [
+            {
+                "@type": "JobPosting",
+                "title": "Senior Engineer",
+                "datePosted": "2026-06-01",
+                "url": "https://company.com/jobs/1",
+            },
+            {
+                "@type": "JobPosting",
+                "title": "Staff Engineer",
+                "url": "https://company.com/jobs/2",
+            },
+        ],
+    }
+    plan = {"extraction": {"title": "title", "url": "url",
+                           "salary": None, "description": None, "location": None}}
+
+    jobs = execute_json_ld(intel, plan)
+    assert len(jobs) == 2
+    assert jobs[0]["posted_at"] == "2026-06-01"
+    assert jobs[1]["posted_at"] is None
+
+
+# ---------------------------------------------------------------------------
+# C5 — workday.py
+# ---------------------------------------------------------------------------
+
+def test_workday_stores_posted_at_from_start_date(tmp_db):
+    """store_results persists jobPostingInfo.startDate as posted_at."""
+    conn = tmp_db()
+    from applypilot.discovery.workday import store_results
+
+    jobs = [
+        {
+            "title": "Software Engineer",
+            "location": "Seattle, WA",
+            "apply_url": "https://corp.wd1.myworkdayjobs.com/jobs/SWE-1",
+            "full_description": "We need a software engineer. " * 10,
+            "posted_at": "2026-05-12",
+            "employer_key": "corp",
+            "employer_name": "Corp",
+        },
+        {
+            "title": "Data Engineer",
+            "location": "Seattle, WA",
+            "apply_url": "https://corp.wd1.myworkdayjobs.com/jobs/DE-1",
+            "full_description": "We need a data engineer. " * 10,
+            "employer_key": "corp",
+            "employer_name": "Corp",
+        },
+    ]
+
+    new, existing = store_results(conn, jobs, {})
+    assert new == 2
+
+    row = conn.execute(
+        "SELECT posted_at FROM jobs WHERE url = ?",
+        ("https://corp.wd1.myworkdayjobs.com/jobs/SWE-1",),
+    ).fetchone()
+    assert row["posted_at"] == "2026-05-12"
+
+    row = conn.execute(
+        "SELECT posted_at FROM jobs WHERE url = ?",
+        ("https://corp.wd1.myworkdayjobs.com/jobs/DE-1",),
+    ).fetchone()
+    assert row["posted_at"] is None
