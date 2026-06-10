@@ -140,3 +140,45 @@ employers:
     tenant: "accenture"
     site_id: "AccentureCareers"
     base_url: "https://accenture.wd103.myworkdayjobs.com"
+
+  # ── Seattle expansion (2026-06-10) ──────────────────────────────────────
+  # Verified via probe agents + manual CXS re-probe (POST .../wday/cxs/
+  # {tenant}/{site_id}/jobs returned non-zero "total" for each).
+
+  nordstrom:
+    name: "Nordstrom"
+    tenant: "nordstrom"
+    site_id: "nordstrom_careers"
+    base_url: "https://nordstrom.wd501.myworkdayjobs.com"  # non-standard wd501 cluster
+
+  rtx:
+    name: "Raytheon (RTX)"
+    tenant: "globalhr"
+    site_id: "REC_RTX_Ext_Gateway"
+    base_url: "https://globalhr.wd5.myworkdayjobs.com"
+    # Gateway covers all RTX business units (Raytheon, Pratt & Whitney,
+    # Collins Aerospace) — ~4,200 postings; rely on location/keyword filters.
+
+  remitly:
+    name: "Remitly"
+    tenant: "remitly"
+    site_id: "Remitly_Careers"
+    base_url: "https://remitly.wd5.myworkdayjobs.com"
+
+  zillow:
+    name: "Zillow Group"
+    tenant: "zillow"
+    site_id: "Zillow_Group_External"
+    base_url: "https://zillow.wd5.myworkdayjobs.com"
+
+  f5:
+    name: "F5"
+    tenant: "ffive"
+    site_id: "f5jobs"
+    base_url: "https://ffive.wd5.myworkdayjobs.com"
+
+  prologis:
+    name: "Prologis"
+    tenant: "prologis"
+    site_id: "Prologis_External_Careers"
+    base_url: "https://prologis.wd5.myworkdayjobs.com"

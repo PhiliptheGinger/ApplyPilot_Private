@@ -114,3 +114,23 @@ employers:
     name: "Uber Freight (acquired Convoy)"
     neighborhood: "Seattle"
     tier: 2
+
+  # ── Seattle expansion (2026-06-10) ──
+  # Re-verified via boards-api.greenhouse.io/v1/boards/{slug}/jobs.
+  # All three are embedded-Greenhouse careers sites (gh_jid URLs) —
+  # canonicalization per decision #45 applies.
+
+  okta:
+    name: "Okta"
+    neighborhood: "Bellevue (some remote)"
+    tier: 2
+
+  qualtrics:
+    name: "Qualtrics"
+    neighborhood: "Seattle"
+    tier: 2
+
+  sofi:
+    name: "SoFi"
+    neighborhood: "Seattle (remote-heavy)"
+    tier: 2
