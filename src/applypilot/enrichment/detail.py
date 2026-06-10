@@ -175,7 +175,11 @@ def resolve_wttj_urls(conn: sqlite3.Connection) -> int:
                 pass
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        # chromium_sandbox=True: Playwright defaults to False, which injects
+        # --no-sandbox (Chrome shows an "unsupported flag" warning bar and we
+        # browse untrusted job sites unsandboxed). Host has unprivileged
+        # user namespaces, so the real sandbox works.
+        browser = p.chromium.launch(headless=True, chromium_sandbox=True)
         context = browser.new_context(user_agent=UA)
         context.add_init_script(_STEALTH_INIT_SCRIPT)
         page = context.new_page()
@@ -846,7 +850,7 @@ def scrape_site_batch(
 
     try:
         with sync_playwright() as p:
-            launch_opts: dict = {"headless": True}
+            launch_opts: dict = {"headless": True, "chromium_sandbox": True}
             if _PROXY_CONFIG:
                 launch_opts["proxy"] = _PROXY_CONFIG["playwright"]
             browser = p.chromium.launch(**launch_opts)

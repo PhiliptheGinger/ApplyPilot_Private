@@ -182,7 +182,11 @@ def collect_page_intelligence(url: str, headless: bool = True) -> dict:
 
     with sync_playwright() as p:
         from applypilot.enrichment.detail import _STEALTH_INIT_SCRIPT
-        browser = p.chromium.launch(headless=headless)
+        # chromium_sandbox=True drops Playwright's default --no-sandbox flag —
+        # the headful-retry path (headless=False) showed Chrome's "unsupported
+        # command-line flag" warning bar, and untrusted job sites should not
+        # run unsandboxed anyway.
+        browser = p.chromium.launch(headless=headless, chromium_sandbox=True)
         context = browser.new_context(user_agent=UA)
         context.add_init_script(_STEALTH_INIT_SCRIPT)
         page = context.new_page()

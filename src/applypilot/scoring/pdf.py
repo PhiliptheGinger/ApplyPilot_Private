@@ -730,7 +730,8 @@ def render_pdf(html: str, output_path: str, metadata: dict | None = None) -> Non
     from patchright.sync_api import sync_playwright
 
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        # chromium_sandbox=True drops patchright's default --no-sandbox flag.
+        browser = p.chromium.launch(chromium_sandbox=True)
         page = browser.new_page()
         page.set_content(html, wait_until="networkidle")
         page.pdf(
