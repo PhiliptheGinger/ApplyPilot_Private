@@ -335,10 +335,13 @@ def run_hn_discovery(
 
             if _store_hn_job(conn, job, thread_title, posted_at=posted_at):
                 new += 1
+                # `or "?"` not a .get() default: the LLM emits explicit JSON
+                # nulls, and dict.get(key, default) returns None for those —
+                # subscripting it crashed the loop after the job was stored.
                 log.info("  + %s @ %s (%s)",
-                         job.get("title", "?")[:50],
-                         job.get("company", "?")[:30],
-                         job.get("location", "?")[:25])
+                         (job.get("title") or "?")[:50],
+                         (job.get("company") or "?")[:30],
+                         (job.get("location") or "?")[:25])
             else:
                 skipped += 1
 

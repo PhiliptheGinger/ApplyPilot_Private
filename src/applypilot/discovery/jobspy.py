@@ -371,7 +371,10 @@ def search_jobs(
 ) -> dict:
     """Run a single job search via JobSpy and store results in DB."""
     if sites is None:
-        sites = ["indeed", "linkedin", "zip_recruiter"]
+        # zip_recruiter removed 2026-06-10: Cloudflare-blocked, 403
+        # "forbidden aa" on 100% of requests; python-jobspy 1.1.82 is
+        # the latest release and has no fix. Re-add if a fix ships.
+        sites = ["indeed", "linkedin"]
 
     proxy_config = parse_proxy(proxy) if proxy else None
 
@@ -439,7 +442,10 @@ def _full_crawl(
 ) -> dict:
     """Run all search queries from search config across all locations."""
     if sites is None:
-        sites = ["indeed", "linkedin", "zip_recruiter"]
+        # zip_recruiter removed 2026-06-10: Cloudflare-blocked, 403
+        # "forbidden aa" on 100% of requests; python-jobspy 1.1.82 is
+        # the latest release and has no fix. Re-add if a fix ships.
+        sites = ["indeed", "linkedin"]
 
     # Build search combinations from config
     queries = search_cfg.get("queries", [])
