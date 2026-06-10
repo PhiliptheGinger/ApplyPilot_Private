@@ -138,6 +138,52 @@ def test_first_save_always_writes(tmp_paths_dir):
     assert load_path("ashby") is not None
 
 
+def _write_legacy_memo(paths_dir, slug, steps):
+    """Hand-write a pre-keep-fastest memo file: no duration_ms key at all."""
+    import json as _json
+    from datetime import datetime, timezone
+    paths_dir.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "ats_slug": slug,
+        "captured_at": datetime.now(timezone.utc).isoformat(),
+        "job_url": "https://legacy.example/job",
+        "steps": steps,
+    }
+    (paths_dir / f"{slug}.json").write_text(_json.dumps(payload))
+
+
+def test_legacy_file_without_duration_gets_replaced(tmp_paths_dir):
+    """A stored file with no duration field counts as infinitely slow —
+    the first timed run replaces it, regardless of how slow it was."""
+    from applypilot.apply.successful_paths import save_path, load_path
+    _write_legacy_memo(tmp_paths_dir, "icims",
+                       [{"tool": "old", "summary": "legacy run"}])
+    # New timed run — even a very slow one — must win over legacy.
+    result = save_path("icims",
+                       [{"tool": "new", "summary": "first timed run"}],
+                       duration_ms=999_000)
+    assert result is not None
+    loaded = load_path("icims")
+    assert loaded["duration_ms"] == 999_000
+    assert loaded["steps"][0]["summary"] == "first timed run"
+
+
+def test_load_legacy_format(tmp_paths_dir):
+    """load_path + format_path_for_prompt work on files lacking duration_ms."""
+    from applypilot.apply.successful_paths import load_path, format_path_for_prompt
+    _write_legacy_memo(tmp_paths_dir, "workday",
+                       [{"tool": "browser_click", "summary": "browser_click Apply"}])
+    loaded = load_path("workday")
+    assert loaded is not None
+    assert "duration_ms" not in loaded
+    assert loaded["steps"][0]["summary"] == "browser_click Apply"
+    rendered = format_path_for_prompt(loaded)
+    assert rendered is not None
+    assert "PRIOR SUCCESSFUL PATH (workday)" in rendered
+    assert "completed in 0s" in rendered  # missing duration renders as 0
+    assert "browser_click Apply" in rendered
+
+
 # ── Age-based eviction ──────────────────────────────────────────────────────
 
 def test_load_skips_stale_memo(tmp_paths_dir):
