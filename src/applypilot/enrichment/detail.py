@@ -354,13 +354,20 @@ DESCRIPTION_SELECTORS = [
 
 
 def extract_apply_url_deterministic(page) -> str | None:
-    """Try known CSS patterns for apply buttons/links."""
+    """Try known CSS patterns for apply buttons/links.
+
+    Returns absolute URLs only — browser-resolves relative hrefs via
+    ``el.href`` (DOM property, not the ``href`` attribute) so SimplyHired's
+    ``/out?r=...`` style apply links land in the DB as absolute.
+    """
     for sel in APPLY_SELECTORS:
         try:
             el = page.query_selector(sel)
             if el:
-                href = el.get_attribute("href")
-                if href and href != "#":
+                # el.href is the DOM property → already absolute, unlike
+                # el.get_attribute("href") which returns the literal href.
+                href = el.evaluate("e => e.href || null")
+                if href and href != "#" and "javascript:" not in href:
                     return href
                 tag = el.evaluate("el => el.tagName.toLowerCase()")
                 if tag == "button":
@@ -376,7 +383,7 @@ def extract_apply_url_deterministic(page) -> str | None:
         for link in links:
             text = link.inner_text().strip().lower()
             if "apply" in text and len(text) < 50:
-                href = link.get_attribute("href")
+                href = link.evaluate("e => e.href || null")
                 if href and href != "#" and "javascript:" not in href:
                     return href
     except Exception:
@@ -510,6 +517,12 @@ def extract_with_llm(page, url: str) -> dict:
         if desc:
             desc = clean_description(desc)
 
+        # Defense: LLM sometimes returns the literal href attribute (e.g.
+        # `/out?r=...` from SimplyHired). Resolve against the page URL so
+        # downstream stages see an absolute URL.
+        if apply_url and not apply_url.startswith(("http://", "https://")):
+            apply_url = urljoin(url, apply_url)
+
         return {"full_description": desc, "application_url": apply_url}
     except Exception as e:
         log.error("LLM ERROR: %s", e)
@@ -640,6 +653,12 @@ def _mark_enrich_result(
         now = datetime.now(timezone.utc).isoformat()
 
     if status in ("ok", "partial"):
+        # Belt-and-suspenders: if any upstream caller still passes a relative
+        # application_url, resolve it against the page URL before storing.
+        # The deterministic and LLM extractors both already resolve, so this
+        # only fires for legacy paths or future regressions.
+        if application_url and not application_url.startswith(("http://", "https://")):
+            application_url = urljoin(url, application_url)
         # Rewrite embedded-ATS URLs (?gh_jid=N etc.) to their canonical
         # ATS form so the apply agent never has to navigate the iframe.
         # canonicalize_application_url consults both the static slug map

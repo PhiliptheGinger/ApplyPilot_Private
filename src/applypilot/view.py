@@ -42,6 +42,7 @@ STAGE_META = {
     "blocked_auth":         ("Auth Barrier",      "#f59e0b", "#fef3c7"),
     "blocked_technical":    ("Technical Issue",   "#f97316", "#ffedd5"),
     "archived_ineligible":  ("Ineligible",        "#6b7280", "#e5e7eb"),
+    "non_us_only":          ("Non-US Only",       "#6b7280", "#e5e7eb"),
     "archived_expired":     ("Expired",           "#6b7280", "#e5e7eb"),
     "archived_platform":    ("Platform Blocked",  "#ef4444", "#fecaca"),
     "archived_no_url":      ("No URL",            "#6b7280", "#e5e7eb"),
@@ -128,6 +129,11 @@ def _classify_job(row) -> tuple[str, str]:
             return category, "active"
         if category == "manual_only":
             return "manual_only", "archive"
+
+    # Eligibility gate: non-US-only roles are terminal-archived by the
+    # scorer — never show them as actionable, regardless of fit_score.
+    if _safe_get(row, "eligibility") == "non_us_only":
+        return "non_us_only", "archive"
 
     # Pre-apply pipeline stages (no category set)
     if row["cover_letter_path"] and not row["apply_error"]:
@@ -420,7 +426,7 @@ def generate_dashboard(output_path: str | None = None) -> str:
                company, tracking_status, tracking_updated_at,
                tracking_doc_path, last_email_at, next_action, next_action_due,
                needs_human_reason, needs_human_url, needs_human_instructions,
-               apply_category
+               apply_category, eligibility
         FROM jobs
         ORDER BY fit_score DESC NULLS LAST, discovered_at DESC
     """).fetchall()

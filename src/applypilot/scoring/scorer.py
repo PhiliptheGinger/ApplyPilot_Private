@@ -26,11 +26,22 @@ THE CANDIDATE: {candidate_summary}
 
 ⚠️ GEOGRAPHY CHECK — DO THIS FIRST, BEFORE ANYTHING ELSE:
 The candidate is US-based (Seattle, WA). Any role restricted to non-US geography is INELIGIBLE.
-- EMEA, APAC, EU only, UK only, Europe only, Germany only, India only in the TITLE or LOCATION → SCORE 2, STOP.
-- Description says "Remote (Europe)", "Remote - UK", "Europe Time Zone", "CET timezone", "based in Europe/UK/India" → SCORE 2, STOP.
-- Title contains "(m/f/d)" or "(m/w/d)" (German job suffix) → SCORE 2, STOP.
-- "US remote" or "global remote" or no geographic restriction → proceed to scoring below.
-This is non-negotiable. A perfect tech stack match for an EMEA-only role is still SCORE 2.
+Read the FULL description for buried sentences like "This role will be remote and based in the UK"
+or "Remote — Ontario, BC or Alberta". A perfect tech stack on a non-US role is still INELIGIBLE.
+
+Output ELIGIBILITY: non_us_only when the role's hiring location is restricted to a non-US country
+even if the role is remote. Output ELIGIBILITY: eligible when the role is open to US workers
+(US-only, US-remote, global-remote, or no restriction).
+
+Common signals for non_us_only:
+- "based in (UK|Canada|Ireland|Germany|...)"
+- "Remote — (UK|Canada|Europe|EMEA|APAC)"
+- "(m/f/d)" / "(m/w/d)" German title suffix
+- UK/Canada right-to-work questions in the form
+- CET / GMT+N / IST timezone requirement
+
+If non_us_only, you MAY still produce a SCORE based on tech-stack fit (for audit), but the
+eligibility tag is what determines whether the application proceeds.
 
 SCORING CRITERIA:
 - 10: Near-perfect IC engineering match. The role is a software/platform/infrastructure engineer position requiring the candidate's exact stack (Go/Kotlin/Python/Java, distributed systems, K8s). Seniority aligns (Senior/Staff/Principal). The candidate would be a top-tier applicant with minimal gaps.
@@ -48,11 +59,12 @@ ADDITIONAL RULES:
 - Distinguish REQUIRED skills from NICE-TO-HAVE. Only penalize for missing required skills.
 - Value transferable experience: workflow orchestration, distributed systems, microservices, developer platforms transfer across domains.
 
-You MUST include all three lines below. Do not skip REASONING.
+You MUST include all four lines below. Do not skip REASONING.
 
+ELIGIBILITY: [eligible|non_us_only]
 SCORE: [1-10]
 KEYWORDS: [comma-separated ATS keywords from the job description that match or could match the candidate]
-REASONING: [2-3 sentences explaining the score, what matched well, and any gaps]"""
+REASONING: [2-3 sentences explaining the score, what matched well, and any gaps. If non_us_only, name the country/region.]"""
 
 
 # ── Rule-based pre-filter (catches obvious ineligible before LLM call) ─────
@@ -143,35 +155,54 @@ _INELIGIBLE_LOCATION_PATTERNS = re.compile(
     re.IGNORECASE,
 )
 
-# Also check for EMEA/geographic restriction in first 800 chars of description
+# Description-level non-US patterns. Scans the full description (capped at
+# 6000 chars by the caller). Patterns intentionally narrow — must explicitly
+# RESTRICT to a non-US country, not merely mention global offices.
+# Tightened 2026-04-30 after Twilio UK/Canada slipped through the 800-char head.
 _INELIGIBLE_DESC_PATTERNS = re.compile(
-    r'Remote\s*[\(\-]\s*(EMEA|Europe|EU|UK|Germany|India)'
+    r'Remote\s*[\(\-—–]\s*(EMEA|Europe|EU|UK|United\s+Kingdom|Germany|India|Canada|Ireland|Netherlands|Brazil|Mexico|Argentina|Colombia|Australia|New\s+Zealand)'
     r'|EMEA\s*(only|region|remote|based)'
     r'|(Europe|European)\s*(only|Time\s*Zone|timezone|based|remote)'
-    r'|based\s+in\s+(Europe|UK|Germany|India|Netherlands)'
+    # Belt-and-suspenders: catches "based in (the) UK", "based in Europe", etc.
+    r'|based\s+in\s+(the\s+)?(Europe|EU|UK|United\s+Kingdom|Germany|India|Netherlands|Canada|Ireland|France|Spain|Italy|Brazil|Mexico|Australia|New\s+Zealand|Singapore|Japan|Israel|South\s+Africa|Portugal|Poland|Romania)'
+    r'|will\s+be\s+remote\s+and\s+based\s+in\s+(the\s+)?(UK|United\s+Kingdom|Canada|Ireland|Germany|Europe|EMEA|India)'
+    # Canadian-province patterns (Twilio L3 example)
+    r'|Remote\s+(in|from|—|-)\s*(Ontario|British\s+Columbia|Alberta|Quebec|Manitoba|Nova\s+Scotia|Saskatchewan)'
+    r'|Ontario,\s*British\s+Columbia'
+    # UK/Canada right-to-work questions on the form (often mirrored in JD)
+    r"|right\s+to\s+work\s+in\s+(the\s+)?(UK|United\s+Kingdom|Canada|Ireland|EU|European\s+Union)"
+    r"|requires?\s+(the\s+)?right\s+to\s+work\s+in\s+(the\s+)?(UK|United\s+Kingdom|Canada|Ireland|EU)"
+    # Timezone restrictions
     r'|CET\s+timezone'
-    r'|GMT[+\-]\d+\s+timezone',
+    r'|GMT[+\-]\d+\s+timezone'
+    r'|IST\s+timezone',
     re.IGNORECASE,
 )
+
+# Window scanned for description-level patterns. Bumped from 800 to 6000 chars
+# 2026-04-30 — Twilio buried the UK restriction in a paragraph below the
+# requirements list, past the 800-char head.
+_DESC_SCAN_CHARS = 6000
 
 
 def _check_ineligible(job: dict) -> str | None:
     """Return an ineligibility reason if the job is obviously non-US, else None.
 
     Checked before the LLM call to save tokens and ensure consistency.
-    Only uses title, location field, and first 800 chars of description
-    to avoid false positives from US companies mentioning global offices.
+    Scans title, location field, and the first ``_DESC_SCAN_CHARS`` of the
+    description.
     """
     title = job.get("title") or ""
     location = job.get("location") or ""
-    desc_head = (job.get("full_description") or "")[:800]
+    desc_head = (job.get("full_description") or "")[:_DESC_SCAN_CHARS]
 
     if _INELIGIBLE_TITLE_PATTERNS.search(title):
         return f"non-US geography in title: {title}"
     if location and _INELIGIBLE_LOCATION_PATTERNS.search(location):
         return f"non-US location field: {location}"
-    if _INELIGIBLE_DESC_PATTERNS.search(desc_head):
-        return "non-US geography in description"
+    m = _INELIGIBLE_DESC_PATTERNS.search(desc_head)
+    if m:
+        return f"non-US geography in description: {m.group(0)[:80]}"
     return None
 
 
@@ -182,15 +213,26 @@ def _parse_score_response(response: str) -> dict:
         response: Raw LLM response text.
 
     Returns:
-        {"score": int, "keywords": str, "reasoning": str}
+        {"score": int, "keywords": str, "reasoning": str, "eligibility": str}
+        eligibility is one of: 'eligible' | 'non_us_only'.
+        Older models that omit ELIGIBILITY default to 'eligible' (preserves
+        prior behavior; new prompt requires the line so absence is rare).
     """
     score = 0
     keywords = ""
     reasoning = response
+    eligibility = "eligible"
 
     for line in response.split("\n"):
         line = line.strip()
-        if line.startswith("SCORE:"):
+        if line.startswith("ELIGIBILITY:"):
+            value = line.replace("ELIGIBILITY:", "").strip().lower()
+            value = re.sub(r"[\[\]\s]+", "_", value).strip("_")
+            if "non" in value and "us" in value:
+                eligibility = "non_us_only"
+            else:
+                eligibility = "eligible"
+        elif line.startswith("SCORE:"):
             try:
                 score = int(re.search(r"\d+", line).group())
                 score = max(1, min(10, score))
@@ -201,7 +243,8 @@ def _parse_score_response(response: str) -> dict:
         elif line.startswith("REASONING:"):
             reasoning = line.replace("REASONING:", "").strip()
 
-    return {"score": score, "keywords": keywords, "reasoning": reasoning}
+    return {"score": score, "keywords": keywords, "reasoning": reasoning,
+            "eligibility": eligibility}
 
 
 def _build_candidate_summary(profile: dict) -> str:
@@ -235,14 +278,17 @@ def score_job(resume_text: str, job: dict, profile: dict | None = None) -> dict:
     if profile is None:
         profile = load_profile()
 
-    # Rule-based pre-filter: catch obvious non-US ineligible jobs before LLM call
+    # Rule-based pre-filter: catch obvious non-US ineligible jobs before LLM call.
+    # Tags eligibility=non_us_only so downstream stages skip the job; the score
+    # is still recorded so audit views can see the original LLM-style severity.
     ineligible_reason = _check_ineligible(job)
     if ineligible_reason:
-        log.info("Pre-filter INELIGIBLE (score=2): %s — %s", (job.get("title") or "?")[:60], ineligible_reason)
+        log.info("Pre-filter INELIGIBLE (non_us_only): %s — %s", (job.get("title") or "?")[:60], ineligible_reason)
         return {
             "score": 2,
             "keywords": "",
             "reasoning": f"Ineligible: {ineligible_reason}. Candidate is US-based.",
+            "eligibility": "non_us_only",
         }
 
     try:
@@ -266,7 +312,8 @@ def score_job(resume_text: str, job: dict, profile: dict | None = None) -> dict:
         return _parse_score_response(response)
     except Exception as e:
         log.error("LLM error scoring job '%s': %s", (job or {}).get("title") or "?", e)
-        return {"score": None, "keywords": "", "reasoning": "", "error": f"LLM error: {e}"}
+        return {"score": None, "keywords": "", "reasoning": "", "eligibility": None,
+                "error": f"LLM error: {e}"}
 
 
 MAX_SCORE_RETRIES = 5
@@ -290,17 +337,30 @@ def _flush_score_batch(conn, batch: list[dict], now: str) -> None:
 
     for r in batch:
         if r["score"] is not None:
+            eligibility = r.get("eligibility") or "eligible"
             conn.execute(
                 "UPDATE jobs SET fit_score = ?, score_reasoning = ?, scored_at = ?, "
+                "eligibility = ?, "
                 "score_error = NULL, score_attempts = 0, score_next_retry_at = NULL "
                 "WHERE url = ?",
-                (r["score"], f"{r['keywords']}\n{r['reasoning']}", now, r["url"]),
+                (r["score"], f"{r['keywords']}\n{r['reasoning']}", now, eligibility,
+                 r["url"]),
             )
-            # Emit state transition: scored (>= threshold) vs low_score
-            to_state = "scored" if r["score"] >= _min_score else "low_score"
-            transition_state(conn, r["url"], to_state,
-                             reason=f"scored {r['score']}/10",
-                             metadata={"score": r["score"]})
+            # Eligibility-driven state transition. Non-US roles go straight to
+            # `archived` (terminal) so tailor/cover/apply never pick them up,
+            # bypassing the scored→tailored→ready_to_apply chain entirely.
+            if eligibility == "non_us_only":
+                transition_state(conn, r["url"], "archived",
+                                 reason="non_us_only employer/role",
+                                 metadata={"score": r["score"],
+                                           "eligibility": eligibility},
+                                 force=True)
+            else:
+                to_state = "scored" if r["score"] >= _min_score else "low_score"
+                transition_state(conn, r["url"], to_state,
+                                 reason=f"scored {r['score']}/10",
+                                 metadata={"score": r["score"],
+                                           "eligibility": eligibility})
         else:
             # LLM failure — keep fit_score NULL so it stays in pending_score
             row = conn.execute(

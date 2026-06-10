@@ -706,6 +706,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                     WHERE fit_score IS NOT NULL AND fit_score >= 6
                       AND (apply_status IS NULL
                            OR apply_status NOT IN ('applied', 'manual', 'in_progress'))
+                      AND (eligibility IS NULL OR eligibility = 'eligible')
                     ORDER BY fit_score DESC, discovered_at DESC
                     LIMIT ?
                 """, (limit,)).fetchall()
@@ -1555,6 +1556,7 @@ def acquire_job(target_url: str | None = None,
                   AND j.fit_score >= ?
                   AND j.application_url IS NOT NULL
                   AND j.application_url != ''
+                  AND (j.eligibility IS NULL OR j.eligibility = 'eligible')
                   {max_score_filter}
                   AND {site_filter}
                   AND {url_filter}

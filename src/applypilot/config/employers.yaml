@@ -207,23 +207,14 @@ employers:
     site_id: "M_tx"
     base_url: "https://modernatx.wd1.myworkdayjobs.com"
 
-  servicenow:
-    name: "ServiceNow"
-    tenant: "servicenow"
-    site_id: "ServiceNowCareers"
-    base_url: "https://servicenow.wd1.myworkdayjobs.com"
-
-  docusign:
-    name: "DocuSign"
-    tenant: "docusign"
-    site_id: "External"
-    base_url: "https://docusign.wd5.myworkdayjobs.com"
-
-  uber:
-    name: "Uber"
-    tenant: "uber"
-    site_id: "uberCareers"
-    base_url: "https://uber.wd5.myworkdayjobs.com"
+  # ServiceNow / DocuSign / Uber — disabled 2026-05-07 after persistent HTTP 422
+  # responses across all search queries. Manual probe confirmed:
+  #   - servicenow.wd1.myworkdayjobs.com/ServiceNowCareers → HTTP 500 on UI, 422 on API
+  #   - docusign.wd5.myworkdayjobs.com/External           → HTTP 500; DocuSign moved to iCIMS
+  #     (uscareers-docusign.icims.com)
+  #   - uber.wd5.myworkdayjobs.com/uberCareers            → HTTP 500; Uber pulled the public
+  #     Workday tenant. Uber's Greenhouse board (slug "uber") returns 404 too.
+  # If any of these tenants comes back online, re-add with the new site_id.
 
   # ── Consulting ──────────────────────────────────────────────────────────
 

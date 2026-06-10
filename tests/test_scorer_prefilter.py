@@ -194,3 +194,102 @@ def test_senior_with_global_office_mention_not_rejected():
 def test_associate_director_not_rejected():
     """Ensure 'Associate' doesn't falsely match 'Entry Level'-like patterns."""
     assert _check_ineligible(_job(title="Associate Director of Engineering")) is None
+
+
+# ── 2026-04-30: Buried-in-description non-US restrictions ───────────
+#
+# Twilio's Greenhouse postings (jobs/7662058 and 7767260) titled their
+# roles "Senior Software Engineer" with location "Remote", but the
+# country restriction was buried in the description body like:
+#   "This role will be remote and based in the UK."
+#   "This role will be remote and based in Ontario, BC or Alberta, Canada."
+# The prior 800-char head-only scan missed those. Bumped to 6000 + new
+# patterns. Each test below corresponds to a real failed-apply URL.
+
+def test_twilio_uk_remote_buried_in_description_rejected():
+    """Twilio jobs/7662058 — Senior SWE with UK location buried in desc."""
+    desc = (
+        "About Twilio: We are looking for an exceptional Senior Software "
+        "Engineer to join our team. " * 30  # pushes the restriction past 800 chars
+        + " The mission of this team is to build the foundational platform. "
+        + "This role will be remote and based in the UK."
+    )
+    result = _check_ineligible(_job(
+        title="Senior Software Engineer",
+        location="Remote",
+        description=desc,
+    ))
+    assert result is not None
+    assert "non-US geography in description" in result
+
+
+def test_twilio_canada_provinces_rejected():
+    """Twilio jobs/7767260 — L3 SWE with Canada-province restriction."""
+    desc = (
+        "About Twilio: " + "blah " * 200
+        + " This role will be remote and based in Ontario, British Columbia or Alberta, Canada."
+    )
+    result = _check_ineligible(_job(
+        title="Software Engineer (L3) Infrastructure",
+        location="Remote",
+        description=desc,
+    ))
+    assert result is not None
+
+
+def test_based_in_uk_rejected():
+    """Variant: 'based in the UK' anywhere in first 6000 chars."""
+    desc = "We are a global team. " * 50 + "Candidates must be based in the UK."
+    assert _check_ineligible(_job(description=desc)) is not None
+
+
+def test_right_to_work_uk_rejected():
+    """JD mentions 'right to work in the UK' question."""
+    desc = "Senior role. " * 100 + "You must have the right to work in the United Kingdom."
+    assert _check_ineligible(_job(description=desc)) is not None
+
+
+def test_ist_timezone_rejected():
+    """India Standard Time requirement."""
+    desc = "Engineering role. " * 50 + "Candidates must work IST timezone hours."
+    assert _check_ineligible(_job(description=desc)) is not None
+
+
+# ── _parse_score_response: ELIGIBILITY field extraction ─────────────
+
+def test_parser_extracts_eligibility_eligible():
+    from applypilot.scoring.scorer import _parse_score_response
+    response = """ELIGIBILITY: eligible
+SCORE: 9
+KEYWORDS: Python, Go, Kubernetes
+REASONING: Strong stack match, US remote role."""
+    parsed = _parse_score_response(response)
+    assert parsed["score"] == 9
+    assert parsed["eligibility"] == "eligible"
+
+
+def test_parser_extracts_eligibility_non_us_only():
+    from applypilot.scoring.scorer import _parse_score_response
+    response = """ELIGIBILITY: non_us_only
+SCORE: 8
+KEYWORDS: backend
+REASONING: UK-only remote role."""
+    parsed = _parse_score_response(response)
+    assert parsed["eligibility"] == "non_us_only"
+
+
+def test_parser_eligibility_with_brackets():
+    """The prompt template shows [eligible|non_us_only] — make sure
+    ``ELIGIBILITY: [non_us_only]`` (the LLM keeping the brackets) parses."""
+    from applypilot.scoring.scorer import _parse_score_response
+    response = "ELIGIBILITY: [non_us_only]\nSCORE: 7\nKEYWORDS: foo\nREASONING: bar"
+    parsed = _parse_score_response(response)
+    assert parsed["eligibility"] == "non_us_only"
+
+
+def test_parser_missing_eligibility_defaults_to_eligible():
+    """Older models that omit the field — default to eligible (no false bans)."""
+    from applypilot.scoring.scorer import _parse_score_response
+    response = "SCORE: 8\nKEYWORDS: foo\nREASONING: bar"
+    parsed = _parse_score_response(response)
+    assert parsed["eligibility"] == "eligible"
