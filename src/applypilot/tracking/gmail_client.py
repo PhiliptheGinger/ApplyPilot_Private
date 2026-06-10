@@ -57,7 +57,9 @@ async def _create_mcp_client():
 
     server_params = StdioServerParameters(
         command="npx",
-        args=["-y", "@gongrzhe/server-gmail-autoauth-mcp"],
+        # Pinned: holds Gmail OAuth tokens; bump only after verifying the
+        # release (age + tarball diff). See launcher._gmail_mcp pin note.
+        args=["-y", "@gongrzhe/server-gmail-autoauth-mcp@1.1.11"],
         env={
             **os.environ,
             "GMAIL_MCP_DIR": str(GMAIL_MCP_DIR),

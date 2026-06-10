@@ -1270,7 +1270,7 @@ def _trigger_gmail_reauth() -> dict:
     """
     try:
         proc = subprocess.Popen(
-            ["npx", "-y", "@gongrzhe/server-gmail-autoauth-mcp", "auth"],
+            ["npx", "-y", "@gongrzhe/server-gmail-autoauth-mcp@1.1.11", "auth"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             stdin=subprocess.DEVNULL,
@@ -1361,7 +1361,11 @@ def _make_mcp_config(cdp_port: int, worker_id: int = 0) -> dict:
             "playwright": {
                 "command": "npx",
                 "args": [
-                    "@playwright/mcp@latest",
+                    # Pinned (was @latest — every apply run re-resolved the tag,
+                    # so a compromised release would be picked up within hours).
+                    # Bump deliberately after a release has soaked ~2 weeks;
+                    # check `npm view @playwright/mcp@<v> dist.attestations.url`.
+                    "@playwright/mcp@0.0.75",
                     f"--cdp-endpoint=http://localhost:{cdp_port}",
                     f"--viewport-size={vp[0]}x{vp[1]}",
                     f"--user-agent={_get_real_user_agent()}",
@@ -1369,7 +1373,9 @@ def _make_mcp_config(cdp_port: int, worker_id: int = 0) -> dict:
             },
             "gmail": {
                 "command": "npx",
-                "args": ["-y", "@gongrzhe/server-gmail-autoauth-mcp"],
+                # Pinned: this package holds the Gmail OAuth tokens. 1.1.11
+                # verified byte-identical to the registry tarball 2026-06-10.
+                "args": ["-y", "@gongrzhe/server-gmail-autoauth-mcp@1.1.11"],
             },
         }
     }
