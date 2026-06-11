@@ -33,11 +33,11 @@ employers:
     site_id: "NVIDIAExternalCareerSite"
     base_url: "https://nvidia.wd5.myworkdayjobs.com"
 
-  netflix:
-    name: "Netflix"
-    tenant: "netflix"
-    site_id: "Netflix"
-    base_url: "https://netflix.wd1.myworkdayjobs.com"
+  # Netflix — disabled 2026-06-10: netflix.wd1 CXS API returns HTTP 422
+  # (same death signature as ServiceNow/DocuSign/Uber). Netflix moved to
+  # Eightfold; unlike Starbucks/HP, their deployment answers anonymously:
+  #   https://explore.jobs.netflix.net/api/apply/v2/jobs?domain=netflix.com
+  # → future-scraper candidate, see CLAUDE.md Future Work.
 
   cisco:
     name: "Cisco"
