@@ -68,8 +68,9 @@ PARAGRAPH 1 — HOOK (4-6 sentences, ~80 words): Open with a specific thing YOU 
 PARAGRAPH 2 — EVIDENCE (4-6 sentences, ~120 words): Pick 2 achievements from the resume that are MOST relevant to THIS job. For each, name the problem, the concrete action you took (specific tools, architecture decisions), and the quantified outcome. Use numbers. Frame each as solving their problem, not listing your accomplishments.{projects_hint}{metrics_hint}
 
 PARAGRAPH 3 — COMPANY FIT (3-4 sentences, ~70 words): Reference one specific thing about the company from the job description (a product, a technical challenge, a team structure). Connect it to your experience with a concrete parallel, not a generic nod. Show you've read the posting and that you've solved a similar shape of problem.
+If COMPANY is marked unknown, infer the employer from the job description. If the description doesn't name it either, write about the team's product and problem domain WITHOUT naming any company. NEVER treat the job board the listing came from (LinkedIn, Indeed, etc.) as the employer.
 
-PARAGRAPH 4 — CLOSE (2 sentences, ~30 words): Short CTA pointing to a next step plus the sign-off. "Happy to walk through the migration details or the on-call setup." Specific, not generic. Then sign off.
+PARAGRAPH 4 — CLOSE (2 sentences, ~30 words): Offer to go deeper on one or two SPECIFIC topics from your evidence paragraph, naming the actual system, migration, or metric. Write the offer in your own words; do not use stock closers ("Happy to walk through...", "I'd welcome the chance to discuss..."). Then sign off.
 
 BANNED WORDS/PHRASES (using ANY of these = instant rejection):
 "resonated", "aligns with", "passionate", "eager", "eager to", "excited to apply", "I am confident",
@@ -94,7 +95,9 @@ ADDITIONAL BANNED PHRASES:
 "This experience translates", "which aligns with", "which is relevant to",
 "as demonstrated by", "showing experience with", "reflecting the need for",
 "which directly addresses", "I have experience with",
-"Also,", "Furthermore,", "Additionally,", "Moreover,"
+"Also,", "Furthermore,", "Additionally,", "Moreover,",
+"Happy to walk through", "demonstrate" (any form: demonstrates, demonstrated, demonstrating),
+"resonate" (any form), "align with" (any form: aligns with, aligned with)
 
 FABRICATION = INSTANT REJECTION:
 The candidate's real tools are ONLY: {skills_str}.
@@ -109,7 +112,7 @@ Output ONLY the letter. Start with "Dear Hiring Manager," end with the name."""
 
 def generate_cover_letter(
     resume_text: str, job: dict, profile: dict, max_retries: int = 3
-) -> str:
+) -> tuple[str, dict]:
     """Generate a cover letter with fresh context on each retry + auto-sanitize.
 
     Same design as tailor_resume: fresh conversation per attempt, issues noted
@@ -117,22 +120,27 @@ def generate_cover_letter(
 
     Args:
         resume_text: The candidate's resume text (base or tailored).
-        job: Job dict with title, site, location, full_description.
+        job: Job dict with title, site, company, location, full_description.
         profile: User profile dict.
         max_retries: Maximum retry attempts.
 
     Returns:
-        The cover letter text (best attempt even if validation failed).
+        (letter, validation) — the best attempt and its validate_cover_letter
+        verdict. Callers must check validation["passed"] before shipping.
     """
+    from applypilot.scoring.tailor import display_company
+
+    company = display_company(job)
     job_text = (
         f"TITLE: {job['title']}\n"
-        f"COMPANY: {job['site']}\n"
+        f"COMPANY: {company or 'unknown (aggregator listing; employer may be named in the description)'}\n"
         f"LOCATION: {job.get('location', 'N/A')}\n\n"
         f"DESCRIPTION:\n{(job.get('full_description') or '')[:6000]}"
     )
 
     avoid_notes: list[str] = []
     letter = ""
+    validation: dict = {"passed": False, "errors": ["no attempts"], "warnings": []}
     client = get_client(quality=True)
     cl_prompt_base = _build_cover_letter_prompt(profile)
 
@@ -158,15 +166,25 @@ def generate_cover_letter(
 
         validation = validate_cover_letter(letter)
         if validation["passed"]:
-            return letter
+            return letter, validation
 
         avoid_notes.extend(validation["errors"])
+        # The model chronically undershoots length; a generic "too short"
+        # error doesn't fix it. Give explicit per-paragraph expansion targets.
+        words = len(letter.split())
+        if words < 260:
+            avoid_notes.append(
+                f"Your previous draft was only {words} words. The minimum is 260; "
+                "target 300-400. Expand the hook to ~80 words and the evidence "
+                "paragraph to ~120 words with additional concrete details, tools, "
+                "and numbers from the resume. Do not pad with filler."
+            )
         log.debug(
             "Cover letter attempt %d/%d failed: %s",
             attempt + 1, max_retries + 1, validation["errors"],
         )
 
-    return letter  # last attempt even if failed
+    return letter, validation  # last attempt, validation["passed"] is False
 
 
 # ── Batch Entry Point ────────────────────────────────────────────────────
@@ -174,7 +192,7 @@ def generate_cover_letter(
 def _cover_one_job(job: dict, resume_text: str, profile: dict, doc_format: str = "docx") -> dict:
     """Generate cover letter for a single job. Safe to call from multiple threads."""
     from applypilot.scoring.tailor import _name_parts, _extract_keywords
-    letter = generate_cover_letter(resume_text, job, profile)
+    letter, validation = generate_cover_letter(resume_text, job, profile)
 
     # Filename: FirstName_LastName_JobTitle_hash_CL.{ext} (Jobscan §3).
     first, last = _name_parts(profile)
@@ -187,6 +205,23 @@ def _cover_one_job(job: dict, resume_text: str, profile: dict, doc_format: str =
     else:
         safe_site = re.sub(r"[^\w\s-]", "", job["site"])[:20].strip().replace(" ", "_")
         prefix = f"{safe_site}_{safe_title}_{url_hash}"
+
+    if not validation["passed"]:
+        # Don't ship a letter that failed validation. Keep the rejected draft
+        # on disk for inspection, return no path so _mark_cover_result parks
+        # the job as cover_failed (retried until MAX_ATTEMPTS via pending_cover).
+        reason = "; ".join(validation["errors"])
+        rejected_path = COVER_LETTER_DIR / f"{prefix}_CL_rejected.txt"
+        rejected_path.write_text(letter, encoding="utf-8")
+        log.info("Cover letter rejected for %s: %s", (job.get("title") or "")[:40], reason)
+        return {
+            "url": job["url"],
+            "path": None,
+            "pdf_path": None,
+            "title": job["title"],
+            "site": job["site"],
+            "error": f"validation failed: {reason}",
+        }
 
     cl_path = COVER_LETTER_DIR / f"{prefix}_CL.txt"
     cl_path.write_text(letter, encoding="utf-8")
@@ -387,7 +422,8 @@ def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: in
                 result = _cover_one_job(job, resume_text, profile, doc_format)
                 elapsed = time.time() - t0
                 rate = completed / elapsed if elapsed > 0 else 0
-                log.info("%d/%d [OK] | %.1f jobs/min | %s", completed, len(jobs), rate * 60,
+                status = "OK" if result.get("path") else "REJ"
+                log.info("%d/%d [%s] | %.1f jobs/min | %s", completed, len(jobs), status, rate * 60,
                          (result.get("title") or "")[:40])
             except Exception as e:
                 result = {
@@ -419,10 +455,16 @@ def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: in
         log.exception("DB flush failed for cover letter batch: %s", flush_err)
 
     elapsed = time.time() - t0
-    log.info("Cover letters done in %.1fs: %d generated, %d errors", elapsed, saved, error_count)
+    rejected = sum(
+        1 for r in results
+        if not r.get("path") and str(r.get("error", "")).startswith("validation failed")
+    )
+    log.info("Cover letters done in %.1fs: %d generated, %d rejected by validation, %d errors",
+             elapsed, saved, rejected, error_count)
 
     return {
         "generated": saved,
+        "rejected": rejected,
         "errors": error_count,
         "elapsed": elapsed,
     }

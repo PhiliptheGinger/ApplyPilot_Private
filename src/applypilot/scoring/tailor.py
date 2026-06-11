@@ -360,9 +360,10 @@ def tailor_resume(
     Returns:
         (tailored_text, report) where report contains validation details.
     """
+    company = display_company(job)
     job_text = (
         f"TITLE: {job['title']}\n"
-        f"COMPANY: {job['site']}\n"
+        f"COMPANY: {company or 'unknown (aggregator listing; employer may be named in the description)'}\n"
         f"LOCATION: {job.get('location', 'N/A')}\n\n"
         f"DESCRIPTION:\n{(job.get('full_description') or '')[:6000]}"
     )
@@ -506,6 +507,21 @@ def resolve_company_key(job: dict) -> str | None:
     return None
 
 
+def display_company(job: dict) -> str:
+    """Best-known employer name for LLM prompts, or '' if unknown.
+
+    ``site`` is the discovery source — for aggregator listings (LinkedIn,
+    Indeed, ...) it is NOT the employer and must never be presented as one.
+    Prefers the ``company`` column's original casing; falls back to the
+    lowercase ATS-tenant slug / direct-employer site from
+    ``resolve_company_key``.
+    """
+    company = (job.get("company") or "").strip()
+    if company:
+        return company
+    return resolve_company_key(job) or ""
+
+
 def _name_parts(profile: dict) -> tuple[str, str]:
     """Return (first, last) name parts from profile, sanitized for filenames.
 
@@ -579,7 +595,8 @@ def _tailor_one_job(job: dict, resume_text: str, profile: dict, doc_format: str 
     job_path = TAILORED_DIR / f"{prefix}_JOB.txt"
     job_desc = (
         f"Title: {job['title']}\n"
-        f"Company: {job['site']}\n"
+        f"Company: {display_company(job) or 'unknown'}\n"
+        f"Source: {job['site']}\n"
         f"Location: {job.get('location', 'N/A')}\n"
         f"Score: {job.get('fit_score', 'N/A')}\n"
         f"URL: {job['url']}\n\n"

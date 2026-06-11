@@ -34,6 +34,18 @@ BANNED_WORDS: list[str] = [
     "furthermore", "additionally", "moreover",
 ]
 
+# Cover-letter hard-reject patterns (ERROR tier — triggers a regeneration
+# retry, unlike BANNED_WORDS which only warns). Stem-based regexes so suffix
+# variants ("aligns with", "These experiences demonstrate", "resonates") can't
+# slip past plain-substring matching the way they did in ~28% of generated
+# letters before this existed.
+CL_BANNED_PATTERNS: list[tuple[str, str]] = [
+    ("align with", r"\balign(s|ed|ing)?\s+with\b"),
+    ("demonstrate", r"\bdemonstrat\w*\b"),
+    ("happy to walk through", r"\bhappy to walk (you\s+)?through\b"),
+    ("resonate", r"\bresonat\w*\b"),
+]
+
 LLM_LEAK_PHRASES: list[str] = [
     "i am sorry", "i apologize", "i will try", "let me try",
     "i am at a loss", "i am truly sorry", "apologies for",
@@ -314,6 +326,11 @@ def validate_cover_letter(text: str) -> dict:
     if found:
         warnings.append(f"Banned words (style): {', '.join(found[:5])}")
 
+    # 2b. Hard-reject phrase patterns (error tier — these force a retry).
+    hits = [label for label, pat in CL_BANNED_PATTERNS if re.search(pat, text_lower)]
+    if hits:
+        errors.append(f"Banned phrase(s): {', '.join(hits)}")
+
     # 3. Word count — Jobscan's 250-400 target is the ideal; the prompt aims
     # at 300-400. In practice the LLM averages 220-270 with other constraints,
     # and the user characterizes that as "close enough". Hard floor only
@@ -335,5 +352,18 @@ def validate_cover_letter(text: str) -> dict:
     stripped = text.strip()
     if not stripped.lower().startswith("dear"):
         errors.append("Must start with 'Dear Hiring Manager,'")
+
+    # 6. Structure: prompt demands 4 body paragraphs (hook, evidence, company
+    # fit, close). "Substantial" = >= 15 words, which excludes the salutation
+    # and sign-off blocks. Before this check, the company-fit paragraph
+    # silently collapsed into the closer in most generated letters.
+    body_paragraphs = [p for p in re.split(r"\n\s*\n", text) if len(p.split()) >= 15]
+    if len(body_paragraphs) < 3:
+        errors.append(
+            f"Only {len(body_paragraphs)} body paragraph(s); structure requires 4 "
+            "(hook, evidence, company fit, close)."
+        )
+    elif len(body_paragraphs) == 3:
+        warnings.append("Only 3 body paragraphs; target structure is 4.")
 
     return {"passed": len(errors) == 0, "errors": errors, "warnings": warnings}
