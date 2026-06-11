@@ -12,6 +12,7 @@ import logging
 import re
 import sqlite3
 import time
+import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -205,10 +206,36 @@ def search_employer(
     total = None
 
     while True:
-        try:
-            data = workday_search(employer, search_text, limit=page_size, offset=offset)
-        except Exception as e:
-            log.error("%s: API error at offset %d: %s", employer["name"], offset, e)
+        data = None
+        last_err: Exception | None = None
+        for attempt in range(3):
+            try:
+                data = workday_search(employer, search_text, limit=page_size, offset=offset)
+                break
+            except urllib.error.HTTPError as e:
+                last_err = e
+                # 4xx is permanent (dead tenant / wrong site_id — e.g. the
+                # Netflix 422): retrying just hammers a dead endpoint.
+                if e.code < 500:
+                    break
+                # 5xx is usually transient (Remitly threw a one-off
+                # Cloudflare 520 mid-run 2026-06-10, healthy seconds later
+                # — it cost the whole employer for that run).
+                if attempt < 2:
+                    wait = 5 * (2 ** attempt)
+                    log.warning("%s: HTTP %d at offset %d — retry %d/2 in %ds",
+                                employer["name"], e.code, offset, attempt + 1, wait)
+                    time.sleep(wait)
+            except Exception as e:
+                # URLError / timeout / connection reset — same treatment
+                last_err = e
+                if attempt < 2:
+                    wait = 5 * (2 ** attempt)
+                    log.warning("%s: %s at offset %d — retry %d/2 in %ds",
+                                employer["name"], e, offset, attempt + 1, wait)
+                    time.sleep(wait)
+        if data is None:
+            log.error("%s: API error at offset %d: %s", employer["name"], offset, last_err)
             break
 
         if total is None:
