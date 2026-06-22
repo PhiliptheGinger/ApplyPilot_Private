@@ -68,6 +68,7 @@ from applypilot.apply.result_handlers import (  # noqa: F401  (re-exports)
 from applypilot.apply.hitl import (  # noqa: F401  (re-exports)
     _HITL_TRANSIENT_ERRORS,
     _HITL_INSTRUCTIONS,
+    get_hitl_instruction,
     _action_log_cache,
     _action_log_cache_lock,
     _stdin_fallback_lock,

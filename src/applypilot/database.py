@@ -2066,7 +2066,7 @@ def _opposite_format_suffix(doc_format: str | None) -> str | None:
     """Return the file-extension pattern whose answers should be suppressed.
 
     When we render the agent prompt in DOCX mode, any historical Q&A answer
-    that suggests a `.pdf` filename (e.g. "Josue_Resume.pdf") is stale — the
+    that suggests a `.pdf` filename (e.g. "Jordan_Resume.pdf") is stale — the
     agent would try to upload a file that doesn't exist. The reverse applies
     in PDF mode.
     """

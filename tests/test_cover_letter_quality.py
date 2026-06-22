@@ -37,12 +37,12 @@ def _good_letter() -> str:
         + _para(6) + "\n\n"
         + _para(4) + "\n\n"
         + _para(2) + "\n\n"
-        + "Alex"
+        + "Jordan"
     )
 
 
 PROFILE = {
-    "personal": {"full_name": "Alex Ibarra", "preferred_name": "Alex"},
+    "personal": {"full_name": "Jordan Lee", "preferred_name": "Jordan"},
     "skills_boundary": {"languages": ["Python", "Kotlin"]},
     "resume_facts": {},
 }
@@ -108,7 +108,7 @@ def test_good_letter_passes():
     ("The mission really resonates with the work I have done.", "resonate"),
 ])
 def test_banned_patterns_are_errors(phrase, label):
-    letter = GOOD.replace("Alex", phrase + "\n\nAlex")
+    letter = GOOD.replace("Jordan", phrase + "\n\nJordan")
     result = validate_cover_letter(letter)
     assert not result["passed"]
     assert any(label in e for e in result["errors"]), result["errors"]
@@ -117,7 +117,7 @@ def test_banned_patterns_are_errors(phrase, label):
 def test_plain_walkthrough_word_not_banned():
     # "walkthrough" / "walked through the code" should not trip the
     # "happy to walk through" stock-closer pattern.
-    letter = GOOD.replace("Alex", "I walked through the codebase with new hires weekly.\n\nAlex")
+    letter = GOOD.replace("Jordan", "I walked through the codebase with new hires weekly.\n\nJordan")
     result = validate_cover_letter(letter)
     assert result["passed"], result["errors"]
 
@@ -125,7 +125,7 @@ def test_plain_walkthrough_word_not_banned():
 # ── validate_cover_letter: structure ──────────────────────────────────────
 
 def test_two_paragraph_letter_fails_structure():
-    letter = "Dear Hiring Manager,\n\n" + _para(5) + "\n\n" + _para(5) + "\n\nAlex"
+    letter = "Dear Hiring Manager,\n\n" + _para(5) + "\n\n" + _para(5) + "\n\nJordan"
     result = validate_cover_letter(letter)
     assert not result["passed"]
     assert any("body paragraph" in e for e in result["errors"]), result["errors"]
@@ -134,7 +134,7 @@ def test_two_paragraph_letter_fails_structure():
 def test_three_paragraph_letter_passes_with_warning():
     letter = (
         "Dear Hiring Manager,\n\n"
-        + _para(5) + "\n\n" + _para(5) + "\n\n" + _para(4) + "\n\nAlex"
+        + _para(5) + "\n\n" + _para(5) + "\n\n" + _para(4) + "\n\nJordan"
     )
     result = validate_cover_letter(letter)
     assert result["passed"], result["errors"]
@@ -188,7 +188,7 @@ def test_unknown_company_marked_unknown_not_aggregator(monkeypatch):
 
 def test_retry_gets_word_count_expansion_feedback(monkeypatch):
     from applypilot.scoring import cover_letter as cl
-    short_letter = "Dear Hiring Manager,\n\n" + _para(2) + "\n\nAlex"  # <180 words
+    short_letter = "Dear Hiring Manager,\n\n" + _para(2) + "\n\nJordan"  # <180 words
     stub = StubClient([short_letter, GOOD])
     monkeypatch.setattr(cl, "get_client", lambda quality=False: stub)
 
@@ -202,7 +202,7 @@ def test_retry_gets_word_count_expansion_feedback(monkeypatch):
 
 def test_exhausted_retries_returns_failed_validation(monkeypatch):
     from applypilot.scoring import cover_letter as cl
-    short_letter = "Dear Hiring Manager,\n\n" + _para(2) + "\n\nAlex"
+    short_letter = "Dear Hiring Manager,\n\n" + _para(2) + "\n\nJordan"
     stub = StubClient([short_letter])
     monkeypatch.setattr(cl, "get_client", lambda quality=False: stub)
 
@@ -215,7 +215,7 @@ def test_exhausted_retries_returns_failed_validation(monkeypatch):
 
 def test_cover_one_job_rejection_returns_no_path(monkeypatch, tmp_path):
     from applypilot.scoring import cover_letter as cl
-    bad = "Dear Hiring Manager,\n\nToo short.\n\nAlex"
+    bad = "Dear Hiring Manager,\n\nToo short.\n\nJordan"
     monkeypatch.setattr(cl, "COVER_LETTER_DIR", tmp_path)
     monkeypatch.setattr(
         cl, "generate_cover_letter",

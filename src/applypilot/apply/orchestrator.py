@@ -59,11 +59,11 @@ from applypilot.apply.dashboard import (
     update_state,
 )
 from applypilot.apply.hitl import (
-    _HITL_INSTRUCTIONS,
     _get_waiting_count,
     _register_waiting,
     _run_hitl,
     _unregister_waiting,
+    get_hitl_instruction,
 )
 from applypilot.apply.result_handlers import (
     HITL_AUTO_ROUTE,
@@ -427,9 +427,7 @@ def _worker_loop_body(
                         continue
 
                     # --- General HITL: keep Chrome open, inject banner, wait ---
-                    nh_instructions = _HITL_INSTRUCTIONS.get(
-                        nh_reason, f"Human action required: {nh_reason}"
-                    )
+                    nh_instructions = get_hitl_instruction(nh_reason)
                     if nh_detail:
                         nh_instructions = f"{nh_instructions}\n\nAgent detail: {nh_detail}"
 
@@ -457,7 +455,7 @@ def _worker_loop_body(
                         if ats_slug:
                             clear_ats_session(ats_slug)
                         nh_url = job.get("application_url") or job["url"]
-                        nh_instructions = _HITL_INSTRUCTIONS["login_required"]
+                        nh_instructions = get_hitl_instruction("login_required")
 
                         hitl_outcome = _run_hitl(
                             worker_id=worker_id, port=port, job=job,
@@ -479,9 +477,7 @@ def _worker_loop_body(
                         # Route to HITL instead of marking as permanent failure.
                         # User intervenes via the Chrome banner, then agent relaunches.
                         nh_url = job.get("application_url") or job["url"]
-                        nh_instructions = _HITL_INSTRUCTIONS.get(
-                            reason, f"Manual action required: {reason}"
-                        )
+                        nh_instructions = get_hitl_instruction(reason)
 
                         hitl_outcome = _run_hitl(
                             worker_id=worker_id, port=port, job=job,

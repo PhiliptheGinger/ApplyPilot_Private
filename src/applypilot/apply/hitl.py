@@ -89,18 +89,18 @@ _HITL_TRANSIENT_ERRORS: frozenset[str] = frozenset(
 
 _HITL_INSTRUCTIONS: dict[str, str] = {
     "workday_signup": (
-        "CREATE a Workday account using alex@elninja.com. "
+        "CREATE a Workday account using {email}. "
         "Click 'Create Account', fill in your email and a password, "
         "verify your email if prompted. Click Done when you're logged in."
     ),
     "login_required": (
-        "LOG IN to this site using alex@elninja.com. "
+        "LOG IN to this site using {email}. "
         "If you don't have an account, create one. "
         "Click Done once you're logged in and on the application page."
     ),
     "login_issue": (
         "LOGIN ISSUE. The agent couldn't complete login. Try logging in manually "
-        "with alex@elninja.com (or create an account if needed). "
+        "with {email} (or create an account if needed). "
         "Click Done when you're logged in and on the application page."
     ),
     "captcha": (
@@ -108,7 +108,7 @@ _HITL_INSTRUCTIONS: dict[str, str] = {
         "to let the agent continue the application."
     ),
     "account_required": (
-        "ACCOUNT REQUIRED. Create an account using alex@elninja.com, then navigate "
+        "ACCOUNT REQUIRED. Create an account using {email}, then navigate "
         "to the job application. Click Done when you're on the application form."
     ),
     "sso_required": (
@@ -125,7 +125,7 @@ _HITL_INSTRUCTIONS: dict[str, str] = {
         "Click Done when done (even if you only unstuck it for the agent to retry)."
     ),
     "email_verification": (
-        "COMPLETE EMAIL VERIFICATION. Check alex@elninja.com for a verification "
+        "COMPLETE EMAIL VERIFICATION. Check {email} for a verification "
         "email/code, then enter it on the page. Click Done when verified."
     ),
     "sms_verification": (
@@ -153,6 +153,28 @@ _HITL_INSTRUCTIONS: dict[str, str] = {
         "If it looks malicious, close the tab and click Done to abandon."
     ),
 }
+
+
+def _applicant_email() -> str:
+    """The applicant's email from profile.json, for HITL instructions.
+
+    Substituted into the ``{email}`` placeholder in ``_HITL_INSTRUCTIONS`` at
+    lookup time. Falls back to a neutral placeholder when no profile is
+    configured so we never embed anyone else's personal address in the
+    user-facing instruction text.
+    """
+    try:
+        email = (config.load_profile().get("personal", {}) or {}).get("email", "")
+        email = (email or "").strip()
+    except Exception:
+        email = ""
+    return email or "your account email"
+
+
+def get_hitl_instruction(reason: str) -> str:
+    """HITL instruction for ``reason`` with the applicant's email filled in."""
+    template = _HITL_INSTRUCTIONS.get(reason, f"Human action required: {reason}")
+    return template.replace("{email}", _applicant_email())
 
 
 # ---------------------------------------------------------------------------
@@ -285,7 +307,7 @@ def _inject_banner_for_worker(worker_id: int, cdp_port: int, job: dict,
     # Build a job-like dict with HITL fields for the banner
     banner_job = dict(job)
     if instructions is None:
-        instructions = _HITL_INSTRUCTIONS.get(reason, f"Human action required: {reason}")
+        instructions = get_hitl_instruction(reason)
     banner_job["needs_human_instructions"] = instructions
 
     result = _inject_banner(cdp_port, banner_job, server_port=server_port)
@@ -403,7 +425,7 @@ def notify_human_needed(job: dict, reason: str, stuck_url: str) -> None:
     title = job.get("title", "Unknown")
     company = job.get("site", "")
     score = job.get("fit_score", "?")
-    instructions = _HITL_INSTRUCTIONS.get(reason, f"Human action required: {reason}")
+    instructions = get_hitl_instruction(reason)
 
     print(
         f"\n\033[1;35m⚑ HUMAN REVIEW NEEDED ⚑\033[0m\n"
