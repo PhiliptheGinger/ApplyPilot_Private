@@ -92,6 +92,8 @@ PROJECTS: Reorder by relevance. Drop irrelevant projects entirely.
 
 BULLETS: Strong verb + what you built + quantified impact. Vary verbs (Built, Designed, Implemented, Reduced, Automated, Deployed, Operated, Optimized). Most relevant first. Max 4 per section.
 
+EDUCATION: Copy every school from the ORIGINAL RESUME's education section — one object per school. Preserve the institution name, degree, field of study, and years EXACTLY as written in the original. Never invent a degree, field, or date. If a school lists no degree, omit the "degree" key; if it lists no years, omit the "dates" key. Do not reorder, summarize, or merge schools — education is factual, not tailored. Do NOT output the education level ("{education_level}") as if it were a school.
+
 ## VOICE:
 - Write like a real engineer. Short, direct.
 - GOOD: "Automated financial reporting with Python + API integrations, cut processing time from 10 hours to 2"
@@ -108,7 +110,7 @@ BULLETS: Strong verb + what you built + quantified impact. Vary verbs (Built, De
 
 ## OUTPUT: Return ONLY valid JSON. No markdown fences. No commentary. No "here is" preamble.
 
-{{"title":"Role Title","summary":"2-3 tailored sentences.","skills":{{"Languages":"...","Frameworks":"...","DevOps & Infra":"...","Databases":"...","Tools":"..."}},"experience":[{{"header":"Title at Company","subtitle":"Tech | Dates","bullets":["bullet 1","bullet 2","bullet 3","bullet 4"]}}],"projects":[{{"header":"Project Name - Description","subtitle":"Tech | Dates","bullets":["bullet 1","bullet 2"]}}],"education":"{school} | {education_level}"}}"""
+{{"title":"Role Title","summary":"2-3 tailored sentences.","skills":{{"Languages":"...","Frameworks":"...","DevOps & Infra":"...","Databases":"...","Tools":"..."}},"experience":[{{"header":"Title at Company","subtitle":"Tech | Dates","bullets":["bullet 1","bullet 2","bullet 3","bullet 4"]}}],"projects":[{{"header":"Project Name - Description","subtitle":"Tech | Dates","bullets":["bullet 1","bullet 2"]}}],"education":[{{"institution":"School Name","degree":"Degree, Field of study (omit key if not in original)","dates":"YYYY - YYYY (omit key if not in original)"}}]}}"""
 
 
 def _build_judge_prompt(profile: dict) -> str:
@@ -284,9 +286,41 @@ def assemble_resume_text(data: dict, profile: dict) -> str:
             lines.append(f"- {sanitize_text(b)}")
         lines.append("")
 
-    # Education
+    # Education — render structured entries as blank-line-separated 1-3 line
+    # blocks (Institution / "Degree, Field" / "YYYY - YYYY"), which the PDF/DOCX
+    # renderer's parse_education_entries() turns into rich per-school blocks.
+    # Falls back to a single line for the legacy string format.
     lines.append("EDUCATION")
-    lines.append(sanitize_text(str(data.get("education", ""))))
+    edu = data.get("education", "")
+    if isinstance(edu, list):
+        blocks: list[str] = []
+        for item in edu:
+            if not isinstance(item, dict):
+                text = sanitize_text(str(item)).strip()
+                if text:
+                    blocks.append(text)
+                continue
+            block: list[str] = []
+            institution = sanitize_text(str(item.get("institution", ""))).strip()
+            if institution:
+                block.append(institution)
+            # Degree + field on one line ("Degree, Field" or just one of them).
+            degree_bits = [
+                sanitize_text(str(item.get(k, ""))).strip()
+                for k in ("degree", "area", "field", "studyType")
+            ]
+            degree_line = ", ".join(b for b in degree_bits if b)
+            if degree_line:
+                block.append(degree_line)
+            dates = sanitize_text(str(item.get("dates", ""))).strip()
+            if dates:
+                block.append(dates)
+            if block:
+                blocks.append("\n".join(block))
+        # Blank line between entries so the parser treats each as its own block.
+        lines.append("\n\n".join(blocks))
+    else:
+        lines.append(sanitize_text(str(edu)))
 
     return "\n".join(lines)
 
@@ -525,8 +559,8 @@ def display_company(job: dict) -> str:
 def _name_parts(profile: dict) -> tuple[str, str]:
     """Return (first, last) name parts from profile, sanitized for filenames.
 
-    Prefers preferred_name for the given-name half when available (e.g. "Alex"
-    from "Josue Alexander Ibarra") so generated filenames match the
+    Prefers preferred_name for the given-name half when available (e.g. "Jordan"
+    from "Jordan Alexander Lee") so generated filenames match the
     candidate's public-facing name.
     """
     personal = profile.get("personal", {})

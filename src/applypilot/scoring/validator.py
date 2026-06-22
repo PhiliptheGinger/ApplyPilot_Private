@@ -94,6 +94,19 @@ def _build_skills_set(profile: dict) -> set[str]:
     return allowed
 
 
+def _missing_schools(preserved_school: str, haystack: str) -> list[str]:
+    """Return preserved schools that are absent from ``haystack``.
+
+    ``preserved_school`` may list several schools separated by ``;`` (e.g.
+    "Riverside Community College; Lakewood College; Central High School").
+    Education now renders as structured per-school entries, so the exact joined
+    string no longer appears verbatim — check each school individually instead.
+    """
+    haystack_lower = haystack.lower()
+    schools = [s.strip() for s in preserved_school.split(";") if s.strip()]
+    return [s for s in schools if s.lower() not in haystack_lower]
+
+
 def sanitize_text(text: str) -> str:
     """Auto-fix common LLM output issues instead of rejecting."""
     text = text.replace(" \u2014 ", ", ").replace("\u2014", ", ")   # em dash -> comma
@@ -169,12 +182,14 @@ def validate_json_fields(data: dict, profile: dict) -> dict:
             for b in entry.get("bullets", []):
                 all_text_parts.append(b)
 
-    # Education: preserved school must be present
+    # Education: each preserved school must be present (education may be a
+    # structured list of per-school entries or a legacy single string).
     preserved_school = resume_facts.get("preserved_school", "")
     if preserved_school:
         edu = str(data.get("education", ""))
-        if preserved_school.lower() not in edu.lower():
-            errors.append(f"Education '{preserved_school}' missing")
+        missing = _missing_schools(preserved_school, edu)
+        if missing:
+            errors.append(f"Education missing school(s): {', '.join(missing)}")
 
     # Bulk checks on all text (word-boundary matching)
     all_text = " ".join(all_text_parts).lower()
@@ -238,10 +253,13 @@ def validate_tailored_resume(text: str, profile: dict, original_text: str = "") 
         if project.lower() not in text_lower:
             warnings.append(f"Project '{project}' not found -- may have been renamed")
 
-    # 5. Check school preserved
+    # 5. Check school preserved (each school checked individually so structured
+    # multi-school education sections validate)
     preserved_school = resume_facts.get("preserved_school", "")
-    if preserved_school and preserved_school.lower() not in text_lower:
-        errors.append(f"Education '{preserved_school}' missing")
+    if preserved_school:
+        missing = _missing_schools(preserved_school, text)
+        if missing:
+            errors.append(f"Education missing school(s): {', '.join(missing)}")
 
     # 6. Check contact info preserved (warn, don't error -- we can inject)
     email = personal.get("email", "")
