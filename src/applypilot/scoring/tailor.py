@@ -649,7 +649,6 @@ def _tailor_one_job(job: dict, resume_text: str, profile: dict, doc_format: str 
             full_name = personal.get("full_name") or personal.get("preferred_name") or ""
             job_title = (job.get("title") or "").strip()[:150]
             site = (job.get("site") or "").strip()[:80]
-            score = job.get("fit_score")
             metadata = {
                 "title": f"Resume — {full_name} for {job_title}" if full_name else f"Resume — {job_title}",
                 "subject": job_title,

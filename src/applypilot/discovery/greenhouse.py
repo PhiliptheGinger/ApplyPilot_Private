@@ -14,17 +14,14 @@ import json
 import logging
 import re
 import sqlite3
-import time
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
 from html.parser import HTMLParser
 
 import yaml
 
 from applypilot import config
 from applypilot.config import CONFIG_DIR
-from applypilot.database import commit_with_retry, get_connection, init_db
 
 log = logging.getLogger(__name__)
 

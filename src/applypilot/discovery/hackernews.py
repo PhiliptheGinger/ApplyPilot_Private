@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 import httpx
 
 from applypilot import config
-from applypilot.database import commit_with_retry, init_db, write_with_retry
+from applypilot.database import init_db, write_with_retry
 from applypilot.llm import get_client
 
 log = logging.getLogger(__name__)

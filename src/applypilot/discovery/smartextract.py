@@ -31,7 +31,7 @@ from patchright.sync_api import sync_playwright
 
 from applypilot import config
 from applypilot.config import CONFIG_DIR
-from applypilot.database import init_db, get_stats, commit_with_retry, write_with_retry
+from applypilot.database import init_db, get_stats, write_with_retry
 from applypilot.llm import get_client
 
 log = logging.getLogger(__name__)

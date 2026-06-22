@@ -6,7 +6,6 @@ result, and updates the database. Supports parallel workers via --workers.
 """
 
 import atexit
-import hashlib
 import json
 import logging
 import os
@@ -20,13 +19,10 @@ import subprocess
 import sys
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
-from rich.console import Console
-from rich.live import Live
 
 from applypilot import config
 from applypilot.database import (
@@ -37,7 +33,7 @@ from applypilot.database import (
     transition_state,
 )
 from applypilot.apply import prompt as prompt_mod
-from applypilot.apply.chrome import (
+from applypilot.apply.chrome import (  # noqa: F401  (re-exports)
     launch_chrome, cleanup_worker, kill_all_chrome,
     detect_ats, save_ats_session, clear_ats_session,
     reset_worker_dir, cleanup_on_exit, _kill_process_tree,
@@ -45,7 +41,7 @@ from applypilot.apply.chrome import (
     probe_existing_chrome, _AdoptedChromeProcess,
     _chrome_procs, _chrome_lock,
 )
-from applypilot.apply.dashboard import (
+from applypilot.apply.dashboard import (  # noqa: F401  (re-exports)
     init_worker, update_state, add_event, get_state,
     render_full, get_totals, start_health_checks, stop_health_checks,
 )
@@ -837,7 +833,9 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
             try:
                 row_id = int(self.path.rsplit("/", 1)[-1])
             except ValueError:
-                self.send_response(400); self.end_headers(); return
+                self.send_response(400)
+                self.end_headers()
+                return
             body = self._read_body()
             action = (body.get("action") or "").strip()
             try:
@@ -856,7 +854,9 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                             fields.append(f"{col} = ?")
                             params.append(body[col] or None)
                     if not fields:
-                        self.send_response(400); self.end_headers(); return
+                        self.send_response(400)
+                        self.end_headers()
+                        return
                     params.append(row_id)
                     conn.execute(
                         f"UPDATE accounts SET {', '.join(fields)} WHERE id = ?",
@@ -1087,7 +1087,9 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
             try:
                 row_id = int(self.path.rsplit("/", 1)[-1])
             except ValueError:
-                self.send_response(400); self.end_headers(); return
+                self.send_response(400)
+                self.end_headers()
+                return
             body = self._read_body()
             action = (body.get("action") or "").strip()
             try:
@@ -1112,7 +1114,9 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                                 fields.append("question_key = ?")
                                 params.append(question_key(body[col]))
                     if not fields:
-                        self.send_response(400); self.end_headers(); return
+                        self.send_response(400)
+                        self.end_headers()
+                        return
                     fields.append("updated_at = ?")
                     params.append(_dt.now(_tz.utc).isoformat())
                     params.append(row_id)

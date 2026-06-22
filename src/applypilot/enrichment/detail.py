@@ -736,8 +736,8 @@ def _learn_greenhouse_slug_from_iframe(page, parent_url: str) -> None:
                 return
     except Exception:
         # Iframe sniffing is best-effort; don't fail enrichment over it.
-        logger.debug("greenhouse iframe slug sniff failed for %s",
-                     parent_url[:80], exc_info=True)
+        log.debug("greenhouse iframe slug sniff failed for %s",
+                  parent_url[:80], exc_info=True)
 
 
 def scrape_detail_page(page, url: str) -> dict:

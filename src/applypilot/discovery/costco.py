@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from html.parser import HTMLParser
 
 from applypilot import config
-from applypilot.database import commit_with_retry, get_connection, init_db, write_with_retry
+from applypilot.database import get_connection, init_db, write_with_retry
 
 log = logging.getLogger(__name__)
 

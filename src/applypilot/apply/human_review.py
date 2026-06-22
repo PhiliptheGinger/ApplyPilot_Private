@@ -19,7 +19,6 @@ import hashlib
 import json
 import logging
 import subprocess
-import time
 
 logger = logging.getLogger(__name__)
 

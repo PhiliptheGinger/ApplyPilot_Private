@@ -10,6 +10,7 @@ Supported formats: "pdf" (default), "docx".
 import logging
 import re
 from pathlib import Path
+from typing import Any
 
 from applypilot.config import TAILORED_DIR
 
@@ -822,9 +823,12 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
         except Exception:
             r = paragraph.add_run(display)
             r.font.color.rgb = RGBColor(0x2A, 0x7A, 0xB5)
-            if font_size: r.font.size = font_size
-            if bold:      r.bold = True
-            if italic:    r.italic = True
+            if font_size:
+                r.font.size = font_size
+            if bold:
+                r.bold = True
+            if italic:
+                r.italic = True
             return
 
         hyperlink = OxmlElement("w:hyperlink")
@@ -876,10 +880,14 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
                                    font_size=font_size, bold=bold, italic=italic)
             else:
                 r = paragraph.add_run(segment)
-                if font_size is not None: r.font.size = font_size
-                if color is not None:     r.font.color.rgb = color
-                if bold:                  r.bold = True
-                if italic:                r.italic = True
+                if font_size is not None:
+                    r.font.size = font_size
+                if color is not None:
+                    r.font.color.rgb = color
+                if bold:
+                    r.bold = True
+                if italic:
+                    r.italic = True
 
     doc = Document()
 
@@ -1154,7 +1162,10 @@ def _scrub_docx_app_xml(path: str) -> None:
     the Application string reads ``Microsoft Office Word``, which is
     what an actual Word save produces.
     """
-    import zipfile, shutil, tempfile, os
+    import zipfile
+    import shutil
+    import tempfile
+    import os
     src = str(path)
     fd, tmp = tempfile.mkstemp(suffix=".docx", dir=os.path.dirname(src) or None)
     os.close(fd)

@@ -50,7 +50,7 @@ except Exception:
     pass  # If patching fails, fall back to original behavior
 
 from applypilot import config
-from applypilot.database import commit_with_retry, get_connection, init_db, write_with_retry
+from applypilot.database import get_connection, init_db, write_with_retry
 
 log = logging.getLogger(__name__)
 
@@ -210,7 +210,6 @@ def store_jobspy_results(conn: sqlite3.Connection, df, source_label: str) -> tup
             posted_at = None
             if date_posted_raw and str(date_posted_raw) not in ("nan", "None", ""):
                 try:
-                    from datetime import date
                     dp = date_posted_raw
                     if hasattr(dp, "isoformat"):
                         posted_at = dp.isoformat()

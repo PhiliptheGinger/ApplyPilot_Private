@@ -22,7 +22,7 @@ import yaml
 
 from applypilot import config
 from applypilot.config import CONFIG_DIR
-from applypilot.database import commit_with_retry, get_connection, init_db, write_with_retry
+from applypilot.database import get_connection, init_db, write_with_retry
 
 log = logging.getLogger(__name__)
 

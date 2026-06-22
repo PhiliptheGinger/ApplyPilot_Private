@@ -21,7 +21,6 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any
 
 # Reuse the existing text parser so we share canonical section semantics.
 from applypilot.scoring.pdf import (
@@ -492,14 +491,22 @@ def to_json_resume(text: str) -> dict:
                     team_subtitle = split["description"]
 
             w: dict = {}
-            if company:        w["name"] = company
-            if location_part:  w["location"] = location_part
-            if team_subtitle:  w["description"] = team_subtitle
-            if position:       w["position"] = position
-            if company_url:    w["url"] = company_url
-            if start:          w["startDate"] = start
-            if end:            w["endDate"] = end
-            if entry.get("bullets"): w["highlights"] = list(entry["bullets"])
+            if company:
+                w["name"] = company
+            if location_part:
+                w["location"] = location_part
+            if team_subtitle:
+                w["description"] = team_subtitle
+            if position:
+                w["position"] = position
+            if company_url:
+                w["url"] = company_url
+            if start:
+                w["startDate"] = start
+            if end:
+                w["endDate"] = end
+            if entry.get("bullets"):
+                w["highlights"] = list(entry["bullets"])
             if is_earlier_section:
                 w["_earlier"] = True
             work.append(w)
@@ -845,9 +852,9 @@ def from_json_resume(jr: dict) -> str:
     if langs:
         out.append("LANGUAGES")
         out.append("")
-        for l in langs:
-            lang = l.get("language") or ""
-            fluency = l.get("fluency") or ""
+        for entry in langs:
+            lang = entry.get("language") or ""
+            fluency = entry.get("fluency") or ""
             out.append(f"{lang} — {fluency}" if fluency else lang)
         out.append("")
 
@@ -901,7 +908,6 @@ def audit(text: str) -> dict:
     re_text = from_json_resume(jr)
 
     lossy: list[str] = []
-    flat_orig = _flatten(text)
     flat_round = _flatten(re_text)
     # Any 60+-char chunks in the original that don't appear after the round-trip
     # are likely lost.
