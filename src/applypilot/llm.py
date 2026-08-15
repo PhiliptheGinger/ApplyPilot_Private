@@ -188,7 +188,7 @@ class LLMClient:
         self.quality = quality
         self._fallback_chain = _build_fallback_chain(model, quality=quality)
         self._client = httpx.Client(timeout=_TIMEOUT)
-        # Track which models are temporarily exhausted (daily limit)
+        # Track which models are temporarily exhausted (store until timestamp)
         self._exhausted: dict[str, float] = {}
 
         chain_names = [f"{e.name} ({e.provider})" for e in self._fallback_chain]
@@ -210,10 +210,23 @@ class LLMClient:
 
         # Build list of models to try: skip recently exhausted ones
         now = time.time()
-        entries_to_try = [
-            e for e in self._fallback_chain
-            if e.name not in self._exhausted or (now - self._exhausted[e.name]) > 300
-        ]
+        # Skip entries that are marked exhausted. Support two storage styles:
+        # - legacy: stored value is the time they were marked exhausted (start time)
+        #   and a short cooldown (5 minutes) applies
+        # - new: stored value is an explicit 'until' timestamp (time to allow retry)
+        def _is_exhausted(name: str) -> bool:
+            if name not in self._exhausted:
+                return False
+            v = self._exhausted[name]
+            if v is None:
+                return False
+            if v > now:
+                # v is an until-timestamp in the future -> still exhausted
+                return True
+            # legacy mode: v is the time it was marked exhausted; cooldown = 300s
+            return (now - v) < 300
+
+        entries_to_try = [e for e in self._fallback_chain if not _is_exhausted(e.name)]
         if not entries_to_try:
             self._exhausted.clear()
             entries_to_try = list(self._fallback_chain)
@@ -265,10 +278,10 @@ class LLMClient:
                     headers=headers,
                 )
                 if resp.status_code == 402:
-                    # Payment Required — account out of credits; mark exhausted for 1 hour
-                    log.warning("%s/%s payment required (402), marking exhausted for 1h",
+                    # Payment Required — mark as exhausted for a full day (free-tier)
+                    log.warning("%s/%s payment required (402), marking exhausted for 24h",
                                 entry.provider, entry.name)
-                    self._exhausted[entry.name] = time.time() + 3600 - 300  # 1h from now
+                    self._exhausted[entry.name] = time.time() + 86400  # 24h from now
                     return None
 
                 if resp.status_code == 400:
@@ -293,10 +306,18 @@ class LLMClient:
 
                 if resp.status_code == 429:
                     body = resp.text.lower()
-                    if "resource has been exhausted" in body or "quota" in body or "rate_limit" in body:
-                        log.warning("%s/%s hit quota limit, trying next",
+                    # Distinguish daily/quota exhaustion vs transient rate limits
+                    if "resource has been exhausted" in body or "quota" in body:
+                        log.warning("%s/%s hit quota limit (daily), marking exhausted for 24h",
                                     entry.provider, entry.name)
-                        self._exhausted[entry.name] = time.time()
+                        self._exhausted[entry.name] = time.time() + 86400
+                        return None
+
+                    if "rate_limit" in body:
+                        # Transient rate limit — mark briefly and try next
+                        log.warning("%s/%s transient rate_limit, marking exhausted for 60s",
+                                    entry.provider, entry.name)
+                        self._exhausted[entry.name] = time.time() + 60
                         return None
 
                     if attempt < _MAX_RETRIES - 1:
@@ -486,8 +507,11 @@ def get_client(quality: bool = False) -> LLMClient:
     """
     global _instance, _quality_instance
 
-    if quality and os.environ.get("LLM_MODEL_QUALITY"):
+    if quality:
         if _quality_instance is None:
+            # Always construct a quality client when requested. The underlying
+            # _detect_provider will honor LLM_MODEL_QUALITY if set, otherwise
+            # fall back to sane defaults (gemini-2.5-flash by default).
             base_url, model, api_key = _detect_provider(quality=True)
             log.info("LLM quality provider: %s  model: %s", base_url, model)
             _quality_instance = LLMClient(base_url, model, api_key, quality=True)

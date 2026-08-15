@@ -18,9 +18,10 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
-from applypilot.config import RESUME_PATH, TAILORED_DIR, load_profile
+from applypilot.config import TAILORED_DIR, load_profile
 from applypilot.database import get_connection, get_jobs_by_stage, transition_state, write_with_retry
 from applypilot.llm import get_client
+from applypilot.scoring.resume_router import load_resume_text_for_job
 from applypilot.scoring.validator import (
     sanitize_text,
     validate_json_fields,
@@ -606,8 +607,10 @@ def _extract_keywords(job: dict, profile: dict, limit: int = 12) -> list[str]:
     return result
 
 
-def _tailor_one_job(job: dict, resume_text: str, profile: dict, doc_format: str = "docx") -> dict:
+def _tailor_one_job(job: dict, resume_text: str | None, profile: dict, doc_format: str = "docx") -> dict:
     """Tailor resume for a single job. Safe to call from multiple threads."""
+    if resume_text is None:
+        resume_text, _ = load_resume_text_for_job(job)
     tailored, report = tailor_resume(resume_text, job, profile)
 
     # Filename: FirstName_LastName_JobTitle_hash.docx per Jobscan §3.
@@ -744,7 +747,6 @@ def run_tailoring(min_score: int | None = None, limit: int = 20, workers: int = 
         min_score = DEFAULTS["min_score"]
 
     profile = load_profile()
-    resume_text = RESUME_PATH.read_text(encoding="utf-8")
     conn = get_connection()
 
     # Note: get_jobs_by_stage now applies a 14-day discovered_at filter by
@@ -826,7 +828,7 @@ def run_tailoring(min_score: int | None = None, limit: int = 20, workers: int = 
 
     if workers > 1:
         with ThreadPoolExecutor(max_workers=workers) as pool:
-            futures = {pool.submit(_tailor_one_job, job, resume_text, profile, doc_format): job for job in jobs}
+            futures = {pool.submit(_tailor_one_job, job, None, profile, doc_format): job for job in jobs}
             for future in as_completed(futures):
                 job = futures[future]
                 completed += 1
@@ -853,7 +855,7 @@ def run_tailoring(min_score: int | None = None, limit: int = 20, workers: int = 
         for job in jobs:
             completed += 1
             try:
-                result = _tailor_one_job(job, resume_text, profile, doc_format)
+                result = _tailor_one_job(job, None, profile, doc_format)
             except Exception as e:
                 result = {
                     "url": job["url"], "title": job.get("title") or "", "site": job["site"],

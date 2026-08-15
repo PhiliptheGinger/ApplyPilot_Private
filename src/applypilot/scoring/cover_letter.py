@@ -12,22 +12,32 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
-from applypilot.config import COVER_LETTER_DIR, RESUME_PATH, load_profile
+from applypilot.config import COVER_LETTER_DIR, load_profile
 from applypilot.database import get_connection, transition_state, write_with_retry
 from applypilot.llm import get_client
 from applypilot.scoring.validator import (
     sanitize_text,
     validate_cover_letter,
 )
+from applypilot.scoring.resume_router import (
+    is_communication_role,
+    load_resume_text_for_job,
+)
 
 log = logging.getLogger(__name__)
 
 MAX_ATTEMPTS = 5  # max cross-run retries before giving up
 
+DEFAULT_COMMUNICATION_DIFFERENTIATOR = (
+    "Not something I normally put on my resume, but I believe this is a "
+    "legitimate differentiator for roles that require clear communication, "
+    "where one might need to take in rejection or sincere feedback."
+)
+
 
 # ── Prompt Builder (profile-driven) ──────────────────────────────────────
 
-def _build_cover_letter_prompt(profile: dict) -> str:
+def _build_cover_letter_prompt(profile: dict, job: dict | None = None) -> str:
     """Build the cover letter system prompt from the user's profile.
 
     All personal data, skills, and sign-off name come from the profile.
@@ -59,6 +69,27 @@ def _build_cover_letter_prompt(profile: dict) -> str:
     if real_metrics:
         metrics_hint = f"\nReal metrics to use: {', '.join(real_metrics)}"
 
+    communication_mode = bool(job and is_communication_role(job))
+    cl_cfg = profile.get("cover_letter", {}) if isinstance(profile, dict) else {}
+    differentiator = (
+        cl_cfg.get("communication_differentiator_note")
+        or DEFAULT_COMMUNICATION_DIFFERENTIATOR
+    )
+
+    communication_block = ""
+    if communication_mode:
+        communication_block = (
+            "\nCOMMUNICATION-ROLE REQUIREMENT:\n"
+            "Include one concise sentence (your own wording; close paraphrase allowed) "
+            "that conveys this idea:\n"
+            f"\"{differentiator}\"\n"
+            "Keep it sincere and concrete, not performative."
+        )
+
+    # For communication-heavy roles, allow "I believe" because the
+    # differentiator sentence may legitimately use it.
+    banned_i_believe = "\"I believe\", " if not communication_mode else ""
+
     return f"""Write a cover letter for {sign_off_name}. The goal is to get an interview.
 
 STRUCTURE: 4 paragraphs. TARGET 300-400 words; MINIMUM 260 words (Jobscan 3.4x interview-rate sweet spot is 250-400). Letters under 260 words get rejected automatically.
@@ -74,7 +105,7 @@ PARAGRAPH 4 — CLOSE (2 sentences, ~30 words): Offer to go deeper on one or two
 
 BANNED WORDS/PHRASES (using ANY of these = instant rejection):
 "resonated", "aligns with", "passionate", "eager", "eager to", "excited to apply", "I am confident",
-"I believe", "proven track record", "strong track record", "cutting-edge", "innovative", "innovative solutions",
+{banned_i_believe}"proven track record", "strong track record", "cutting-edge", "innovative", "innovative solutions",
 "leverage", "leveraging", "robust", "driven", "dedicated", "committed to",
 "I look forward to hearing from you", "great fit", "unique opportunity",
 "commitment to excellence", "dynamic team", "fast-paced environment",
@@ -98,6 +129,8 @@ ADDITIONAL BANNED PHRASES:
 "Also,", "Furthermore,", "Additionally,", "Moreover,",
 "Happy to walk through", "demonstrate" (any form: demonstrates, demonstrated, demonstrating),
 "resonate" (any form), "align with" (any form: aligns with, aligned with)
+
+{communication_block}
 
 FABRICATION = INSTANT REJECTION:
 The candidate's real tools are ONLY: {skills_str}.
@@ -142,7 +175,7 @@ def generate_cover_letter(
     letter = ""
     validation: dict = {"passed": False, "errors": ["no attempts"], "warnings": []}
     client = get_client(quality=True)
-    cl_prompt_base = _build_cover_letter_prompt(profile)
+    cl_prompt_base = _build_cover_letter_prompt(profile, job)
 
     for attempt in range(max_retries + 1):
         # Fresh conversation every attempt
@@ -161,7 +194,8 @@ def generate_cover_letter(
             )},
         ]
 
-        letter = client.chat(messages, max_tokens=8192, temperature=0.7)
+        # Cover letters are short; request a reasonable max output (≈1200 tokens)
+        letter = client.chat(messages, max_tokens=1200, temperature=0.7)
         letter = sanitize_text(letter)  # auto-fix em dashes, smart quotes
 
         validation = validate_cover_letter(letter)
@@ -189,9 +223,11 @@ def generate_cover_letter(
 
 # ── Batch Entry Point ────────────────────────────────────────────────────
 
-def _cover_one_job(job: dict, resume_text: str, profile: dict, doc_format: str = "docx") -> dict:
+def _cover_one_job(job: dict, resume_text: str | None, profile: dict, doc_format: str = "docx") -> dict:
     """Generate cover letter for a single job. Safe to call from multiple threads."""
     from applypilot.scoring.tailor import _name_parts, _extract_keywords
+    if resume_text is None:
+        resume_text, _ = load_resume_text_for_job(job)
     letter, validation = generate_cover_letter(resume_text, job, profile)
 
     # Filename: FirstName_LastName_JobTitle_hash_CL.{ext} (Jobscan §3).
@@ -319,7 +355,6 @@ def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: in
         min_score = DEFAULTS["min_score"]
 
     profile = load_profile()
-    resume_text = RESUME_PATH.read_text(encoding="utf-8")
     conn = get_connection()
 
     # Note: get_jobs_by_stage applies a 14-day discovered_at filter by default
@@ -395,7 +430,7 @@ def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: in
 
     if workers > 1:
         with ThreadPoolExecutor(max_workers=workers) as pool:
-            futures = {pool.submit(_cover_one_job, job, resume_text, profile, doc_format): job for job in jobs}
+            futures = {pool.submit(_cover_one_job, job, None, profile, doc_format): job for job in jobs}
             for future in as_completed(futures):
                 job = futures[future]
                 completed += 1
@@ -419,7 +454,7 @@ def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: in
         for job in jobs:
             completed += 1
             try:
-                result = _cover_one_job(job, resume_text, profile, doc_format)
+                result = _cover_one_job(job, None, profile, doc_format)
                 elapsed = time.time() - t0
                 rate = completed / elapsed if elapsed > 0 else 0
                 status = "OK" if result.get("path") else "REJ"

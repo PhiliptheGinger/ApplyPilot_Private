@@ -17,7 +17,18 @@ SEARCH_CONFIG_PATH = APP_DIR / "searches.yaml"
 ENV_PATH = APP_DIR / ".env"
 
 # Generated output
-TAILORED_DIR = APP_DIR / "tailored_resumes"
+# Completed resumes destination:
+# - APPLYPILOT_COMPLETED_RESUMES_DIR overrides everything
+# - Windows default: ~/Downloads/Resumes
+# - Non-Windows default: ~/.applypilot/tailored_resumes
+_DEFAULT_TAILORED_DIR = (
+    Path.home() / "Downloads" / "Resumes"
+    if platform.system() == "Windows"
+    else APP_DIR / "tailored_resumes"
+)
+TAILORED_DIR = Path(
+    os.environ.get("APPLYPILOT_COMPLETED_RESUMES_DIR", str(_DEFAULT_TAILORED_DIR))
+)
 COVER_LETTER_DIR = APP_DIR / "cover_letters"
 TRACKING_DIR = APP_DIR / "tracking"
 LOG_DIR = APP_DIR / "logs"

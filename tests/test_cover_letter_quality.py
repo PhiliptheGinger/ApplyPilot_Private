@@ -137,8 +137,9 @@ def test_three_paragraph_letter_passes_with_warning():
         + _para(5) + "\n\n" + _para(5) + "\n\n" + _para(4) + "\n\nJordan"
     )
     result = validate_cover_letter(letter)
-    assert result["passed"], result["errors"]
-    assert any("3 body paragraphs" in w for w in result["warnings"])
+    # Now requires 4 substantial body paragraphs; 3 should fail validation.
+    assert not result["passed"]
+    assert any("body paragraph" in e for e in result["errors"]), result["errors"]
 
 
 # ── generate_cover_letter ────────────────────────────────────────────────
@@ -209,6 +210,39 @@ def test_exhausted_retries_returns_failed_validation(monkeypatch):
     letter, validation = cl.generate_cover_letter("RESUME", JOB, PROFILE, max_retries=1)
     assert not validation["passed"]
     assert len(stub.calls) == 2  # initial + 1 retry
+
+
+def test_communication_role_prompt_includes_differentiator(monkeypatch):
+    from applypilot.scoring import cover_letter as cl
+    stub = StubClient([GOOD])
+    monkeypatch.setattr(cl, "get_client", lambda quality=False: stub)
+
+    comm_job = dict(
+        JOB,
+        title="Help Desk Specialist",
+        full_description="Customer-facing support role with high call volume and rejection handling.",
+    )
+    cl.generate_cover_letter("RESUME", comm_job, PROFILE)
+    system_prompt = stub.calls[0][0]["content"]
+
+    assert "COMMUNICATION-ROLE REQUIREMENT" in system_prompt
+    assert "Not something I normally put on my resume" in system_prompt
+
+
+def test_non_communication_role_prompt_omits_differentiator(monkeypatch):
+    from applypilot.scoring import cover_letter as cl
+    stub = StubClient([GOOD])
+    monkeypatch.setattr(cl, "get_client", lambda quality=False: stub)
+
+    non_comm_job = dict(
+        JOB,
+        title="Platform Engineer",
+        full_description="Backend infrastructure and reliability engineering.",
+    )
+    cl.generate_cover_letter("RESUME", non_comm_job, PROFILE)
+    system_prompt = stub.calls[0][0]["content"]
+
+    assert "COMMUNICATION-ROLE REQUIREMENT" not in system_prompt
 
 
 # ── _cover_one_job: rejection path ────────────────────────────────────────
