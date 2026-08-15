@@ -31,10 +31,221 @@ log = logging.getLogger(__name__)
 
 MAX_ATTEMPTS = 5  # max cross-run retries before giving up
 
+STANDUP_INCLUDE = "INCLUDE"
+STANDUP_OPTIONAL = "OPTIONAL"
+STANDUP_EXCLUDE = "EXCLUDE"
+
+
+def _matches_any(text: str, patterns: tuple[str, ...]) -> bool:
+    return any(re.search(p, text) for p in patterns)
+
+
+def classify_standup_relevance(job: dict) -> str:
+    """Deterministically classify stand-up relevance from a job posting.
+
+    Returns exactly one of:
+      - INCLUDE
+      - OPTIONAL
+      - EXCLUDE
+
+    The classifier is heuristic and non-LLM by design. It prioritizes the
+    job description's responsibilities and uses title as a secondary signal.
+    """
+    title = (job.get("title") or "").lower()
+    desc = (job.get("full_description") or "").lower()
+
+    if not desc.strip():
+        return STANDUP_EXCLUDE
+
+    text = f"{title}\n{desc}"
+
+    # Positive signals (deduplicated by category)
+    public_speaking_core = _matches_any(text, (
+        r"\bpublic speaking\b",
+        r"\bspeaking engagements?\b",
+        r"\bpresent (to|in front of) (customers|clients|users|audiences?)\b",
+    ))
+    customer_facing_substantial = _matches_any(text, (
+        r"\bcustomer[- ]facing\b",
+        r"\bclient[- ]facing\b",
+        r"\bend[- ]user (support|interaction|facing)\b",
+        r"\bhandle (customer|client|user) (issues|questions|inquiries|escalations)\b",
+    ))
+    presentations_training = _matches_any(text, (
+        r"\bpresentations?\b",
+        r"\bdemonstrations?\b",
+        r"\bproduct demos?\b",
+        r"\btrain(?:ing|er)?\b",
+        r"\bworkshops?\b",
+    ))
+    sales_recruiting_biz = _matches_any(text, (
+        r"\bsales\b",
+        r"\brecruit(?:er|ing)\b",
+        r"\bbusiness development\b",
+        r"\baccount management\b",
+        r"\baccount executive\b",
+    ))
+    communication_substantial = _matches_any(text, (
+        r"\blead (customer|client|stakeholder) communications?\b",
+        r"\bprimary point of contact\b",
+        r"\bregularly communicat(?:e|ing) with (customers|clients|stakeholders|executives)\b",
+        r"\baudience[- ]facing\b",
+    ))
+    explain_technical = _matches_any(text, (
+        r"\bexplain (technical|complex) (concepts?|issues?|systems?) to (non[- ]technical|customers|clients|users|stakeholders)\b",
+        r"\btranslate technical.*non[- ]technical\b",
+    ))
+    stakeholder_mgmt = _matches_any(text, (
+        r"\bstakeholder management\b",
+        r"\bmanage stakeholders?\b",
+        r"\bstakeholder communication\b",
+    ))
+    community_media = _matches_any(text, (
+        r"\bcommunity\b",
+        r"\boutreach\b",
+        r"\bcontent\b",
+        r"\bmedia\b",
+        r"\bcommunications?\b",
+        r"\bmarketing\b",
+        r"\beducation\b",
+        r"\binterview(?:ing)?\b",
+    ))
+    communication_centric_title = _matches_any(title, (
+        r"\bhelp desk\b",
+        r"\btechnical support\b",
+        r"\bcustomer support\b",
+        r"\bsales engineer\b",
+        r"\brecruit(?:er|ing)\b",
+        r"\btrainer\b",
+        r"\bcommunications?\b",
+        r"\bmarketing\b",
+        r"\bmedia\b",
+    ))
+    generic_comm = _matches_any(text, (
+        r"\bexcellent communication skills\b",
+        r"\bstrong communication skills\b",
+        r"\bwritten and verbal communication\b",
+        r"\binterpersonal skills\b",
+        r"\bteam player\b",
+    ))
+
+    # Negative / technical-density signals
+    technical_ic_title = _matches_any(title, (
+        r"\bsoftware engineer\b",
+        r"\bbackend (engineer|developer)\b",
+        r"\bdevops engineer\b",
+        r"\bsystems? administrat(?:or|ion)\b",
+        r"\bnetwork engineer\b",
+        r"\bcyber(?:security)? engineer\b",
+        r"\bdata engineer\b",
+        r"\bplatform engineer\b",
+        r"\bsite reliability engineer\b",
+    ))
+    primarily_technical_work = _matches_any(text, (
+        r"\bdesign and implement (software|services|systems)\b",
+        r"\bbuild (microservices|distributed systems|infrastructure)\b",
+        r"\binfrastructure automation\b",
+        r"\bincident response\b",
+        r"\bthreat detection\b",
+        r"\bnetwork architecture\b",
+        r"\bkubernetes\b",
+        r"\bterraform\b",
+        r"\bci/cd\b",
+    ))
+
+    strong_comm_indicator = any((
+        public_speaking_core,
+        customer_facing_substantial,
+        presentations_training,
+        sales_recruiting_biz,
+        communication_substantial,
+        explain_technical,
+        stakeholder_mgmt,
+        community_media,
+    ))
+
+    score = 0
+    if public_speaking_core:
+        score += 5
+    if customer_facing_substantial:
+        score += 5
+    if presentations_training:
+        score += 4
+    if sales_recruiting_biz:
+        score += 4
+    if communication_substantial:
+        score += 3
+    if explain_technical:
+        score += 3
+    if stakeholder_mgmt:
+        score += 2
+    if community_media:
+        score += 2
+    if communication_centric_title:
+        score += 3
+    if generic_comm:
+        score += 1
+
+    if technical_ic_title and not strong_comm_indicator:
+        score -= 5
+    if primarily_technical_work and not strong_comm_indicator:
+        score -= 3
+    if generic_comm and not strong_comm_indicator:
+        score -= 4
+
+    if score >= 7:
+        return STANDUP_INCLUDE
+    if score >= 3:
+        return STANDUP_OPTIONAL
+    return STANDUP_EXCLUDE
+
 
 # ── Prompt Builders (profile-driven) ──────────────────────────────────────
 
-def _build_tailor_prompt(profile: dict) -> str:
+def _build_canonical_inventory_block(profile: dict) -> str:
+    """Render factual profile inventory for relevance-based selection."""
+    lines: list[str] = []
+    education = profile.get("education", [])
+    for item in education:
+        if isinstance(item, dict):
+            lines.append(
+                f"EDUCATION: {item.get('official_degree', '')}; "
+                f"{item.get('institution', '')}; "
+                f"{item.get('start_year', '')}-{item.get('end_year', '')}"
+            )
+
+    for key, label in (
+        ("experience_inventory", "PROFESSIONAL EXPERIENCE"),
+        ("historical_experience_inventory", "SELECTABLE HISTORICAL EXPERIENCE"),
+        ("qualifications", "SELECTABLE QUALIFICATIONS"),
+        ("project_inventory", "SELECTABLE PROJECTS"),
+    ):
+        entries = profile.get(key, [])
+        if not entries:
+            continue
+        lines.append(f"{label}:")
+        for item in entries:
+            if not isinstance(item, dict) or item.get("private") or item.get("resume_allowed") is False:
+                continue
+            name = item.get("name", "")
+            status = item.get("status", "")
+            categories = ", ".join(item.get("relevance_categories", []))
+            lines.append(f"- {name} [{status}] ({categories})")
+            evidence = item.get("factual_concepts") or item.get("evidence") or item.get("responsibilities")
+            if evidence:
+                lines.append(f"  Evidence: {'; '.join(str(x) for x in evidence)}")
+
+    lines.append("SKILL EVIDENCE:")
+    for item in profile.get("skills_inventory", []):
+        if isinstance(item, dict):
+            lines.append(
+                f"- {item.get('name', '')}: evidence={item.get('evidence_level', '')}; "
+                f"proficiency={item.get('proficiency', '')}; "
+                f"resume_allowed={item.get('resume_allowed', True)}"
+            )
+    return "\n".join(lines) or "No structured inventory supplied; use only original resume facts."
+
+def _build_tailor_prompt(profile: dict, standup_decision: str = STANDUP_EXCLUDE) -> str:
     """Build the resume tailoring system prompt from the user's profile.
 
     All skills boundaries, preserved entities, and formatting rules are
@@ -48,6 +259,8 @@ def _build_tailor_prompt(profile: dict) -> str:
     for category, items in boundary.items():
         if isinstance(items, list) and items:
             label = category.replace("_", " ").title()
+            if "learning" in category.lower() or "exposure" in category.lower():
+                label += " (LEARNING/EXPOSURE, NOT EXPERTISE)"
             skills_lines.append(f"{label}: {', '.join(items)}")
     skills_block = "\n".join(skills_lines)
 
@@ -63,10 +276,52 @@ def _build_tailor_prompt(profile: dict) -> str:
 
     education = profile.get("experience", {})
     education_level = education.get("education_level", "")
+    inventory_block = _build_canonical_inventory_block(profile)
+    official_education_text = ""
+    if profile.get("education") and isinstance(profile["education"][0], dict):
+        item = profile["education"][0]
+        official_education_text = (
+            f"Official degree fact: {item.get('official_degree', '')}; "
+            f"institution: {item.get('institution', '')}; "
+            f"dates: {item.get('start_year', '')}-{item.get('end_year', '')}."
+        )
+
+    if standup_decision not in {STANDUP_INCLUDE, STANDUP_OPTIONAL, STANDUP_EXCLUDE}:
+        standup_decision = STANDUP_EXCLUDE
+
+    standup_block = {
+        STANDUP_INCLUDE: (
+            "STAND-UP EXPERIENCE DECISION: INCLUDE\n\n"
+            "The candidate's stand-up comedy experience is relevant to this job. "
+            "Include it when appropriate as professional experience. Frame it in terms "
+            "of public speaking, audience awareness, verbal communication, presentation, "
+            "improvisation, or adapting communication to different audiences, but do not "
+            "invent accomplishments or metrics."
+        ),
+        STANDUP_OPTIONAL: (
+            "STAND-UP EXPERIENCE DECISION: OPTIONAL\n\n"
+            "Stand-up comedy may be included only if space permits and it adds meaningful "
+            "value for this particular job. It must not displace more directly relevant "
+            "technical experience. Do not force it into the resume."
+        ),
+        STANDUP_EXCLUDE: (
+            "STAND-UP EXPERIENCE DECISION: EXCLUDE\n\n"
+            "Do not include, mention, or reference the candidate's stand-up comedy "
+            "experience anywhere in the tailored resume."
+        ),
+    }[standup_decision]
 
     return f"""You are a senior technical recruiter rewriting a resume to get this person an interview.
 
 Take the base resume and job description. Return a tailored resume as a JSON object.
+
+## CANONICAL PROFILE SOURCE OF TRUTH:
+{inventory_block}
+
+The profile inventory is comprehensive and factual. Select only evidence that is
+relevant and defensible for this job. Omission is preferable to irrelevant
+inclusion. Never invent qualifications, responsibilities, metrics, project
+outcomes, or proficiency. Never include private projects.
 
 ## RECRUITER SCAN (6 seconds):
 1. Title -- matches what they're hiring?
@@ -81,19 +336,26 @@ You MAY add 2-3 closely related tools (Kubernetes if Docker, Terraform if AWS, R
 
 ## TAILORING RULES:
 
+{standup_block}
+
 TITLE: Use the job title verbatim from the posting (Jobscan: 10.6x interview-rate lift). Only strip internal-req prefixes like "JREQ197053 -" and trailing team tags like "(Payments Team)". Keep the full role name including specialty — "Staff Software Engineer, AI Platform" stays as-is; "Senior Backend Engineer - Python" stays as-is.
 
 SUMMARY: Rewrite from scratch. Lead with the 1-2 skills that matter most for THIS role. Sound like someone who's done this job.
 
 SKILLS: Reorder each category so the job's must-haves appear first.
+Do not convert learning/exposure into expertise. Only list those items when the
+profile evidence supports a careful learning/exposure description.
 
 Reframe EVERY bullet for this role. Same real work, different angle. Every bullet must be reworded. Never copy verbatim.
 
 PROJECTS: Reorder by relevance. Drop irrelevant projects entirely.
+Never include ApplyPilot or any project marked private/resume_allowed=false.
+Sunburn is unfinished/experimental and must not be described as deployed or successful.
 
 BULLETS: Strong verb + what you built + quantified impact. Vary verbs (Built, Designed, Implemented, Reduced, Automated, Deployed, Operated, Optimized). Most relevant first. Max 4 per section.
 
 EDUCATION: Copy every school from the ORIGINAL RESUME's education section — one object per school. Preserve the institution name, degree, field of study, and years EXACTLY as written in the original. Never invent a degree, field, or date. If a school lists no degree, omit the "degree" key; if it lists no years, omit the "dates" key. Do not reorder, summarize, or merge schools — education is factual, not tailored. Do NOT output the education level ("{education_level}") as if it were a school.
+{official_education_text}
 
 ## VOICE:
 - Write like a real engineer. Short, direct.
@@ -128,6 +390,8 @@ def _build_judge_prompt(profile: dict) -> str:
 
     real_metrics = resume_facts.get("real_metrics", [])
     metrics_str = ", ".join(real_metrics) if real_metrics else "N/A"
+    private_projects = resume_facts.get("private_projects", [])
+    unfinished_projects = resume_facts.get("unfinished_projects", [])
 
     return f"""You are a resume quality judge. A tailoring engine rewrote a resume to target a specific job. Your job is to catch LIES, not style changes.
 
@@ -150,6 +414,8 @@ ISSUES: (list any problems, or "none")
 3. Inventing work that has no basis in any original bullet (completely new achievements).
 4. Adding companies, roles, or degrees that don't exist.
 5. Changing real numbers (inflating 80% to 95%, 500 nodes to 1000 nodes).
+6. Including private projects ({', '.join(private_projects) or 'none'}).
+7. Describing unfinished projects ({', '.join(unfinished_projects) or 'none'}) as deployed or successful.
 
 ## WHAT IS NOT FABRICATION (do NOT fail for these):
 - Rewording any bullet, even heavily, as long as the underlying work is real
@@ -403,11 +669,18 @@ def tailor_resume(
         f"DESCRIPTION:\n{(job.get('full_description') or '')[:6000]}"
     )
 
-    report: dict = {"attempts": 0, "validator": None, "judge": None, "status": "pending"}
+    standup_decision = classify_standup_relevance(job)
+    report: dict = {
+        "attempts": 0,
+        "validator": None,
+        "judge": None,
+        "status": "pending",
+        "standup_decision": standup_decision,
+    }
     avoid_notes: list[str] = []
     tailored = ""
     client = get_client(quality=True)
-    tailor_prompt_base = _build_tailor_prompt(profile)
+    tailor_prompt_base = _build_tailor_prompt(profile, standup_decision=standup_decision)
 
     for attempt in range(max_retries + 1):
         report["attempts"] = attempt + 1
@@ -434,7 +707,7 @@ def tailor_resume(
             continue
 
         # Layer 1: Validate JSON fields
-        validation = validate_json_fields(data, profile)
+        validation = validate_json_fields(data, profile, standup_decision=standup_decision)
         report["validator"] = validation
 
         if not validation["passed"]:

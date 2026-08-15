@@ -5,12 +5,21 @@ import platform
 import shutil
 from pathlib import Path
 
+# Repository root, used for the private project-local canonical profile.
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
 # User data directory — all user-specific files live here
 APP_DIR = Path(os.environ.get("APPLYPILOT_DIR", Path.home() / ".applypilot"))
 
 # Core paths
 DB_PATH = APP_DIR / "applypilot.db"
-PROFILE_PATH = APP_DIR / "profile.json"
+PROJECT_PROFILE_PATH = PROJECT_ROOT / "data" / "profile.json"
+PROFILE_PATH = Path(
+    os.environ.get(
+        "APPLYPILOT_PROFILE_PATH",
+        str(PROJECT_PROFILE_PATH if PROJECT_PROFILE_PATH.exists() else APP_DIR / "profile.json"),
+    )
+)
 RESUME_PATH = APP_DIR / "resume.txt"
 RESUME_PDF_PATH = APP_DIR / "resume.pdf"
 SEARCH_CONFIG_PATH = APP_DIR / "searches.yaml"
@@ -120,13 +129,70 @@ def ensure_dirs():
 
 
 def load_profile() -> dict:
-    """Load user profile from ~/.applypilot/profile.json."""
+    """Load the canonical profile, preferring the project-local data source."""
     import json
     if not PROFILE_PATH.exists():
         raise FileNotFoundError(
             f"Profile not found at {PROFILE_PATH}. Run `applypilot init` first."
         )
-    return json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
+    profile = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
+    # Lightweight validation for application_profile when present
+    _validate_application_profile(profile)
+    return profile
+
+
+def _validate_application_profile(profile: dict) -> None:
+    """Perform minimal type and value checks on the optional application_profile.
+
+    This is intentionally lightweight: it prevents obvious mis-typed values
+    (e.g. strings instead of booleans or malformed URLs) while avoiding hard
+    schema enforcement that would block legitimate profiles.
+    """
+    from urllib.parse import urlparse
+
+    app = profile.get("application_profile")
+    if not app:
+        return
+
+    # work_authorization -> booleans
+    wa = app.get("work_authorization")
+    if wa and not isinstance(wa, dict):
+        raise ValueError("application_profile.work_authorization must be an object")
+    if wa:
+        for k in ("authorized_to_work_us", "requires_sponsorship"):
+            v = wa.get(k)
+            if v is not None and not isinstance(v, bool):
+                raise ValueError(f"application_profile.work_authorization.{k} must be boolean")
+
+    # location -> simple types
+    loc = app.get("location")
+    if loc and not isinstance(loc, dict):
+        raise ValueError("application_profile.location must be an object")
+    if loc:
+        if loc.get("preferred_commute_minutes") is not None:
+            try:
+                v = int(loc.get("preferred_commute_minutes"))
+                if v < 0 or v > 1000:
+                    raise ValueError("preferred_commute_minutes out of range")
+            except Exception:
+                raise ValueError("application_profile.location.preferred_commute_minutes must be an integer")
+
+    # online_profiles -> validate URLs
+    online = app.get("online_profiles")
+    if online and isinstance(online, dict):
+        for k, u in online.items():
+            if not u:
+                continue
+            parsed = urlparse(str(u))
+            if parsed.scheme not in ("http", "https") or not parsed.netloc:
+                raise ValueError(f"application_profile.online_profiles.{k} is not a valid URL: {u}")
+
+    # compensation -> strategy enum
+    comp = app.get("compensation")
+    if comp and isinstance(comp, dict):
+        strat = comp.get("strategy")
+        if strat and strat not in ("job_specific", "human_review", "fixed"):
+            raise ValueError("application_profile.compensation.strategy must be one of job_specific|human_review|fixed")
 
 
 def load_search_config() -> dict:

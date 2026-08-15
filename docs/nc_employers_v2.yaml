@@ -1,0 +1,95 @@
+# North Carolina employers (v2) — expansion set.
+#
+# PURPOSE: Additional NC targets to widen coverage while keeping Triad priority.
+# This is the "broad net" companion to nc_employers_v1.yaml.
+
+employers:
+  - name: "Wolfspeed"
+    neighborhood: "Durham"
+    domain: "semiconductor"
+    size: "mid (500-5000)"
+    careers_url: "https://www.wolfspeed.com/company/careers/"
+    ats: "workday"
+    blurb: "Power semiconductor leader with IT/security/systems roles in NC."
+    tier: 2
+
+  - name: "IQVIA"
+    neighborhood: "Durham"
+    domain: "health-tech | data"
+    size: "large (5000+)"
+    careers_url: "https://jobs.iqvia.com/"
+    ats: "workday"
+    blurb: "Large data-heavy org; enterprise systems, analytics, and engineering roles."
+    tier: 2
+
+  - name: "Labcorp"
+    neighborhood: "Burlington"
+    domain: "health-tech"
+    size: "large (5000+)"
+    careers_url: "https://careers.labcorp.com/"
+    ats: "workday"
+    blurb: "NC HQ-adjacent; significant enterprise IT and platform hiring."
+    tier: 2
+
+  - name: "Truist"
+    neighborhood: "Charlotte"
+    domain: "fintech"
+    size: "large (5000+)"
+    careers_url: "https://careers.truist.com/"
+    ats: "workday"
+    blurb: "Major NC banking/tech employer for support, platform, and security tracks."
+    tier: 2
+
+  - name: "Bank of America"
+    neighborhood: "Charlotte"
+    domain: "fintech"
+    size: "large (5000+)"
+    careers_url: "https://careers.bankofamerica.com/"
+    ats: "workday"
+    blurb: "High-volume enterprise tech and cyber hiring in Charlotte."
+    tier: 3
+
+  - name: "Ally"
+    neighborhood: "Charlotte"
+    domain: "fintech"
+    size: "mid (500-5000)"
+    careers_url: "https://www.ally.com/careers/"
+    ats: "workday"
+    blurb: "Digital financial services with modern cloud/backend teams."
+    tier: 2
+
+  - name: "AvidXchange"
+    neighborhood: "Charlotte"
+    domain: "fintech"
+    size: "mid (500-5000)"
+    careers_url: "https://www.avidxchange.com/careers/"
+    ats: "greenhouse"
+    blurb: "AP automation platform with backend/platform and support opportunities."
+    tier: 2
+
+  - name: "nCino"
+    neighborhood: "Wilmington"
+    domain: "fintech | saas-b2b"
+    size: "mid (500-5000)"
+    careers_url: "https://www.ncino.com/company/careers"
+    ats: "greenhouse"
+    blurb: "NC SaaS fintech with engineering and client-facing technical roles."
+    tier: 2
+
+  - name: "Live Oak Bank"
+    neighborhood: "Wilmington"
+    domain: "fintech"
+    size: "mid (500-5000)"
+    careers_url: "https://www.liveoakbank.com/careers/"
+    ats: "unknown"
+    blurb: "Tech-forward bank; IT/security/data opportunities in coastal NC."
+    tier: 3
+
+  - name: "Blue Cross NC"
+    neighborhood: "Durham"
+    domain: "health-tech"
+    size: "large (5000+)"
+    careers_url: "https://careers.bluecrossnc.com/"
+    ats: "workday"
+    blurb: "Large enterprise IT environment with support/platform analytics roles."
+    tier: 3

@@ -5,8 +5,8 @@ a profile dict (from applypilot.config.load_profile()) and validates against the
 actual skills, companies, projects, and school.
 """
 
-import re
 import logging
+import re
 
 log = logging.getLogger(__name__)
 
@@ -94,6 +94,52 @@ def _build_skills_set(profile: dict) -> set[str]:
     return allowed
 
 
+def _private_project_names(profile: dict) -> list[str]:
+    """Return profile-marked private/non-resume project names."""
+    names = set(profile.get("resume_facts", {}).get("private_projects", []))
+    for item in profile.get("project_inventory", []):
+        if isinstance(item, dict) and (item.get("private") or item.get("resume_allowed") is False):
+            if item.get("name"):
+                names.add(item["name"])
+    return sorted(names)
+
+
+def _unfinished_project_names(profile: dict) -> list[str]:
+    """Return projects whose profile status forbids success claims."""
+    names = set(profile.get("resume_facts", {}).get("unfinished_projects", []))
+    for item in profile.get("project_inventory", []):
+        if isinstance(item, dict) and "unfinished" in str(item.get("status", "")).lower():
+            if item.get("name"):
+                names.add(item["name"])
+    return sorted(names)
+
+
+def _append_profile_integrity_errors(text: str, profile: dict, errors: list[str]) -> None:
+    """Apply profile-driven privacy/status/education integrity checks."""
+    text_lower = text.lower()
+    for name in _private_project_names(profile):
+        if name.lower() in text_lower:
+            errors.append(f"Private project leaked into resume: '{name}'")
+
+    success_terms = re.compile(
+        r"\b(deployed|production|users?|revenue|profit(?:able)?|conversion|engagement|"
+        r"accuracy|successful|generated income)\b"
+    )
+    for name in _unfinished_project_names(profile):
+        if name.lower() in text_lower and success_terms.search(text_lower):
+            errors.append(f"Unfinished project has unsupported success claim: '{name}'")
+
+    for item in profile.get("education", []):
+        if not isinstance(item, dict):
+            continue
+        official = str(item.get("official_degree", "")).lower()
+        field = str(item.get("field_of_study", "")).lower()
+        if official and field and field not in text_lower:
+            errors.append(f"Official education field missing or changed: '{item.get('field_of_study')}'")
+        if "bachelor of science" in text_lower and "bachelor of science" not in official:
+            errors.append("Official education incorrectly changed to Bachelor of Science")
+
+
 def _missing_schools(preserved_school: str, haystack: str) -> list[str]:
     """Return preserved schools that are absent from ``haystack``.
 
@@ -118,7 +164,7 @@ def sanitize_text(text: str) -> str:
 
 # ── JSON Field Validation ─────────────────────────────────────────────────
 
-def validate_json_fields(data: dict, profile: dict) -> dict:
+def validate_json_fields(data: dict, profile: dict, standup_decision: str | None = None) -> dict:
     """Validate individual JSON fields from an LLM-generated tailored resume.
 
     Args:
@@ -202,12 +248,24 @@ def validate_json_fields(data: dict, profile: dict) -> dict:
     if found_leaks:
         errors.append(f"LLM self-talk: '{found_leaks[0]}'")
 
+    if standup_decision == "EXCLUDE" and re.search(
+        r"\b(stand[- ]?up|comed(y|ian)|open mic|improv)\b", all_text
+    ):
+        errors.append("Stand-up content present while decision is EXCLUDE")
+
+    _append_profile_integrity_errors(str(data), profile, errors)
+
     return {"passed": len(errors) == 0, "errors": errors, "warnings": warnings}
 
 
 # ── Full Resume Text Validation ───────────────────────────────────────────
 
-def validate_tailored_resume(text: str, profile: dict, original_text: str = "") -> dict:
+def validate_tailored_resume(
+    text: str,
+    profile: dict,
+    original_text: str = "",
+    standup_decision: str | None = None,
+) -> dict:
     """Programmatic validation of a tailored resume against the user's profile.
 
     Args:
@@ -304,6 +362,13 @@ def validate_tailored_resume(text: str, profile: dict, original_text: str = "") 
     found_leaks = [p for p in LLM_LEAK_PHRASES if p in text_lower]
     if found_leaks:
         errors.append(f"LLM self-talk: '{found_leaks[0]}'")
+
+    _append_profile_integrity_errors(text, profile, errors)
+
+    if standup_decision == "EXCLUDE" and re.search(
+        r"\b(stand[- ]?up|comed(y|ian)|open mic|improv)\b", text_lower
+    ):
+        errors.append("Stand-up content present while decision is EXCLUDE")
 
     # 12. Duplicate section detection
     for section_name in ["summary", "experience", "education", "projects"]:

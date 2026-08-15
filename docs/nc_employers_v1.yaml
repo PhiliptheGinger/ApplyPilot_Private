@@ -1,0 +1,140 @@
+# North Carolina employers (v1) — Triad-first baseline list.
+#
+# PURPOSE: Replace Seattle-centric research lists with NC-relevant targets.
+# Scope: IT/support/backend/platform/security/cloud with preference for
+# Greensboro / High Point / Winston-Salem, but includes anywhere in NC.
+#
+# Tier 1 = strongest fit / most relevant local opportunity
+# Tier 2 = good fit / worthwhile regular sweep
+# Tier 3 = opportunistic / mixed fit but still useful
+
+employers:
+  # ── Triad (preferred area) ─────────────────────────────────────────────
+
+  - name: "Volvo Group North America"
+    neighborhood: "Greensboro"
+    domain: "enterprise | manufacturing-tech"
+    size: "large (5000+)"
+    careers_url: "https://jobs.volvogroup.com/"
+    ats: "workday"
+    blurb: "Major Greensboro engineering/IT employer; enterprise platforms, cloud/data, and support ops."
+    tier: 1
+
+  - name: "Honda Aircraft Company"
+    neighborhood: "Greensboro"
+    domain: "aerospace"
+    size: "mid (500-5000)"
+    careers_url: "https://www.hondajet.com/careers"
+    ats: "unknown"
+    blurb: "Aviation engineering org with IT/security/support and systems roles in Triad."
+    tier: 1
+
+  - name: "Qorvo"
+    neighborhood: "Greensboro"
+    domain: "semiconductor"
+    size: "large (5000+)"
+    careers_url: "https://careers.qorvo.com/"
+    ats: "workday"
+    blurb: "Large NC footprint with infra, IT, and manufacturing systems opportunities."
+    tier: 1
+
+  - name: "Inmar Intelligence"
+    neighborhood: "Winston-Salem"
+    domain: "saas-b2b"
+    size: "mid (500-5000)"
+    careers_url: "https://careers.inmar.com/"
+    ats: "unknown"
+    blurb: "Winston-Salem-based data/platform company; backend + enterprise support roles."
+    tier: 1
+
+  - name: "Hanesbrands"
+    neighborhood: "Winston-Salem"
+    domain: "consumer | enterprise"
+    size: "large (5000+)"
+    careers_url: "https://careers.hanes.com/"
+    ats: "workday"
+    blurb: "Enterprise IT, analytics, and operations systems roles anchored in Winston-Salem."
+    tier: 2
+
+  - name: "TE Connectivity"
+    neighborhood: "Winston-Salem"
+    domain: "industrial-tech"
+    size: "large (5000+)"
+    careers_url: "https://careers.te.com/"
+    ats: "workday"
+    blurb: "Industrial technology with IT, cloud, and operational systems opportunities in NC."
+    tier: 2
+
+  - name: "Gilbarco Veeder-Root"
+    neighborhood: "Greensboro"
+    domain: "industrial-tech"
+    size: "mid (500-5000)"
+    careers_url: "https://www.gilbarco.com/us/careers"
+    ats: "unknown"
+    blurb: "Greensboro-based engineering org; embedded/platform/IT and product support roles."
+    tier: 2
+
+  - name: "Lowe's (Tech Hub)"
+    neighborhood: "Charlotte (statewide option)"
+    domain: "retail-tech"
+    size: "large (5000+)"
+    careers_url: "https://talent.lowes.com/us/en"
+    ats: "workday"
+    blurb: "Large enterprise tech hiring in NC; good backup when Triad req volume is low."
+    tier: 2
+
+  # ── Statewide NC (non-Triad but relevant) ─────────────────────────────
+
+  - name: "Red Hat"
+    neighborhood: "Raleigh"
+    domain: "developer-tools | cloud"
+    size: "large (5000+)"
+    careers_url: "https://www.redhat.com/en/jobs"
+    ats: "workday"
+    blurb: "Major NC software employer with platform, cloud, and support engineering roles."
+    tier: 1
+
+  - name: "SAS"
+    neighborhood: "Cary"
+    domain: "data-platform"
+    size: "large (5000+)"
+    careers_url: "https://www.sas.com/en_us/careers.html"
+    ats: "workday"
+    blurb: "NC analytics leader with infra/backend/data and enterprise support opportunities."
+    tier: 1
+
+  - name: "Lenovo"
+    neighborhood: "Morrisville"
+    domain: "enterprise | devices"
+    size: "large (5000+)"
+    careers_url: "https://jobs.lenovo.com/"
+    ats: "workday"
+    blurb: "Global engineering/IT organization with significant NC hiring."
+    tier: 2
+
+  - name: "Epic Games"
+    neighborhood: "Cary"
+    domain: "gaming"
+    size: "mid (500-5000)"
+    careers_url: "https://www.epicgames.com/site/en-US/careers"
+    ats: "greenhouse"
+    blurb: "Platform/backend/reliability opportunities in Cary HQ."
+    tier: 2
+
+  - name: "Pendo"
+    neighborhood: "Raleigh"
+    domain: "saas-b2b"
+    size: "scale-up (50-500)"
+    careers_url: "https://www.pendo.io/careers/"
+    ats: "greenhouse"
+    blurb: "NC SaaS scale-up with product/backend/platform engineering hiring."
+    tier: 2
+
+  - name: "Bandwidth"
+    neighborhood: "Raleigh"
+    domain: "communications-tech"
+    size: "mid (500-5000)"
+    careers_url: "https://www.bandwidth.com/careers/"
+    ats: "greenhouse"
+    blurb: "Telecom APIs/infrastructure; support + systems + backend roles."
+    tier: 2

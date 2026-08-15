@@ -1,0 +1,101 @@
+# North Carolina mega-corps / major employers (v3).
+#
+# PURPOSE: NC equivalent of Seattle mega-corp coverage.
+# Use this list to avoid startup-only sampling bias when searching.
+
+diagnosis: |
+  Startup/VC directories tend to under-represent large employers. This file
+  ensures NC searches include high-volume enterprise hiring funnels (banking,
+  telecom, healthcare, retail, and industrial technology) in addition to
+  startup/scale-up opportunities.
+
+companies:
+  - name: "Bank of America"
+    neighborhood: "Charlotte"
+    domain: "fintech"
+    size: "large (5000+)"
+    careers_url: "https://careers.bankofamerica.com/"
+    ats: "workday"
+    tier: 2
+    why_relevant: "Massive NC hiring volume across cyber, platform, SRE, and enterprise support."
+
+  - name: "Truist"
+    neighborhood: "Charlotte"
+    domain: "fintech"
+    size: "large (5000+)"
+    careers_url: "https://careers.truist.com/"
+    ats: "workday"
+    tier: 2
+    why_relevant: "Large engineering/support organization with steady NC req volume."
+
+  - name: "Lowe's"
+    neighborhood: "Mooresville / Charlotte"
+    domain: "retail-tech"
+    size: "large (5000+)"
+    careers_url: "https://talent.lowes.com/us/en"
+    ats: "workday"
+    tier: 2
+    why_relevant: "Significant internal tech org in NC for digital, platform, and operations systems."
+
+  - name: "Duke Energy"
+    neighborhood: "Charlotte"
+    domain: "utilities | enterprise"
+    size: "large (5000+)"
+    careers_url: "https://www.dukeenergy.com/our-company/careers"
+    ats: "workday"
+    tier: 3
+    why_relevant: "Enterprise IT/cyber and operational systems opportunities at scale."
+
+  - name: "Red Hat"
+    neighborhood: "Raleigh"
+    domain: "developer-tools | cloud"
+    size: "large (5000+)"
+    careers_url: "https://www.redhat.com/en/jobs"
+    ats: "workday"
+    tier: 1
+    why_relevant: "One of the strongest software-specific NC employers."
+
+  - name: "SAS"
+    neighborhood: "Cary"
+    domain: "data-platform"
+    size: "large (5000+)"
+    careers_url: "https://www.sas.com/en_us/careers.html"
+    ats: "workday"
+    tier: 1
+    why_relevant: "Large NC analytics/software footprint with platform/backend opportunities."
+
+  - name: "Lenovo"
+    neighborhood: "Morrisville"
+    domain: "devices | enterprise"
+    size: "large (5000+)"
+    careers_url: "https://jobs.lenovo.com/"
+    ats: "workday"
+    tier: 2
+    why_relevant: "Global product + enterprise technology roles in NC."
+
+  - name: "Labcorp"
+    neighborhood: "Burlington"
+    domain: "health-tech"
+    size: "large (5000+)"
+    careers_url: "https://careers.labcorp.com/"
+    ats: "workday"
+    tier: 2
+    why_relevant: "Major NC employer with large IT/data/platform demand."
+
+  - name: "IQVIA"
+    neighborhood: "Durham"
+    domain: "health-tech | data"
+    size: "large (5000+)"
+    careers_url: "https://jobs.iqvia.com/"
+    ats: "workday"
+    tier: 2
+    why_relevant: "Large enterprise data/technology organization in NC."
+
+  - name: "T-Mobile"
+    neighborhood: "Remote-NC / regional"
+    domain: "telecom"
+    size: "large (5000+)"
+    careers_url: "https://careers.t-mobile.com/"
+    ats: "workday"
+    tier: 3
+    why_relevant: "High-volume support/technical hiring with remote and regional options."

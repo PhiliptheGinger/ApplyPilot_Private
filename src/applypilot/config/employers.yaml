@@ -69,6 +69,29 @@ employers:
     site_id: "Careers"
     base_url: "https://ciena.wd5.myworkdayjobs.com"
 
+  # ── North Carolina additions (2026-08-15) ─────────────────────────────
+  # Verified from careers page links:
+  #   https://redhat.wd5.myworkdayjobs.com/jobs/
+  #   https://redhat.wd5.myworkdayjobs.com/en-US/jobs/introduceYourself
+
+  redhat:
+    name: "Red Hat"
+    tenant: "redhat"
+    site_id: "jobs"
+    base_url: "https://redhat.wd5.myworkdayjobs.com"
+
+  truist:
+    name: "Truist"
+    tenant: "truist"
+    site_id: "Careers"
+    base_url: "https://truist.wd1.myworkdayjobs.com"
+
+  labcorp:
+    name: "Labcorp"
+    tenant: "labcorp"
+    site_id: "External"
+    base_url: "https://labcorp.wd1.myworkdayjobs.com"
+
   # Thomson Reuters removed 2026-04-23 — user is not interested; 327 jobs
   # had been pulled wastefully over prior runs. Existing TR jobs in DB are
   # also blocked at apply-time via ~/.applypilot/company_limits.yaml
