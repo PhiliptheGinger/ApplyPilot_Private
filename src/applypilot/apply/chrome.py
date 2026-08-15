@@ -38,17 +38,32 @@ def _get_or_create_extension_key() -> str:
     if key_path.exists():
         return key_path.read_text(encoding="utf-8").strip()
 
-    # Generate a new RSA-2048 key pair via openssl. We only persist the
-    # PUBLIC key in DER + base64 (Chrome's manifest.json `key` format).
-    privkey_der = _sp.check_output(
-        ["openssl", "genpkey", "-algorithm", "RSA",
-         "-pkeyopt", "rsa_keygen_bits:2048", "-outform", "DER"],
-        stderr=_sp.DEVNULL,
-    )
-    pubkey_der = _sp.check_output(
-        ["openssl", "rsa", "-pubout", "-inform", "DER", "-outform", "DER"],
-        input=privkey_der, stderr=_sp.DEVNULL,
-    )
+    # Generate a new RSA-2048 key pair and persist PUBLIC key in DER+base64
+    # (Chrome manifest.json `key` format).
+    #
+    # Preferred path uses openssl for historical compatibility with existing
+    # installs. On machines without openssl in PATH (common on Windows test
+    # runners), fall back to Python cryptography so profile patching remains
+    # functional and tests don't depend on external binaries.
+    try:
+        privkey_der = _sp.check_output(
+            ["openssl", "genpkey", "-algorithm", "RSA",
+             "-pkeyopt", "rsa_keygen_bits:2048", "-outform", "DER"],
+            stderr=_sp.DEVNULL,
+        )
+        pubkey_der = _sp.check_output(
+            ["openssl", "rsa", "-pubout", "-inform", "DER", "-outform", "DER"],
+            input=privkey_der, stderr=_sp.DEVNULL,
+        )
+    except Exception:
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        pubkey_der = private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
     pubkey_b64 = base64.b64encode(pubkey_der).decode("ascii")
     key_path.parent.mkdir(parents=True, exist_ok=True)
     key_path.write_text(pubkey_b64, encoding="utf-8")

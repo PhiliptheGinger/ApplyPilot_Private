@@ -29,7 +29,8 @@ tmp_*
 # Node
 node_modules/
 
-# Python venv
+# Python virtual environments
+venv/
 .venv/
 
 # Python
@@ -55,3 +56,6 @@ Thumbs.db
 .claude/
 # CLAUDE.md is machine/user-specific — copy CLAUDE.md.example to customize
 CLAUDE.md
+
+# Local agent instruction files
+.github/instructions/
