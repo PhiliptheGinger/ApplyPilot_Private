@@ -8,6 +8,23 @@
 
 ---
 
+## ApplyPilot: Deterministic stand-up relevance classifier
+
+ApplyPilot uses a deterministic pre-LLM classifier to decide whether stand-up
+comedy experience should appear in a tailored resume for a specific job.
+
+Decision states:
+
+- `INCLUDE`: stand-up is materially relevant; include when appropriate.
+- `OPTIONAL`: include only if space permits and it adds meaningful value.
+- `EXCLUDE`: do not mention stand-up anywhere in the tailored resume.
+
+This decision is made from the job posting heuristics (not by the LLM), then
+injected into the tailoring prompt as an explicit instruction. Scoring rules
+live in `src/applypilot/scoring/tailor.py` (`classify_standup_relevance`).
+
+---
+
 ## 1. Match Rate Targets
 
 **Aim for 80% match.** Jobscan calls this "the sweet spot between optimizing your resume without overstuffing it with keywords." A 75% match is still competitive but not as optimized.

@@ -134,3 +134,21 @@ employers:
     name: "SoFi"
     neighborhood: "Seattle (remote-heavy)"
     tier: 2
+
+  # ── North Carolina additions (verified 2026-08-15) ───────────────────
+  # Verified via boards-api.greenhouse.io/v1/boards/{slug}/jobs (HTTP 200).
+
+  epicgames:
+    name: "Epic Games"
+    neighborhood: "Cary, NC"
+    tier: 1
+
+  pendo:
+    name: "Pendo"
+    neighborhood: "Raleigh, NC"
+    tier: 2
+
+  bandwidth:
+    name: "Bandwidth"
+    neighborhood: "Raleigh, NC"
+    tier: 2

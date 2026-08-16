@@ -1,6 +1,11 @@
 # User data (NEVER commit)
 profile.json
+data/profile.json
+data/certifications/
 resume.txt
+resume_technical.txt
+resume_communication.txt
+data/resumes/*.txt
 resume.pdf
 *.env
 .env.*

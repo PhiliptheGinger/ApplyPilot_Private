@@ -24,11 +24,13 @@ def _build_profile_summary(profile: dict) -> str:
     human-readable multi-line summary for the agent.
     """
     p = profile
-    personal = p["personal"]
-    work_auth = p["work_authorization"]
-    comp = p["compensation"]
+    personal = p.get("personal", {})
+    app_prof = p.get("application_profile", {})
+    # Prefer application_profile fields for autofill/answers; fall back to legacy
+    work_auth = app_prof.get("work_authorization", p.get("work_authorization", {}))
+    comp = app_prof.get("compensation", p.get("compensation", {}))
     exp = p.get("experience", {})
-    avail = p.get("availability", {})
+    avail = app_prof.get("employment", p.get("availability", {}))
     eeo = p.get("eeo_voluntary", {})
 
     lines = [
@@ -41,7 +43,7 @@ def _build_profile_summary(profile: dict) -> str:
         f"Phone: {personal['phone']}",
     ])
 
-    # Address -- structured for form fields
+    # Address -- structured for form fields (do not emit application-only location fields here)
     lines.append(f"Street Address: {personal.get('address', '')}")
     lines.append(f"City: {personal.get('city', '')}")
     lines.append(f"State/Province: {personal.get('province_state', '')}")
@@ -57,24 +59,33 @@ def _build_profile_summary(profile: dict) -> str:
     ]
     lines.append(f"Full Address: {', '.join(p for p in addr_parts if p)}")
 
-    if personal.get("linkedin_url"):
-        lines.append(f"LinkedIn: {personal['linkedin_url']}")
-    if personal.get("github_url"):
-        lines.append(f"GitHub: {personal['github_url']}")
-    if personal.get("portfolio_url"):
-        lines.append(f"Portfolio: {personal['portfolio_url']}")
-    if personal.get("website_url"):
-        lines.append(f"Website: {personal['website_url']}")
+    # Online profiles: prefer application_profile.online_profiles but do not
+    # automatically inject them into resumes; these lines are for autofill prompts
+    online = app_prof.get("online_profiles", {})
+    if not online:
+      online = {
+        "website": personal.get("website_url") or personal.get("portfolio_url"),
+        "github": personal.get("github_url"),
+        "linkedin": personal.get("linkedin_url"),
+      }
+    if online.get("linkedin"):
+      lines.append(f"LinkedIn: {online['linkedin']}")
+    if online.get("github"):
+      lines.append(f"GitHub: {online['github']}")
+    if online.get("website"):
+      lines.append(f"Website: {online['website']}")
 
-    # Work authorization
+    # Work authorization (application/profile-only fields)
     lines.append(f"Work Auth: {work_auth.get('legally_authorized_to_work', 'See profile')}")
     lines.append(f"Sponsorship Needed: {work_auth.get('require_sponsorship', 'See profile')}")
     if work_auth.get("work_permit_type"):
-        lines.append(f"Work Permit: {work_auth['work_permit_type']}")
+      lines.append(f"Work Permit: {work_auth['work_permit_type']}")
 
-    # Compensation
+    # Compensation (application/profile-only guidance)
     currency = comp.get("salary_currency", "USD")
-    lines.append(f"Salary Expectation: ${comp['salary_expectation']} {currency}")
+    if comp:
+      # show only if set; leave blank otherwise so agent asks human when ambiguous
+      lines.append(f"Salary Expectation: {comp.get('desired_salary') or comp.get('salary_expectation') or 'Not specified'} {currency}")
 
     # Experience
     if exp.get("years_of_experience_total"):
@@ -105,17 +116,26 @@ def _build_profile_summary(profile: dict) -> str:
         titles = [f"{company}: {title}" for company, title in title_variants.items()]
         lines.append(f"Previous Titles: {'; '.join(titles)}")
 
-    # Languages (with proficiency levels)
-    languages = personal.get("languages", [])
-    if languages:
-        if isinstance(languages[0], dict):
-            lang_parts = [f"{lang['language']} ({lang['proficiency']})" for lang in languages]
-            lines.append(f"Languages: {', '.join(lang_parts)}")
-            # Also list just the language names for simple yes/no questions
-            lines.append(f"Languages spoken: {', '.join(lang['language'] for lang in languages)}")
-            lines.append("IMPORTANT: Do NOT claim proficiency in any language not listed above. If asked about a language not listed, answer NO / Not proficient.")
-        else:
-            lines.append(f"Languages: {', '.join(languages)}")
+    # Languages (with proficiency levels). Prefer application_profile languages
+    languages = app_prof.get("languages") or personal.get("languages", [])
+    # Normalize languages: accept either list or mapping
+    normalized_languages = []
+    if isinstance(languages, dict):
+      for name, meta in languages.items():
+        prof = meta.get("cefr") if isinstance(meta, dict) else str(meta)
+        normalized_languages.append({"language": name.title(), "proficiency": prof})
+    elif isinstance(languages, list):
+      normalized_languages = languages
+
+    if normalized_languages:
+      if isinstance(normalized_languages[0], dict):
+        lang_parts = [f"{lang['language']} ({lang.get('proficiency','')})" for lang in normalized_languages]
+        lines.append(f"Languages: {', '.join(lang_parts)}")
+        # Also list just the language names for simple yes/no questions
+        lines.append(f"Languages spoken: {', '.join(lang['language'] for lang in normalized_languages)}")
+        lines.append("IMPORTANT: Do NOT claim proficiency in any language not listed above. If asked about a language not listed, answer NO / Not proficient.")
+      else:
+        lines.append(f"Languages: {', '.join(normalized_languages)}")
 
     # Availability
     lines.append(f"Available: {avail.get('earliest_start_date', 'Immediately')}")
