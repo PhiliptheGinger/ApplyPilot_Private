@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
-from applypilot import __version__
-from applypilot import config
+from applypilot import __version__, config
 
 logging.basicConfig(
     level=logging.INFO,
@@ -36,7 +34,7 @@ VALID_STAGES = ("discover", "enrich", "score", "tailor", "cover", "pdf")
 
 def _bootstrap() -> None:
     """Common setup: load env, create dirs, init DB."""
-    from applypilot.config import load_env, ensure_dirs
+    from applypilot.config import ensure_dirs, load_env
     from applypilot.database import init_db
 
     load_env()
@@ -76,7 +74,7 @@ def init() -> None:
 
 @app.command()
 def run(
-    stages: Optional[list[str]] = typer.Argument(
+    stages: list[str] | None = typer.Argument(
         None,
         help=(
             "Pipeline stages to run. "
@@ -96,7 +94,7 @@ def run(
             f"Default: {config.DEFAULTS['max_job_age_days']}."
         ),
     ),
-    limit: Optional[int] = typer.Option(None, "--limit", "-l", help="Max jobs per stage (tailor/cover). Default: 20."),
+    limit: int | None = typer.Option(None, "--limit", "-l", help="Max jobs per stage (tailor/cover). Default: 20."),
     workers: int = typer.Option(
         1, "--workers", "-w",
         help="Parallel threads for Workday/smart-extract stages. (JobSpy runs sequentially regardless.)",
@@ -104,7 +102,7 @@ def run(
     stream: bool = typer.Option(False, "--stream", help="Run stages concurrently (streaming mode)."),
     doc_format: str = typer.Option("docx", "--doc-format", help="Document format for resumes/cover letters: docx (default) or pdf."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Preview stages without executing."),
-    source: Optional[list[str]] = typer.Option(
+    source: list[str] | None = typer.Option(
         None, "--source", "-s",
         help="Discovery source(s) to run. Repeatable: --source hn --source jobspy. "
              "Aliases: hn=hackernews, smart=smartextract. Only affects the discover stage.",
@@ -117,7 +115,7 @@ def run(
     """Run pipeline stages: discover, enrich, score, tailor, cover, pdf."""
     # Handle --list-sources before bootstrap (no DB/env needed)
     if list_sources:
-        from applypilot.pipeline import DISCOVERY_SOURCES, _SOURCE_ALIASES
+        from applypilot.pipeline import _SOURCE_ALIASES, DISCOVERY_SOURCES
         console.print("\n[bold]Available discovery sources:[/bold]\n")
         for name, desc in DISCOVERY_SOURCES.items():
             aliases = [a for a, canon in _SOURCE_ALIASES.items() if canon == name]
@@ -128,7 +126,7 @@ def run(
 
     _bootstrap()
 
-    from applypilot.pipeline import run_pipeline, resolve_source_names
+    from applypilot.pipeline import resolve_source_names, run_pipeline
 
     stage_list = stages if stages else ["all"]
 
@@ -180,7 +178,7 @@ def run(
 
 @app.command()
 def apply(
-    limit: Optional[int] = typer.Option(None, "--limit", "-l", help="Max applications to submit."),
+    limit: int | None = typer.Option(None, "--limit", "-l", help="Max applications to submit."),
     workers: int = typer.Option(5, "--workers", "-w", help="Number of parallel browser workers."),
     min_score: int = typer.Option(
         config.DEFAULTS["min_score"], "--min-score",
@@ -194,29 +192,30 @@ def apply(
             f"Default: {config.DEFAULTS['max_job_age_days']}."
         ),
     ),
-    max_score: Optional[int] = typer.Option(None, "--max-score", help="Maximum fit score for job selection (useful for testing on lower-score jobs)."),
+    max_score: int | None = typer.Option(None, "--max-score", help="Maximum fit score for job selection (useful for testing on lower-score jobs)."),
     model: str = typer.Option("sonnet", "--model", "-m", help="Claude model name (sonnet | haiku | opus)."),
     continuous: bool = typer.Option(False, "--continuous", "-c", help="Run forever, polling for new jobs."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Preview actions without submitting."),
     headless: bool = typer.Option(False, "--headless", help="Run browsers in headless mode."),
-    url: Optional[str] = typer.Option(None, "--url", help="Apply to a specific job URL."),
+    url: str | None = typer.Option(None, "--url", help="Apply to a specific job URL."),
     doc_format: str = typer.Option("docx", "--doc-format", help="Document format for resumes/cover letters: docx (default) or pdf."),
     gen: bool = typer.Option(False, "--gen", help="Generate prompt file for manual debugging instead of running."),
-    mark_applied: Optional[str] = typer.Option(None, "--mark-applied", help="Manually mark a job URL as applied."),
+    mark_applied: str | None = typer.Option(None, "--mark-applied", help="Manually mark a job URL as applied."),
     fresh_sessions: bool = typer.Option(False, "--fresh-sessions", help="Refresh Chrome session cookies from your real profile before launching."),
     no_hitl: bool = typer.Option(False, "--no-hitl", help="Skip HITL waits: park needs_human jobs and move on. Use for overnight runs."),
     no_focus: bool = typer.Option(False, "--no-focus", help="Prevent Chrome windows from stealing keyboard focus (Linux/GNOME only). Windows stay visible but won't interrupt your active app."),
-    mark_failed: Optional[str] = typer.Option(None, "--mark-failed", help="Manually mark a job URL as failed (provide URL)."),
-    fail_reason: Optional[str] = typer.Option(None, "--fail-reason", help="Reason for --mark-failed."),
+    mark_failed: str | None = typer.Option(None, "--mark-failed", help="Manually mark a job URL as failed (provide URL)."),
+    fail_reason: str | None = typer.Option(None, "--fail-reason", help="Reason for --mark-failed."),
     reset_failed: bool = typer.Option(False, "--reset-failed", help="Reset all failed jobs for retry."),
-    reset_category: Optional[str] = typer.Option(None, "--reset-category", help="Reset all jobs in a category for retry (e.g., blocked_technical)."),
+    reset_category: str | None = typer.Option(None, "--reset-category", help="Reset all jobs in a category for retry (e.g., blocked_technical)."),
     sessions: bool = typer.Option(False, "--sessions", help="List saved ATS sessions."),
-    clear_session: Optional[str] = typer.Option(None, "--clear-session", help="Clear a saved ATS session (e.g., workday)."),
+    clear_session: str | None = typer.Option(None, "--clear-session", help="Clear a saved ATS session (e.g., workday)."),
 ) -> None:
     """Launch auto-apply to submit job applications."""
     _bootstrap()
 
-    from applypilot.config import check_tier, PROFILE_PATH as _profile_path
+    from applypilot.config import PROFILE_PATH as _profile_path
+    from applypilot.config import check_tier
     from applypilot.database import get_connection
 
     # --- Utility modes (no Chrome/Claude needed) ---
@@ -613,6 +612,7 @@ def track(
 
     if setup:
         import asyncio
+
         from applypilot.tracking.gmail_client import check_gmail_setup, verify_connection
 
         ok, msg = check_gmail_setup()
@@ -780,7 +780,9 @@ def qa_import(
     _bootstrap()
 
     from pathlib import Path
+
     import yaml
+
     from applypilot.database import store_qa
 
     path = Path(file)
@@ -948,7 +950,8 @@ def creds_import_logs(
     _bootstrap()
 
     import os
-    from applypilot.database import mine_accounts_from_logs, upsert_account, get_all_accounts
+
+    from applypilot.database import get_all_accounts, mine_accounts_from_logs, upsert_account
 
     if log_dir is None:
         log_dir = os.path.expanduser("~/.applypilot/logs")

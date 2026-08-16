@@ -10,8 +10,8 @@ Pattern-matches on sender domain, subject, and snippet to auto-classify
 5. Ambiguous: → send to LLM
 """
 
-import re
 import logging
+import re
 from dataclasses import dataclass, field
 
 log = logging.getLogger(__name__)

@@ -87,9 +87,7 @@ def _build_skills_set(profile: dict) -> set[str]:
     boundary = profile.get("skills_boundary", {})
     allowed: set[str] = set()
     for category in boundary.values():
-        if isinstance(category, list):
-            allowed.update(s.lower().strip() for s in category)
-        elif isinstance(category, set):
+        if isinstance(category, (list, set)):
             allowed.update(s.lower().strip() for s in category)
     return allowed
 
@@ -98,9 +96,8 @@ def _private_project_names(profile: dict) -> list[str]:
     """Return profile-marked private/non-resume project names."""
     names = set(profile.get("resume_facts", {}).get("private_projects", []))
     for item in profile.get("project_inventory", []):
-        if isinstance(item, dict) and (item.get("private") or item.get("resume_allowed") is False):
-            if item.get("name"):
-                names.add(item["name"])
+        if isinstance(item, dict) and (item.get("private") or item.get("resume_allowed") is False) and item.get("name"):
+            names.add(item["name"])
     return sorted(names)
 
 
@@ -108,9 +105,8 @@ def _unfinished_project_names(profile: dict) -> list[str]:
     """Return projects whose profile status forbids success claims."""
     names = set(profile.get("resume_facts", {}).get("unfinished_projects", []))
     for item in profile.get("project_inventory", []):
-        if isinstance(item, dict) and "unfinished" in str(item.get("status", "")).lower():
-            if item.get("name"):
-                names.add(item["name"])
+        if isinstance(item, dict) and "unfinished" in str(item.get("status", "")).lower() and item.get("name"):
+            names.add(item["name"])
     return sorted(names)
 
 
@@ -219,14 +215,12 @@ def validate_json_fields(data: dict, profile: dict, standup_decision: str | None
             if company.lower() not in exp_and_proj_text.lower():
                 warnings.append(f"Company '{company}' not in experience or projects")
         for entry in data["experience"]:
-            for b in entry.get("bullets", []):
-                all_text_parts.append(b)
+            all_text_parts.extend(entry.get("bullets", []))
 
     # Projects: collect bullets
     if isinstance(data.get("projects"), list):
         for entry in data["projects"]:
-            for b in entry.get("bullets", []):
-                all_text_parts.append(b)
+            all_text_parts.extend(entry.get("bullets", []))
 
     # Education: each preserved school must be present (education may be a
     # structured list of per-school entries or a legacy single string).

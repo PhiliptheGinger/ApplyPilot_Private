@@ -33,7 +33,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from applypilot import config
@@ -94,7 +94,7 @@ def save_path(ats_slug: str, steps: list[dict],
         PATHS_DIR.mkdir(parents=True, exist_ok=True)
         payload = {
             "ats_slug":    ats_slug,
-            "captured_at": datetime.now(timezone.utc).isoformat(),
+            "captured_at": datetime.now(UTC).isoformat(),
             "job_url":     job_url,
             "duration_ms": duration_ms,
             "steps":       steps[-MAX_STEPS:],
@@ -132,8 +132,8 @@ def load_path(ats_slug: str) -> dict | None:
         try:
             captured_at = datetime.fromisoformat(captured_iso)
             if captured_at.tzinfo is None:
-                captured_at = captured_at.replace(tzinfo=timezone.utc)
-            age = datetime.now(timezone.utc) - captured_at
+                captured_at = captured_at.replace(tzinfo=UTC)
+            age = datetime.now(UTC) - captured_at
             if age.total_seconds() > MAX_AGE_DAYS * 86400:
                 logger.info(
                     "Skipping stale memo for %s — age %.1f days exceeds %d-day cutoff",

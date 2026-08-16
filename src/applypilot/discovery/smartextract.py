@@ -19,11 +19,12 @@ import sqlite3
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from urllib.parse import quote_plus
 
 import yaml
 from bs4 import BeautifulSoup
+
 # Patchright (Playwright drop-in with TLS-fingerprint and JS-stealth patches)
 # is a hard dependency — see pyproject.toml. Used everywhere we drive a
 # browser so Cloudflare/Akamai don't reject us at the protocol level.
@@ -31,7 +32,7 @@ from patchright.sync_api import sync_playwright
 
 from applypilot import config
 from applypilot.config import CONFIG_DIR
-from applypilot.database import init_db, get_stats, write_with_retry
+from applypilot.database import get_stats, init_db, write_with_retry
 from applypilot.llm import get_client
 
 log = logging.getLogger(__name__)
@@ -42,7 +43,7 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
         sys.stderr.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
-        pass
+        log.debug("stdout/stderr reconfigure failed", exc_info=True)
 
 def _get_ua() -> str:
     """Build a realistic UA from the actual installed Chrome version."""
@@ -101,7 +102,7 @@ def _store_jobs_filtered(
     reject_locs: list[str],
 ) -> tuple[int, int]:
     """Store jobs with location filtering. Returns (new, existing)."""
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     counts = {"new": 0, "existing": 0, "filtered": 0}
 
     def _do_inserts() -> None:
@@ -167,18 +168,19 @@ def collect_page_intelligence(url: str, headless: bool = True) -> dict:
         if "json" in ct or "/api/" in rurl or "algolia" in rurl or "graphql" in rurl:
             try:
                 body = response.text()
-                try:
-                    data = json.loads(body)
-                except Exception:
-                    data = None
-                captured_responses.append({
-                    "url": rurl,
-                    "status": response.status,
-                    "size": len(body),
-                    "data": data,
-                })
             except Exception:
-                pass
+                log.debug("response.text() failed for %s", rurl, exc_info=True)
+                return
+            try:
+                data = json.loads(body)
+            except json.JSONDecodeError:
+                data = None
+            captured_responses.append({
+                "url": rurl,
+                "status": response.status,
+                "size": len(body),
+                "data": data,
+            })
 
     with sync_playwright() as p:
         from applypilot.enrichment.detail import _STEALTH_INIT_SCRIPT
@@ -200,7 +202,7 @@ def collect_page_intelligence(url: str, headless: bool = True) -> dict:
         try:
             page.wait_for_load_state("networkidle", timeout=10000)
         except Exception:
-            pass
+            log.debug("networkidle wait failed for %s", url, exc_info=True)
 
         intel["page_title"] = page.title()
 
@@ -208,17 +210,22 @@ def collect_page_intelligence(url: str, headless: bool = True) -> dict:
         for el in page.query_selector_all('script[type="application/ld+json"]'):
             try:
                 data = json.loads(el.inner_text())
-                intel["json_ld"].append(data)
+            except json.JSONDecodeError:
+                continue
             except Exception:
-                pass
+                log.debug("json_ld script read failed", exc_info=True)
+                continue
+            intel["json_ld"].append(data)
 
         # 2. __NEXT_DATA__
         next_data = page.query_selector("script#__NEXT_DATA__")
         if next_data:
             try:
                 intel["next_data"] = json.loads(next_data.inner_text())
-            except Exception:
+            except json.JSONDecodeError:
                 pass
+            except Exception:
+                log.debug("__NEXT_DATA__ read failed", exc_info=True)
 
         # 3. data-testid attributes
         intel["data_testids"] = page.evaluate("""
@@ -319,7 +326,7 @@ def collect_page_intelligence(url: str, headless: bool = True) -> dict:
 
     # Process API responses
     for resp in captured_responses:
-        summary: dict = {
+        resp_summary: dict = {
             "url": resp["url"][:200],
             "status": resp["status"],
             "size": resp["size"],
@@ -328,15 +335,15 @@ def collect_page_intelligence(url: str, headless: bool = True) -> dict:
         data = resp.get("data")
         if data:
             if isinstance(data, list) and data:
-                summary["type"] = f"array[{len(data)}]"
+                resp_summary["type"] = f"array[{len(data)}]"
                 if isinstance(data[0], dict):
-                    summary["first_item_keys"] = list(data[0].keys())[:20]
-                    summary["first_item_sample"] = {k: str(v)[:100] for k, v in list(data[0].items())[:8]}
+                    resp_summary["first_item_keys"] = list(data[0].keys())[:20]
+                    resp_summary["first_item_sample"] = {k: str(v)[:100] for k, v in list(data[0].items())[:8]}
             elif isinstance(data, dict):
-                summary["type"] = "object"
-                summary["keys"] = list(data.keys())[:20]
+                resp_summary["type"] = "object"
+                resp_summary["keys"] = list(data.keys())[:20]
 
-                def _explore_nested(obj, path_prefix, depth=0):
+                def _explore_nested(obj, path_prefix, depth=0, _resp=resp_summary):
                     if depth > 3 or not isinstance(obj, dict):
                         return
                     for key in list(obj.keys())[:15]:
@@ -362,11 +369,11 @@ def collect_page_intelligence(url: str, headless: bool = True) -> dict:
                                         "keys": list(subval.keys())[:15],
                                         "sample": {k: str(v)[:150] for k, v in list(subval.items())[:8]},
                                     }
-                            summary[f"nested_{path}"] = info
+                            _resp[f"nested_{path}"] = info
                         elif isinstance(val, dict) and depth < 3:
                             _explore_nested(val, path, depth + 1)
                 _explore_nested(data, "")
-        intel["api_responses"].append(summary)
+            intel["api_responses"].append(resp_summary)
 
     return intel
 
@@ -437,7 +444,7 @@ def judge_api_responses(api_responses: list[dict]) -> list[dict]:
                      "KEEP" if is_relevant else "DROP", reason)
             if is_relevant:
                 relevant.append(resp)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - keep response on judge errors
             log.warning("Judge ERROR for %s: %s -- keeping", resp.get("url", "?")[:80], e)
             relevant.append(resp)
 
@@ -710,7 +717,7 @@ def extract_json(text: str) -> dict:
         return json.loads(text)
     except json.JSONDecodeError:
         pass
-    while text.endswith("}") or text.endswith("]"):
+    while text.endswith(("}", "]")):
         try:
             return json.loads(text)
         except json.JSONDecodeError:
@@ -856,7 +863,7 @@ def execute_css_selectors(intel: dict) -> tuple[dict, list[dict]]:
     for attempt, quality in enumerate([False, True]):
         try:
             raw, elapsed, meta = ask_llm(prompt, quality=quality)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - LLM network/errors
             log.error("LLM_ERROR in Phase 2 (quality=%s): %s", quality, e)
             continue
 
@@ -876,7 +883,7 @@ def execute_css_selectors(intel: dict) -> tuple[dict, list[dict]]:
         try:
             selectors = extract_json(raw)
             break
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - parse errors handled by escalation
             if attempt == 0:
                 log.warning("PARSE_ERROR in Phase 2 (fast) — escalating to quality model: %s", e)
                 continue
@@ -897,7 +904,7 @@ def execute_css_selectors(intel: dict) -> tuple[dict, list[dict]]:
     card_sel = selectors.get("job_card", "NONE")
     try:
         cards = soup.select(card_sel)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - invalid selector may crash BeautifulSoup
         log.error("Invalid card selector '%s': %s", card_sel, e)
         return selectors, []
 
@@ -913,7 +920,7 @@ def execute_css_selectors(intel: dict) -> tuple[dict, list[dict]]:
                 continue
             try:
                 el = card.select_one(sel)
-            except Exception:
+            except Exception:  # noqa: BLE001 - defensive DOM access
                 job[field] = None
                 continue
             if el:
@@ -936,7 +943,7 @@ def _run_one_site(name: str, url: str, no_headful: bool = False) -> dict:
     t0 = time.time()
     try:
         intel = collect_page_intelligence(url)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - capture page intelligence failures
         log.error("Page intelligence collection failed (timeout or error): %s", e)
         return {"name": name, "status": "ERROR", "error": str(e), "jobs": [], "total": 0, "titles": 0}
     collect_time = time.time() - t0
@@ -954,7 +961,7 @@ def _run_one_site(name: str, url: str, no_headful: bool = False) -> dict:
         log.info("Cleaned HTML only %s chars -- retrying headful...", f"{len(cleaned_check):,}")
         try:
             intel = collect_page_intelligence(url, headless=False)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - headful retry best-effort
             log.warning("Headful retry failed: %s", e)
         collect_time = time.time() - t0
         log.info("Headful done in %.1fs | JSON-LD: %d | API: %d",
@@ -979,7 +986,7 @@ def _run_one_site(name: str, url: str, no_headful: bool = False) -> dict:
     for attempt, quality in enumerate([False, True]):
         try:
             raw, elapsed, meta = ask_llm(prompt, quality=quality)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - LLM call may raise various exceptions
             last_err = e
             if attempt == 0:
                 log.warning("Phase 1 LLM_ERROR (fast) — escalating to quality: %s", e)
@@ -1001,7 +1008,7 @@ def _run_one_site(name: str, url: str, no_headful: bool = False) -> dict:
         try:
             plan = extract_json(raw)
             break
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - parse fallback handling
             last_err = e
             if attempt == 0:
                 log.warning("PARSE_ERROR in Phase 1 (fast) — escalating to quality: %s", e)
@@ -1033,7 +1040,7 @@ def _run_one_site(name: str, url: str, no_headful: bool = False) -> dict:
         else:
             log.warning("Unknown strategy: %s", strategy)
             jobs = []
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - execution-level catch, log and return
         log.error("EXECUTION_ERROR: %s", e)
         return {"name": name, "status": "EXEC_ERROR", "error": str(e), "plan": plan}
 

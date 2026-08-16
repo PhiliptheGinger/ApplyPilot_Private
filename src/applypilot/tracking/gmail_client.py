@@ -94,13 +94,12 @@ async def verify_connection() -> bool:
     Returns True if the server responds successfully.
     """
     try:
-        async with await _create_mcp_client() as (read, write):
-            async with ClientSession(read, write) as session:
-                await asyncio.wait_for(session.initialize(), timeout=30)
-                tools = await session.list_tools()
-                tool_names = [t.name for t in tools.tools]
-                log.info("Gmail MCP tools: %s", tool_names)
-                return bool(tool_names)
+        async with await _create_mcp_client() as (read, write), ClientSession(read, write) as session:
+            await asyncio.wait_for(session.initialize(), timeout=30)
+            tools = await session.list_tools()
+            tool_names = [t.name for t in tools.tools]
+            log.info("Gmail MCP tools: %s", tool_names)
+            return bool(tool_names)
     except Exception as e:
         log.error("Gmail MCP connection failed: %s", e)
         return False
@@ -248,36 +247,35 @@ async def search_application_emails(days: int = 14, limit: int = 100) -> list[di
     all_emails: dict[str, dict] = {}  # Deduplicate by ID
 
     try:
-        async with await _create_mcp_client() as (read, write):
-            async with ClientSession(read, write) as session:
-                await asyncio.wait_for(session.initialize(), timeout=30)
+        async with await _create_mcp_client() as (read, write), ClientSession(read, write) as session:
+            await asyncio.wait_for(session.initialize(), timeout=30)
 
-                for query in search_queries:
-                    try:
-                        raw_text = await _call_tool_raw(
-                            session, "search_emails",
-                            {"query": query, "maxResults": limit},
-                        )
-                    except asyncio.TimeoutError:
-                        log.warning("Gmail search timed out: %s", query[:60])
+            for query in search_queries:
+                try:
+                    raw_text = await _call_tool_raw(
+                        session, "search_emails",
+                        {"query": query, "maxResults": limit},
+                    )
+                except TimeoutError:
+                    log.warning("Gmail search timed out: %s", query[:60])
+                    continue
+                except Exception as e:
+                    log.warning("Gmail search failed: %s", e)
+                    continue
+
+                results = _parse_search_results(raw_text)
+                log.info("Query returned %d results: %s", len(results), query[:80])
+
+                for msg in results:
+                    msg_id = msg.get("id")
+                    if not msg_id or msg_id in all_emails:
                         continue
-                    except Exception as e:
-                        log.warning("Gmail search failed: %s", e)
-                        continue
 
-                    results = _parse_search_results(raw_text)
-                    log.info("Query returned %d results: %s", len(results), query[:80])
+                    normalized = _normalize_email(msg)
+                    all_emails[msg_id] = normalized
 
-                    for msg in results:
-                        msg_id = msg.get("id")
-                        if not msg_id or msg_id in all_emails:
-                            continue
-
-                        normalized = _normalize_email(msg)
-                        all_emails[msg_id] = normalized
-
-                        if len(all_emails) >= limit:
-                            break
+                    if len(all_emails) >= limit:
+                        break
 
     except Exception as e:
         log.error("Gmail MCP session failed: %s", e)
@@ -305,20 +303,19 @@ async def read_email_bodies(email_ids: list[str]) -> dict[str, dict]:
     results: dict[str, dict] = {}
 
     try:
-        async with await _create_mcp_client() as (read, write):
-            async with ClientSession(read, write) as session:
-                await asyncio.wait_for(session.initialize(), timeout=30)
+        async with await _create_mcp_client() as (read, write), ClientSession(read, write) as session:
+            await asyncio.wait_for(session.initialize(), timeout=30)
 
-                for msg_id in email_ids:
-                    try:
-                        full_text = await _call_tool_raw(
-                            session, "read_email",
-                            {"messageId": msg_id},
-                        )
-                        full = _parse_read_result(full_text, msg_id)
-                        results[msg_id] = _normalize_email(full)
-                    except Exception as e:
-                        log.debug("Could not read email %s: %s", msg_id, e)
+            for msg_id in email_ids:
+                try:
+                    full_text = await _call_tool_raw(
+                        session, "read_email",
+                        {"messageId": msg_id},
+                    )
+                    full = _parse_read_result(full_text, msg_id)
+                    results[msg_id] = _normalize_email(full)
+                except Exception as e:
+                    log.debug("Could not read email %s: %s", msg_id, e)
 
     except Exception as e:
         log.error("Gmail MCP session failed during body read: %s", e)
@@ -367,30 +364,29 @@ async def apply_label_to_emails(email_ids: list[str], label: str = "ap-track") -
     from mcp import ClientSession
 
     try:
-        async with await _create_mcp_client() as (read, write):
-            async with ClientSession(read, write) as session:
-                await asyncio.wait_for(session.initialize(), timeout=30)
+        async with await _create_mcp_client() as (read, write), ClientSession(read, write) as session:
+            await asyncio.wait_for(session.initialize(), timeout=30)
 
-                label_id = await _get_or_create_label(session, label)
-                if label_id is None:
-                    return 0
+            label_id = await _get_or_create_label(session, label)
+            if label_id is None:
+                return 0
 
-                # Chunk to avoid MCP client TaskGroup errors with large payloads
-                CHUNK = 50
-                total_labeled = 0
-                for i in range(0, len(email_ids), CHUNK):
-                    chunk = email_ids[i:i + CHUNK]
-                    raw = await _call_tool_raw(session, "batch_modify_emails", {
-                        "messageIds": chunk,
-                        "addLabelIds": [label_id],
-                    })
-                    if raw.startswith("Error:"):
-                        log.warning("batch_modify_emails failed (chunk %d): %s", i // CHUNK, raw[:100])
-                        continue
-                    total_labeled += len(chunk)
+            # Chunk to avoid MCP client TaskGroup errors with large payloads
+            CHUNK = 50
+            total_labeled = 0
+            for i in range(0, len(email_ids), CHUNK):
+                chunk = email_ids[i:i + CHUNK]
+                raw = await _call_tool_raw(session, "batch_modify_emails", {
+                    "messageIds": chunk,
+                    "addLabelIds": [label_id],
+                })
+                if raw.startswith("Error:"):
+                    log.warning("batch_modify_emails failed (chunk %d): %s", i // CHUNK, raw[:100])
+                    continue
+                total_labeled += len(chunk)
 
-                log.info("Applied '%s' label to %d emails", label, total_labeled)
-                return total_labeled
+            log.info("Applied '%s' label to %d emails", label, total_labeled)
+            return total_labeled
 
     except Exception as e:
         log.warning("Gmail label session failed: %s", e)

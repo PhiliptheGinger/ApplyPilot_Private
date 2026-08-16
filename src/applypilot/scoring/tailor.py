@@ -16,7 +16,7 @@ import os
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from applypilot.config import TAILORED_DIR, load_profile
 from applypilot.database import get_connection, get_jobs_by_stage, transition_state, write_with_retry
@@ -934,7 +934,7 @@ def _tailor_one_job(job: dict, resume_text: str | None, profile: dict, doc_forma
                 "comments": (
                     f"Customized for: {job_title}\n"
                     f"Source: {site}\n"
-                    f"Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
+                    f"Date: {datetime.now(UTC).strftime('%Y-%m-%d')}"
                 ),
             }
             doc_path = str(convert_to_pdf(txt_path, doc_format=doc_format, metadata=metadata))
@@ -970,7 +970,7 @@ def _mark_tailor_result(
     ``"failed_judge"``, ``"error"``, ``"exhausted_retries"``.
     """
     if now is None:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
     if status == "approved":
         # Atomic: write path AND increment counter in one UPDATE.
@@ -1107,12 +1107,12 @@ def run_tailoring(min_score: int | None = None, limit: int = 20, workers: int = 
                 completed += 1
                 try:
                     result = future.result()
-                except Exception as e:
+                except Exception:
                     result = {
                         "url": job["url"], "title": job["title"], "site": job["site"],
                         "status": "error", "attempts": 0, "path": None, "pdf_path": None,
                     }
-                    log.error("[ERROR] %s -- %s", (job.get("title") or "")[:40], e)
+                    log.exception("[ERROR] %s -- exception from future.result()", (job.get("title") or "")[:40])
 
                 results.append(result)
                 stats[result.get("status", "error")] = stats.get(result.get("status", "error"), 0) + 1
@@ -1129,13 +1129,12 @@ def run_tailoring(min_score: int | None = None, limit: int = 20, workers: int = 
             completed += 1
             try:
                 result = _tailor_one_job(job, None, profile, doc_format)
-            except Exception as e:
+            except Exception:
                 result = {
                     "url": job["url"], "title": job.get("title") or "", "site": job["site"],
                     "status": "error", "attempts": 0, "path": None, "pdf_path": None,
                 }
-                log.error("%d/%d [ERROR] %s -- %s", completed, len(jobs),
-                          (job.get("title") or "")[:40], e)
+                log.exception("%d/%d [ERROR] %s -- exception during tailoring", completed, len(jobs), (job.get("title") or "")[:40])
 
             results.append(result)
             stats[result.get("status", "error")] = stats.get(result.get("status", "error"), 0) + 1
@@ -1149,7 +1148,7 @@ def run_tailoring(min_score: int | None = None, limit: int = 20, workers: int = 
             )
 
     # Persist to DB: increment attempt counter for ALL, save path only for approved
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     def _flush_tailor_results(conn, results, now):
         for r in results:
@@ -1164,8 +1163,8 @@ def run_tailoring(min_score: int | None = None, limit: int = 20, workers: int = 
 
     try:
         write_with_retry(conn, _flush_tailor_results, conn, results, now)
-    except Exception as flush_err:
-        log.exception("DB flush failed for tailor batch: %s", flush_err)
+    except Exception:
+        log.exception("DB flush failed for tailor batch")
 
     elapsed = time.time() - t0
     log.info(

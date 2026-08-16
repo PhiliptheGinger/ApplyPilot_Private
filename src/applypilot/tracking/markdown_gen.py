@@ -79,7 +79,7 @@ def generate_tracking_doc(job: dict, conn=None) -> str | None:
     Returns:
         Absolute path to the markdown file, or None on error.
     """
-    from applypilot.database import get_tracking_emails, get_tracking_people, get_connection
+    from applypilot.database import get_connection, get_tracking_emails, get_tracking_people
 
     if conn is None:
         conn = get_connection()

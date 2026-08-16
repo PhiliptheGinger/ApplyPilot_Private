@@ -9,6 +9,7 @@ Supported formats: "pdf" (default), "docx".
 
 import logging
 import re
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
@@ -754,8 +755,9 @@ def _set_pdf_metadata(path: str, metadata: dict) -> None:
     here so the file looks like a Word-exported PDF instead of a printed
     web page. Also overrides Creator from "Chromium" to a neutral value.
     """
+    from datetime import datetime
+
     from pypdf import PdfReader, PdfWriter
-    from datetime import datetime, timezone as _tz
 
     reader = PdfReader(path)
     writer = PdfWriter(clone_from=reader)
@@ -764,7 +766,7 @@ def _set_pdf_metadata(path: str, metadata: dict) -> None:
     if isinstance(kw, list):
         kw = ", ".join(str(k).strip() for k in kw if k)
 
-    now = datetime.now(_tz.utc)
+    now = datetime.now(UTC)
     pdf_date = now.strftime("D:%Y%m%d%H%M%S+00'00'")
 
     info = {
@@ -798,10 +800,10 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
             'author', 'company', 'category', 'comments'.
     """
     from docx import Document
-    from docx.shared import Pt, Inches, RGBColor
     from docx.enum.text import WD_ALIGN_PARAGRAPH
     from docx.oxml import OxmlElement
     from docx.oxml.ns import qn
+    from docx.shared import Inches, Pt, RGBColor
 
     # Brand link color (matches the section-heading bottom-border).
     LINK_COLOR_HEX = "2A7AB5"
@@ -820,7 +822,7 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
                 "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
                 is_external=True,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001
             r = paragraph.add_run(display)
             r.font.color.rgb = RGBColor(0x2A, 0x7A, 0xB5)
             if font_size:
@@ -1116,8 +1118,8 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
     # created/modified=2013-12-23) so reviewers + ATS systems don't see
     # tooling fingerprints.
     cp = doc.core_properties
-    from datetime import datetime, timezone as _tz
-    now = datetime.now(_tz.utc).replace(microsecond=0)
+    from datetime import datetime
+    now = datetime.now(UTC).replace(microsecond=0)
 
     metadata = metadata or {}
     cp.title    = str(metadata.get("title", ""))[:256]
@@ -1162,10 +1164,10 @@ def _scrub_docx_app_xml(path: str) -> None:
     the Application string reads ``Microsoft Office Word``, which is
     what an actual Word save produces.
     """
-    import zipfile
+    import os
     import shutil
     import tempfile
-    import os
+    import zipfile
     src = str(path)
     fd, tmp = tempfile.mkstemp(suffix=".docx", dir=os.path.dirname(src) or None)
     os.close(fd)
@@ -1290,8 +1292,8 @@ def batch_convert(limit: int = 50, doc_format: str = "docx") -> int:
         try:
             convert_to_pdf(f, doc_format=doc_format)
             converted += 1
-        except Exception as e:
-            log.error("Failed to convert %s: %s", f.name, e)
+        except Exception:
+            log.exception("Failed to convert %s", f.name)
 
     log.info("Done: %d/%d %s files generated in %s", converted, len(to_convert), doc_format.upper(), TAILORED_DIR)
     return converted

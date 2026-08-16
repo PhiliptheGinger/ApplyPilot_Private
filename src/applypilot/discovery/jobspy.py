@@ -10,9 +10,11 @@ search configuration YAML (searches.yaml) rather than being hardcoded.
 import logging
 import sqlite3
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from jobspy import scrape_jobs
+
+log = logging.getLogger(__name__)
 
 # Patch TLSRotating to always specify a client_identifier.
 # Without one, the tls-client Go binary receives a nil JA3 string and panics
@@ -29,7 +31,7 @@ try:
 
     tls_client.Session.__init__ = _safe_tls_init
 except Exception:
-    pass  # If tls_client isn't available, jobspy will use regular requests
+    log.debug("tls_client not available or patch failed", exc_info=True)
 
 # Patch Country.from_string to return WORLDWIDE for unsupported country strings
 # (e.g. "sri lanka") instead of raising ValueError that kills the entire scrape.
@@ -47,7 +49,7 @@ try:
 
     _Country.from_string = _safe_country_from_string
 except Exception:
-    pass  # If patching fails, fall back to original behavior
+    log.debug("Country.from_string patch failed", exc_info=True)
 
 from applypilot import config
 from applypilot.database import get_connection, init_db, write_with_retry
@@ -154,7 +156,7 @@ def _location_ok(location: str | None, accept: list[str], reject: list[str]) -> 
 
 def store_jobspy_results(conn: sqlite3.Connection, df, source_label: str) -> tuple[int, int]:
     """Store JobSpy DataFrame results into the DB. Returns (new, existing)."""
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     counts = {"new": 0, "existing": 0}
 
     rows_iter = list(df.iterrows())
@@ -215,7 +217,7 @@ def store_jobspy_results(conn: sqlite3.Connection, df, source_label: str) -> tup
                         posted_at = dp.isoformat()
                     else:
                         posted_at = str(dp)
-                except Exception:
+                except (ValueError, TypeError):
                     posted_at = None
 
             initial_state = "enriched" if full_description else "discovered"
@@ -299,8 +301,8 @@ def _run_one_search(
         try:
             df = _scrape_with_retry(kwargs, max_retries=max_retries)
             all_dfs.append(df)
-        except Exception as e:
-            log.error("[%s] (non-gd): %s", label, e)
+        except Exception:
+            log.exception("[%s] (non-gd) error", label)
 
     # Run Glassdoor separately with simplified location
     if has_glassdoor:
@@ -320,15 +322,16 @@ def _run_one_search(
         try:
             gd_df = _scrape_with_retry(gd_kwargs, max_retries=max_retries)
             all_dfs.append(gd_df)
-        except Exception as e:
-            log.error("[%s] (glassdoor): %s", label, e)
+        except Exception:
+            log.exception("[%s] (glassdoor) error", label)
 
     if not all_dfs:
         log.error("[%s]: all sites failed", label)
         return {"new": 0, "existing": 0, "errors": 1, "filtered": 0, "total": 0, "label": label}
 
-    import pandas as pd
     import warnings
+
+    import pandas as pd
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", FutureWarning)
         df = pd.concat(all_dfs, ignore_index=True) if len(all_dfs) > 1 else all_dfs[0]
@@ -402,7 +405,7 @@ def search_jobs(
     try:
         df = scrape_jobs(**kwargs)
     except Exception as e:
-        log.error("JobSpy search failed: %s", e)
+        log.exception("JobSpy search failed")
         return {"error": str(e), "total": 0, "new": 0, "existing": 0}
 
     total = len(df)
@@ -482,20 +485,25 @@ def _full_crawl(
     total_errors = 0
     completed = 0
 
-    for s in searches:
+    for completed, s in enumerate(searches, start=1):
         result = _run_one_search(
             s, sites, results_per_site, hours_old,
             proxy_config, defaults, max_retries,
             accept_locs, reject_locs, glassdoor_map,
         )
-        completed += 1
         total_new += result["new"]
         total_existing += result["existing"]
         total_errors += result["errors"]
 
         if completed % 5 == 0 or completed == len(searches):
-            log.info("Progress: %d/%d queries done (%d new, %d dupes, %d errors)",
-                     completed, len(searches), total_new, total_existing, total_errors)
+            log.info(
+                "Progress: %d/%d queries done (%d new, %d dupes, %d errors)",
+                completed,
+                len(searches),
+                total_new,
+                total_existing,
+                total_errors,
+            )
 
     # Final stats
     conn = get_connection()

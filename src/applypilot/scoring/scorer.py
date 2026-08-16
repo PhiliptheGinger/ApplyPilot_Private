@@ -9,7 +9,7 @@ import logging
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from applypilot.config import RESUME_PATH, load_profile
 from applypilot.database import get_connection, get_jobs_by_stage, write_with_retry
@@ -310,10 +310,10 @@ def score_job(resume_text: str, job: dict, profile: dict | None = None) -> dict:
         client = get_client()
         response = client.chat(messages, max_tokens=8192, temperature=0.2)
         return _parse_score_response(response)
-    except Exception as e:
-        log.error("LLM error scoring job '%s': %s", (job or {}).get("title") or "?", e)
+    except Exception as exc:
+        log.exception("LLM error scoring job '%s'", (job or {}).get("title") or "?")
         return {"score": None, "keywords": "", "reasoning": "", "eligibility": None,
-                "error": f"LLM error: {e}"}
+                "error": f"LLM error: {exc}"}
 
 
 MAX_SCORE_RETRIES = 5
@@ -331,8 +331,8 @@ def _flush_score_batch(conn, batch: list[dict], now: str) -> None:
     On failure (score is None): leaves fit_score NULL, writes score_error + backoff.
     Jobs that have already hit MAX_SCORE_RETRIES stay unscored indefinitely (manual rescue needed).
     """
-    from applypilot.database import transition_state
     from applypilot.config import DEFAULTS as _cfg_DEFAULTS
+    from applypilot.database import transition_state
     _min_score = _cfg_DEFAULTS["min_score"]
 
     for r in batch:
@@ -380,7 +380,7 @@ def _flush_score_batch(conn, batch: list[dict], now: str) -> None:
             else:
                 delay = _score_backoff_minutes(retry_count)
                 next_retry = (
-                    datetime.now(timezone.utc) + timedelta(minutes=delay)
+                    datetime.now(UTC) + timedelta(minutes=delay)
                 ).isoformat()
                 conn.execute(
                     "UPDATE jobs SET score_error = ?, score_attempts = ?, "
@@ -438,20 +438,20 @@ def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1,
         try:
             result = score_job(resume_text, job)
             result["url"] = job["url"]
-        except Exception as e:
-            log.error("Unexpected error scoring '%s': %s", (job or {}).get("title") or "?", e)
+        except Exception as exc:
+            log.exception("Unexpected error scoring '%s'", (job or {}).get("title") or "?")
             result = {
                 "score": None, "keywords": "", "reasoning": "",
-                "error": f"Unexpected: {e}", "url": (job or {}).get("url", ""),
+                "error": f"Unexpected: {exc}", "url": (job or {}).get("url", ""),
             }
         return result
 
     def _flush_and_log(batch: list[dict], completed: int) -> list[dict]:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         try:
             write_with_retry(conn, _flush_score_batch, conn, batch, now)
-        except Exception as flush_err:
-            log.exception("Batch flush failed (batch of %d): %s", len(batch), flush_err)
+        except Exception:
+            log.exception("Batch flush failed (batch of %d)", len(batch))
         log.info("Committed batch of %d scores to DB (%d/%d total)", len(batch), completed, len(jobs))
         return []
 
@@ -491,11 +491,11 @@ def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1,
 
     # Flush remaining
     if batch:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         try:
             write_with_retry(conn, _flush_score_batch, conn, batch, now)
-        except Exception as flush_err:
-            log.exception("Final batch flush failed (batch of %d): %s", len(batch), flush_err)
+        except Exception:
+            log.exception("Final batch flush failed (batch of %d)", len(batch))
 
     elapsed = time.time() - t0
     log.info("Done: %d scored in %.1fs (%.1f jobs/sec)", completed, elapsed, completed / elapsed if elapsed > 0 else 0)
@@ -508,8 +508,8 @@ def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1,
             GROUP BY fit_score ORDER BY fit_score DESC
         """).fetchall()
         distribution = [(row[0], row[1]) for row in dist]
-    except Exception as dist_err:
-        log.exception("Distribution query failed: %s", dist_err)
+    except Exception:
+        log.exception("Distribution query failed")
         distribution = []
 
     return {

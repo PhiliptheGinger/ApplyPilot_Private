@@ -16,6 +16,7 @@ import threading
 import time
 import urllib.request as _ureq
 from pathlib import Path
+from typing import ClassVar
 
 from applypilot import config
 
@@ -55,7 +56,7 @@ def _get_or_create_extension_key() -> str:
             ["openssl", "rsa", "-pubout", "-inform", "DER", "-outform", "DER"],
             input=privkey_der, stderr=_sp.DEVNULL,
         )
-    except Exception:
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError, _sp.TimeoutExpired):
         from cryptography.hazmat.primitives import serialization
         from cryptography.hazmat.primitives.asymmetric import rsa
 
@@ -133,6 +134,7 @@ def inject_dry_run_gate(cdp_port: int) -> bool:
     caller should fall back to the prompt-only override).
     """
     import urllib.request
+
     import websocket  # type: ignore
 
     try:
@@ -143,7 +145,7 @@ def inject_dry_run_gate(cdp_port: int) -> bool:
         browser_ws = info.get("webSocketDebuggerUrl")
         if not browser_ws:
             return False
-    except Exception:
+    except (urllib.request.URLError, OSError, ValueError):
         logger.debug("dry_run_gate: could not fetch CDP /json/version", exc_info=True)
         return False
 
@@ -162,7 +164,7 @@ def inject_dry_run_gate(cdp_port: int) -> bool:
             raw = ws.recv()
             try:
                 resp = json.loads(raw)
-            except Exception:
+            except (json.JSONDecodeError, TypeError, ValueError):
                 continue
             if resp.get("id") == msg_id[0]:
                 return resp
@@ -170,7 +172,7 @@ def inject_dry_run_gate(cdp_port: int) -> bool:
 
     try:
         ws = websocket.create_connection(browser_ws, timeout=5)
-    except Exception:
+    except websocket.WebSocketException:
         logger.debug("dry_run_gate: ws connect failed", exc_info=True)
         return False
 
@@ -207,8 +209,8 @@ def inject_dry_run_gate(cdp_port: int) -> bool:
     finally:
         try:
             ws.close()
-        except Exception:
-            pass
+        except websocket.WebSocketException:
+            logger.debug("dry_run_gate: ws.close() failed", exc_info=True)
 
 
 def _patch_manifest_key(manifest_path: Path) -> None:
@@ -356,14 +358,11 @@ def detect_ats(url: str | None) -> str | None:
     if not url:
         return None
     from urllib.parse import urlparse
-    try:
-        host = urlparse(url).hostname or ""
-        host = host.lower()
-        for domain, slug in ATS_DOMAINS.items():
-            if domain in host:
-                return slug
-    except Exception:
-        pass
+    host = urlparse(url).hostname or ""
+    host = host.lower()
+    for domain, slug in ATS_DOMAINS.items():
+        if domain in host:
+            return slug
     return None
 
 
@@ -454,6 +453,7 @@ def _kill_process_tree(pid: int) -> None:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 timeout=10,
+                check=False,
             )
         else:
             # Unix: kill entire process group
@@ -480,6 +480,7 @@ def _kill_on_port(port: int) -> None:
             result = subprocess.run(
                 ["netstat", "-ano", "-p", "TCP"],
                 capture_output=True, text=True, timeout=10,
+                check=False,
             )
             for line in result.stdout.splitlines():
                 if f":{port}" in line and "LISTENING" in line:
@@ -491,6 +492,7 @@ def _kill_on_port(port: int) -> None:
             result = subprocess.run(
                 ["lsof", "-ti", f":{port}"],
                 capture_output=True, text=True, timeout=10,
+                check=False,
             )
             for pid_str in result.stdout.strip().splitlines():
                 pid_str = pid_str.strip()
@@ -876,10 +878,11 @@ def _get_real_user_agent() -> str:
         result = subprocess.run(
             [chrome_exe, "--version"],
             capture_output=True, text=True, timeout=5,
+            check=False,
         )
         # "Google Chrome 145.0.7632.76" -> "145.0.7632.76"
         version = result.stdout.strip().split()[-1]
-    except Exception:
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError, subprocess.TimeoutExpired):
         version = "133.0.6943.141"
 
     system = platform.system()
@@ -937,8 +940,8 @@ def _get_screen_size() -> tuple[int, int]:
                 max_h = max(max_h, g.y + g.height)
             if max_w > 0 and max_h > 0:
                 return max_w, max_h
-        except Exception:
-            pass
+        except (ImportError, RuntimeError, OSError, TypeError, ValueError):
+            logger.debug("Could not determine screen size via GDK", exc_info=True)
     return 1920, 1080  # safe fallback
 
 
@@ -996,7 +999,7 @@ def prevent_focus_stealing() -> str | None:
         prev = subprocess.run(
             ["gsettings", "get",
              "org.gnome.desktop.wm.preferences", "focus-new-windows"],
-            capture_output=True, text=True, timeout=3,
+            capture_output=True, text=True, timeout=3, check=False,
         ).stdout.strip().strip("'")
         subprocess.run(
             ["gsettings", "set",
@@ -1005,7 +1008,7 @@ def prevent_focus_stealing() -> str | None:
         )
         logger.info("Focus-steal prevention: set focus-new-windows=strict (was '%s')", prev)
         return prev
-    except Exception as e:
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError, subprocess.TimeoutExpired) as e:
         logger.debug("prevent_focus_stealing: %s", e)
         return None
 
@@ -1021,7 +1024,7 @@ def restore_focus_mode(prev: str | None) -> None:
             check=True, timeout=3,
         )
         logger.info("Focus mode restored to '%s'", prev)
-    except Exception as e:
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError, subprocess.TimeoutExpired) as e:
         logger.debug("restore_focus_mode: %s", e)
 
 
@@ -1051,20 +1054,23 @@ def bring_to_foreground() -> None:
                 ["osascript", "-e",
                  'tell application "Google Chrome" to activate'],
                 timeout=3, capture_output=True,
+                check=False,
             )
         else:
             # Try wmctrl first (more reliable for window managers)
             result = subprocess.run(
                 ["wmctrl", "-a", "Chrome"],
                 timeout=3, capture_output=True,
+                check=False,
             )
             if result.returncode != 0:
                 subprocess.run(
                     ["xdotool", "search", "--name", "Chrome",
                      "windowactivate", "--sync"],
                     timeout=3, capture_output=True,
+                    check=False,
                 )
-    except Exception:
+    except (FileNotFoundError, OSError, subprocess.SubprocessError):
         pass  # Best-effort only
 
 
@@ -1077,13 +1083,13 @@ def bring_to_foreground_cdp(cdp_port: int) -> bool:
     Returns True on success, False if Chrome isn't reachable.
     """
     import json
-    from urllib.request import urlopen
     from urllib.error import URLError
+    from urllib.request import urlopen
 
     try:
         with urlopen(f"http://localhost:{cdp_port}/json", timeout=2) as r:
             targets = json.loads(r.read())
-    except (URLError, OSError, Exception):
+    except (URLError, OSError, ValueError):
         return False
 
     ws_url = next(
@@ -1101,7 +1107,7 @@ def bring_to_foreground_cdp(cdp_port: int) -> bool:
         ws.recv()
         ws.close()
         return True
-    except Exception:
+    except websocket.WebSocketException:
         return False
 
 
@@ -1189,7 +1195,7 @@ def _raise_x11_window(pid: int) -> bool:
 
             # Send _NET_ACTIVE_WINDOW ClientMessage to root
             class _EvData(ctypes.Union):
-                _fields_ = [("l", ctypes.c_long * 5), ("b", ctypes.c_char * 20)]
+                _fields_: ClassVar[list[tuple[str, object]]] = [("l", ctypes.c_long * 5), ("b", ctypes.c_char * 20)]
             class _XClientMsg(ctypes.Structure):
                 _fields_ = [
                     ("type",         ctypes.c_int),
@@ -1216,7 +1222,7 @@ def _raise_x11_window(pid: int) -> bool:
             return True
         finally:
             X11.XCloseDisplay(dpy)
-    except Exception:
+    except (ImportError, OSError, AttributeError):
         logger.debug("X11 window raise failed", exc_info=True)
         return False
 
@@ -1234,21 +1240,20 @@ def bring_to_foreground_pid(pid: int) -> None:
         if platform.system() == "Darwin":
             subprocess.run(
                 ["osascript", "-e",
-                 f'tell application "System Events" to set frontmost of '
-                 f'(first process whose unix id is {pid}) to true'],
-                timeout=3, capture_output=True,
+                 f'tell application "System Events" to set frontmost of (first process whose unix id is {pid}) to true'],
+                timeout=3, capture_output=True, check=False,
             )
             return
         # xdotool
         result = subprocess.run(
             ["xdotool", "search", "--pid", str(pid), "windowactivate", "--sync"],
-            timeout=3, capture_output=True,
+            timeout=3, capture_output=True, check=False,
         )
         if result.returncode == 0:
             return
         # wmctrl
         lp = subprocess.run(
-            ["wmctrl", "-l", "-p"], timeout=3, capture_output=True, text=True,
+            ["wmctrl", "-l", "-p"], timeout=3, capture_output=True, text=True, check=False,
         )
         if lp.returncode == 0:
             for line in lp.stdout.splitlines():
@@ -1256,14 +1261,14 @@ def bring_to_foreground_pid(pid: int) -> None:
                 if len(parts) >= 3 and parts[2] == str(pid):
                     subprocess.run(
                         ["wmctrl", "-i", "-a", parts[0]],
-                        timeout=3, capture_output=True,
+                        timeout=3, capture_output=True, check=False,
                     )
                     return
         # X11 ctypes — works on X11/XWayland without external tools
         if _raise_x11_window(pid):
             return
         bring_to_foreground()
-    except Exception:
+    except (FileNotFoundError, OSError, subprocess.SubprocessError):
         pass  # Best-effort only
 
 
@@ -1296,7 +1301,7 @@ def probe_existing_chrome(port: int, expected_profile_dir: Path) -> int | None:
     # Step 1: Does CDP respond?
     try:
         _ureq.urlopen(f"http://localhost:{port}/json", timeout=2).read()
-    except Exception:
+    except (OSError, ValueError):
         return None  # Nothing (or wrong thing) on this port
 
     # Step 2: Find the Chrome PID via /proc cmdline scan
@@ -1381,23 +1386,10 @@ def launch_chrome(worker_id: int, port: int | None = None,
         "--no-default-browser-check",
         f"--window-size={tile_w},{tile_h}",
         "--disable-session-crashed-bubble",
-        "--disable-features=InfiniteSessionRestore,PasswordManagerOnboarding,"
-        "SyncDisabledWithNoNetwork,ChromeSignin,Sync,"
+        "--disable-features=InfiniteSessionRestore,PasswordManagerOnboarding,SyncDisabledWithNoNetwork,ChromeSignin,Sync,GtkFileDialogPortal,AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints",
         # Bypass XDG portal for file dialogs — portal routes through Nautilus which
         # hangs when the saved last-directory path doesn't exist on this machine.
         # GtkFileDialogPortal disables portal; FileSystemAccessAPI keeps upload working.
-        "GtkFileDialogPortal,"
-        # patchright/playwright disabled-features (anti-fingerprint + stability):
-        # AvoidUnnecessaryBeforeUnloadCheckSync, BoundaryEventDispatchTracksNodeRemoval,
-        # DestroyProfileOnBrowserClose, DialMediaRouteProvider, GlobalMediaControls,
-        # HttpsUpgrades, LensOverlay, MediaRouter, PaintHolding,
-        # ThirdPartyStoragePartitioning, Translate, AutoDeElevate, RenderDocument,
-        # OptimizationHints
-        "AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,"
-        "DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,"
-        "HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,"
-        "ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,"
-        "OptimizationHints",
         # patchright launch-time anti-fingerprint flags (from chromiumSwitches.js).
         # `--enable-features=CDPScreenshotNewSurface` + `--disable-blink-features=AutomationControlled`
         # are the two most fingerprint-relevant; the rest reduce noise and prevent the
@@ -1448,7 +1440,7 @@ def launch_chrome(worker_id: int, port: int | None = None,
         cmd.append(f"--window-position={tile_x},{tile_y}")
 
     # On Unix, start in a new process group so we can kill the whole tree
-    kwargs: dict = dict(stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    kwargs: dict = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
     if platform.system() != "Windows":
         import os
         kwargs["preexec_fn"] = os.setsid
