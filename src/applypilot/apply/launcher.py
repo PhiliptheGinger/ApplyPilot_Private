@@ -19,86 +19,71 @@ import subprocess
 import sys
 import threading
 import time
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
+
 from applypilot import config
+from applypilot.database import (
+    get_connection,
+    categorize_apply_result,
+    commit_with_retry,
+    get_in_flight_by_company,
+    transition_state,
+)
 from applypilot.apply import prompt as prompt_mod
 from applypilot.apply.chrome import (  # noqa: F401  (re-exports)
-    BASE_CDP_PORT,
-    HITL_LISTEN_BASE_PORT,
-    _AdoptedChromeProcess,
-    _chrome_lock,
-    _chrome_procs,
-    _kill_process_tree,
-    bring_to_foreground,
-    cleanup_on_exit,
-    cleanup_worker,
-    clear_ats_session,
-    detect_ats,
-    kill_all_chrome,
-    launch_chrome,
-    probe_existing_chrome,
-    reset_worker_dir,
-    save_ats_session,
+    launch_chrome, cleanup_worker, kill_all_chrome,
+    detect_ats, save_ats_session, clear_ats_session,
+    reset_worker_dir, cleanup_on_exit, _kill_process_tree,
+    BASE_CDP_PORT, HITL_LISTEN_BASE_PORT, bring_to_foreground,
+    probe_existing_chrome, _AdoptedChromeProcess,
+    _chrome_procs, _chrome_lock,
 )
 from applypilot.apply.dashboard import (  # noqa: F401  (re-exports)
-    add_event,
-    get_state,
-    get_totals,
-    init_worker,
-    render_full,
-    start_health_checks,
-    stop_health_checks,
-    update_state,
-)
-from applypilot.apply.hitl import (  # noqa: F401  (re-exports)
-    _HITL_INSTRUCTIONS,
-    _HITL_TRANSIENT_ERRORS,
-    _action_log_cache,
-    _action_log_cache_lock,
-    _format_action_log,
-    _get_waiting_count,
-    _hitl_server_lock,
-    _hitl_servers,
-    _inject_banner_for_worker,
-    _register_waiting,
-    _run_hitl,
-    _send_desktop_notification,
-    _start_hitl_listener,
-    _stdin_fallback_lock,
-    _stop_hitl_listener,
-    _unregister_waiting,
-    _waiting_lock,
-    _waiting_workers,
-    get_hitl_instruction,
-    mark_needs_human,
-    notify_human_needed,
-    reset_needs_human,
+    init_worker, update_state, add_event, get_state,
+    render_full, get_totals, start_health_checks, stop_health_checks,
 )
 from applypilot.apply.result_handlers import (  # noqa: F401  (re-exports)
+    PERMANENT_FAILURES,
+    HITL_AUTO_ROUTE,
+    RETRYABLE_AUTH_FAILURES,
+    PERMANENT_PREFIXES,
+    _NEXT_STEPS,
     _FAILED_LOG,
     _MANUAL_LOG,
-    _NEXT_STEPS,
-    HITL_AUTO_ROUTE,
-    PERMANENT_FAILURES,
-    PERMANENT_PREFIXES,
-    RETRYABLE_AUTH_FAILURES,
+    _parse_account_created,
+    _parse_qa_lines,
     _infer_result_from_output,
     _is_permanent_failure,
     _log_failed_attempt,
     _log_manual_action,
-    _parse_account_created,
-    _parse_qa_lines,
     _record_job_history,
 )
-from applypilot.database import (
-    categorize_apply_result,
-    commit_with_retry,
-    get_connection,
-    get_in_flight_by_company,
-    transition_state,
+from applypilot.apply.hitl import (  # noqa: F401  (re-exports)
+    _HITL_TRANSIENT_ERRORS,
+    _HITL_INSTRUCTIONS,
+    get_hitl_instruction,
+    _action_log_cache,
+    _action_log_cache_lock,
+    _stdin_fallback_lock,
+    _waiting_workers,
+    _waiting_lock,
+    _hitl_servers,
+    _hitl_server_lock,
+    _register_waiting,
+    _unregister_waiting,
+    _get_waiting_count,
+    _start_hitl_listener,
+    _stop_hitl_listener,
+    _inject_banner_for_worker,
+    mark_needs_human,
+    reset_needs_human,
+    _send_desktop_notification,
+    notify_human_needed,
+    _format_action_log,
+    _run_hitl,
 )
 
 logger = logging.getLogger(__name__)
@@ -704,8 +689,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
 
         def _handle_jobs_list(self):
             """Return actionable jobs for the extension Jobs tab."""
-            from urllib.parse import parse_qs
-            from urllib.parse import urlparse as _up
+            from urllib.parse import parse_qs, urlparse as _up
             qs = parse_qs(_up(self.path).query)
             limit = min(int(qs.get("limit", ["50"])[0]), 200)
             try:
@@ -771,9 +755,8 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
 
         def _handle_jobs_mark(self):
             """Manually mark a job's apply status from the extension Jobs tab."""
-            from datetime import datetime
-
             from applypilot.database import get_connection
+            from datetime import datetime, timezone as tz
             body = self._read_body()
             url    = (body.get("url") or "").strip()
             action = (body.get("action") or "").strip()
@@ -787,7 +770,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
             try:
                 
                 conn = get_connection()
-                now = datetime.now(UTC).isoformat()
+                now = datetime.now(tz.utc).isoformat()
                 if action == "applied":
                     conn.execute("""UPDATE jobs SET apply_status='applied', applied_at=?,
                         apply_category='applied', apply_attempts=COALESCE(apply_attempts,0)+1
@@ -1018,8 +1001,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
 
             Query params: q (free text), ats, source, outcome, limit, offset.
             """
-            from urllib.parse import parse_qs
-            from urllib.parse import urlparse as _up
+            from urllib.parse import parse_qs, urlparse as _up
             qs = parse_qs(_up(self.path).query)
             q       = (qs.get("q",       [""])[0] or "").strip()
             ats     = (qs.get("ats",     [""])[0] or "").strip()
@@ -1100,8 +1082,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
             Update fields: question_text, answer_text, answer_source,
             field_type, options_json, ats_slug, outcome.
             """
-            from datetime import datetime as _dt
-
+            from datetime import datetime as _dt, timezone as _tz
             from applypilot.database import get_connection, question_key
             try:
                 row_id = int(self.path.rsplit("/", 1)[-1])
@@ -1137,7 +1118,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                         self.end_headers()
                         return
                     fields.append("updated_at = ?")
-                    params.append(_dt.now(UTC).isoformat())
+                    params.append(_dt.now(_tz.utc).isoformat())
                     params.append(row_id)
                     conn.execute(
                         f"UPDATE qa_knowledge SET {', '.join(fields)} WHERE id = ?",
@@ -1339,8 +1320,8 @@ def _refresh_gmail_token() -> bool:
                 return True
 
             logger.info("Gmail token expiring soon, refreshing...")
-            import urllib.parse
             import urllib.request
+            import urllib.parse
 
             data = urllib.parse.urlencode({
                 "client_id": key_info["client_id"],
@@ -1462,9 +1443,8 @@ def acquire_job(target_url: str | None = None,
       - Per-ATS concurrency: at most 1 active worker per ATS family
       - Manual-ATS skip list
     """
-    from datetime import datetime, timedelta
-
     from applypilot import config as _cfg
+    from datetime import datetime, timedelta, timezone
 
     if min_score is None:
         min_score = _cfg.DEFAULTS["min_score"]
@@ -1610,7 +1590,7 @@ def acquire_job(target_url: str | None = None,
             # employer name in `site`) bucket correctly.
             from applypilot.scoring.tailor import resolve_company_key
             in_flight = get_in_flight_by_company(conn)
-            now_utc = datetime.now(UTC)
+            now_utc = datetime.now(timezone.utc)
 
             def _in_flight_count(key: str | None) -> int:
                 """How many in-flight applies for ``key`` in the per-company
@@ -1712,7 +1692,7 @@ def acquire_job(target_url: str | None = None,
             logger.info("Skipping manual ATS: %s", row["url"][:80])
             return None
 
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         conn.execute("""
             UPDATE jobs SET apply_status = 'in_progress',
                            agent_id = ?,
@@ -1740,7 +1720,7 @@ def mark_result(url: str, status: str, error: str | None = None,
                 task_id: str | None = None) -> None:
     """Update a job's apply status in the database + emit state transition."""
     conn = get_connection()
-    now = datetime.now(UTC).isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     if status == "applied":
         _db_retry_execute(conn, """
             UPDATE jobs SET apply_status = 'applied', applied_at = ?,
@@ -1846,7 +1826,7 @@ def mark_job(url: str, status: str, reason: str | None = None) -> None:
         reason: Failure reason (only for status='failed').
     """
     conn = get_connection()
-    now = datetime.now(UTC).isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     if status == "applied":
         _db_retry_execute(conn, """
             UPDATE jobs SET apply_status = 'applied', applied_at = ?,
@@ -2461,11 +2441,11 @@ def run_job(job: dict, port: int, worker_id: int = 0,
 # partially-loaded launcher. By the time we reach this line, every name
 # in launcher's module namespace is fully defined.
 
-from applypilot.apply.orchestrator import (  # noqa: F401
+from applypilot.apply.orchestrator import (  # noqa: E402, F401
     POLL_INTERVAL,
     _probe_for_reconnect,
-    _prompt_user_for_qa,
-    _worker_loop_body,
-    main,
     worker_loop,
+    _worker_loop_body,
+    _prompt_user_for_qa,
+    main,
 )
