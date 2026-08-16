@@ -15,14 +15,14 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from applypilot.config import load_env, ensure_dirs, LOG_DIR
-from applypilot.database import init_db, get_connection, get_stats
+from applypilot.config import LOG_DIR, ensure_dirs, load_env
+from applypilot.database import get_connection, get_stats, init_db
 
 log = logging.getLogger(__name__)
 console = Console()
@@ -35,7 +35,7 @@ def _setup_file_logging(stages: list[str]) -> logging.FileHandler | None:
     Returns the handler so it can be removed after the run.
     """
     LOG_DIR.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    ts = datetime.now(UTC).strftime("%Y-%m-%d_%H-%M-%S")
     stage_tag = "+".join(stages) if len(stages) <= 4 else f"{stages[0]}+{len(stages)-1}more"
     log_path = LOG_DIR / f"{ts}_{stage_tag}.log"
 
@@ -149,7 +149,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
             run_discovery()
             stats["jobspy"] = "ok"
         except Exception as e:
-            log.error("JobSpy crawl failed: %s", e)
+            log.exception("JobSpy crawl failed")
             console.print(f"  [red]JobSpy error:[/red] {e}")
             stats["jobspy"] = f"error: {e}"
 
@@ -162,7 +162,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
                 run_discovery(sites_override=sites)
                 stats[source_name] = "ok"
             except Exception as e:
-                log.error("JobSpy (%s) crawl failed: %s", source_name, e)
+                log.exception("JobSpy (%s) crawl failed", source_name)
                 console.print(f"  [red]JobSpy ({source_name}) error:[/red] {e}")
                 stats[source_name] = f"error: {e}"
 
@@ -173,7 +173,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
             run_workday_discovery(workers=workers)
             stats["workday"] = "ok"
         except Exception as e:
-            log.error("Workday scraper failed: %s", e)
+            log.exception("Workday scraper failed")
             console.print(f"  [red]Workday error:[/red] {e}")
             stats["workday"] = f"error: {e}"
 
@@ -184,7 +184,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
             run_greenhouse_discovery(workers=workers)
             stats["greenhouse"] = "ok"
         except Exception as e:
-            log.error("Greenhouse scraper failed: %s", e)
+            log.exception("Greenhouse scraper failed")
             console.print(f"  [red]Greenhouse error:[/red] {e}")
             stats["greenhouse"] = f"error: {e}"
 
@@ -195,7 +195,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
             run_lever_discovery(workers=workers)
             stats["lever"] = "ok"
         except Exception as e:
-            log.error("Lever scraper failed: %s", e)
+            log.exception("Lever scraper failed")
             console.print(f"  [red]Lever error:[/red] {e}")
             stats["lever"] = f"error: {e}"
 
@@ -206,7 +206,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
             run_ashby_discovery(workers=workers)
             stats["ashby"] = "ok"
         except Exception as e:
-            log.error("Ashby scraper failed: %s", e)
+            log.exception("Ashby scraper failed")
             console.print(f"  [red]Ashby error:[/red] {e}")
             stats["ashby"] = f"error: {e}"
 
@@ -217,7 +217,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
             run_amazon_discovery(workers=workers)
             stats["amazon"] = "ok"
         except Exception as e:
-            log.error("Amazon scraper failed: %s", e)
+            log.exception("Amazon scraper failed")
             console.print(f"  [red]Amazon error:[/red] {e}")
             stats["amazon"] = f"error: {e}"
 
@@ -228,7 +228,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
             run_costco_discovery(workers=workers)
             stats["costco"] = "ok"
         except Exception as e:
-            log.error("Costco scraper failed: %s", e)
+            log.exception("Costco scraper failed")
             console.print(f"  [red]Costco error:[/red] {e}")
             stats["costco"] = f"error: {e}"
 
@@ -239,7 +239,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
             run_builtin_discovery(workers=workers)
             stats["builtin"] = "ok"
         except Exception as e:
-            log.error("BuiltIn scraper failed: %s", e)
+            log.exception("BuiltIn scraper failed")
             console.print(f"  [red]BuiltIn error:[/red] {e}")
             stats["builtin"] = f"error: {e}"
 
@@ -250,7 +250,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
             run_smart_extract(workers=workers)
             stats["smartextract"] = "ok"
         except Exception as e:
-            log.error("Smart extract failed: %s", e)
+            log.exception("Smart extract failed")
             console.print(f"  [red]Smart extract error:[/red] {e}")
             stats["smartextract"] = f"error: {e}"
 
@@ -263,7 +263,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
             console.print(f"  [dim]HN: {new} new jobs from '{hn_result.get('thread_title', '?')}'[/dim]")
             stats["hackernews"] = "ok"
         except Exception as e:
-            log.error("HN discovery failed: %s", e)
+            log.exception("HN discovery failed")
             console.print(f"  [red]HN error:[/red] {e}")
             stats["hackernews"] = f"error: {e}"
 
@@ -277,7 +277,7 @@ def _run_enrich(workers: int = 1) -> dict:
         run_enrichment(workers=workers)
         return {"status": "ok"}
     except Exception as e:
-        log.error("Enrichment failed: %s", e)
+        log.exception("Enrichment failed")
         return {"status": f"error: {e}"}
 
 
@@ -291,7 +291,7 @@ def _run_score(workers: int = 1, max_age_days: int | None = None) -> dict:
         run_scoring(workers=workers, max_age_days=max_age_days)
         return {"status": "ok"}
     except Exception as e:
-        log.exception("Scoring failed: %s", e)
+        log.exception("Scoring failed")
         return {"status": f"error: {e}"}
 
 
@@ -309,7 +309,7 @@ def _run_tailor(min_score: int | None = None, max_age_days: int | None = None,
                       limit=limit, workers=workers, doc_format=doc_format)
         return {"status": "ok"}
     except Exception as e:
-        log.exception("Tailoring failed: %s", e)
+        log.exception("Tailoring failed")
         return {"status": f"error: {e}"}
 
 
@@ -327,7 +327,7 @@ def _run_cover(min_score: int | None = None, max_age_days: int | None = None,
                           limit=limit, workers=workers, doc_format=doc_format)
         return {"status": "ok"}
     except Exception as e:
-        log.exception("Cover letter generation failed: %s", e)
+        log.exception("Cover letter generation failed")
         return {"status": f"error: {e}"}
 
 
@@ -338,7 +338,7 @@ def _run_pdf(doc_format: str = "docx") -> dict:
         batch_convert(doc_format=doc_format)
         return {"status": "ok"}
     except Exception as e:
-        log.error("Document conversion failed: %s", e)
+        log.exception("Document conversion failed")
         return {"status": f"error: {e}"}
 
 
@@ -546,11 +546,10 @@ def _run_stage_streaming(
                     progress = sum(int(result.get(k, 0) or 0) for k in
                                    ("approved", "failed", "errors", "processed",
                                     "ok", "partial", "error", "new"))
-                    if progress == 0:
-                        if stop_event.wait(timeout=_STREAM_POLL_INTERVAL):
-                            break
-            except Exception as e:
-                log.error("Stage '%s' error (pass %d): %s", stage, passes, e)
+                    if progress == 0 and stop_event.wait(timeout=_STREAM_POLL_INTERVAL):
+                        break
+            except Exception:
+                log.exception("Stage '%s' error (pass %d)", stage, passes)
                 passes += 1
                 if stop_event.wait(timeout=_STREAM_POLL_INTERVAL):
                     break
@@ -589,7 +588,7 @@ def _run_sequential(
         meta = STAGE_META[name]
         console.print(f"\n{'=' * 70}")
         console.print(f"  [bold]STAGE: {name}[/bold] — {meta['desc']}")
-        console.print(f"  Started: {datetime.now().strftime('%H:%M:%S')}")
+        console.print(f"  Started: {datetime.now(UTC).strftime('%H:%M:%S')}")
         console.print(f"{'=' * 70}")
 
         t0 = time.time()

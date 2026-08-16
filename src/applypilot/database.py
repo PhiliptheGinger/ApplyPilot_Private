@@ -12,7 +12,7 @@ import re as _re
 import sqlite3
 import threading
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -543,7 +543,7 @@ def transition_state(conn: sqlite3.Connection, job_url: str, to_state: str,
                        from_state, to_state, job_url[:60], sorted(allowed))
             return False
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     meta_json = None
     if metadata:
         import json as _json
@@ -613,7 +613,7 @@ def backfill_states(conn: sqlite3.Connection | None = None) -> dict[str, int]:
     """).fetchall()
 
     counts: dict[str, int] = {}
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     for r in candidates:
         url = r["url"] if isinstance(r, sqlite3.Row) else r[0]
@@ -1043,7 +1043,7 @@ def get_stats(conn: sqlite3.Connection | None = None) -> dict:
             continue
         if cap < 0:
             continue
-        cutoff = (datetime.now(timezone.utc) - timedelta(days=window)).isoformat()
+        cutoff = (datetime.now(UTC) - timedelta(days=window)).isoformat()
         recent_count = sum(1 for ts in stamps if ts and ts > cutoff)
         if recent_count >= cap:
             blocked_companies.append(co)
@@ -1082,7 +1082,8 @@ def extract_company(application_url: str | None) -> str | None:
         # Greenhouse job boards: job-boards.greenhouse.io/hudl/... → hudl
         # Greenhouse embed:     job-boards.greenhouse.io/embed/job_app?for=coinbase → coinbase
         if "greenhouse.io" in host:
-            from urllib.parse import parse_qs, urlparse as _urlparse
+            from urllib.parse import parse_qs
+            from urllib.parse import urlparse as _urlparse
             qs = parse_qs(_urlparse(application_url).query)
             if "for" in qs:
                 return qs["for"][0].lower()
@@ -1234,7 +1235,7 @@ def store_jobs(conn: sqlite3.Connection, jobs: list[dict],
     Returns:
         Tuple of (new_count, duplicate_count).
     """
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     counts = {"new": 0, "existing": 0}
 
     from applypilot.discovery.url_normalize import canonicalize_application_url
@@ -1281,7 +1282,7 @@ def store_account(conn: sqlite3.Connection, account: dict,
                  and optionally login_method ('email' | 'linkedin').
         job_url: The job URL that triggered this account creation.
     """
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     # login_method is stored in notes so it shows up in the CLI and prompt
     notes = account.get("notes") or account.get("login_method")
     conn.execute(
@@ -1473,7 +1474,7 @@ def upsert_account(domain: str, email: str, password: str | None,
         "SELECT id FROM accounts WHERE domain = ? ORDER BY created_at DESC LIMIT 1",
         (domain,)
     ).fetchone()
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     if existing:
         updates = ["email = ?", "password = ?"]
         params: list = [email, password]
@@ -1725,9 +1726,10 @@ def create_stub_job(email: dict, classification: str,
         The generated job URL (primary key).
     """
     import hashlib
+
     from applypilot.tracking.matcher import (
-        extract_company_from_subject,
         _extract_company_from_snippet,
+        extract_company_from_subject,
         normalize_company,
     )
 
@@ -1777,7 +1779,7 @@ def create_stub_job(email: dict, classification: str,
             title = title[len(prefix):]
             break
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     email_date = email.get("date", now)
 
     conn.execute(
@@ -1885,7 +1887,7 @@ def update_tracking_status(job_url: str, new_status: str,
     new_pri = _TRACKING_PRIORITY.get(new_status, 0)
 
     if new_pri > current_pri:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         conn.execute(
             "UPDATE jobs SET tracking_status = ?, tracking_updated_at = ? WHERE url = ?",
             (new_status, now, job_url),
@@ -2013,7 +2015,7 @@ def store_qa(question: str, answer: str, source: str = "agent",
     """
     if conn is None:
         conn = get_connection()
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     key = question_key(question)
     try:
         conn.execute(
@@ -2167,7 +2169,7 @@ def mark_qa_outcome(job_url: str, outcome: str,
     """
     if conn is None:
         conn = get_connection()
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     cursor = conn.execute(
         "UPDATE qa_knowledge SET outcome = ?, updated_at = ? WHERE job_url = ?",
         (outcome, now, job_url),

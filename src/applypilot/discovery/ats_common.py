@@ -21,8 +21,8 @@ import sqlite3
 import time
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
-from typing import Callable
+from collections.abc import Callable
+from datetime import UTC, datetime
 
 import yaml
 
@@ -95,7 +95,7 @@ def insert_normalized_jobs(
     employer_name); this writes them. Returns (new, existing).
     """
     counts = {"new": 0, "existing": 0}
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     def _do_inserts() -> None:
         counts["new"] = 0

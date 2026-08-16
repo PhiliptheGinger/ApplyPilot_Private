@@ -303,7 +303,7 @@ def _extract_project(bullet: str) -> dict | None:
     # go into the dedicated `_annotation` field — `entity` is reserved for
     # the parent company and gets populated by the caller.
     if annotation:
-        url_m = re.search(r"([a-z0-9-]+(?:\.[a-z0-9-]+)+(?:/\S*)?)", annotation, re.I)
+        url_m = re.search(r"([a-z0-9-]+(?:\.[a-z0-9-]+)+(?:/\S*)?)", annotation, re.IGNORECASE)
         if url_m and "." in url_m.group(0) and "http" not in annotation:
             project["url"] = "https://" + url_m.group(0).strip("/.")
         else:
@@ -447,9 +447,8 @@ def to_json_resume(text: str) -> dict:
             if _looks_like_earlier(title):
                 if e := _parse_earlier_line(title):
                     work.append(e)
-                if subtitle and _looks_like_earlier(subtitle):
-                    if e := _parse_earlier_line(subtitle):
-                        work.append(e)
+                if subtitle and _looks_like_earlier(subtitle) and (e := _parse_earlier_line(subtitle)):
+                    work.append(e)
                 continue
 
             # Disambiguate which line carries dates: 3-line format puts the

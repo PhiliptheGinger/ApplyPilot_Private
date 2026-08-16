@@ -203,9 +203,16 @@ def _worker_loop_body(
 ) -> tuple[int, int]:
     """Main per-worker processing loop."""
     from applypilot.apply.launcher import (
-        _stop_event, _worker_state, _worker_state_lock,
-        _takeover_events, _handback_events, _qa_queue,
-        run_job, acquire_job, mark_result, release_lock,
+        _handback_events,
+        _qa_queue,
+        _stop_event,
+        _takeover_events,
+        _worker_state,
+        _worker_state_lock,
+        acquire_job,
+        mark_result,
+        release_lock,
+        run_job,
     )
     # ── Reconnect probe ───────────────────────────────────────────────────────
     # If a previous run was killed while Chrome was running, adopt the existing
@@ -606,7 +613,10 @@ def main(limit: int = 1, target_url: str | None = None,
         no_focus: Prevent Chrome windows from stealing keyboard focus (Linux/GNOME only).
     """
     from applypilot.apply.launcher import (
-        _stop_event, _claude_lock, _claude_procs, _qa_queue,
+        _claude_lock,
+        _claude_procs,
+        _qa_queue,
+        _stop_event,
     )
     global POLL_INTERVAL
     POLL_INTERVAL = poll_interval

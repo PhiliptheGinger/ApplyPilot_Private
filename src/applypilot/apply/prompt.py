@@ -718,7 +718,7 @@ def build_prompt(job: dict, tailored_resume: str,
     # sequence from the last successful apply on this ATS — a hint, not a
     # script. See apply/successful_paths.py.
     from applypilot.apply.chrome import detect_ats
-    from applypilot.apply.successful_paths import load_path, format_path_for_prompt
+    from applypilot.apply.successful_paths import format_path_for_prompt, load_path
     _job_url_for_ats = job.get("application_url") or job.get("url") or ""
     _ats_slug = detect_ats(_job_url_for_ats)
     prior_path_block = format_path_for_prompt(load_path(_ats_slug)) if _ats_slug else None

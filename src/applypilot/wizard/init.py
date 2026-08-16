@@ -420,7 +420,7 @@ def run_wizard() -> None:
     console.print()
 
     # Done — show tier status
-    from applypilot.config import get_tier, TIER_LABELS, TIER_COMMANDS
+    from applypilot.config import TIER_COMMANDS, TIER_LABELS, get_tier
 
     tier = get_tier()
 

@@ -5,16 +5,16 @@ and maintains per-job tracking documents with timelines and action items.
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 from rich.console import Console
 from rich.table import Table
 
 from applypilot.database import (
     commit_with_retry,
+    get_action_items,
     get_applied_jobs,
     get_connection,
-    get_action_items,
     get_tracking_stats,
 )
 
@@ -62,14 +62,14 @@ def _process_classified_email(
     """
     import json
 
-    from applypilot.tracking.matcher import match_email_to_job
     from applypilot.database import (
+        create_stub_job,
         store_tracking_email,
         store_tracking_person,
-        update_tracking_status,
         update_job_tracking_fields,
-        create_stub_job,
+        update_tracking_status,
     )
+    from applypilot.tracking.matcher import match_email_to_job
 
     classification = result["classification"]
     if classification == "noise":
@@ -94,7 +94,7 @@ def _process_classified_email(
         log.info("Created stub job for '%s' -> %s",
                  email.get("subject", "")[:50], job_url[:60])
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     if dry_run:
         console.print(
@@ -162,12 +162,12 @@ def remap_stubs(conn=None) -> dict:
     Returns:
         {remapped: int, new_stubs: int, deleted_stubs: int}
     """
-    from applypilot.tracking.matcher import match_email_to_job, extract_company_from_subject
     from applypilot.database import (
-        get_applied_jobs,
         create_stub_job,
+        get_applied_jobs,
         update_tracking_status,
     )
+    from applypilot.tracking.matcher import extract_company_from_subject, match_email_to_job
 
     if conn is None:
         conn = get_connection()
@@ -296,6 +296,7 @@ def relabel_all_tracked(conn=None) -> int:
         Count of emails submitted for labeling.
     """
     import asyncio
+
     from applypilot.tracking.gmail_client import apply_label_to_emails
 
     if conn is None:
@@ -339,15 +340,15 @@ def run_tracking(
     """
     import asyncio
 
-    from applypilot.tracking.gmail_client import search_application_emails, read_email_bodies
-    from applypilot.tracking.classifier import classify_email
-    from applypilot.tracking.triage import triage_batch
-    from applypilot.tracking.ghosting import detect_ghosted
-    from applypilot.tracking.markdown_gen import generate_tracking_doc
     from applypilot.database import (
         email_already_tracked,
         update_job_tracking_fields,
     )
+    from applypilot.tracking.classifier import classify_email
+    from applypilot.tracking.ghosting import detect_ghosted
+    from applypilot.tracking.gmail_client import read_email_bodies, search_application_emails
+    from applypilot.tracking.markdown_gen import generate_tracking_doc
+    from applypilot.tracking.triage import triage_batch
 
     conn = get_connection()
     applied_jobs = get_applied_jobs(conn)

@@ -17,9 +17,8 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from html.parser import HTMLParser
-
 
 from applypilot.database import get_connection, init_db, write_with_retry
 
@@ -193,7 +192,7 @@ def search_amazon_jobs(
 
 def _insert_jobs(conn: sqlite3.Connection, jobs: list[dict]) -> tuple[int, int]:
     counts = {"new": 0, "existing": 0}
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     def _do_inserts() -> None:
         counts["new"] = 0

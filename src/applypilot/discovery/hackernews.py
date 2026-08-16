@@ -20,7 +20,7 @@ import logging
 import re
 import sqlite3
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 
@@ -202,7 +202,7 @@ def _store_hn_job(
     location = job.get("location") or ("Remote" if job.get("remote") else None)
     salary = job.get("salary")
     description = job.get("description") or ""
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     # Combine description with deobfuscated contact info
     if contact and contact != url:
@@ -331,7 +331,7 @@ def run_hn_discovery(
             posted_at = None
             ts = comment.get("time") or comment.get("created_at_i")
             if isinstance(ts, (int, float)) and ts > 0:
-                posted_at = datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
+                posted_at = datetime.fromtimestamp(ts, tz=UTC).isoformat()
 
             if _store_hn_job(conn, job, thread_title, posted_at=posted_at):
                 new += 1

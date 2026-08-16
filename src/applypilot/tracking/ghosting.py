@@ -8,7 +8,7 @@ A job is marked "ghosted" if:
 
 import logging
 import sqlite3
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
 log = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ def detect_ghosted(
     if conn is None:
         conn = get_connection()
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=ghosted_days)
+    cutoff = datetime.now(UTC) - timedelta(days=ghosted_days)
     ghosted_count = 0
 
     for job in applied_jobs:
@@ -49,7 +49,7 @@ def detect_ghosted(
         try:
             applied_dt = datetime.fromisoformat(applied_at.replace("Z", "+00:00"))
             if applied_dt.tzinfo is None:
-                applied_dt = applied_dt.replace(tzinfo=timezone.utc)
+                applied_dt = applied_dt.replace(tzinfo=UTC)
         except (ValueError, TypeError):
             continue
 

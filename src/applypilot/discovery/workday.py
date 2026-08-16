@@ -15,7 +15,7 @@ import time
 import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from html.parser import HTMLParser
 
 import yaml
@@ -226,8 +226,8 @@ def search_employer(
                     log.warning("%s: HTTP %d at offset %d — retry %d/2 in %ds",
                                 employer["name"], e.code, offset, attempt + 1, wait)
                     time.sleep(wait)
-            except Exception as e:
-                # URLError / timeout / connection reset — same treatment
+            except (urllib.error.URLError, OSError) as e:
+                # URLError / socket timeout / connection reset — same treatment
                 last_err = e
                 if attempt < 2:
                     wait = 5 * (2 ** attempt)
@@ -248,9 +248,8 @@ def search_employer(
 
         for j in postings:
             loc = j.get("locationsText", "")
-            if location_filter and accept_locs is not None and reject_locs is not None:
-                if not _location_ok(loc, accept_locs, reject_locs):
-                    continue
+            if location_filter and accept_locs is not None and reject_locs is not None and not _location_ok(loc, accept_locs, reject_locs):
+                continue
 
             all_jobs.append({
                 "title": j.get("title", ""),
@@ -296,7 +295,7 @@ def _fetch_one_detail(employer: dict, job: dict) -> dict:
         # ("Posted 3 Days Ago"), so we don't use it.
         job["posted_at"] = info.get("startDate") or None
 
-    except Exception as e:
+    except (urllib.error.URLError, json.JSONDecodeError, OSError, KeyError, TypeError) as e:
         job["full_description"] = ""
         job["apply_url"] = ""
         job["detail_error"] = str(e)
@@ -308,24 +307,33 @@ def fetch_details(employer: dict, jobs: list[dict]) -> list[dict]:
     """Fetch full description + apply URL for each job sequentially."""
     log.info("%s: fetching details for %d jobs...", employer["name"], len(jobs))
 
-    completed = 0
     errors = 0
     t0 = time.time()
 
-    for job in jobs:
+    for completed, job in enumerate(jobs, start=1):
         _fetch_one_detail(employer, job)
-        completed += 1
         if "detail_error" in job:
             errors += 1
 
         if completed % 20 == 0 or completed == len(jobs):
             elapsed = time.time() - t0
             rate = completed / elapsed if elapsed > 0 else 0
-            log.info("%s: %d/%d (%d errors) [%.1f jobs/sec]",
-                     employer["name"], completed, len(jobs), errors, rate)
+            log.info(
+                "%s: %d/%d (%d errors) [%.1f jobs/sec]",
+                employer["name"],
+                completed,
+                len(jobs),
+                errors,
+                rate,
+            )
 
     elapsed = time.time() - t0
-    log.info("%s: done in %.1fs (%.1f jobs/sec)", employer["name"], elapsed, len(jobs) / elapsed if elapsed > 0 else 0)
+    log.info(
+        "%s: done in %.1fs (%.1f jobs/sec)",
+        employer["name"],
+        elapsed,
+        len(jobs) / elapsed if elapsed > 0 else 0,
+    )
     return jobs
 
 
@@ -333,7 +341,7 @@ def fetch_details(employer: dict, jobs: list[dict]) -> list[dict]:
 
 def store_results(conn: sqlite3.Connection, jobs: list[dict], employers: dict) -> tuple[int, int]:
     """Store corporate jobs in DB. Returns (new, existing)."""
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     counts = {"new": 0, "existing": 0}
 
     def _do_inserts() -> None:
@@ -393,7 +401,7 @@ def _process_one(
             accept_locs=accept_locs,
             reject_locs=reject_locs,
         )
-    except Exception as e:
+    except (urllib.error.URLError, OSError, ValueError, KeyError) as e:
         log.error("%s: ERROR searching '%s': %s", emp["name"], search_text, e)
         return {"employer": emp["name"], "query": search_text,
                 "found": 0, "new": 0, "existing": 0, "error": str(e)}
@@ -404,7 +412,7 @@ def _process_one(
 
     try:
         jobs = fetch_details(emp, jobs)
-    except Exception as e:
+    except (urllib.error.URLError, OSError, ValueError, KeyError) as e:
         log.error("%s: ERROR fetching details for '%s': %s", emp["name"], search_text, e)
 
     conn = get_connection()
@@ -477,13 +485,11 @@ def scrape_employers(
                              search_text, completed, len(valid_keys), total_new, total_existing, errors, elapsed)
     else:
         # Sequential mode (default)
-        completed = 0
-        for key in valid_keys:
+        for completed, key in enumerate(valid_keys, start=1):
             result = _process_one(
                 key, employers, search_text,
                 location_filter, accept_locs, reject_locs,
             )
-            completed += 1
             total_new += result["new"]
             total_existing += result["existing"]
             total_found += result["found"]
@@ -492,8 +498,16 @@ def scrape_employers(
 
             if completed % 10 == 0 or completed == len(valid_keys):
                 elapsed = time.time() - t0
-                log.info("[%s] Progress: %d/%d employers (%d new, %d dupes, %d errors) [%.0fs]",
-                         search_text, completed, len(valid_keys), total_new, total_existing, errors, elapsed)
+                log.info(
+                    "[%s] Progress: %d/%d employers (%d new, %d dupes, %d errors) [%.0fs]",
+                    search_text,
+                    completed,
+                    len(valid_keys),
+                    total_new,
+                    total_existing,
+                    errors,
+                    elapsed,
+                )
 
     elapsed = time.time() - t0
     log.info("[%s] Done: %d found, %d new, %d dupes in %.0fs",

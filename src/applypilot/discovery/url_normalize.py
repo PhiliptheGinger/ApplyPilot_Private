@@ -114,8 +114,7 @@ def register_runtime_slug(host: str, slug: str) -> bool:
     if not host or not slug:
         return False
     host_lc = host.lower()
-    if host_lc.startswith("www."):
-        host_lc = host_lc[4:]
+    host_lc = host_lc.removeprefix("www.")
     # Skip if the static map already has this binding.
     if GREENHOUSE_HOST_SLUGS.get(host_lc) == slug:
         return False
@@ -147,8 +146,7 @@ def lookup_slug(host: str) -> str | None:
     if not host:
         return None
     host_lc = host.lower()
-    if host_lc.startswith("www."):
-        host_lc = host_lc[4:]
+    host_lc = host_lc.removeprefix("www.")
     static = GREENHOUSE_HOST_SLUGS.get(host_lc)
     if static:
         return static
@@ -172,8 +170,7 @@ def canonicalize_application_url(url: str) -> str:
 
     parsed = urlparse(url)
     host = parsed.netloc.lower()
-    if host.startswith("www."):
-        host = host[4:]
+    host = host.removeprefix("www.")
 
     # Already on Greenhouse — nothing to do.
     if "greenhouse.io" in host:

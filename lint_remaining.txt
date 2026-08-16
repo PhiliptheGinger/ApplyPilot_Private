@@ -1,0 +1,2781 @@
+BLE001 Do not catch blind exception: `Exception`
+  --> src\applypilot\apply\chrome.py:58:12
+   |
+56 |             input=privkey_der, stderr=_sp.DEVNULL,
+57 |         )
+58 |     except Exception:
+   |            ^^^^^^^^^
+59 |         from cryptography.hazmat.primitives import serialization
+60 |         from cryptography.hazmat.primitives.asymmetric import rsa
+   |
+
+S112 `try`-`except`-`continue` detected, consider logging the exception
+   --> src\applypilot\apply\chrome.py:166:13
+    |
+164 |               try:
+165 |                   resp = json.loads(raw)
+166 | /             except Exception:
+167 | |                 continue
+    | |________________________^
+168 |               if resp.get("id") == msg_id[0]:
+169 |                   return resp
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\chrome.py:166:20
+    |
+164 |             try:
+165 |                 resp = json.loads(raw)
+166 |             except Exception:
+    |                    ^^^^^^^^^
+167 |                 continue
+168 |             if resp.get("id") == msg_id[0]:
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\apply\chrome.py:211:9
+    |
+209 |           try:
+210 |               ws.close()
+211 | /         except Exception:
+212 | |             pass
+    | |________________^
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\chrome.py:211:16
+    |
+209 |         try:
+210 |             ws.close()
+211 |         except Exception:
+    |                ^^^^^^^^^
+212 |             pass
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\apply\chrome.py:366:5
+    |
+364 |               if domain in host:
+365 |                   return slug
+366 | /     except Exception:
+367 | |         pass
+    | |____________^
+368 |       return None
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\chrome.py:366:12
+    |
+364 |             if domain in host:
+365 |                 return slug
+366 |     except Exception:
+    |            ^^^^^^^^^
+367 |         pass
+368 |     return None
+    |
+
+PLW1510 `subprocess.run` without explicit `check` argument
+   --> src\applypilot\apply\chrome.py:453:13
+    |
+451 |     try:
+452 |         if platform.system() == "Windows":
+453 |             subprocess.run(
+    |             ^^^^^^^^^^^^^^
+454 |                 ["taskkill", "/F", "/T", "/PID", str(pid)],
+455 |                 stdout=subprocess.DEVNULL,
+    |
+help: Add explicit `check=False`
+
+PLW1510 `subprocess.run` without explicit `check` argument
+   --> src\applypilot\apply\chrome.py:481:22
+    |
+479 |     try:
+480 |         if platform.system() == "Windows":
+481 |             result = subprocess.run(
+    |                      ^^^^^^^^^^^^^^
+482 |                 ["netstat", "-ano", "-p", "TCP"],
+483 |                 capture_output=True, text=True, timeout=10,
+    |
+help: Add explicit `check=False`
+
+PLW1510 `subprocess.run` without explicit `check` argument
+   --> src\applypilot\apply\chrome.py:492:22
+    |
+490 |         else:
+491 |             # macOS / Linux
+492 |             result = subprocess.run(
+    |                      ^^^^^^^^^^^^^^
+493 |                 ["lsof", "-ti", f":{port}"],
+494 |                 capture_output=True, text=True, timeout=10,
+    |
+help: Add explicit `check=False`
+
+PLW1510 `subprocess.run` without explicit `check` argument
+   --> src\applypilot\apply\chrome.py:877:18
+    |
+875 |     try:
+876 |         chrome_exe = config.get_chrome_path()
+877 |         result = subprocess.run(
+    |                  ^^^^^^^^^^^^^^
+878 |             [chrome_exe, "--version"],
+879 |             capture_output=True, text=True, timeout=5,
+    |
+help: Add explicit `check=False`
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\chrome.py:883:12
+    |
+881 |         # "Google Chrome 145.0.7632.76" -> "145.0.7632.76"
+882 |         version = result.stdout.strip().split()[-1]
+883 |     except Exception:
+    |            ^^^^^^^^^
+884 |         version = "133.0.6943.141"
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\apply\chrome.py:941:9
+    |
+939 |               if max_w > 0 and max_h > 0:
+940 |                   return max_w, max_h
+941 | /         except Exception:
+942 | |             pass
+    | |________________^
+943 |       return 1920, 1080  # safe fallback
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\chrome.py:941:16
+    |
+939 |             if max_w > 0 and max_h > 0:
+940 |                 return max_w, max_h
+941 |         except Exception:
+    |                ^^^^^^^^^
+942 |             pass
+943 |     return 1920, 1080  # safe fallback
+    |
+
+PLW1510 `subprocess.run` without explicit `check` argument
+   --> src\applypilot\apply\chrome.py:997:16
+    |
+995 |         return None
+996 |     try:
+997 |         prev = subprocess.run(
+    |                ^^^^^^^^^^^^^^
+998 |             ["gsettings", "get",
+999 |              "org.gnome.desktop.wm.preferences", "focus-new-windows"],
+    |
+help: Add explicit `check=False`
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\chrome.py:1009:12
+     |
+1007 |         logger.info("Focus-steal prevention: set focus-new-windows=strict (was '%s')", prev)
+1008 |         return prev
+1009 |     except Exception as e:
+     |            ^^^^^^^^^
+1010 |         logger.debug("prevent_focus_stealing: %s", e)
+1011 |         return None
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\chrome.py:1025:12
+     |
+1023 |         )
+1024 |         logger.info("Focus mode restored to '%s'", prev)
+1025 |     except Exception as e:
+     |            ^^^^^^^^^
+1026 |         logger.debug("restore_focus_mode: %s", e)
+     |
+
+PLW1510 `subprocess.run` without explicit `check` argument
+    --> src\applypilot\apply\chrome.py:1051:13
+     |
+1049 |     try:
+1050 |         if platform.system() == "Darwin":
+1051 |             subprocess.run(
+     |             ^^^^^^^^^^^^^^
+1052 |                 ["osascript", "-e",
+1053 |                  'tell application "Google Chrome" to activate'],
+     |
+help: Add explicit `check=False`
+
+PLW1510 `subprocess.run` without explicit `check` argument
+    --> src\applypilot\apply\chrome.py:1058:22
+     |
+1056 |         else:
+1057 |             # Try wmctrl first (more reliable for window managers)
+1058 |             result = subprocess.run(
+     |                      ^^^^^^^^^^^^^^
+1059 |                 ["wmctrl", "-a", "Chrome"],
+1060 |                 timeout=3, capture_output=True,
+     |
+help: Add explicit `check=False`
+
+PLW1510 `subprocess.run` without explicit `check` argument
+    --> src\applypilot\apply\chrome.py:1063:17
+     |
+1061 |             )
+1062 |             if result.returncode != 0:
+1063 |                 subprocess.run(
+     |                 ^^^^^^^^^^^^^^
+1064 |                     ["xdotool", "search", "--name", "Chrome",
+1065 |                      "windowactivate", "--sync"],
+     |
+help: Add explicit `check=False`
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+    --> src\applypilot\apply\chrome.py:1068:5
+     |
+1066 |                       timeout=3, capture_output=True,
+1067 |                   )
+1068 | /     except Exception:
+1069 | |         pass  # Best-effort only
+     | |____________^
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\chrome.py:1068:12
+     |
+1066 |                     timeout=3, capture_output=True,
+1067 |                 )
+1068 |     except Exception:
+     |            ^^^^^^^^^
+1069 |         pass  # Best-effort only
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\chrome.py:1087:32
+     |
+1085 |         with urlopen(f"http://localhost:{cdp_port}/json", timeout=2) as r:
+1086 |             targets = json.loads(r.read())
+1087 |     except (URLError, OSError, Exception):
+     |                                ^^^^^^^^^
+1088 |         return False
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\chrome.py:1105:12
+     |
+1103 |         ws.close()
+1104 |         return True
+1105 |     except Exception:
+     |            ^^^^^^^^^
+1106 |         return False
+     |
+
+RUF012 Mutable default value for class attribute
+    --> src\applypilot\apply\chrome.py:1193:28
+     |
+1191 |             # Send _NET_ACTIVE_WINDOW ClientMessage to root
+1192 |             class _EvData(ctypes.Union):
+1193 |                 _fields_ = [("l", ctypes.c_long * 5), ("b", ctypes.c_char * 20)]
+     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1194 |             class _XClientMsg(ctypes.Structure):
+1195 |                 _fields_ = [
+     |
+help: Consider initializing in `__init__` or annotating with `typing.ClassVar`
+
+PLW1510 `subprocess.run` without explicit `check` argument
+    --> src\applypilot\apply\chrome.py:1236:13
+     |
+1234 |     try:
+1235 |         if platform.system() == "Darwin":
+1236 |             subprocess.run(
+     |             ^^^^^^^^^^^^^^
+1237 |                 ["osascript", "-e",
+1238 |                  f'tell application "System Events" to set frontmost of '
+     |
+help: Add explicit `check=False`
+
+ISC004 Unparenthesized implicit string concatenation in collection
+    --> src\applypilot\apply\chrome.py:1238:18
+     |
+1236 |               subprocess.run(
+1237 |                   ["osascript", "-e",
+1238 | /                  f'tell application "System Events" to set frontmost of '
+1239 | |                  f'(first process whose unix id is {pid}) to true'],
+     | |__________________________________________________________________^
+1240 |                   timeout=3, capture_output=True,
+1241 |               )
+     |
+help: Did you forget a comma?
+help: Wrap implicitly concatenated strings in parentheses
+
+PLW1510 `subprocess.run` without explicit `check` argument
+    --> src\applypilot\apply\chrome.py:1244:18
+     |
+1242 |             return
+1243 |         # xdotool
+1244 |         result = subprocess.run(
+     |                  ^^^^^^^^^^^^^^
+1245 |             ["xdotool", "search", "--pid", str(pid), "windowactivate", "--sync"],
+1246 |             timeout=3, capture_output=True,
+     |
+help: Add explicit `check=False`
+
+PLW1510 `subprocess.run` without explicit `check` argument
+    --> src\applypilot\apply\chrome.py:1251:14
+     |
+1249 |             return
+1250 |         # wmctrl
+1251 |         lp = subprocess.run(
+     |              ^^^^^^^^^^^^^^
+1252 |             ["wmctrl", "-l", "-p"], timeout=3, capture_output=True, text=True,
+1253 |         )
+     |
+help: Add explicit `check=False`
+
+PLW1510 `subprocess.run` without explicit `check` argument
+    --> src\applypilot\apply\chrome.py:1258:21
+     |
+1256 |                 parts = line.split(None, 4)
+1257 |                 if len(parts) >= 3 and parts[2] == str(pid):
+1258 |                     subprocess.run(
+     |                     ^^^^^^^^^^^^^^
+1259 |                         ["wmctrl", "-i", "-a", parts[0]],
+1260 |                         timeout=3, capture_output=True,
+     |
+help: Add explicit `check=False`
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+    --> src\applypilot\apply\chrome.py:1267:5
+     |
+1265 |               return
+1266 |           bring_to_foreground()
+1267 | /     except Exception:
+1268 | |         pass  # Best-effort only
+     | |____________^
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\chrome.py:1267:12
+     |
+1265 |             return
+1266 |         bring_to_foreground()
+1267 |     except Exception:
+     |            ^^^^^^^^^
+1268 |         pass  # Best-effort only
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\chrome.py:1300:12
+     |
+1298 |     try:
+1299 |         _ureq.urlopen(f"http://localhost:{port}/json", timeout=2).read()
+1300 |     except Exception:
+     |            ^^^^^^^^^
+1301 |         return None  # Nothing (or wrong thing) on this port
+     |
+
+ISC004 Unparenthesized implicit string concatenation in collection
+    --> src\applypilot\apply\chrome.py:1385:9
+     |
+1383 |           f"--window-size={tile_w},{tile_h}",
+1384 |           "--disable-session-crashed-bubble",
+1385 | /         "--disable-features=InfiniteSessionRestore,PasswordManagerOnboarding,"
+1386 | |         "SyncDisabledWithNoNetwork,ChromeSignin,Sync,"
+1387 | |         # Bypass XDG portal for file dialogs — portal routes through Nautilus which
+1388 | |         # hangs when the saved last-directory path doesn't exist on this machine.
+1389 | |         # GtkFileDialogPortal disables portal; FileSystemAccessAPI keeps upload working.
+1390 | |         "GtkFileDialogPortal,"
+1391 | |         # patchright/playwright disabled-features (anti-fingerprint + stability):
+1392 | |         # AvoidUnnecessaryBeforeUnloadCheckSync, BoundaryEventDispatchTracksNodeRemoval,
+1393 | |         # DestroyProfileOnBrowserClose, DialMediaRouteProvider, GlobalMediaControls,
+1394 | |         # HttpsUpgrades, LensOverlay, MediaRouter, PaintHolding,
+1395 | |         # ThirdPartyStoragePartitioning, Translate, AutoDeElevate, RenderDocument,
+1396 | |         # OptimizationHints
+1397 | |         "AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,"
+1398 | |         "DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,"
+1399 | |         "HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,"
+1400 | |         "ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,"
+1401 | |         "OptimizationHints",
+     | |___________________________^
+1402 |           # patchright launch-time anti-fingerprint flags (from chromiumSwitches.js).
+1403 |           # `--enable-features=CDPScreenshotNewSurface` + `--disable-blink-features=AutomationControlled`
+     |
+help: Did you forget a comma?
+help: Wrap implicitly concatenated strings in parentheses
+
+C408 Unnecessary `dict()` call (rewrite as a literal)
+    --> src\applypilot\apply\chrome.py:1452:20
+     |
+1451 |     # On Unix, start in a new process group so we can kill the whole tree
+1452 |     kwargs: dict = dict(stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+     |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1453 |     if platform.system() != "Windows":
+1454 |         import os
+     |
+help: Rewrite as a literal
+
+DTZ005 `datetime.datetime.now()` called without a `tz` argument
+  --> src\applypilot\apply\dashboard.py:86:10
+   |
+84 |         msg: Rich markup string describing the event.
+85 |     """
+86 |     ts = datetime.now().strftime("%H:%M:%S")
+   |          ^^^^^^^^^^^^^^
+87 |     with _lock:
+88 |         _events.append(f"[dim]{ts}[/dim] {msg}")
+   |
+help: Pass a `datetime.timezone` object to the `tz` parameter
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\dashboard.py:115:12
+    |
+113 |         ) as resp:
+114 |             return resp.status == 200
+115 |     except Exception:
+    |            ^^^^^^^^^
+116 |         return False
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\hitl.py:169:12
+    |
+167 |         email = (config.load_profile().get("personal", {}) or {}).get("email", "")
+168 |         email = (email or "").strip()
+169 |     except Exception:
+    |            ^^^^^^^^^
+170 |         email = ""
+171 |     return email or "your account email"
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\apply\hitl.py:278:13
+    |
+276 |               try:
+277 |                   watcher.kill()
+278 | /             except Exception:
+279 | |                 pass
+    | |____________________^
+280 |       # Also shut down any legacy fallback server
+281 |       with _hitl_server_lock:
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\hitl.py:278:20
+    |
+276 |             try:
+277 |                 watcher.kill()
+278 |             except Exception:
+    |                    ^^^^^^^^^
+279 |                 pass
+280 |     # Also shut down any legacy fallback server
+    |
+
+PLW1510 `subprocess.run` without explicit `check` argument
+   --> src\applypilot\apply\hitl.py:409:13
+    |
+407 |     try:
+408 |         if platform.system() == "Darwin":
+409 |             subprocess.run(
+    |             ^^^^^^^^^^^^^^
+410 |                 ["osascript", "-e",
+411 |                  f'display notification "{body}" with title "{title}"'],
+    |
+help: Add explicit `check=False`
+
+PLW1510 `subprocess.run` without explicit `check` argument
+   --> src\applypilot\apply\hitl.py:415:13
+    |
+413 |             )
+414 |         else:
+415 |             subprocess.run(
+    |             ^^^^^^^^^^^^^^
+416 |                 ["notify-send", "--urgency=critical", title, body],
+417 |                 timeout=5, capture_output=True,
+    |
+help: Add explicit `check=False`
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\apply\hitl.py:419:5
+    |
+417 |                   timeout=5, capture_output=True,
+418 |               )
+419 | /     except Exception:
+420 | |         pass
+    | |____________^
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\hitl.py:419:12
+    |
+417 |                 timeout=5, capture_output=True,
+418 |             )
+419 |     except Exception:
+    |            ^^^^^^^^^
+420 |         pass
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\apply\hitl.py:608:9
+    |
+606 |               _saved = get_qa(f"HITL:{job.get('site', '')}:{reason}")
+607 |               close_connection()
+608 | /         except Exception:
+609 | |             pass
+    | |________________^
+610 |           ws.update({"status": "waiting_human", "reason": reason,
+611 |                      "instructions": instructions,
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\hitl.py:608:16
+    |
+606 |             _saved = get_qa(f"HITL:{job.get('site', '')}:{reason}")
+607 |             close_connection()
+608 |         except Exception:
+    |                ^^^^^^^^^
+609 |             pass
+610 |         ws.update({"status": "waiting_human", "reason": reason,
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\apply\hitl.py:640:9
+    |
+638 |                   flush=True,
+639 |               )
+640 | /         except Exception:
+641 | |             pass
+    | |________________^
+642 |           threading.Thread(target=_stdin_done_reader, daemon=True).start()
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\hitl.py:640:16
+    |
+638 |                 flush=True,
+639 |             )
+640 |         except Exception:
+    |                ^^^^^^^^^
+641 |             pass
+642 |         threading.Thread(target=_stdin_done_reader, daemon=True).start()
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+  --> src\applypilot\apply\human_review.py:38:12
+   |
+36 |         ).read()
+37 |         return json.loads(data)
+38 |     except Exception:
+   |            ^^^^^^^^^
+39 |         return []
+   |
+
+PLW1510 `subprocess.run` without explicit `check` argument
+  --> src\applypilot\apply\human_review.py:82:18
+   |
+81 |     try:
+82 |         result = subprocess.run(
+   |                  ^^^^^^^^^^^^^^
+83 |             ["node", "-e", node_script],
+84 |             timeout=15,
+   |
+help: Add explicit `check=False`
+
+BLE001 Do not catch blind exception: `Exception`
+  --> src\applypilot\apply\human_review.py:92:12
+   |
+90 |             return False
+91 |         return True
+92 |     except Exception as e:
+   |            ^^^^^^^^^
+93 |         logger.warning("Banner injection error: %s", e)
+94 |         return False
+   |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\human_review.py:421:12
+    |
+419 |                      proc.pid, hash_, server_port)
+420 |         return proc
+421 |     except Exception as e:
+    |            ^^^^^^^^^
+422 |         logger.warning("Failed to start done watcher: %s", e)
+423 |         return None
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\apply\human_review.py:449:9
+    |
+447 |                   f"http://localhost:{port}/json/close/{tab_id}", timeout=2
+448 |               )
+449 | /         except Exception:
+450 | |             pass
+    | |________________^
+451 |           return True
+452 |       except Exception as e:
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\human_review.py:449:16
+    |
+447 |                 f"http://localhost:{port}/json/close/{tab_id}", timeout=2
+448 |             )
+449 |         except Exception:
+    |                ^^^^^^^^^
+450 |             pass
+451 |         return True
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\human_review.py:452:12
+    |
+450 |             pass
+451 |         return True
+452 |     except Exception as e:
+    |            ^^^^^^^^^
+453 |         logger.debug("CDP navigate failed: %s", e)
+454 |         return False
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\apply\launcher.py:147:13
+    |
+145 |               try:
+146 |                   _kill_process_tree(p.pid)
+147 | /             except Exception:
+148 | |                 pass
+    | |____________________^
+149 |       for p in list(_mini_procs.values()):
+150 |           if p.poll() is None:
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\launcher.py:147:20
+    |
+145 |             try:
+146 |                 _kill_process_tree(p.pid)
+147 |             except Exception:
+    |                    ^^^^^^^^^
+148 |                 pass
+149 |     for p in list(_mini_procs.values()):
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\apply\launcher.py:153:13
+    |
+151 |               try:
+152 |                   _kill_process_tree(p.pid)
+153 | /             except Exception:
+154 | |                 pass
+    | |____________________^
+155 |       _mini_procs.clear()
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\launcher.py:153:20
+    |
+151 |             try:
+152 |                 _kill_process_tree(p.pid)
+153 |             except Exception:
+    |                    ^^^^^^^^^
+154 |                 pass
+155 |     _mini_procs.clear()
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\launcher.py:393:20
+    |
+391 |             try:
+392 |                 return json.loads(self.rfile.read(length))
+393 |             except Exception:
+    |                    ^^^^^^^^^
+394 |                 return {}
+    |
+
+DTZ006 `datetime.datetime.fromtimestamp()` called without a `tz` argument
+   --> src\applypilot\apply\launcher.py:453:26
+    |
+451 |                 oc = h.get("outcome", "failed")
+452 |                 color, label = outcome_colors.get(oc, ("#6b7280", oc))
+453 |                 ts_str = datetime.fromtimestamp(h["ts"]).strftime("%H:%M:%S") if h.get("ts") else "–"
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+454 |                 job_title = _html.escape(h.get("title", "–")[:60])
+455 |                 job_co = _html.escape(h.get("company", "")[:30])
+    |
+help: Pass a `datetime.timezone` object to the `tz` parameter
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\apply\launcher.py:574:13
+    |
+572 |                   bring_to_foreground_cdp(cdp_port)
+573 |                   bring_to_foreground_pid(state.get("chrome_pid"))
+574 | /             except Exception:
+575 | |                 pass
+    | |____________________^
+576 |               self._text_ok()
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\launcher.py:574:20
+    |
+572 |                 bring_to_foreground_cdp(cdp_port)
+573 |                 bring_to_foreground_pid(state.get("chrome_pid"))
+574 |             except Exception:
+    |                    ^^^^^^^^^
+575 |                 pass
+576 |             self._text_ok()
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\apply\launcher.py:619:17
+    |
+617 |                       self.wfile.write(b"data: No task running\n\n")
+618 |                       self.wfile.flush()
+619 | /                 except Exception:
+620 | |                     pass
+    | |________________________^
+621 |                   return
+622 |               try:
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\launcher.py:619:24
+    |
+617 |                     self.wfile.write(b"data: No task running\n\n")
+618 |                     self.wfile.flush()
+619 |                 except Exception:
+    |                        ^^^^^^^^^
+620 |                     pass
+621 |                 return
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\launcher.py:663:24
+    |
+661 |                     )
+662 |                     state["saved_instruction"] = instructions
+663 |                 except Exception as e:
+    |                        ^^^^^^^^^
+664 |                     logger.debug("Failed to save HITL instruction to Q&A KB: %s", e)
+665 |             state["handback_instructions"] = instructions or None
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\launcher.py:727:20
+    |
+725 |                 """, (limit,)).fetchall()
+726 |                 self._json_ok({"jobs": [dict(r) for r in rows]})
+727 |             except Exception as e:
+    |                    ^^^^^^^^^
+728 |                 logger.debug("jobs_list error: %s", e)
+729 |                 self.send_response(500)
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\launcher.py:765:20
+    |
+763 |                 logger.info("[W%d] Added job via extension: %s", worker_id, url[:80])
+764 |                 self._json_ok({"status": "queued"})
+765 |             except Exception as e:
+    |                    ^^^^^^^^^
+766 |                 logger.debug("add_job error: %s", e)
+767 |                 self.send_response(500)
+    |
+
+G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=True)`
+   --> src\applypilot\apply\launcher.py:818:24
+    |
+816 |                 self._json_ok({"status": "ok", "action": action})
+817 |             except Exception as e:
+818 |                 logger.error("HTTP _handle_jobs_mark failed for %s: %s", url, e, exc_info=True)
+    |                        ^^^^^
+819 |                 self.send_response(500)
+820 |                 self.send_header("Access-Control-Allow-Origin", "*")
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\launcher.py:841:20
+    |
+839 |                 ).fetchall()
+840 |                 self._json_ok({"rows": [dict(r) for r in rows]})
+841 |             except Exception as e:
+    |                    ^^^^^^^^^
+842 |                 logger.debug("accounts_list error: %s", e)
+843 |                 self.send_response(500)
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\launcher.py:889:20
+    |
+887 |                 self.end_headers()
+888 |                 self.wfile.write(b"action must be 'update' or 'delete'")
+889 |             except Exception as e:
+    |                    ^^^^^^^^^
+890 |                 logger.debug("account_mutate error: %s", e)
+891 |                 self.send_response(500)
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\launcher.py:916:20
+    |
+914 |                 self._json_ok({"status": "cleared" if ok else "not_found",
+915 |                                "slug": slug})
+916 |             except Exception as e:
+    |                    ^^^^^^^^^
+917 |                 logger.debug("session_mutate error: %s", e)
+918 |                 self.send_response(500)
+    |
+
+RUF012 Mutable default value for class attribute
+   --> src\applypilot\apply\launcher.py:926:24
+    |
+924 |           # Maps URL key → (path, format). Format determines how we validate
+925 |           # before saving — broken YAML/JSON would brick the next pipeline run.
+926 |           _PREFS_FILES = {
+    |  ________________________^
+927 | |             "profile":         (config.PROFILE_PATH,                                 "json"),
+928 | |             "searches":        (config.SEARCH_CONFIG_PATH,                           "yaml"),
+929 | |             "company-limits":  (config.APP_DIR / config.COMPANY_LIMITS_PATH_NAME,    "yaml"),
+930 | |         }
+    | |_________^
+931 |
+932 |           def _handle_prefs_get(self):
+    |
+help: Consider initializing in `__init__` or annotating with `typing.ClassVar`
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\launcher.py:951:20
+    |
+949 |                     "exists": path.exists(),
+950 |                 })
+951 |             except Exception as e:
+    |                    ^^^^^^^^^
+952 |                 logger.debug("prefs_get error: %s", e)
+953 |                 self.send_response(500)
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\launcher.py:984:20
+    |
+982 |                     import yaml
+983 |                     yaml.safe_load(text)
+984 |             except Exception as e:
+    |                    ^^^^^^^^^
+985 |                 self.send_response(400)
+986 |                 self.send_header("Access-Control-Allow-Origin", "*")
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+    --> src\applypilot\apply\launcher.py:1005:21
+     |
+1003 |                       try:
+1004 |                           config._company_limits_cache = None
+1005 | /                     except Exception:
+1006 | |                         pass
+     | |____________________________^
+1007 |                   self._json_ok({"status": "saved", "path": str(path),
+1008 |                                  "bytes": len(text.encode())})
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\launcher.py:1005:28
+     |
+1003 |                     try:
+1004 |                         config._company_limits_cache = None
+1005 |                     except Exception:
+     |                            ^^^^^^^^^
+1006 |                         pass
+1007 |                 self._json_ok({"status": "saved", "path": str(path),
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\launcher.py:1009:20
+     |
+1007 |                 self._json_ok({"status": "saved", "path": str(path),
+1008 |                                "bytes": len(text.encode())})
+1009 |             except Exception as e:
+     |                    ^^^^^^^^^
+1010 |                 logger.warning("prefs_save error: %s", e)
+1011 |                 self.send_response(500)
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\launcher.py:1063:20
+     |
+1061 |                 ).fetchall()
+1062 |                 self._json_ok({"rows": [dict(r) for r in rows], "total": total})
+1063 |             except Exception as e:
+     |                    ^^^^^^^^^
+1064 |                 logger.debug("qa_list error: %s", e)
+1065 |                 self.send_response(500)
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\launcher.py:1089:20
+     |
+1087 |                                   field_type=field_type, ats_slug=ats_slug)
+1088 |                 self._json_ok({"status": "created", "id": row_id})
+1089 |             except Exception as e:
+     |                    ^^^^^^^^^
+1090 |                 logger.debug("qa_create error: %s", e)
+1091 |                 self.send_response(500)
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\launcher.py:1153:20
+     |
+1151 |                 self.end_headers()
+1152 |                 self.wfile.write(b"action must be 'update' or 'delete'")
+1153 |             except Exception as e:
+     |                    ^^^^^^^^^
+1154 |                 logger.debug("qa_mutate error: %s", e)
+1155 |                 self.send_response(500)
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\launcher.py:1172:20
+     |
+1170 |                 }
+1171 |                 self._json_ok(payload)
+1172 |             except Exception as e:
+     |                    ^^^^^^^^^
+1173 |                 logger.debug("integrations error: %s", e)
+1174 |                 self.send_response(500)
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\launcher.py:1283:12
+     |
+1281 |             "scopes": creds.get("scope") or "",
+1282 |         }
+1283 |     except Exception as e:
+     |            ^^^^^^^^^
+1284 |         return {"configured": True, "status": "error", "error": str(e)[:200]}
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\launcher.py:1307:12
+     |
+1305 |     except FileNotFoundError:
+1306 |         return {"status": "error", "error": "npx not found in PATH"}
+1307 |     except Exception as e:
+     |            ^^^^^^^^^
+1308 |         logger.warning("Gmail re-auth subprocess failed: %s", e)
+1309 |         return {"status": "error", "error": str(e)[:200]}
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\launcher.py:1361:16
+     |
+1359 |             logger.info("Gmail token refreshed, expires in %ds", resp["expires_in"])
+1360 |             return True
+1361 |         except Exception as e:
+     |                ^^^^^^^^^
+1362 |             logger.warning("Gmail token refresh failed: %s", e)
+1363 |             return False
+     |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+    --> src\applypilot\apply\launcher.py:1951:13
+     |
+1949 |                       f"http://localhost:{port}/json/close/{tab['id']}", timeout=2
+1950 |                   )
+1951 | /             except Exception:
+1952 | |                 pass
+     | |____________________^
+1953 |       except Exception:
+1954 |           pass  # Chrome not ready yet or CDP unavailable — agent will navigate anyway
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\launcher.py:1951:20
+     |
+1949 |                     f"http://localhost:{port}/json/close/{tab['id']}", timeout=2
+1950 |                 )
+1951 |             except Exception:
+     |                    ^^^^^^^^^
+1952 |                 pass
+1953 |     except Exception:
+     |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+    --> src\applypilot\apply\launcher.py:1953:5
+     |
+1951 |               except Exception:
+1952 |                   pass
+1953 | /     except Exception:
+1954 | |         pass  # Chrome not ready yet or CDP unavailable — agent will navigate anyway
+     | |____________^
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\launcher.py:1953:12
+     |
+1951 |             except Exception:
+1952 |                 pass
+1953 |     except Exception:
+     |            ^^^^^^^^^
+1954 |         pass  # Chrome not ready yet or CDP unavailable — agent will navigate anyway
+     |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+    --> src\applypilot\apply\launcher.py:1985:9
+     |
+1983 |                           # Keep watching in case the agent opens a new tab mid-job
+1984 |                       break
+1985 | /         except Exception:
+1986 | |             pass
+     | |________________^
+1987 |           time.sleep(0.75)
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\launcher.py:1985:16
+     |
+1983 |                         # Keep watching in case the agent opens a new tab mid-job
+1984 |                     break
+1985 |         except Exception:
+     |                ^^^^^^^^^
+1986 |             pass
+1987 |         time.sleep(0.75)
+     |
+
+FLY002 Consider f-string instead of string join
+    --> src\applypilot\apply\launcher.py:2093:30
+     |
+2091 |           "--permission-mode", "bypassPermissions",
+2092 |           "--no-session-persistence",
+2093 |           "--disallowedTools", ",".join([
+     |  ______________________________^
+2094 | |             # browser_install restarts the browser in CDP mode, breaking the session
+2095 | |             "mcp__playwright__browser_install",
+2096 | |             # Block Gmail write tools (read-only access for email verification)
+2097 | |             "mcp__gmail__draft_email", "mcp__gmail__modify_email",
+2098 | |             "mcp__gmail__delete_email", "mcp__gmail__download_attachment",
+2099 | |             "mcp__gmail__batch_modify_emails", "mcp__gmail__batch_delete_emails",
+2100 | |             "mcp__gmail__create_label", "mcp__gmail__update_label",
+2101 | |             "mcp__gmail__delete_label", "mcp__gmail__get_or_create_label",
+2102 | |             "mcp__gmail__list_email_labels", "mcp__gmail__create_filter",
+2103 | |             "mcp__gmail__list_filters", "mcp__gmail__get_filter",
+2104 | |             "mcp__gmail__delete_filter",
+2105 | |         ]),
+     | |__________^
+2106 |           "--output-format", "stream-json",
+2107 |           "--verbose", "-",
+     |
+help: Replace with f-string
+
+DTZ005 `datetime.datetime.now()` called without a `tz` argument
+    --> src\applypilot\apply\launcher.py:2129:17
+     |
+2128 |     worker_log = config.LOG_DIR / f"worker-{worker_id}.log"
+2129 |     ts_header = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+     |                 ^^^^^^^^^^^^^^
+2130 |     log_header = (
+2131 |         f"\n{'=' * 60}\n"
+     |
+help: Pass a `datetime.timezone` object to the `tz` parameter
+
+DTZ005 `datetime.datetime.now()` called without a `tz` argument
+    --> src\applypilot\apply\launcher.py:2306:14
+     |
+2304 |         duration_ms = int((time.time() - start) * 1000)
+2305 |
+2306 |         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+     |              ^^^^^^^^^^^^^^
+2307 |         job_log = config.LOG_DIR / f"claude_{ts}_w{worker_id}_{job.get('site', 'unknown')[:20]}.txt"
+2308 |         job_log.write_text(output, encoding="utf-8")
+     |
+help: Pass a `datetime.timezone` object to the `tz` parameter
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\apply\launcher.py:2438:12
+     |
+2436 |         update_state(worker_id, status="failed", last_action=f"TIMEOUT ({elapsed}s)")
+2437 |         return "failed:timeout", duration_ms, []
+2438 |     except Exception as e:
+     |            ^^^^^^^^^
+2439 |         duration_ms = int((time.time() - start) * 1000)
+2440 |         add_event(f"[W{worker_id}] ERROR: {str(e)[:40]}")
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\orchestrator.py:137:12
+    |
+135 |             add_event(f"[W{worker_id}] No interrupted job found — Chrome has next job")
+136 |             return pid, None
+137 |     except Exception as exc:
+    |            ^^^^^^^^^
+138 |         logger.warning("[W%d] Reconnect probe: could not look up interrupted job: %s", worker_id, exc)
+139 |         return pid, None
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\apply\orchestrator.py:710:21
+    |
+708 |                       try:
+709 |                           live.update(render_full())
+710 | /                     except Exception:
+711 | |                         pass
+    | |____________________________^
+712 |                       time.sleep(0.5)
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\apply\orchestrator.py:710:28
+    |
+708 |                     try:
+709 |                         live.update(render_full())
+710 |                     except Exception:
+    |                            ^^^^^^^^^
+711 |                         pass
+712 |                     time.sleep(0.5)
+    |
+
+PLC0206 Extracting value from dictionary without calling `.items()`
+   --> src\applypilot\apply\orchestrator.py:788:21
+    |
+787 |                 results: list[tuple[int, int]] = []
+788 |                 for future in futures:
+    |                     ^^^^^^^^^^^^^^^^^
+789 |                     wid = futures[future]
+    |                           ---------------
+790 |                     try:
+791 |                         results.append(future.result())
+    |
+help: Use `for future, value in futures.items()` instead
+
+DTZ005 `datetime.datetime.now()` called without a `tz` argument
+    --> src\applypilot\apply\prompt.py:1106:17
+     |
+1104 |   If "Apply with LinkedIn" is absent, or the OAuth flow errors after 2 attempts, fill the form manually.
+1105 | - Phone field with country prefix: just type digits {phone_digits}
+1106 | - Date fields: {datetime.now().strftime('%m/%d/%Y')}
+     |                 ^^^^^^^^^^^^^^
+1107 | - Validation errors after submit? Take BOTH snapshot AND screenshot. Snapshot shows text errors, screenshot shows red-highlighted fi…
+1108 | - Honeypot fields (hidden, "leave blank"): skip them.
+     |
+help: Pass a `datetime.timezone` object to the `tz` parameter
+
+BLE001 Do not catch blind exception: `Exception`
+  --> src\applypilot\apply\result_handlers.py:40:51
+   |
+38 |             logger.info("Saved new account: %s @ %s",
+39 |                         account.get("email"), account.get("domain"))
+40 |         except (json.JSONDecodeError, IndexError, Exception) as e:
+   |                                                   ^^^^^^^^^
+41 |             logger.warning("Failed to parse ACCOUNT_CREATED line: %s", e)
+   |
+
+BLE001 Do not catch blind exception: `Exception`
+  --> src\applypilot\apply\result_handlers.py:70:16
+   |
+68 |                          job_url=job_url)
+69 |                 count += 1
+70 |         except Exception as e:
+   |                ^^^^^^^^^
+71 |             logger.debug("Failed to parse QA line: %s", e)
+72 |     if count:
+   |
+
+DTZ005 `datetime.datetime.now()` called without a `tz` argument
+   --> src\applypilot\apply\result_handlers.py:259:10
+    |
+257 |     """
+258 |     config.ensure_dirs()
+259 |     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    |          ^^^^^^^^^^^^^^
+260 |     url = job.get("application_url") or job["url"]
+261 |     title = job.get("title", "Unknown")
+    |
+help: Pass a `datetime.timezone` object to the `tz` parameter
+
+DTZ005 `datetime.datetime.now()` called without a `tz` argument
+   --> src\applypilot\apply\result_handlers.py:290:10
+    |
+288 |     """Append a human-action-required entry to ~/.applypilot/manual_actions.md."""
+289 |     config.ensure_dirs()
+290 |     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    |          ^^^^^^^^^^^^^^
+291 |     url = job.get("application_url") or job["url"]
+292 |     title = job.get("title", "Unknown")
+    |
+help: Pass a `datetime.timezone` object to the `tz` parameter
+
+B008 Do not perform function call `typer.Argument` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+  --> src\applypilot\cli.py:77:32
+   |
+75 |   @app.command()
+76 |   def run(
+77 |       stages: list[str] | None = typer.Argument(
+   |  ________________________________^
+78 | |         None,
+79 | |         help=(
+80 | |             "Pipeline stages to run. "
+81 | |             f"Valid: {', '.join(VALID_STAGES)}, all. "
+82 | |             "Defaults to 'all' if omitted."
+83 | |         ),
+84 | |     ),
+   | |_____^
+85 |       min_score: int = typer.Option(
+86 |           config.DEFAULTS["min_score"], "--min-score",
+   |
+
+B008 Do not perform function call in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+  --> src\applypilot\cli.py:81:23
+   |
+79 |         help=(
+80 |             "Pipeline stages to run. "
+81 |             f"Valid: {', '.join(VALID_STAGES)}, all. "
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^
+82 |             "Defaults to 'all' if omitted."
+83 |         ),
+   |
+
+B008 Do not perform function call `typer.Option` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+   --> src\applypilot\cli.py:105:32
+    |
+103 |       doc_format: str = typer.Option("docx", "--doc-format", help="Document format for resumes/cover letters: docx (default) or pdf."…
+104 |       dry_run: bool = typer.Option(False, "--dry-run", help="Preview stages without executing."),
+105 |       source: list[str] | None = typer.Option(
+    |  ________________________________^
+106 | |         None, "--source", "-s",
+107 | |         help="Discovery source(s) to run. Repeatable: --source hn --source jobspy. "
+108 | |              "Aliases: hn=hackernews, smart=smartextract. Only affects the discover stage.",
+109 | |     ),
+    | |_____^
+110 |       list_sources: bool = typer.Option(
+111 |           False, "--list-sources",
+    |
+
+TRY004 Prefer `TypeError` exception for invalid type
+   --> src\applypilot\config.py:217:17
+    |
+215 |         for entry in employment_history:
+216 |             if not isinstance(entry, dict):
+217 |                 raise ValueError("each employment_history entry must be an object")
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+218 |             # may_contact_employer should be boolean or null
+219 |             mce = entry.get("may_contact_employer")
+    |
+
+TRY004 Prefer `TypeError` exception for invalid type
+   --> src\applypilot\config.py:236:17
+    |
+234 |         for ed in education:
+235 |             if not isinstance(ed, dict):
+236 |                 raise ValueError("each education entry must be an object")
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+237 |             gpa = ed.get("gpa")
+238 |             if gpa is not None and gpa != "":
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+  --> src\applypilot\database.py:52:13
+   |
+50 |               try:
+51 |                   conn.rollback()
+52 | /             except Exception:
+53 | |                 pass
+   | |____________________^
+54 |               if attempt < max_retries - 1:
+55 |                   delay = base_delay * (2 ** attempt)
+   |
+
+BLE001 Do not catch blind exception: `Exception`
+  --> src\applypilot\database.py:52:20
+   |
+50 |             try:
+51 |                 conn.rollback()
+52 |             except Exception:
+   |                    ^^^^^^^^^
+53 |                 pass
+54 |             if attempt < max_retries - 1:
+   |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\database.py:1179:12
+     |
+1178 |         return None
+1179 |     except Exception:
+     |            ^^^^^^^^^
+1180 |         return None
+     |
+
+PIE810 Call `startswith` once with a `tuple`
+    --> src\applypilot\database.py:1211:8
+     |
+1209 |     if not url:
+1210 |         return None
+1211 |     if url.startswith("http://") or url.startswith("https://"):
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1212 |         return url
+     |
+help: Merge into a single `startswith` call
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\database.py:2038:12
+     |
+2036 |         ).fetchone()
+2037 |         return row[0] if row else None
+2038 |     except Exception:
+     |            ^^^^^^^^^
+2039 |         return None
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+  --> src\applypilot\discovery\amazon.py:88:12
+   |
+86 |     try:
+87 |         s.feed(html)
+88 |     except Exception:
+   |            ^^^^^^^^^
+89 |         return html
+90 |     return s.text()
+   |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\amazon.py:135:16
+    |
+133 |             log.warning("amazon.jobs HTTP %d for %r: %s", e.code, base_query, e.reason)
+134 |             break
+135 |         except Exception as e:
+    |                ^^^^^^^^^
+136 |             log.warning("amazon.jobs fetch error for %r: %s", base_query, e)
+137 |             break
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\amazon.py:283:16
+    |
+281 |         try:
+282 |             jobs = search_amazon_jobs(q, location="Seattle, Washington")
+283 |         except Exception as e:
+    |                ^^^^^^^^^
+284 |             log.warning("Amazon query %r failed: %s", q, e)
+285 |             continue
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+  --> src\applypilot\discovery\ats_common.py:79:16
+   |
+77 |                 return None, last_err
+78 |             time.sleep(2 + attempt * 3)
+79 |         except Exception as e:
+   |                ^^^^^^^^^
+80 |             last_err = f"{type(e).__name__}: {e}"
+81 |             time.sleep(2 + attempt * 3)
+   |
+
+TRY401 Redundant exception object included in `logging.exception` call
+   --> src\applypilot\discovery\ats_common.py:197:71
+    |
+195 |                      slug, name, len(jobs), new, existing)
+196 |         except Exception as e:
+197 |             log.exception("%s scrape failed for %s: %s", label, slug, e)
+    |                                                                       ^
+198 |             errors.append(f"{slug}: {e}")
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+  --> src\applypilot\discovery\builtin.py:75:12
+   |
+73 |     try:
+74 |         p.feed(s)
+75 |     except Exception:
+   |            ^^^^^^^^^
+76 |         return s
+77 |     return p.text()
+   |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\builtin.py:110:12
+    |
+108 |         log.warning("builtin.com fetch %s: HTTP %d", url, e.code)
+109 |         return None
+110 |     except Exception as e:
+    |            ^^^^^^^^^
+111 |         log.warning("builtin.com fetch %s: %s", url, e)
+112 |         return None
+    |
+
+SIM102 Use a single `if` statement instead of nested `if` statements
+   --> src\applypilot\discovery\builtin.py:185:9
+    |
+183 |               if not seniority:
+184 |                   seniority = f
+185 | /         elif re.search(r"[A-Z][a-z]+,\s*[A-Z]{2}", f) or "USA" in f or "USC" in f:
+186 | |             if not location:
+    | |____________________________^
+187 |                   location = f
+    |
+help: Combine `if` statements using `and`
+
+BLE001 Do not catch blind exception: `Exception`
+  --> src\applypilot\discovery\costco.py:61:12
+   |
+59 |     try:
+60 |         s.feed(html)
+61 |     except Exception:
+   |            ^^^^^^^^^
+62 |         return html
+63 |     return s.text()
+   |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\costco.py:98:16
+    |
+ 96 |             log.warning("costco.com HTTP %d for %r: %s", e.code, query, e.reason)
+ 97 |             break
+ 98 |         except Exception as e:
+    |                ^^^^^^^^^
+ 99 |             log.warning("costco.com fetch error for %r: %s", query, e)
+100 |             break
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\costco.py:211:16
+    |
+209 |         try:
+210 |             jobs = search_costco_jobs(q, location="Seattle, WA")
+211 |         except Exception as e:
+    |                ^^^^^^^^^
+212 |             log.warning("Costco query %r failed: %s", q, e)
+213 |             continue
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+  --> src\applypilot\discovery\greenhouse.py:86:12
+   |
+84 |     try:
+85 |         s.feed(html)
+86 |     except Exception:
+   |            ^^^^^^^^^
+87 |         return html  # fallback: return raw
+88 |     return s.text()
+   |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\hackernews.py:99:12
+    |
+ 97 |                  thread.get("title"), thread.get("objectID"), thread.get("created_at", "")[:10])
+ 98 |         return thread
+ 99 |     except Exception as e:
+    |            ^^^^^^^^^
+100 |         log.error("Failed to find HN thread: %s", e)
+101 |         return None
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\hackernews.py:113:12
+    |
+111 |         resp.raise_for_status()
+112 |         return resp.json()
+113 |     except Exception as e:
+    |            ^^^^^^^^^
+114 |         log.warning("Failed to fetch HN item %d: %s", item_id, e)
+115 |         return None
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\hackernews.py:144:12
+    |
+142 |         data = json.loads(raw.strip())
+143 |         return data
+144 |     except Exception as e:
+    |            ^^^^^^^^^
+145 |         log.warning("LLM extraction failed: %s", e)
+146 |         return None
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\hackernews.py:351:16
+    |
+349 |             if delay > 0:
+350 |                 time.sleep(delay)
+351 |         except Exception as e:
+    |                ^^^^^^^^^
+352 |             log.warning("Error processing HN comment %d: %s", kid_id, e)
+353 |             errors += 1
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+  --> src\applypilot\discovery\jobspy.py:31:1
+   |
+30 |       tls_client.Session.__init__ = _safe_tls_init
+31 | / except Exception:
+32 | |     pass  # If tls_client isn't available, jobspy will use regular requests
+   | |________^
+33 |
+34 |   # Patch Country.from_string to return WORLDWIDE for unsupported country strings
+   |
+
+BLE001 Do not catch blind exception: `Exception`
+  --> src\applypilot\discovery\jobspy.py:31:8
+   |
+30 |     tls_client.Session.__init__ = _safe_tls_init
+31 | except Exception:
+   |        ^^^^^^^^^
+32 |     pass  # If tls_client isn't available, jobspy will use regular requests
+   |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+  --> src\applypilot\discovery\jobspy.py:49:1
+   |
+48 |       _Country.from_string = _safe_country_from_string
+49 | / except Exception:
+50 | |     pass  # If patching fails, fall back to original behavior
+   | |________^
+51 |
+52 |   from applypilot import config
+   |
+
+BLE001 Do not catch blind exception: `Exception`
+  --> src\applypilot\discovery\jobspy.py:49:8
+   |
+48 |     _Country.from_string = _safe_country_from_string
+49 | except Exception:
+   |        ^^^^^^^^^
+50 |     pass  # If patching fails, fall back to original behavior
+   |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\jobspy.py:218:24
+    |
+216 |                     else:
+217 |                         posted_at = str(dp)
+218 |                 except Exception:
+    |                        ^^^^^^^^^
+219 |                     posted_at = None
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\jobspy.py:302:16
+    |
+300 |             df = _scrape_with_retry(kwargs, max_retries=max_retries)
+301 |             all_dfs.append(df)
+302 |         except Exception as e:
+    |                ^^^^^^^^^
+303 |             log.error("[%s] (non-gd): %s", label, e)
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\jobspy.py:323:16
+    |
+321 |             gd_df = _scrape_with_retry(gd_kwargs, max_retries=max_retries)
+322 |             all_dfs.append(gd_df)
+323 |         except Exception as e:
+    |                ^^^^^^^^^
+324 |             log.error("[%s] (glassdoor): %s", label, e)
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\jobspy.py:405:12
+    |
+403 |     try:
+404 |         df = scrape_jobs(**kwargs)
+405 |     except Exception as e:
+    |            ^^^^^^^^^
+406 |         log.error("JobSpy search failed: %s", e)
+407 |         return {"error": str(e), "total": 0, "new": 0, "existing": 0}
+    |
+
+SIM113 Use `enumerate()` for index variable `completed` in `for` loop
+   --> src\applypilot\discovery\jobspy.py:492:9
+    |
+490 |             accept_locs, reject_locs, glassdoor_map,
+491 |         )
+492 |         completed += 1
+    |         ^^^^^^^^^^^^^^
+493 |         total_new += result["new"]
+494 |         total_existing += result["existing"]
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+  --> src\applypilot\discovery\smartextract.py:45:5
+   |
+43 |           sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+44 |           sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+45 | /     except Exception:
+46 | |         pass
+   | |____________^
+47 |
+48 |   def _get_ua() -> str:
+   |
+
+BLE001 Do not catch blind exception: `Exception`
+  --> src\applypilot\discovery\smartextract.py:45:12
+   |
+43 |         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+44 |         sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+45 |     except Exception:
+   |            ^^^^^^^^^
+46 |         pass
+   |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\smartextract.py:173:24
+    |
+171 |                 try:
+172 |                     data = json.loads(body)
+173 |                 except Exception:
+    |                        ^^^^^^^^^
+174 |                     data = None
+175 |                 captured_responses.append({
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\discovery\smartextract.py:181:13
+    |
+179 |                       "data": data,
+180 |                   })
+181 | /             except Exception:
+182 | |                 pass
+    | |____________________^
+183 |
+184 |       with sync_playwright() as p:
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\smartextract.py:181:20
+    |
+179 |                     "data": data,
+180 |                 })
+181 |             except Exception:
+    |                    ^^^^^^^^^
+182 |                 pass
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\discovery\smartextract.py:203:9
+    |
+201 |           try:
+202 |               page.wait_for_load_state("networkidle", timeout=10000)
+203 | /         except Exception:
+204 | |             pass
+    | |________________^
+205 |
+206 |           intel["page_title"] = page.title()
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\smartextract.py:203:16
+    |
+201 |         try:
+202 |             page.wait_for_load_state("networkidle", timeout=10000)
+203 |         except Exception:
+    |                ^^^^^^^^^
+204 |             pass
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\discovery\smartextract.py:213:13
+    |
+211 |                   data = json.loads(el.inner_text())
+212 |                   intel["json_ld"].append(data)
+213 | /             except Exception:
+214 | |                 pass
+    | |____________________^
+215 |
+216 |           # 2. __NEXT_DATA__
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\smartextract.py:213:20
+    |
+211 |                 data = json.loads(el.inner_text())
+212 |                 intel["json_ld"].append(data)
+213 |             except Exception:
+    |                    ^^^^^^^^^
+214 |                 pass
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\discovery\smartextract.py:221:13
+    |
+219 |               try:
+220 |                   intel["next_data"] = json.loads(next_data.inner_text())
+221 | /             except Exception:
+222 | |                 pass
+    | |____________________^
+223 |
+224 |           # 3. data-testid attributes
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\smartextract.py:221:20
+    |
+219 |             try:
+220 |                 intel["next_data"] = json.loads(next_data.inner_text())
+221 |             except Exception:
+    |                    ^^^^^^^^^
+222 |                 pass
+    |
+
+B023 Function definition does not bind loop variable `summary`
+   --> src\applypilot\discovery\smartextract.py:366:29
+    |
+364 |                                         "sample": {k: str(v)[:150] for k, v in list(subval.items())[:8]},
+365 |                                     }
+366 |                             summary[f"nested_{path}"] = info
+    |                             ^^^^^^^
+367 |                         elif isinstance(val, dict) and depth < 3:
+368 |                             _explore_nested(val, path, depth + 1)
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\smartextract.py:441:16
+    |
+439 |             if is_relevant:
+440 |                 relevant.append(resp)
+441 |         except Exception as e:
+    |                ^^^^^^^^^
+442 |             log.warning("Judge ERROR for %s: %s -- keeping", resp.get("url", "?")[:80], e)
+443 |             relevant.append(resp)
+    |
+
+PIE810 Call `endswith` once with a `tuple`
+   --> src\applypilot\discovery\smartextract.py:714:11
+    |
+712 |     except json.JSONDecodeError:
+713 |         pass
+714 |     while text.endswith("}") or text.endswith("]"):
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+715 |         try:
+716 |             return json.loads(text)
+    |
+help: Merge into a single `endswith` call
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\smartextract.py:860:16
+    |
+858 |         try:
+859 |             raw, elapsed, meta = ask_llm(prompt, quality=quality)
+860 |         except Exception as e:
+    |                ^^^^^^^^^
+861 |             log.error("LLM_ERROR in Phase 2 (quality=%s): %s", quality, e)
+862 |             continue
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\smartextract.py:880:16
+    |
+878 |             selectors = extract_json(raw)
+879 |             break
+880 |         except Exception as e:
+    |                ^^^^^^^^^
+881 |             if attempt == 0:
+882 |                 log.warning("PARSE_ERROR in Phase 2 (fast) — escalating to quality model: %s", e)
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\smartextract.py:901:12
+    |
+899 |     try:
+900 |         cards = soup.select(card_sel)
+901 |     except Exception as e:
+    |            ^^^^^^^^^
+902 |         log.error("Invalid card selector '%s': %s", card_sel, e)
+903 |         return selectors, []
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\smartextract.py:917:20
+    |
+915 |             try:
+916 |                 el = card.select_one(sel)
+917 |             except Exception:
+    |                    ^^^^^^^^^
+918 |                 job[field] = None
+919 |                 continue
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\smartextract.py:940:12
+    |
+938 |     try:
+939 |         intel = collect_page_intelligence(url)
+940 |     except Exception as e:
+    |            ^^^^^^^^^
+941 |         log.error("Page intelligence collection failed (timeout or error): %s", e)
+942 |         return {"name": name, "status": "ERROR", "error": str(e), "jobs": [], "total": 0, "titles": 0}
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\smartextract.py:958:16
+    |
+956 |         try:
+957 |             intel = collect_page_intelligence(url, headless=False)
+958 |         except Exception as e:
+    |                ^^^^^^^^^
+959 |             log.warning("Headful retry failed: %s", e)
+960 |         collect_time = time.time() - t0
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\smartextract.py:983:16
+    |
+981 |         try:
+982 |             raw, elapsed, meta = ask_llm(prompt, quality=quality)
+983 |         except Exception as e:
+    |                ^^^^^^^^^
+984 |             last_err = e
+985 |             if attempt == 0:
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\discovery\smartextract.py:1005:16
+     |
+1003 |             plan = extract_json(raw)
+1004 |             break
+1005 |         except Exception as e:
+     |                ^^^^^^^^^
+1006 |             last_err = e
+1007 |             if attempt == 0:
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\discovery\smartextract.py:1037:12
+     |
+1035 |             log.warning("Unknown strategy: %s", strategy)
+1036 |             jobs = []
+1037 |     except Exception as e:
+     |            ^^^^^^^^^
+1038 |         log.error("EXECUTION_ERROR: %s", e)
+1039 |         return {"name": name, "status": "EXEC_ERROR", "error": str(e), "plan": plan}
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\workday.py:229:20
+    |
+227 |                                 employer["name"], e.code, offset, attempt + 1, wait)
+228 |                     time.sleep(wait)
+229 |             except Exception as e:
+    |                    ^^^^^^^^^
+230 |                 # URLError / timeout / connection reset — same treatment
+231 |                 last_err = e
+    |
+
+SIM102 Use a single `if` statement instead of nested `if` statements
+   --> src\applypilot\discovery\workday.py:251:13
+    |
+249 |           for j in postings:
+250 |               loc = j.get("locationsText", "")
+251 | /             if location_filter and accept_locs is not None and reject_locs is not None:
+252 | |                 if not _location_ok(loc, accept_locs, reject_locs):
+    | |___________________________________________________________________^
+253 |                       continue
+    |
+help: Combine `if` statements using `and`
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\workday.py:299:12
+    |
+297 |         job["posted_at"] = info.get("startDate") or None
+298 |
+299 |     except Exception as e:
+    |            ^^^^^^^^^
+300 |         job["full_description"] = ""
+301 |         job["apply_url"] = ""
+    |
+
+SIM113 Use `enumerate()` for index variable `completed` in `for` loop
+   --> src\applypilot\discovery\workday.py:317:9
+    |
+315 |     for job in jobs:
+316 |         _fetch_one_detail(employer, job)
+317 |         completed += 1
+    |         ^^^^^^^^^^^^^^
+318 |         if "detail_error" in job:
+319 |             errors += 1
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\workday.py:396:12
+    |
+394 |             reject_locs=reject_locs,
+395 |         )
+396 |     except Exception as e:
+    |            ^^^^^^^^^
+397 |         log.error("%s: ERROR searching '%s': %s", emp["name"], search_text, e)
+398 |         return {"employer": emp["name"], "query": search_text,
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\discovery\workday.py:407:12
+    |
+405 |     try:
+406 |         jobs = fetch_details(emp, jobs)
+407 |     except Exception as e:
+    |            ^^^^^^^^^
+408 |         log.error("%s: ERROR fetching details for '%s': %s", emp["name"], search_text, e)
+    |
+
+SIM113 Use `enumerate()` for index variable `completed` in `for` loop
+   --> src\applypilot\discovery\workday.py:486:13
+    |
+484 |                 location_filter, accept_locs, reject_locs,
+485 |             )
+486 |             completed += 1
+    |             ^^^^^^^^^^^^^^
+487 |             total_new += result["new"]
+488 |             total_existing += result["existing"]
+    |
+
+PIE810 Call `startswith` once with a `tuple`
+  --> src\applypilot\enrichment\detail.py:94:8
+   |
+92 |         return None
+93 |
+94 |     if raw_url.startswith("http://") or raw_url.startswith("https://"):
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+95 |         return raw_url
+   |
+help: Merge into a single `startswith` call
+
+PIE810 Call `startswith` once with a `tuple`
+   --> src\applypilot\enrichment\detail.py:125:12
+    |
+123 |     for row in rows:
+124 |         url, site = row[0], row[1]
+125 |         if url.startswith("http://") or url.startswith("https://"):
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+126 |             already_absolute += 1
+127 |             continue
+    |
+help: Merge into a single `startswith` call
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\enrichment\detail.py:175:13
+    |
+173 |               try:
+174 |                   algolia_data["response"] = json.loads(response.text())
+175 | /             except Exception:
+176 | |                 pass
+    | |____________________^
+177 |
+178 |       with sync_playwright() as p:
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\enrichment\detail.py:175:20
+    |
+173 |             try:
+174 |                 algolia_data["response"] = json.loads(response.text())
+175 |             except Exception:
+    |                    ^^^^^^^^^
+176 |                 pass
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\enrichment\detail.py:257:9
+    |
+255 |               data = json.loads(el.inner_text())
+256 |               intel["json_ld"].append(data)
+257 | /         except Exception:
+258 | |             pass
+    | |________________^
+259 |
+260 |       return intel
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\enrichment\detail.py:257:16
+    |
+255 |             data = json.loads(el.inner_text())
+256 |             intel["json_ld"].append(data)
+257 |         except Exception:
+    |                ^^^^^^^^^
+258 |             pass
+    |
+
+S112 `try`-`except`-`continue` detected, consider logging the exception
+   --> src\applypilot\enrichment\detail.py:383:9
+    |
+381 |                           return parent_href
+382 |                       return page.url
+383 | /         except Exception:
+384 | |             continue
+    | |____________________^
+385 |
+386 |       try:
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\enrichment\detail.py:383:16
+    |
+381 |                         return parent_href
+382 |                     return page.url
+383 |         except Exception:
+    |                ^^^^^^^^^
+384 |             continue
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\enrichment\detail.py:394:5
+    |
+392 |                   if href and href != "#" and "javascript:" not in href:
+393 |                       return href
+394 | /     except Exception:
+395 | |         pass
+    | |____________^
+396 |
+397 |       return None
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\enrichment\detail.py:394:12
+    |
+392 |                 if href and href != "#" and "javascript:" not in href:
+393 |                     return href
+394 |     except Exception:
+    |            ^^^^^^^^^
+395 |         pass
+    |
+
+S112 `try`-`except`-`continue` detected, consider logging the exception
+   --> src\applypilot\enrichment\detail.py:409:9
+    |
+407 |                   if len(text) >= 100:
+408 |                       return clean_description(text)
+409 | /         except Exception:
+410 | |             continue
+    | |____________________^
+411 |
+412 |       return None
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\enrichment\detail.py:409:16
+    |
+407 |                 if len(text) >= 100:
+408 |                     return clean_description(text)
+409 |         except Exception:
+    |                ^^^^^^^^^
+410 |             continue
+    |
+
+S112 `try`-`except`-`continue` detected, consider logging the exception
+   --> src\applypilot\enrichment\detail.py:451:9
+    |
+449 |                       if len(html) < 50000:
+450 |                           return clean_content_html(html)
+451 | /         except Exception:
+452 | |             continue
+    | |____________________^
+453 |
+454 |       try:
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\enrichment\detail.py:451:16
+    |
+449 |                     if len(html) < 50000:
+450 |                         return clean_content_html(html)
+451 |         except Exception:
+    |                ^^^^^^^^^
+452 |             continue
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\enrichment\detail.py:463:12
+    |
+461 |         """)
+462 |         return clean_content_html(html[:50000])
+463 |     except Exception:
+    |            ^^^^^^^^^
+464 |         return ""
+    |
+
+PIE810 Call `startswith` once with a `tuple`
+   --> src\applypilot\enrichment\detail.py:485:18
+    |
+483 |                 else:
+484 |                     new_attrs[attr] = val
+485 |             elif attr.startswith("data-") or attr.startswith("aria-"):
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+486 |                 new_attrs[attr] = val
+487 |         tag.attrs = new_attrs
+    |
+help: Merge into a single `startswith` call
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\enrichment\detail.py:501:5
+    |
+499 |       try:
+500 |           title = page.title()
+501 | /     except Exception:
+502 | |         pass
+    | |____________^
+503 |
+504 |       prompt = DETAIL_EXTRACT_PROMPT.format(
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\enrichment\detail.py:501:12
+    |
+499 |     try:
+500 |         title = page.title()
+501 |     except Exception:
+    |            ^^^^^^^^^
+502 |         pass
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\enrichment\detail.py:532:12
+    |
+531 |         return {"full_description": desc, "application_url": apply_url}
+532 |     except Exception as e:
+    |            ^^^^^^^^^
+533 |         log.error("LLM ERROR: %s", e)
+534 |         return {"full_description": None, "application_url": None}
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> src\applypilot\enrichment\detail.py:764:9
+    |
+762 |           try:
+763 |               page.wait_for_load_state("networkidle", timeout=10000)
+764 | /         except Exception:
+765 | |             pass
+    | |________________^
+766 |       except Exception as e:
+767 |           err_str = str(e)
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\enrichment\detail.py:764:16
+    |
+762 |         try:
+763 |             page.wait_for_load_state("networkidle", timeout=10000)
+764 |         except Exception:
+    |                ^^^^^^^^^
+765 |             pass
+766 |     except Exception as e:
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\enrichment\detail.py:766:12
+    |
+764 |         except Exception:
+765 |             pass
+766 |     except Exception as e:
+    |            ^^^^^^^^^
+767 |         err_str = str(e)
+768 |         if "timeout" in err_str.lower():
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\enrichment\detail.py:1102:28
+     |
+1100 |                         log.info("%s: %d ok, %d partial, %d error",
+1101 |                                  site, stats['ok'], stats['partial'], stats['error'])
+1102 |                     except Exception as e:
+     |                            ^^^^^^^^^
+1103 |                         log.error("%s: CRASHED: %s", site, e)
+     |
+
+DTZ005 `datetime.datetime.now()` called without a `tz` argument
+  --> src\applypilot\pipeline.py:38:10
+   |
+36 |     """
+37 |     LOG_DIR.mkdir(parents=True, exist_ok=True)
+38 |     ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+   |          ^^^^^^^^^^^^^^
+39 |     stage_tag = "+".join(stages) if len(stages) <= 4 else f"{stages[0]}+{len(stages)-1}more"
+40 |     log_path = LOG_DIR / f"{ts}_{stage_tag}.log"
+   |
+help: Pass a `datetime.timezone` object to the `tz` parameter
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\pipeline.py:151:16
+    |
+149 |             run_discovery()
+150 |             stats["jobspy"] = "ok"
+151 |         except Exception as e:
+    |                ^^^^^^^^^
+152 |             log.error("JobSpy crawl failed: %s", e)
+153 |             console.print(f"  [red]JobSpy error:[/red] {e}")
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\pipeline.py:164:20
+    |
+162 |                 run_discovery(sites_override=sites)
+163 |                 stats[source_name] = "ok"
+164 |             except Exception as e:
+    |                    ^^^^^^^^^
+165 |                 log.error("JobSpy (%s) crawl failed: %s", source_name, e)
+166 |                 console.print(f"  [red]JobSpy ({source_name}) error:[/red] {e}")
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\pipeline.py:175:16
+    |
+173 |             run_workday_discovery(workers=workers)
+174 |             stats["workday"] = "ok"
+175 |         except Exception as e:
+    |                ^^^^^^^^^
+176 |             log.error("Workday scraper failed: %s", e)
+177 |             console.print(f"  [red]Workday error:[/red] {e}")
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\pipeline.py:186:16
+    |
+184 |             run_greenhouse_discovery(workers=workers)
+185 |             stats["greenhouse"] = "ok"
+186 |         except Exception as e:
+    |                ^^^^^^^^^
+187 |             log.error("Greenhouse scraper failed: %s", e)
+188 |             console.print(f"  [red]Greenhouse error:[/red] {e}")
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\pipeline.py:197:16
+    |
+195 |             run_lever_discovery(workers=workers)
+196 |             stats["lever"] = "ok"
+197 |         except Exception as e:
+    |                ^^^^^^^^^
+198 |             log.error("Lever scraper failed: %s", e)
+199 |             console.print(f"  [red]Lever error:[/red] {e}")
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\pipeline.py:208:16
+    |
+206 |             run_ashby_discovery(workers=workers)
+207 |             stats["ashby"] = "ok"
+208 |         except Exception as e:
+    |                ^^^^^^^^^
+209 |             log.error("Ashby scraper failed: %s", e)
+210 |             console.print(f"  [red]Ashby error:[/red] {e}")
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\pipeline.py:219:16
+    |
+217 |             run_amazon_discovery(workers=workers)
+218 |             stats["amazon"] = "ok"
+219 |         except Exception as e:
+    |                ^^^^^^^^^
+220 |             log.error("Amazon scraper failed: %s", e)
+221 |             console.print(f"  [red]Amazon error:[/red] {e}")
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\pipeline.py:230:16
+    |
+228 |             run_costco_discovery(workers=workers)
+229 |             stats["costco"] = "ok"
+230 |         except Exception as e:
+    |                ^^^^^^^^^
+231 |             log.error("Costco scraper failed: %s", e)
+232 |             console.print(f"  [red]Costco error:[/red] {e}")
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\pipeline.py:241:16
+    |
+239 |             run_builtin_discovery(workers=workers)
+240 |             stats["builtin"] = "ok"
+241 |         except Exception as e:
+    |                ^^^^^^^^^
+242 |             log.error("BuiltIn scraper failed: %s", e)
+243 |             console.print(f"  [red]BuiltIn error:[/red] {e}")
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\pipeline.py:252:16
+    |
+250 |             run_smart_extract(workers=workers)
+251 |             stats["smartextract"] = "ok"
+252 |         except Exception as e:
+    |                ^^^^^^^^^
+253 |             log.error("Smart extract failed: %s", e)
+254 |             console.print(f"  [red]Smart extract error:[/red] {e}")
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\pipeline.py:265:16
+    |
+263 |             console.print(f"  [dim]HN: {new} new jobs from '{hn_result.get('thread_title', '?')}'[/dim]")
+264 |             stats["hackernews"] = "ok"
+265 |         except Exception as e:
+    |                ^^^^^^^^^
+266 |             log.error("HN discovery failed: %s", e)
+267 |             console.print(f"  [red]HN error:[/red] {e}")
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\pipeline.py:279:12
+    |
+277 |         run_enrichment(workers=workers)
+278 |         return {"status": "ok"}
+279 |     except Exception as e:
+    |            ^^^^^^^^^
+280 |         log.error("Enrichment failed: %s", e)
+281 |         return {"status": f"error: {e}"}
+    |
+
+TRY401 Redundant exception object included in `logging.exception` call
+   --> src\applypilot\pipeline.py:294:45
+    |
+292 |         return {"status": "ok"}
+293 |     except Exception as e:
+294 |         log.exception("Scoring failed: %s", e)
+    |                                             ^
+295 |         return {"status": f"error: {e}"}
+    |
+
+TRY401 Redundant exception object included in `logging.exception` call
+   --> src\applypilot\pipeline.py:312:47
+    |
+310 |         return {"status": "ok"}
+311 |     except Exception as e:
+312 |         log.exception("Tailoring failed: %s", e)
+    |                                               ^
+313 |         return {"status": f"error: {e}"}
+    |
+
+TRY401 Redundant exception object included in `logging.exception` call
+   --> src\applypilot\pipeline.py:330:61
+    |
+328 |         return {"status": "ok"}
+329 |     except Exception as e:
+330 |         log.exception("Cover letter generation failed: %s", e)
+    |                                                             ^
+331 |         return {"status": f"error: {e}"}
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\pipeline.py:340:12
+    |
+338 |         batch_convert(doc_format=doc_format)
+339 |         return {"status": "ok"}
+340 |     except Exception as e:
+    |            ^^^^^^^^^
+341 |         log.error("Document conversion failed: %s", e)
+342 |         return {"status": f"error: {e}"}
+    |
+
+SIM102 Use a single `if` statement instead of nested `if` statements
+   --> src\applypilot\pipeline.py:549:21
+    |
+547 |                                      ("approved", "failed", "errors", "processed",
+548 |                                       "ok", "partial", "error", "new"))
+549 | /                     if progress == 0:
+550 | |                         if stop_event.wait(timeout=_STREAM_POLL_INTERVAL):
+    | |__________________________________________________________________________^
+551 |                               break
+552 |               except Exception as e:
+    |
+help: Combine `if` statements using `and`
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\pipeline.py:552:20
+    |
+550 |                         if stop_event.wait(timeout=_STREAM_POLL_INTERVAL):
+551 |                             break
+552 |             except Exception as e:
+    |                    ^^^^^^^^^
+553 |                 log.error("Stage '%s' error (pass %d): %s", stage, passes, e)
+554 |                 passes += 1
+    |
+
+DTZ005 `datetime.datetime.now()` called without a `tz` argument
+   --> src\applypilot\pipeline.py:592:37
+    |
+590 |         console.print(f"\n{'=' * 70}")
+591 |         console.print(f"  [bold]STAGE: {name}[/bold] — {meta['desc']}")
+592 |         console.print(f"  Started: {datetime.now().strftime('%H:%M:%S')}")
+    |                                     ^^^^^^^^^^^^^^
+593 |         console.print(f"{'=' * 70}")
+    |
+help: Pass a `datetime.timezone` object to the `tz` parameter
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\scoring\cover_letter.py:439:24
+    |
+437 |                 try:
+438 |                     result = future.result()
+439 |                 except Exception as e:
+    |                        ^^^^^^^^^
+440 |                     result = {
+441 |                         "url": job["url"], "title": job.get("title") or "", "site": job["site"],
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\scoring\cover_letter.py:463:20
+    |
+461 |                 log.info("%d/%d [%s] | %.1f jobs/min | %s", completed, len(jobs), status, rate * 60,
+462 |                          (result.get("title") or "")[:40])
+463 |             except Exception as e:
+    |                    ^^^^^^^^^
+464 |                 result = {
+465 |                     "url": job["url"], "title": job.get("title") or "", "site": job["site"],
+    |
+
+TRY401 Redundant exception object included in `logging.exception` call
+   --> src\applypilot\scoring\cover_letter.py:490:69
+    |
+488 |         write_with_retry(conn, _flush_cover_results, conn, results, now)
+489 |     except Exception as flush_err:
+490 |         log.exception("DB flush failed for cover letter batch: %s", flush_err)
+    |                                                                     ^^^^^^^^^
+491 |
+492 |     elapsed = time.time() - t0
+    |
+
+SIM102 Use a single `if` statement instead of nested `if` statements
+   --> src\applypilot\scoring\json_resume.py:450:17
+    |
+448 |                   if e := _parse_earlier_line(title):
+449 |                       work.append(e)
+450 | /                 if subtitle and _looks_like_earlier(subtitle):
+451 | |                     if e := _parse_earlier_line(subtitle):
+    | |__________________________________________________________^
+452 |                           work.append(e)
+453 |                   continue
+    |
+help: Combine `if` statements using `and`
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\scoring\pdf.py:825:16
+    |
+823 |                 is_external=True,
+824 |             )
+825 |         except Exception:
+    |                ^^^^^^^^^
+826 |             r = paragraph.add_run(display)
+827 |             r.font.color.rgb = RGBColor(0x2A, 0x7A, 0xB5)
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\scoring\pdf.py:1295:16
+     |
+1293 |             convert_to_pdf(f, doc_format=doc_format)
+1294 |             converted += 1
+1295 |         except Exception as e:
+     |                ^^^^^^^^^
+1296 |             log.error("Failed to convert %s: %s", f.name, e)
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\scoring\scorer.py:313:12
+    |
+311 |         response = client.chat(messages, max_tokens=8192, temperature=0.2)
+312 |         return _parse_score_response(response)
+313 |     except Exception as e:
+    |            ^^^^^^^^^
+314 |         log.error("LLM error scoring job '%s': %s", (job or {}).get("title") or "?", e)
+315 |         return {"score": None, "keywords": "", "reasoning": "", "eligibility": None,
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\scoring\scorer.py:441:16
+    |
+439 |             result = score_job(resume_text, job)
+440 |             result["url"] = job["url"]
+441 |         except Exception as e:
+    |                ^^^^^^^^^
+442 |             log.error("Unexpected error scoring '%s': %s", (job or {}).get("title") or "?", e)
+443 |             result = {
+    |
+
+TRY401 Redundant exception object included in `logging.exception` call
+   --> src\applypilot\scoring\scorer.py:454:79
+    |
+452 |             write_with_retry(conn, _flush_score_batch, conn, batch, now)
+453 |         except Exception as flush_err:
+454 |             log.exception("Batch flush failed (batch of %d): %s", len(batch), flush_err)
+    |                                                                               ^^^^^^^^^
+455 |         log.info("Committed batch of %d scores to DB (%d/%d total)", len(batch), completed, len(jobs))
+456 |         return []
+    |
+
+TRY401 Redundant exception object included in `logging.exception` call
+   --> src\applypilot\scoring\scorer.py:498:85
+    |
+496 |             write_with_retry(conn, _flush_score_batch, conn, batch, now)
+497 |         except Exception as flush_err:
+498 |             log.exception("Final batch flush failed (batch of %d): %s", len(batch), flush_err)
+    |                                                                                     ^^^^^^^^^
+499 |
+500 |     elapsed = time.time() - t0
+    |
+
+TRY401 Redundant exception object included in `logging.exception` call
+   --> src\applypilot\scoring\scorer.py:512:56
+    |
+510 |         distribution = [(row[0], row[1]) for row in dist]
+511 |     except Exception as dist_err:
+512 |         log.exception("Distribution query failed: %s", dist_err)
+    |                                                        ^^^^^^^^
+513 |         distribution = []
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\scoring\tailor.py:1110:24
+     |
+1108 |                 try:
+1109 |                     result = future.result()
+1110 |                 except Exception as e:
+     |                        ^^^^^^^^^
+1111 |                     result = {
+1112 |                         "url": job["url"], "title": job["title"], "site": job["site"],
+     |
+
+BLE001 Do not catch blind exception: `Exception`
+    --> src\applypilot\scoring\tailor.py:1132:20
+     |
+1130 |             try:
+1131 |                 result = _tailor_one_job(job, None, profile, doc_format)
+1132 |             except Exception as e:
+     |                    ^^^^^^^^^
+1133 |                 result = {
+1134 |                     "url": job["url"], "title": job.get("title") or "", "site": job["site"],
+     |
+
+TRY401 Redundant exception object included in `logging.exception` call
+    --> src\applypilot\scoring\tailor.py:1168:63
+     |
+1166 |         write_with_retry(conn, _flush_tailor_results, conn, results, now)
+1167 |     except Exception as flush_err:
+1168 |         log.exception("DB flush failed for tailor batch: %s", flush_err)
+     |                                                               ^^^^^^^^^
+1169 |
+1170 |     elapsed = time.time() - t0
+     |
+
+SIM101 Multiple `isinstance` calls for `category`, merge into a single call
+  --> src\applypilot\scoring\validator.py:90:12
+   |
+88 |     allowed: set[str] = set()
+89 |     for category in boundary.values():
+90 |         if isinstance(category, list) or isinstance(category, set):
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+91 |             allowed.update(s.lower().strip() for s in category)
+92 |     return allowed
+   |
+help: Merge `isinstance` calls for `category`
+
+SIM102 Use a single `if` statement instead of nested `if` statements
+   --> src\applypilot\scoring\validator.py:99:9
+    |
+ 97 |       names = set(profile.get("resume_facts", {}).get("private_projects", []))
+ 98 |       for item in profile.get("project_inventory", []):
+ 99 | /         if isinstance(item, dict) and (item.get("private") or item.get("resume_allowed") is False):
+100 | |             if item.get("name"):
+    | |________________________________^
+101 |                   names.add(item["name"])
+102 |       return sorted(names)
+    |
+help: Combine `if` statements using `and`
+
+SIM102 Use a single `if` statement instead of nested `if` statements
+   --> src\applypilot\scoring\validator.py:109:9
+    |
+107 |       names = set(profile.get("resume_facts", {}).get("unfinished_projects", []))
+108 |       for item in profile.get("project_inventory", []):
+109 | /         if isinstance(item, dict) and "unfinished" in str(item.get("status", "")).lower():
+110 | |             if item.get("name"):
+    | |________________________________^
+111 |                   names.add(item["name"])
+112 |       return sorted(names)
+    |
+help: Combine `if` statements using `and`
+
+PERF402 Use `list` or `list.copy` to create a copy of a list
+   --> src\applypilot\scoring\validator.py:221:17
+    |
+219 |         for entry in data["experience"]:
+220 |             for b in entry.get("bullets", []):
+221 |                 all_text_parts.append(b)
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^
+222 |
+223 |     # Projects: collect bullets
+    |
+
+PERF402 Use `list` or `list.copy` to create a copy of a list
+   --> src\applypilot\scoring\validator.py:227:17
+    |
+225 |         for entry in data["projects"]:
+226 |             for b in entry.get("bullets", []):
+227 |                 all_text_parts.append(b)
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^
+228 |
+229 |     # Education: each preserved school must be present (education may be a
+    |
+
+F401 `datetime.timezone` imported but unused
+  --> src\applypilot\tracking\__init__.py:8:37
+   |
+ 7 | import logging
+ 8 | from datetime import UTC, datetime, timezone
+   |                                     ^^^^^^^^
+ 9 |
+10 | from rich.console import Console
+   |
+help: Remove unused import: `datetime.timezone`
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\tracking\__init__.py:364:12
+    |
+362 |     try:
+363 |         emails = asyncio.run(search_application_emails(days=days, limit=limit))
+364 |     except Exception as e:
+    |            ^^^^^^^^^
+365 |         console.print(f"[red]Gmail fetch failed:[/red] {e}")
+366 |         console.print("[dim]Run `applypilot track --setup` to verify Gmail connectivity.[/dim]")
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\tracking\__init__.py:408:16
+    |
+406 |         try:
+407 |             bodies = asyncio.run(read_email_bodies([e["id"] for e in llm_emails]))
+408 |         except Exception as e:
+    |                ^^^^^^^^^
+409 |             log.warning("Body read failed: %s", e)
+410 |             bodies = {}
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\tracking\__init__.py:424:20
+    |
+422 |                 result = classify_email(email)
+423 |                 classified_count += 1
+424 |             except Exception as e:
+    |                    ^^^^^^^^^
+425 |                 log.warning("Classification failed for email %s: %s", email["id"], e)
+426 |                 result = {
+    |
+
+FURB162 Unnecessary timezone replacement with zero offset
+  --> src\applypilot\tracking\ghosting.py:50:49
+   |
+49 |         try:
+50 |             applied_dt = datetime.fromisoformat(applied_at.replace("Z", "+00:00"))
+   |                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+51 |             if applied_dt.tzinfo is None:
+52 |                 applied_dt = applied_dt.replace(tzinfo=UTC)
+   |
+help: Remove `.replace()` call
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\tracking\gmail_client.py:103:12
+    |
+101 |             log.info("Gmail MCP tools: %s", tool_names)
+102 |             return bool(tool_names)
+103 |     except Exception as e:
+    |            ^^^^^^^^^
+104 |         log.error("Gmail MCP connection failed: %s", e)
+105 |         return False
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\tracking\gmail_client.py:262:24
+    |
+260 |                     log.warning("Gmail search timed out: %s", query[:60])
+261 |                     continue
+262 |                 except Exception as e:
+    |                        ^^^^^^^^^
+263 |                     log.warning("Gmail search failed: %s", e)
+264 |                     continue
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\tracking\gmail_client.py:317:24
+    |
+315 |                     full = _parse_read_result(full_text, msg_id)
+316 |                     results[msg_id] = _normalize_email(full)
+317 |                 except Exception as e:
+    |                        ^^^^^^^^^
+318 |                     log.debug("Could not read email %s: %s", msg_id, e)
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\tracking\gmail_client.py:344:12
+    |
+342 |         log.warning("Could not parse label ID from response: %s", raw[:100])
+343 |         return None
+344 |     except Exception as e:
+    |            ^^^^^^^^^
+345 |         log.warning("Gmail label operation failed: %s", e)
+346 |         return None
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\tracking\gmail_client.py:391:12
+    |
+389 |             return total_labeled
+390 |
+391 |     except Exception as e:
+    |            ^^^^^^^^^
+392 |         log.warning("Gmail label session failed: %s", e)
+393 |         return 0
+    |
+
+FURB162 Unnecessary timezone replacement with zero offset
+  --> src\applypilot\tracking\markdown_gen.py:66:37
+   |
+64 |         return ""
+65 |     try:
+66 |         dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+   |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+67 |         return dt.strftime("%b %d")
+68 |     except (ValueError, TypeError):
+   |
+help: Remove `.replace()` call
+
+BLE001 Do not catch blind exception: `Exception`
+   --> src\applypilot\tracking\matcher.py:144:12
+    |
+142 |         host = parsed.hostname or ""
+143 |         return host.lower()
+144 |     except Exception:
+    |            ^^^^^^^^^
+145 |         return address.lower()
+    |
+
+FURB162 Unnecessary timezone replacement with zero offset
+   --> src\applypilot\tracking\matcher.py:194:47
+    |
+192 |     if email_date_str:
+193 |         try:
+194 |             email_dt = datetime.fromisoformat(email_date_str.replace("Z", "+00:00"))
+    |                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+195 |         except (ValueError, TypeError):
+196 |             pass
+    |
+help: Remove `.replace()` call
+
+SIM102 Use a single `if` statement instead of nested `if` statements
+   --> src\applypilot\tracking\matcher.py:245:9
+    |
+243 |           # But DO check when company slug != human name: "grafanalabs" vs "Grafana Labs".
+244 |           _sig2_fired = company and len(company) > 2 and company in subject
+245 | /         if url_company and len(url_company) > 2 and not _sig2_fired:
+246 | |             # Also try slug comparison: "grafanalabs" matches "Grafana Labs" in subject
+247 | |             if url_company in subject or _slug(url_company) in _slug(subject):
+    | |______________________________________________________________________________^
+248 |                   score += 25
+249 |                   signals.append(f"url_company_in_subject:{url_company}")
+    |
+help: Combine `if` statements using `and`
+
+FURB162 Unnecessary timezone replacement with zero offset
+   --> src\applypilot\tracking\matcher.py:276:21
+    |
+274 |             try:
+275 |                 applied_dt = datetime.fromisoformat(
+276 |                     job["applied_at"].replace("Z", "+00:00")
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+277 |                 )
+278 |                 delta_days = abs((email_dt - applied_dt).days)
+    |
+help: Remove `.replace()` call
+
+DTZ007 Naive datetime constructed using `datetime.datetime.strptime()` without %z
+   --> src\applypilot\view.py:202:22
+    |
+200 |             continue
+201 |         try:
+202 |             log_dt = datetime.strptime(f"{parts[0]}_{parts[1]}", "%Y%m%d_%H%M%S")
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+203 |             delta = abs((attempt_local - log_dt).total_seconds())
+204 |             # Log must be within 30 minutes of the attempt
+    |
+help: Call `.replace(tzinfo=<timezone>)` or `.astimezone()` to convert to an aware datetime
+
+Found 247 errors.
+No fixes available (18 hidden fixes can be enabled with the `--unsafe-fixes` option).

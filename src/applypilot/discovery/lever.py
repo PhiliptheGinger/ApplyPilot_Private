@@ -11,7 +11,7 @@ Lever-specific URL template and per-posting normalizer.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from applypilot.discovery.ats_common import (
     fetch_with_retry,
@@ -106,7 +106,7 @@ def scrape_one_employer(
         posted_at: str | None = None
         if isinstance(created, (int, float)) and created > 0:
             posted_at = datetime.fromtimestamp(
-                created / 1000, tz=timezone.utc,
+                created / 1000, tz=UTC,
             ).isoformat()
 
         out.append({

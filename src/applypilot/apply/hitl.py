@@ -32,7 +32,7 @@ import subprocess
 import sys
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from applypilot import config
@@ -325,9 +325,9 @@ def _inject_banner_for_worker(worker_id: int, cdp_port: int, job: dict,
 def mark_needs_human(url: str, reason: str, stuck_url: str,
                      instructions: str, duration_ms: int | None = None) -> None:
     """Park a job for human review instead of marking it as failed."""
-    from applypilot.apply.launcher import _db_retry_execute, _db_retry_commit
+    from applypilot.apply.launcher import _db_retry_commit, _db_retry_execute
     conn = get_connection()
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     _db_retry_execute(conn, """
         UPDATE jobs SET apply_status = 'needs_human',
                        needs_human_reason = ?,
@@ -357,7 +357,7 @@ def reset_needs_human(url: str | None = None) -> int:
     Returns:
         Number of jobs reset.
     """
-    from applypilot.apply.launcher import _db_retry_execute, _db_retry_commit
+    from applypilot.apply.launcher import _db_retry_commit, _db_retry_execute
     conn = get_connection()
 
     if url:

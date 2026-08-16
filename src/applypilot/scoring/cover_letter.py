@@ -10,18 +10,18 @@ import logging
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from applypilot.config import COVER_LETTER_DIR, load_profile
 from applypilot.database import get_connection, transition_state, write_with_retry
 from applypilot.llm import get_client
-from applypilot.scoring.validator import (
-    sanitize_text,
-    validate_cover_letter,
-)
 from applypilot.scoring.resume_router import (
     is_communication_role,
     load_resume_text_for_job,
+)
+from applypilot.scoring.validator import (
+    sanitize_text,
+    validate_cover_letter,
 )
 
 log = logging.getLogger(__name__)
@@ -225,7 +225,7 @@ def generate_cover_letter(
 
 def _cover_one_job(job: dict, resume_text: str | None, profile: dict, doc_format: str = "docx") -> dict:
     """Generate cover letter for a single job. Safe to call from multiple threads."""
-    from applypilot.scoring.tailor import _name_parts, _extract_keywords
+    from applypilot.scoring.tailor import _extract_keywords, _name_parts
     if resume_text is None:
         resume_text, _ = load_resume_text_for_job(job)
     letter, validation = generate_cover_letter(resume_text, job, profile)
@@ -278,7 +278,7 @@ def _cover_one_job(job: dict, resume_text: str | None, profile: dict, doc_format
             "comments": (
                 f"Cover letter for: {job_title}\n"
                 f"Source: {site}\n"
-                f"Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
+                f"Date: {datetime.now(UTC).strftime('%Y-%m-%d')}"
             ),
         }
         doc_path = str(convert_to_pdf(cl_path, doc_format=doc_format, metadata=cl_metadata))
@@ -308,7 +308,7 @@ def _mark_cover_result(
     Transitions to ``ready_to_apply`` on success, ``cover_failed`` on failure.
     """
     if now is None:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
     if path:
         conn.execute(
@@ -436,13 +436,13 @@ def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: in
                 completed += 1
                 try:
                     result = future.result()
-                except Exception as e:
+                except Exception as exc:
                     result = {
                         "url": job["url"], "title": job.get("title") or "", "site": job["site"],
-                        "path": None, "pdf_path": None, "error": str(e),
+                        "path": None, "pdf_path": None, "error": str(exc),
                     }
                     error_count += 1
-                    log.error("[ERROR] %s -- %s", (job.get("title") or "")[:40], e)
+                    log.exception("[ERROR] %s -- exception during future.result()", (job.get("title") or "")[:40])
 
                 results.append(result)
                 elapsed = time.time() - t0
@@ -460,18 +460,17 @@ def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: in
                 status = "OK" if result.get("path") else "REJ"
                 log.info("%d/%d [%s] | %.1f jobs/min | %s", completed, len(jobs), status, rate * 60,
                          (result.get("title") or "")[:40])
-            except Exception as e:
+            except Exception as exc:
                 result = {
                     "url": job["url"], "title": job.get("title") or "", "site": job["site"],
-                    "path": None, "pdf_path": None, "error": str(e),
+                    "path": None, "pdf_path": None, "error": str(exc),
                 }
                 error_count += 1
-                log.error("%d/%d [ERROR] %s -- %s", completed, len(jobs),
-                          (job.get("title") or "")[:40], e)
+                log.exception("%d/%d [ERROR] %s -- exception generating cover", completed, len(jobs), (job.get("title") or "")[:40])
             results.append(result)
 
     # Persist to DB: increment attempt counter for ALL, save path only for successes
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     saved = sum(1 for r in results if r.get("path"))
 
     def _flush_cover_results(conn, results, now):
@@ -486,8 +485,8 @@ def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: in
 
     try:
         write_with_retry(conn, _flush_cover_results, conn, results, now)
-    except Exception as flush_err:
-        log.exception("DB flush failed for cover letter batch: %s", flush_err)
+    except Exception:
+        log.exception("DB flush failed for cover letter batch")
 
     elapsed = time.time() - t0
     rejected = sum(
