@@ -168,14 +168,13 @@ def _validate_application_profile(profile: dict) -> None:
     loc = app.get("location")
     if loc and not isinstance(loc, dict):
         raise ValueError("application_profile.location must be an object")
-    if loc:
-        if loc.get("preferred_commute_minutes") is not None:
-            try:
-                v = int(loc.get("preferred_commute_minutes"))
-                if v < 0 or v > 1000:
-                    raise ValueError("preferred_commute_minutes out of range")
-            except Exception:
-                raise ValueError("application_profile.location.preferred_commute_minutes must be an integer")
+    if loc and loc.get("preferred_commute_minutes") is not None:
+        try:
+            v = int(loc.get("preferred_commute_minutes"))
+            if v < 0 or v > 1000:
+                raise ValueError("preferred_commute_minutes out of range")
+        except (TypeError, ValueError):
+            raise ValueError("application_profile.location.preferred_commute_minutes must be an integer")
 
     # online_profiles -> validate URLs
     online = app.get("online_profiles")
@@ -193,6 +192,76 @@ def _validate_application_profile(profile: dict) -> None:
         strat = comp.get("strategy")
         if strat and strat not in ("job_specific", "human_review", "fixed"):
             raise ValueError("application_profile.compensation.strategy must be one of job_specific|human_review|fixed")
+
+    # voluntary EEO / demographics must be application-only and have safe types
+    eeo = app.get("voluntary_eeo") or app.get("demographics")
+    if eeo is not None:
+        if not isinstance(eeo, dict):
+            raise ValueError("application_profile.voluntary_eeo must be an object")
+        gender = eeo.get("gender")
+        if gender is not None and not isinstance(gender, str):
+            raise ValueError("application_profile.voluntary_eeo.gender must be a string")
+        hispanic = eeo.get("hispanic_latino")
+        if hispanic is not None and not isinstance(hispanic, bool):
+            raise ValueError("application_profile.voluntary_eeo.hispanic_latino must be boolean")
+        if eeo.get("disability_status") is not None and not isinstance(eeo.get("disability_status"), str):
+            raise ValueError("application_profile.voluntary_eeo.disability_status must be a short string")
+
+    # Employment history (application-only) validation
+    employment_history = app.get("employment_history") or profile.get("employment_history")
+    if employment_history is not None:
+        if not isinstance(employment_history, list):
+            raise ValueError("application_profile.employment_history must be an array")
+        for entry in employment_history:
+            if not isinstance(entry, dict):
+                raise ValueError("each employment_history entry must be an object")
+            # may_contact_employer should be boolean or null
+            mce = entry.get("may_contact_employer")
+            if mce is not None and not isinstance(mce, bool):
+                # allow null, but not other types
+                raise ValueError("employment_history.may_contact_employer must be boolean or null")
+            # salary fields must be numeric strings or null
+            for f in ("starting_salary", "ending_salary"):
+                v = entry.get(f)
+                if v is not None and v != "" and not isinstance(v, (int, float, str)):
+                    raise ValueError(f"employment_history.{f} must be numeric, string, or null")
+
+    # Education validation: numeric GPA and nullable minor/concentration/honors
+    education = profile.get("education")
+    if education is not None:
+        if not isinstance(education, list):
+            raise ValueError("education must be an array")
+        for ed in education:
+            if not isinstance(ed, dict):
+                raise ValueError("each education entry must be an object")
+            gpa = ed.get("gpa")
+            if gpa is not None and gpa != "":
+                try:
+                    gv = float(gpa)
+                except (TypeError, ValueError):
+                    raise ValueError("education.gpa must be numeric or null")
+                if gv < 0.0 or gv > 4.0:
+                    raise ValueError("education.gpa must be between 0.0 and 4.0")
+            for fld in ("minor", "concentration", "honors"):
+                v = ed.get(fld)
+                if v is not None and not isinstance(v, str):
+                    raise ValueError(f"education.{fld} must be a string or null")
+
+    # Defensive check: ensure AMP Smart is not set as current employer
+    exp = profile.get("experience", {})
+    cur_co = (exp.get("current_company") or "").strip()
+    if cur_co and cur_co.lower() == "amp smart":
+        raise ValueError("current_company must not be 'AMP Smart' — AMP Smart ended in 2025-07 per canonical facts")
+
+    # Ensure no application-only fields are accidentally marked resume_allowed in experience_inventory
+    for key in ("experience_inventory", "historical_experience_inventory"):
+        for item in profile.get(key, []) or []:
+            if not isinstance(item, dict):
+                continue
+            # forbidden application-only keys that must not be exposed on resumes
+            for forbidden in ("supervisor_name", "supervisor_phone", "supervisor_email", "starting_salary", "ending_salary", "may_contact_employer"):
+                if forbidden in item and item.get("resume_allowed"):
+                    raise ValueError(f"{forbidden} is application-only and must not be resume_allowed in {key}")
 
 
 def load_search_config() -> dict:
@@ -393,18 +462,19 @@ def _load_company_limits() -> dict:
         return _company_limits_cache
 
     import logging
+
     import yaml
 
     log = logging.getLogger(__name__)
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         if not isinstance(data, dict):
-            raise ValueError(f"expected mapping, got {type(data).__name__}")
+            raise TypeError(f"expected mapping, got {type(data).__name__}")
         overrides = data.get("overrides", {}) or {}
         if isinstance(overrides, dict):
             data["overrides"] = {str(k).lower(): (v or {}) for k, v in overrides.items()}
         _company_limits_cache = data
-    except Exception as e:
+    except (OSError, TypeError, ValueError, yaml.YAMLError) as e:
         log.warning("Failed to parse %s (%s); using defaults.", path, e)
         _company_limits_cache = {}
 
@@ -433,11 +503,10 @@ def get_company_limit(company: str) -> tuple[int, int]:
 
     overrides = limits.get("overrides", {}) or {}
     co = (company or "").lower().strip()
-    if co:
-        if co in overrides:
-            entry = overrides[co] or {}
-            cap = entry.get("max_in_flight", default_cap)
-            window = entry.get("window_days", default_window)
-            return int(cap), int(window)
+    if co and co in overrides:
+        entry = overrides[co] or {}
+        cap = entry.get("max_in_flight", default_cap)
+        window = entry.get("window_days", default_window)
+        return int(cap), int(window)
 
     return int(default_cap), int(default_window)
