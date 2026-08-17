@@ -830,11 +830,9 @@ def scrape_detail_page(page, url: str) -> dict:
 
     if result.get("full_description"):
         result["status"] = "ok" if result.get("application_url") else "partial"
-    elif result.get("application_url"):
-        result["status"] = "partial"
     else:
         result["status"] = "error"
-        result["error"] = "no data extracted"
+        result["error"] = "no description extracted"
 
     result["elapsed"] = time.time() - t0
     return result
