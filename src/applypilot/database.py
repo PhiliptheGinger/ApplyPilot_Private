@@ -321,6 +321,7 @@ _ALL_COLUMNS: dict[str, str] = {
     "tailored_resume_path": "TEXT",
     "tailored_at": "TEXT",
     "tailor_attempts": "INTEGER DEFAULT 0",
+    "tailor_auto_approved": "INTEGER DEFAULT 0",
     # Cover letter
     "cover_letter_path": "TEXT",
     "cover_letter_at": "TEXT",
@@ -855,6 +856,100 @@ def reset_by_category(category: str,
     return cursor.rowcount
 
 
+def reject_jobs_by_title_patterns(
+    patterns: list[str],
+    conn: sqlite3.Connection | None = None,
+    *,
+    dry_run: bool = False,
+    sample_limit: int = 20,
+) -> dict:
+    """Archive jobs whose titles match any reject pattern.
+
+    This is a bulk CLI helper for quickly culling obvious non-fit roles
+    (for example senior/staff/lead listings) before they consume enrich/score
+    throughput.
+
+    Args:
+        patterns: Regex patterns matched case-insensitively against title.
+        conn: Optional sqlite connection.
+        dry_run: When True, report matches only and make no DB writes.
+        sample_limit: Number of sample matches to include in return payload.
+
+    Returns:
+        Dict with keys: matched (int), updated (int), sample (list[dict]).
+    """
+    if conn is None:
+        conn = get_connection()
+
+    compiled: list[tuple[str, _re.Pattern[str]]] = []
+    for pattern in patterns:
+        p = (pattern or "").strip()
+        if not p:
+            continue
+        try:
+            compiled.append((p, _re.compile(p, _re.IGNORECASE)))
+        except _re.error as exc:
+            raise ValueError(f"Invalid regex pattern '{p}': {exc}") from exc
+
+    if not compiled:
+        return {"matched": 0, "updated": 0, "sample": []}
+
+    rows = conn.execute(
+        """
+        SELECT url, title
+        FROM jobs
+        WHERE applied_at IS NULL
+          AND COALESCE(state, '') NOT IN ('applied', 'manual_only', 'archived')
+        """
+    ).fetchall()
+
+    matches: list[tuple[str, str, str]] = []
+    for row in rows:
+        title = (row["title"] if isinstance(row, sqlite3.Row) else row[1]) or ""
+        url = row["url"] if isinstance(row, sqlite3.Row) else row[0]
+        for raw, rx in compiled:
+            if rx.search(title):
+                matches.append((url, title, raw))
+                break
+
+    if dry_run:
+        sample = [
+            {"url": url, "title": title, "pattern": pattern}
+            for url, title, pattern in matches[:sample_limit]
+        ]
+        return {"matched": len(matches), "updated": 0, "sample": sample}
+
+    updated = 0
+    now = datetime.now(UTC).isoformat()
+    for url, title, pattern in matches:
+        conn.execute(
+            """
+            UPDATE jobs
+            SET apply_category = 'archived_ineligible',
+                apply_error = ?,
+                last_attempted_at = ?
+            WHERE url = ?
+            """,
+            (f"title_pattern_reject:{pattern}", now, url),
+        )
+        transition_state(
+            conn,
+            url,
+            "archived",
+            reason=f"title_pattern_reject:{pattern}",
+            metadata={"pattern": pattern, "title": title[:120]},
+            force=True,
+        )
+        updated += 1
+
+    commit_with_retry(conn)
+    sample = [
+        {"url": url, "title": title, "pattern": pattern}
+        for url, title, pattern in matches[:sample_limit]
+    ]
+    return {"matched": len(matches), "updated": updated, "sample": sample}
+
+
 def get_stats(conn: sqlite3.Connection | None = None) -> dict:
     """Return job counts by pipeline stage.
 
@@ -920,6 +1015,10 @@ def get_stats(conn: sqlite3.Connection | None = None) -> dict:
         "SELECT COUNT(*) FROM jobs WHERE tailored_resume_path IS NOT NULL"
     ).fetchone()[0]
 
+    stats["tailor_auto_approved"] = conn.execute(
+        "SELECT COUNT(*) FROM jobs WHERE COALESCE(tailor_auto_approved, 0) = 1"
+    ).fetchone()[0]
+
     from applypilot.config import DEFAULTS as _DEFAULTS
     stats["untailored_eligible"] = conn.execute(
         "SELECT COUNT(*) FROM jobs "
@@ -953,6 +1052,10 @@ def get_stats(conn: sqlite3.Connection | None = None) -> dict:
 
     stats["apply_errors"] = conn.execute(
         "SELECT COUNT(*) FROM jobs WHERE apply_error IS NOT NULL"
+    ).fetchone()[0]
+
+    stats["title_rejected"] = conn.execute(
+        "SELECT COUNT(*) FROM jobs WHERE apply_error LIKE 'title_pattern_reject:%'"
     ).fetchone()[0]
 
     stats["ready_to_apply"] = conn.execute(

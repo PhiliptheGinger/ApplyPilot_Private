@@ -20,6 +20,11 @@ from datetime import datetime, timezone
 
 from applypilot.config import TAILORED_DIR, load_profile
 from applypilot.llm import get_stage_client, get_token_limit
+from applypilot.scoring.fact_approval import (
+    extract_facts_from_resume_json,
+    is_auto_approvable,
+    record_approved_facts,
+)
 from applypilot.scoring.resume_router import load_resume_text_for_job
 from applypilot.scoring.validator import (
     sanitize_text,
@@ -679,6 +684,7 @@ def tailor_resume(
         "judge": None,
         "status": "pending",
         "standup_decision": standup_decision,
+        "approved_facts": [],
     }
     avoid_notes: list[str] = []
     tailored = ""
@@ -728,6 +734,19 @@ def tailor_resume(
 
         # Assemble text (header injected by code, em dashes auto-fixed)
         tailored = assemble_resume_text(data, profile)
+        candidate_facts = extract_facts_from_resume_json(data, profile)
+        report["approved_facts"] = sorted(candidate_facts)
+
+        if is_auto_approvable(candidate_facts):
+            report["judge"] = {
+                "passed": True,
+                "verdict": "SKIP",
+                "issues": "none",
+                "raw": "auto-approved via fact-subset",
+            }
+            report["status"] = "approved"
+            report["auto_approved_by_facts"] = True
+            return tailored, report
 
         # Layer 2: LLM judge — skip on first clean pass to save an LLM call
         is_clean = not validation.get("warnings")
@@ -892,6 +911,10 @@ def _tailor_one_job(job: dict, resume_text: str | None, profile: dict, doc_forma
     if resume_text is None:
         resume_text, _ = load_resume_text_for_job(job)
     tailored, report = tailor_resume(resume_text, job, profile)
+    approved_facts = set(report.get("approved_facts") or [])
+    if report.get("status") == "approved" and approved_facts:
+        source = f"{job.get('url', '')}:{job.get('title', '')}"
+        record_approved_facts(approved_facts, source=source)
 
     # Filename: FirstName_LastName_JobTitle_hash.docx per Jobscan §3.
     # Hash retains uniqueness since the same title may recur across employers.
@@ -966,6 +989,7 @@ def _mark_tailor_result(
     path: str | None,
     *,
     attempts: int | None = None,
+    auto_approved_by_facts: bool = False,
     now: str | None = None,
 ) -> None:
     """Persist one tailor result to the DB and emit a state transition.
@@ -987,8 +1011,9 @@ def _mark_tailor_result(
         # already written so state drift is recoverable via backfill.
         conn.execute(
             "UPDATE jobs SET tailored_resume_path=?, tailored_at=?, "
-            "tailor_attempts=COALESCE(tailor_attempts,0)+1 WHERE url=?",
-            (path, now, url),
+            "tailor_attempts=COALESCE(tailor_attempts,0)+1, "
+            "tailor_auto_approved=? WHERE url=?",
+            (path, now, 1 if auto_approved_by_facts else 0, url),
         )
         transition_state(
             conn, url, "tailored",
@@ -1169,7 +1194,9 @@ def run_tailoring(min_score: int | None = None, limit: int = 20, workers: int = 
             stored_path = r.get("pdf_path") or r.get("path")
             _mark_tailor_result(
                 conn, r["url"], r["status"], stored_path,
-                attempts=r.get("attempts"), now=now,
+                attempts=r.get("attempts"),
+                auto_approved_by_facts=bool(r.get("auto_approved_by_facts")),
+                now=now,
             )
 
     try:

@@ -13,6 +13,7 @@ import platform
 import queue
 import re
 import signal
+import shutil
 import socketserver
 import sqlite3
 import subprocess
@@ -777,6 +778,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                         WHERE url=?""", (now, url))
                     transition_state(conn, url, "applied",
                         reason="HTTP handler mark", force=True)
+                    _export_submitted_resume_artifacts(conn, url)
                 elif action == "skip":
                     conn.execute("""UPDATE jobs SET apply_status='failed',
                         apply_category='archived_ineligible',
@@ -1715,6 +1717,36 @@ def acquire_job(target_url: str | None = None,
         raise
 
 
+def _export_submitted_resume_artifacts(conn: sqlite3.Connection, url: str) -> None:
+    """Copy submitted resume artifacts to the completed export directory.
+
+    Internal tailored files remain under config.TAILORED_DIR as source-of-truth.
+    This mirrors resume documents only after a job reaches applied.
+    """
+    row = conn.execute(
+        "SELECT tailored_resume_path FROM jobs WHERE url = ?",
+        (url,),
+    ).fetchone()
+    if not row:
+        return
+
+    resume_path = row[0] if not isinstance(row, sqlite3.Row) else row["tailored_resume_path"]
+    if not resume_path:
+        return
+
+    src_doc = Path(resume_path)
+    candidates = (src_doc, src_doc.with_suffix(".txt"))
+    config.COMPLETED_RESUMES_DIR.mkdir(parents=True, exist_ok=True)
+
+    for src in candidates:
+        if not src.exists():
+            continue
+        try:
+            shutil.copy2(src, config.COMPLETED_RESUMES_DIR / src.name)
+        except Exception:
+            logger.debug("Failed exporting submitted artifact: %s", src, exc_info=True)
+
+
 def mark_result(url: str, status: str, error: str | None = None,
                 permanent: bool = False, duration_ms: int | None = None,
                 task_id: str | None = None) -> None:
@@ -1733,6 +1765,7 @@ def mark_result(url: str, status: str, error: str | None = None,
                          reason="submission completed",
                          metadata={"duration_ms": duration_ms, "task_id": task_id},
                          force=True)
+        _export_submitted_resume_artifacts(conn, url)
     else:
         attempts = 99 if permanent else "COALESCE(apply_attempts, 0) + 1"
         category = categorize_apply_result(status, error)
@@ -1834,6 +1867,7 @@ def mark_job(url: str, status: str, reason: str | None = None) -> None:
                            apply_category = 'applied'
             WHERE url = ?
         """, (now, url))
+        _export_submitted_resume_artifacts(conn, url)
     else:
         error = reason or "manual"
         category = categorize_apply_result("failed", error)

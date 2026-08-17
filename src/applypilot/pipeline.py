@@ -13,6 +13,8 @@ Usage (via CLI):
 from __future__ import annotations
 
 import logging
+import os
+import signal
 import threading
 import time
 from datetime import datetime, timezone
@@ -23,11 +25,15 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from applypilot.config import LOG_DIR, ensure_dirs, load_env
+from applypilot.config import APP_DIR, LOG_DIR, ensure_dirs, load_env
 from applypilot.database import get_connection, get_stats, init_db
 
 log = logging.getLogger(__name__)
 console = Console()
+
+_RUN_STATE_DIR = APP_DIR / "run-state"
+_STREAM_STOP_FILE = _RUN_STATE_DIR / "stop-stream"
+_STREAM_PID_FILE = _RUN_STATE_DIR / "stream.pid"
 
 
 def _setup_file_logging(stages: list[str]) -> logging.FileHandler | None:
@@ -446,6 +452,87 @@ _PENDING_SQL_TAKES_MIN_SCORE = {"tailor", "cover"}
 _STREAM_POLL_INTERVAL = 10
 
 
+def _ensure_run_state_dir() -> None:
+    _RUN_STATE_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _read_stream_pid() -> int | None:
+    try:
+        if not _STREAM_PID_FILE.exists():
+            return None
+        raw = _STREAM_PID_FILE.read_text(encoding="utf-8").strip()
+        if not raw:
+            return None
+        return int(raw)
+    except Exception:
+        return None
+
+
+def get_stream_pid() -> int | None:
+    """Return the recorded stream-run PID, if present."""
+    return _read_stream_pid()
+
+
+def _write_stream_pid(pid: int) -> None:
+    _ensure_run_state_dir()
+    _STREAM_PID_FILE.write_text(str(pid), encoding="utf-8")
+
+
+def _clear_stream_pid() -> None:
+    try:
+        _STREAM_PID_FILE.unlink(missing_ok=True)
+    except Exception:
+        log.debug("Failed to clear stream pid file", exc_info=True)
+
+
+def request_stream_stop() -> bool:
+    """Signal a running stream pipeline to stop on its next poll cycle."""
+    _ensure_run_state_dir()
+    _STREAM_STOP_FILE.write_text(datetime.now(UTC).isoformat(), encoding="utf-8")
+    return True
+
+
+def clear_stream_stop_request() -> None:
+    """Remove stale stop requests so new stream runs do not auto-exit."""
+    try:
+        _STREAM_STOP_FILE.unlink(missing_ok=True)
+    except Exception:
+        log.debug("Failed to clear stream stop request", exc_info=True)
+
+
+def request_stream_interrupt_signal() -> bool:
+    """Try to send an interrupt signal to the active stream process, if known."""
+    pid = _read_stream_pid()
+    if not pid:
+        return False
+
+    try:
+        if os.name == "nt":
+            os.kill(pid, signal.CTRL_BREAK_EVENT)
+        else:
+            os.kill(pid, signal.SIGINT)
+        return True
+    except Exception:
+        log.debug("Failed to interrupt stream process pid=%s", pid, exc_info=True)
+        return False
+
+
+def _stop_requested(stop_event: threading.Event) -> bool:
+    return stop_event.is_set() or _STREAM_STOP_FILE.exists()
+
+
+def _wait_or_stop(stop_event: threading.Event, timeout: float) -> bool:
+    """Wait up to timeout seconds, but wake early if an external stop is requested."""
+    end = time.time() + max(0.0, timeout)
+    while time.time() < end:
+        if _stop_requested(stop_event):
+            return True
+        slice_s = min(0.5, max(0.0, end - time.time()))
+        if stop_event.wait(timeout=slice_s):
+            return True
+    return _stop_requested(stop_event)
+
+
 def _count_pending(stage: str, min_score: int | None = None,
                    max_age_days: int | None = None) -> int:
     """Count pending work items for a stage, honoring min_score and max_age_days."""
@@ -522,11 +609,14 @@ def _run_stage_streaming(
 
     # For downstream stages: loop until upstream done + no pending work
     passes = 0
-    while not stop_event.is_set():
+    while not _stop_requested(stop_event):
         # Wait for upstream to start producing work (first pass only)
         if passes == 0 and upstream and not tracker.is_done(upstream):
             # Wait a bit for upstream to produce some work before first run
-            tracker.wait(upstream, timeout=_STREAM_POLL_INTERVAL)
+            _wait_or_stop(stop_event, _STREAM_POLL_INTERVAL)
+
+        if _stop_requested(stop_event):
+            break
 
         pending = _count_pending(stage, min_score, max_age_days)
 
@@ -538,7 +628,7 @@ def _run_stage_streaming(
                 if isinstance(result, dict) and result.get("status", "").startswith("error"):
                     log.warning("Stage '%s' pass %d returned error, backing off %ds",
                                 stage, passes, _STREAM_POLL_INTERVAL)
-                    if stop_event.wait(timeout=_STREAM_POLL_INTERVAL):
+                    if _wait_or_stop(stop_event, _STREAM_POLL_INTERVAL):
                         break
                 # Pending count looks like work but the runner did nothing
                 # (cap-blocked, all candidates filtered, etc.). Back off so
@@ -548,12 +638,17 @@ def _run_stage_streaming(
                     progress = sum(int(result.get(k, 0) or 0) for k in
                                    ("approved", "failed", "errors", "processed",
                                     "ok", "partial", "error", "new"))
-                    if progress == 0 and stop_event.wait(timeout=_STREAM_POLL_INTERVAL):
-                        break
+                    if progress == 0:
+                        log.info(
+                            "Stage '%s' pass %d had pending=%d but progress=0; backing off %ds",
+                            stage, passes, pending, _STREAM_POLL_INTERVAL,
+                        )
+                        if _wait_or_stop(stop_event, _STREAM_POLL_INTERVAL):
+                            break
             except Exception:
                 log.exception("Stage '%s' error (pass %d)", stage, passes)
                 passes += 1
-                if stop_event.wait(timeout=_STREAM_POLL_INTERVAL):
+                if _wait_or_stop(stop_event, _STREAM_POLL_INTERVAL):
                     break
         else:
             # No work right now
@@ -562,7 +657,12 @@ def _run_stage_streaming(
                 # No work and upstream is done — this stage is finished
                 break
             # Upstream still running, wait and retry
-            if stop_event.wait(timeout=_STREAM_POLL_INTERVAL):
+            if passes > 0 and passes % 6 == 0:
+                log.info(
+                    "Stage '%s' idle poll: no pending work yet, waiting for upstream '%s'",
+                    stage, upstream,
+                )
+            if _wait_or_stop(stop_event, _STREAM_POLL_INTERVAL):
                 break  # Stop requested
 
     tracker.mark_done(stage, {"status": "ok", "passes": passes})
@@ -647,9 +747,12 @@ def _run_streaming(ordered: list[str], min_score: int,
     tracker = _StageTracker()
     stop_event = threading.Event()
     pipeline_start = time.time()
+    _write_stream_pid(os.getpid())
 
     console.print("\n  [bold cyan]STREAMING MODE[/bold cyan] — stages run concurrently")
     console.print(f"  Poll interval: {_STREAM_POLL_INTERVAL}s\n")
+    console.print(f"  Stop flag:     {_STREAM_STOP_FILE}")
+    console.print("  Stop command:  applypilot stop --stream\n")
 
     # Mark stages NOT in `ordered` as done so downstream doesn't wait for them
     for stage in STAGE_ORDER:
@@ -673,18 +776,28 @@ def _run_streaming(ordered: list[str], min_score: int,
         console.print(f"  [dim]Started thread:[/dim] {name}")
 
     # Wait for all threads to finish
+    completed: set[str] = set()
     try:
-        for name in ordered:
-            threads[name].join()
-            elapsed = time.time() - start_times[name]
-            console.print(
-                f"  [green]Completed:[/green] {name} ({elapsed:.1f}s)"
-            )
+        while len(completed) < len(ordered):
+            if _stop_requested(stop_event):
+                stop_event.set()
+            for name in ordered:
+                if name in completed:
+                    continue
+                t = threads[name]
+                t.join(timeout=0.5)
+                if not t.is_alive():
+                    completed.add(name)
+                    elapsed = time.time() - start_times[name]
+                    console.print(f"  [green]Completed:[/green] {name} ({elapsed:.1f}s)")
     except KeyboardInterrupt:
         console.print("\n[yellow]Interrupted — stopping stages...[/yellow]")
         stop_event.set()
+    finally:
+        stop_event.set()
         for t in threads.values():
             t.join(timeout=10)
+        _clear_stream_pid()
 
     total_elapsed = time.time() - pipeline_start
 
@@ -783,6 +896,7 @@ def run_pipeline(
     # Execute
     try:
         if stream:
+            clear_stream_stop_request()
             result = _run_streaming(ordered, min_score,
                                     max_age_days=max_age_days,
                                     limit=effective_limit, workers=workers,
@@ -797,6 +911,8 @@ def run_pipeline(
         if file_handler:
             logging.getLogger().removeHandler(file_handler)
             file_handler.close()
+        if stream:
+            _clear_stream_pid()
 
     # Summary table
     console.print(f"\n{'=' * 70}")
