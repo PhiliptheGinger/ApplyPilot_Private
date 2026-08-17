@@ -99,6 +99,7 @@ defaults:
   hours_old: 72          # Only jobs posted within this many hours
 
 # Negative keywords -- skip jobs with these in the title (case-insensitive)
+# Ethical incompatibility -- reject jobs whose title contains these terms.
 exclude_titles:
   - "senior director"
   - "VP "
@@ -110,3 +111,105 @@ exclude_titles:
   - "clearance required"
   - "TS/SCI"
   - "principal scientist"
+
+# Ethical incompatibility -- reject enriched jobs whose description contains
+# language indicating military, weapons, policing, surveillance, or closely
+# related work. Matching is case-insensitive.
+exclude_description_keywords:
+  # Military / defense
+  - "defense contractor"
+  - "defence contractor"
+  - "defense industry"
+  - "defence industry"
+  - "military"
+  - "armed forces"
+  - "department of defense"
+  - "department of defence"
+  - "dod"
+  - "national security"
+  - "homeland security"
+  - "defense systems"
+  - "defence systems"
+  - "weapons systems"
+  - "weapon systems"
+  - "weapons platform"
+  - "missile"
+  - "missile systems"
+  - "ballistic"
+  - "munitions"
+  - "munition"
+  - "combat systems"
+  - "battlefield"
+  - "warfare"
+  - "war fighter"
+  - "warfighter"
+  - "tactical systems"
+  - "military intelligence"
+
+  # Weapons / military technology
+  - "fire control"
+  - "target acquisition"
+  - "targeting systems"
+  - "weapons guidance"
+  - "guidance systems"
+  - "autonomous weapons"
+  - "lethal autonomous"
+  - "unmanned combat"
+  - "combat vehicle"
+  - "military drone"
+  - "armed drone"
+  - "counter-drone"
+  - "counter uav"
+
+  # Surveillance / intelligence
+  - "surveillance"
+  - "mass surveillance"
+  - "persistent surveillance"
+  - "intelligence gathering"
+  - "intelligence agency"
+  - "signals intelligence"
+  - "signal intelligence"
+  - "sigint"
+  - "geospatial intelligence"
+  - "geospatial surveillance"
+  - "facial recognition"
+  - "biometric surveillance"
+  - "person tracking"
+  - "people tracking"
+  - "location tracking"
+  - "license plate recognition"
+  - "automated license plate"
+  - "alpr"
+  - "law enforcement surveillance"
+  - "predictive policing"
+
+  # Policing / law enforcement
+  - "law enforcement"
+  - "police department"
+  - "police agency"
+  - "policing"
+  - "criminal justice"
+  - "corrections"
+  - "correctional"
+  - "prison"
+  - "prisons"
+  - "jail"
+  - "jails"
+  - "inmate"
+  - "inmates"
+  - "border enforcement"
+  - "immigration enforcement"
+  - "customs enforcement"
+  - "drug enforcement"
+
+  # Security/intelligence applications where the context is specifically
+  # governmental or coercive rather than ordinary information security.
+  - "intelligence community"
+  - "three-letter agency"
+  - "federal law enforcement"
+  - "counterterrorism"
+  - "counter terrorism"
+  - "counterinsurgency"
+  - "counter insurgency"
+  - "homeland defense"
+  - "homeland defence"

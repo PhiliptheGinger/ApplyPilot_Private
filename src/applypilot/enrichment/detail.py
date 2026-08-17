@@ -38,6 +38,19 @@ def _get_ua() -> str:
     from applypilot.apply.chrome import _get_real_user_agent
     return _get_real_user_agent()
 
+def _load_ethical_keywords() -> list[str]:
+	"""Load ethical incompatibility keywords from searches.yaml."""
+	try:
+		from applypilot.config import load_searches
+		config = load_searches()
+		return [
+			str(keyword).strip().lower()
+			for keyword in config.get("exclude_description_keywords", [])
+			if str(keyword).strip()
+		]
+	except Exception:
+		log.debug("Could not load ethical exclusion keywords", exc_info=True)
+		return []
 
 UA = _get_ua()
 
@@ -766,10 +779,6 @@ def scrape_detail_page(page, url: str) -> dict:
             result["elapsed"] = time.time() - t0
             return result
         page.wait_for_load_state("domcontentloaded", timeout=15000)
-        try:
-            page.wait_for_load_state("networkidle", timeout=10000)
-        except (TimeoutError, RuntimeError):
-            log.debug("networkidle wait failed", exc_info=True)
     except (TimeoutError, RuntimeError, OSError) as e:
         err_str = str(e)
         if "timeout" in err_str.lower():
