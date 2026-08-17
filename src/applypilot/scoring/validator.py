@@ -6,6 +6,7 @@ actual skills, companies, projects, and school.
 """
 
 import logging
+import os
 import re
 
 log = logging.getLogger(__name__)
@@ -78,6 +79,14 @@ FABRICATION_WATCHLIST: set[str] = {
 }
 
 REQUIRED_SECTIONS: set[str] = {"SUMMARY", "TECHNICAL SKILLS", "EXPERIENCE", "PROJECTS", "EDUCATION"}
+
+
+# Cover-letter validation defaults; all are optionally overridable via env.
+_CL_MIN_WORDS = int(os.environ.get("APPLYPILOT_CL_MIN_WORDS", "260"))
+_CL_TARGET_MIN_WORDS = int(os.environ.get("APPLYPILOT_CL_TARGET_MIN_WORDS", "300"))
+_CL_TARGET_MAX_WORDS = int(os.environ.get("APPLYPILOT_CL_TARGET_MAX_WORDS", "400"))
+_CL_HARD_MAX_WORDS = int(os.environ.get("APPLYPILOT_CL_HARD_MAX_WORDS", "1200"))
+_CL_REQUIRED_PARAGRAPHS = int(os.environ.get("APPLYPILOT_CL_REQUIRED_PARAGRAPHS", "4"))
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────
@@ -408,14 +417,30 @@ def validate_cover_letter(text: str) -> dict:
     if hits:
         errors.append(f"Banned phrase(s): {', '.join(hits)}")
 
-    # 3. Word count — new policy: hard minimum 260 words; target 300-400.
+    # 3. Word count policy: hard minimum + target window + hard maximum.
     words = len(text.split())
-    if words > 1200:
-        errors.append(f"Too long ({words} words). Target 300-400 words; maximum 1200.")
-    if words < 260:
-        errors.append(f"Too short ({words} words). Minimum 260 words; target 300-400.")
-    elif words < 300:
-        warnings.append(f"Below target ({words} words). Target 300-400 words.")
+    if words > _CL_HARD_MAX_WORDS:
+        errors.append(
+            f"Too long ({words} words). "
+            f"Target {_CL_TARGET_MIN_WORDS}-{_CL_TARGET_MAX_WORDS} words; "
+            f"maximum {_CL_HARD_MAX_WORDS}."
+        )
+    if words < _CL_MIN_WORDS:
+        errors.append(
+            f"Too short ({words} words). "
+            f"Minimum {_CL_MIN_WORDS} words; "
+            f"target {_CL_TARGET_MIN_WORDS}-{_CL_TARGET_MAX_WORDS}."
+        )
+    elif words < _CL_TARGET_MIN_WORDS:
+        warnings.append(
+            f"Below target ({words} words). "
+            f"Target {_CL_TARGET_MIN_WORDS}-{_CL_TARGET_MAX_WORDS} words."
+        )
+    elif words > _CL_TARGET_MAX_WORDS:
+        warnings.append(
+            f"Above target ({words} words). "
+            f"Target {_CL_TARGET_MIN_WORDS}-{_CL_TARGET_MAX_WORDS} words."
+        )
 
     # 4. LLM self-talk
     found_leaks = [p for p in LLM_LEAK_PHRASES if p in text_lower]
@@ -427,15 +452,18 @@ def validate_cover_letter(text: str) -> dict:
     if not stripped.lower().startswith("dear"):
         errors.append("Must start with 'Dear Hiring Manager,'")
 
-    # 6. Structure: prompt demands 4 substantial body paragraphs (hook, evidence,
-    # company fit, close). "Substantial" = >= 15 words (excludes salutation/signoff).
+    # 6. Structure: requires substantial body paragraphs (hook, evidence,
+    # company fit, close). "Substantial" = >= 15 words.
     body_paragraphs = [p for p in re.split(r"\n\s*\n", text) if len(p.split()) >= 15]
-    if len(body_paragraphs) < 4:
+    if len(body_paragraphs) < _CL_REQUIRED_PARAGRAPHS:
         errors.append(
-            f"Only {len(body_paragraphs)} body paragraph(s); structure requires 4 "
-            "(hook, evidence, company fit, close)."
+            f"Only {len(body_paragraphs)} body paragraph(s); structure requires "
+            f"{_CL_REQUIRED_PARAGRAPHS} (hook, evidence, company fit, close)."
         )
-    elif len(body_paragraphs) > 4:
-        warnings.append(f"{len(body_paragraphs)} body paragraphs; target structure is 4.")
+    elif len(body_paragraphs) > _CL_REQUIRED_PARAGRAPHS:
+        warnings.append(
+            f"{len(body_paragraphs)} body paragraphs; "
+            f"target structure is {_CL_REQUIRED_PARAGRAPHS}."
+        )
 
     return {"passed": len(errors) == 0, "errors": errors, "warnings": warnings}

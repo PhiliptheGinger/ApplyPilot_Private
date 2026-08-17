@@ -146,6 +146,7 @@ def worker_loop(worker_id: int = 0, limit: int = 1,
                 max_age_days: int | None = None,
                 headless: bool = False,
                 model: str = "sonnet", dry_run: bool = False,
+                apply_engine: str = "claude",
                 fresh_sessions: bool = False,
                 total_workers: int = 1,
                 no_hitl: bool = False) -> tuple[int, int]:
@@ -185,7 +186,7 @@ def worker_loop(worker_id: int = 0, limit: int = 1,
     try:
         return _worker_loop_body(
             worker_id, limit, target_url, min_score, max_score, max_age_days,
-            headless, model, dry_run, fresh_sessions, applied, failed, continuous,
+            headless, model, dry_run, apply_engine, fresh_sessions, applied, failed, continuous,
             jobs_done, empty_polls, port, total_workers, no_hitl=no_hitl,
         )
     finally:
@@ -196,7 +197,7 @@ def _worker_loop_body(
     worker_id: int, limit: int, target_url: str | None,
     min_score: int, max_score: int | None, max_age_days: int | None,
     headless: bool,
-    model: str, dry_run: bool, fresh_sessions: bool,
+    model: str, dry_run: bool, apply_engine: str, fresh_sessions: bool,
     applied: int, failed: int, continuous: bool,
     jobs_done: int, empty_polls: int, port: int,
     total_workers: int = 1, no_hitl: bool = False,
@@ -310,6 +311,7 @@ def _worker_loop_body(
             result, duration_ms, screening_qs = run_job(
                 job, port=port, worker_id=worker_id,
                 model=model, dry_run=dry_run,
+                apply_engine=apply_engine,
                 skip_tab_reset=_this_had_interrupted_job,
                 extra_context=_reconnect_ctx,
             )
@@ -384,6 +386,7 @@ def _worker_loop_body(
                     result, duration_ms, screening_qs = run_job(
                         job, port=port, worker_id=worker_id,
                         model=model, dry_run=dry_run,
+                        apply_engine=apply_engine,
                         skip_tab_reset=True, extra_context=extra_ctx,
                     )
                     relaunch = True
@@ -429,7 +432,9 @@ def _worker_loop_body(
                                      start_time=time.time(), actions=0)
                         result, duration_ms, screening_qs = run_job(
                             job, port=port, worker_id=worker_id,
-                            model=model, dry_run=dry_run, skip_tab_reset=True)
+                            model=model, dry_run=dry_run,
+                            apply_engine=apply_engine,
+                            skip_tab_reset=True)
                         relaunch = True
                         continue
 
@@ -444,6 +449,7 @@ def _worker_loop_body(
                         navigate_url=nh_url, duration_ms=duration_ms,
                         headless=headless, ats_slug=ats_slug,
                         total_workers=total_workers, model=model, dry_run=dry_run,
+                        apply_engine=apply_engine,
                         no_hitl=no_hitl, chrome_proc=chrome_proc,
                         add_event=add_event, update_state=update_state,
                         stop_event=_stop_event,
@@ -470,6 +476,7 @@ def _worker_loop_body(
                             navigate_url=nh_url, duration_ms=duration_ms,
                             headless=headless, ats_slug=ats_slug,
                             total_workers=total_workers, model=model, dry_run=dry_run,
+                            apply_engine=apply_engine,
                             no_hitl=no_hitl, chrome_proc=chrome_proc,
                             add_event=add_event, update_state=update_state,
                             stop_event=_stop_event,
@@ -492,6 +499,7 @@ def _worker_loop_body(
                             navigate_url=nh_url, duration_ms=duration_ms,
                             headless=headless, ats_slug=ats_slug,
                             total_workers=total_workers, model=model, dry_run=dry_run,
+                            apply_engine=apply_engine,
                             no_hitl=no_hitl, chrome_proc=chrome_proc,
                             add_event=add_event, update_state=update_state,
                             stop_event=_stop_event,
@@ -593,7 +601,8 @@ def main(limit: int = 1, target_url: str | None = None,
          dry_run: bool = False, continuous: bool = False,
          poll_interval: int = 60, workers: int = 1,
          fresh_sessions: bool = False, no_hitl: bool = False,
-         no_focus: bool = False) -> None:
+         no_focus: bool = False,
+         apply_engine: str = "claude") -> None:
     """Launch the apply pipeline.
 
     Args:
@@ -741,6 +750,7 @@ def main(limit: int = 1, target_url: str | None = None,
                         headless=headless,
                         model=model,
                         dry_run=dry_run,
+                        apply_engine=apply_engine,
                         fresh_sessions=fresh_sessions,
                         total_workers=workers,
                         no_hitl=no_hitl,

@@ -15,7 +15,9 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+
+UTC = timezone.utc
 
 from rich.console import Console
 from rich.panel import Panel

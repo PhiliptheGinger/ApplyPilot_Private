@@ -16,11 +16,10 @@ import os
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from applypilot.config import TAILORED_DIR, load_profile
-from applypilot.database import get_connection, get_jobs_by_stage, transition_state, write_with_retry
-from applypilot.llm import get_client
+from applypilot.llm import get_stage_client, get_token_limit
 from applypilot.scoring.resume_router import load_resume_text_for_job
 from applypilot.scoring.validator import (
     sanitize_text,
@@ -620,8 +619,12 @@ def judge_tailored_resume(
         )},
     ]
 
-    client = get_client()  # judge uses fast model (binary evaluation)
-    response = client.chat(messages, max_tokens=4096, temperature=0.1)
+    client = get_stage_client("judge", quality=False)  # judge uses fast model (binary evaluation)
+    response = client.chat(
+        messages,
+        max_tokens=get_token_limit("judge", 4096),
+        temperature=0.1,
+    )
 
     passed = "VERDICT: PASS" in response.upper()
     issues = "none"
@@ -679,7 +682,7 @@ def tailor_resume(
     }
     avoid_notes: list[str] = []
     tailored = ""
-    client = get_client(quality=True)
+    client = get_stage_client("tailor", quality=True)
     tailor_prompt_base = _build_tailor_prompt(profile, standup_decision=standup_decision)
 
     for attempt in range(max_retries + 1):
@@ -697,7 +700,11 @@ def tailor_resume(
             {"role": "user", "content": f"ORIGINAL RESUME:\n{resume_text}\n\n---\n\nTARGET JOB:\n{job_text}\n\nReturn the JSON:"},
         ]
 
-        raw = client.chat(messages, max_tokens=16384, temperature=0.4)
+        raw = client.chat(
+            messages,
+            max_tokens=get_token_limit("tailor", 16384),
+            temperature=0.4,
+        )
 
         # Parse JSON from response
         try:
@@ -934,7 +941,7 @@ def _tailor_one_job(job: dict, resume_text: str | None, profile: dict, doc_forma
                 "comments": (
                     f"Customized for: {job_title}\n"
                     f"Source: {site}\n"
-                    f"Date: {datetime.now(UTC).strftime('%Y-%m-%d')}"
+                    f"Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
                 ),
             }
             doc_path = str(convert_to_pdf(txt_path, doc_format=doc_format, metadata=metadata))
@@ -970,7 +977,9 @@ def _mark_tailor_result(
     ``"failed_judge"``, ``"error"``, ``"exhausted_retries"``.
     """
     if now is None:
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
+
+    from applypilot.database import transition_state
 
     if status == "approved":
         # Atomic: write path AND increment counter in one UPDATE.
@@ -1018,6 +1027,8 @@ def run_tailoring(min_score: int | None = None, limit: int = 20, workers: int = 
     from applypilot.config import DEFAULTS
     if min_score is None:
         min_score = DEFAULTS["min_score"]
+
+    from applypilot.database import get_connection, get_jobs_by_stage, write_with_retry
 
     profile = load_profile()
     conn = get_connection()
@@ -1148,7 +1159,7 @@ def run_tailoring(min_score: int | None = None, limit: int = 20, workers: int = 
             )
 
     # Persist to DB: increment attempt counter for ALL, save path only for approved
-    now = datetime.now(UTC).isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     def _flush_tailor_results(conn, results, now):
         for r in results:

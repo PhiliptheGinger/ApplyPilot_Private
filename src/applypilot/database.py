@@ -12,8 +12,10 @@ import re as _re
 import sqlite3
 import threading
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+UTC = timezone.utc
 from urllib.parse import urljoin
 
 from applypilot.config import DB_PATH

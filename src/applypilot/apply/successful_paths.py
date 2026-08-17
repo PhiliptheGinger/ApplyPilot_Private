@@ -33,10 +33,12 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from applypilot import config
+
+UTC = timezone.utc
 
 logger = logging.getLogger(__name__)
 

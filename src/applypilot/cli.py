@@ -194,6 +194,10 @@ def apply(
     ),
     max_score: int | None = typer.Option(None, "--max-score", help="Maximum fit score for job selection (useful for testing on lower-score jobs)."),
     model: str = typer.Option("sonnet", "--model", "-m", help="Claude model name (sonnet | haiku | opus)."),
+    apply_engine: str = typer.Option(
+        "claude", "--apply-engine",
+        help="Apply engine: claude (current) or deterministic (Playwright rules).",
+    ),
     continuous: bool = typer.Option(False, "--continuous", "-c", help="Run forever, polling for new jobs."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Preview actions without submitting."),
     headless: bool = typer.Option(False, "--headless", help="Run browsers in headless mode."),
@@ -213,6 +217,10 @@ def apply(
 ) -> None:
     """Launch auto-apply to submit job applications."""
     _bootstrap()
+
+    if apply_engine not in ("claude", "deterministic"):
+        console.print("[red]Invalid --apply-engine:[/red] choose 'claude' or 'deterministic'.")
+        raise typer.Exit(code=1)
 
     from applypilot.config import PROFILE_PATH as _profile_path
     from applypilot.config import check_tier
@@ -281,8 +289,21 @@ def apply(
     from applypilot.apply.launcher import set_doc_format
     set_doc_format(doc_format)
 
-    # Check 1: Tier 3 required (Claude Code CLI + Chrome)
-    check_tier(3, "auto-apply")
+    # Check 1: Engine prerequisites
+    if apply_engine == "claude":
+        # Tier 3 requires Claude Code CLI + Chrome
+        check_tier(3, "auto-apply")
+    else:
+        # Deterministic engine still requires Chrome, but not Claude CLI.
+        from applypilot.config import get_chrome_path
+        try:
+            get_chrome_path()
+        except FileNotFoundError:
+            console.print(
+                "[red]Deterministic apply engine requires Chrome/Chromium.[/red]\n"
+                "Install Chrome or set CHROME_PATH."
+            )
+            raise typer.Exit(code=1)
 
     # Check 2: Profile exists
     if not _profile_path.exists():
@@ -333,6 +354,7 @@ def apply(
     console.print(f"  Limit:    {'unlimited' if continuous else effective_limit}")
     console.print(f"  Workers:  {workers}")
     console.print(f"  Model:    {model}")
+    console.print(f"  Engine:   {apply_engine}")
     console.print(f"  Headless: {headless}")
     console.print(f"  Dry run:  {dry_run}")
     if fresh_sessions:
@@ -355,6 +377,7 @@ def apply(
         fresh_sessions=fresh_sessions,
         no_hitl=no_hitl,
         no_focus=no_focus,
+        apply_engine=apply_engine,
     )
 
 

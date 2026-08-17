@@ -1969,6 +1969,7 @@ def _activate_agent_tab(port: int, timeout: float = 20.0) -> None:
 
 def run_job(job: dict, port: int, worker_id: int = 0,
             model: str = "sonnet", dry_run: bool = False,
+            apply_engine: str = "claude",
             skip_tab_reset: bool = False,
             extra_context: str | None = None) -> tuple[str, int, list[dict]]:
     """Spawn a Claude Code session for one job application.
@@ -1987,6 +1988,18 @@ def run_job(job: dict, port: int, worker_id: int = 0,
         Tuple of (status_string, duration_ms, screening_questions).
         screening_questions is a list of dicts with keys: question, field_type, options.
     """
+    # Deterministic engine path (Option 1): no Claude subprocess.
+    if apply_engine == "deterministic":
+        from applypilot.apply.engine_deterministic import run_job_deterministic
+        return run_job_deterministic(
+            job=job,
+            port=port,
+            worker_id=worker_id,
+            dry_run=dry_run,
+            skip_tab_reset=skip_tab_reset,
+            extra_context=extra_context,
+        )
+
     # Close leftover tabs from previous job so agent starts on a blank page
     if not skip_tab_reset:
         _reset_browser_tabs(port)

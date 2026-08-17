@@ -23,6 +23,12 @@ from dataclasses import dataclass
 
 import httpx
 
+# Stage-specific knobs (all optional):
+#   APPLYPILOT_MODEL_SCORE, APPLYPILOT_MODEL_TAILOR, APPLYPILOT_MODEL_COVER,
+#   APPLYPILOT_MODEL_JUDGE
+#   APPLYPILOT_MAX_TOKENS_SCORE, APPLYPILOT_MAX_TOKENS_TAILOR,
+#   APPLYPILOT_MAX_TOKENS_COVER, APPLYPILOT_MAX_TOKENS_JUDGE
+
 log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -131,19 +137,21 @@ def _build_fallback_chain(primary_model: str, quality: bool = False) -> list[Mod
 # Provider detection (for primary model selection)
 # ---------------------------------------------------------------------------
 
-def _detect_provider(quality: bool = False) -> tuple[str, str, str]:
+def _detect_provider(quality: bool = False, model_override: str | None = None) -> tuple[str, str, str]:
     """Return (base_url, model, api_key) for the primary provider."""
     gemini_key = os.environ.get("GEMINI_API_KEY", "")
     openai_key = os.environ.get("OPENAI_API_KEY", "")
     local_url = os.environ.get("LLM_URL", "")
 
-    model_override = os.environ.get("LLM_MODEL", "")
+    global_model = os.environ.get("LLM_MODEL", "")
     quality_model = os.environ.get("LLM_MODEL_QUALITY", "")
 
-    if quality and quality_model:
+    if model_override:
+        chosen_model = model_override
+    elif quality and quality_model:
         chosen_model = quality_model
     else:
-        chosen_model = model_override
+        chosen_model = global_model
 
     if gemini_key and not local_url:
         return (
@@ -496,16 +504,51 @@ class LLMClient:
 
 _instance: LLMClient | None = None
 _quality_instance: LLMClient | None = None
+_stage_instances: dict[str, LLMClient] = {}
 
 
-def get_client(quality: bool = False) -> LLMClient:
+def _stage_model_override(stage: str) -> str | None:
+    value = os.environ.get(f"APPLYPILOT_MODEL_{stage.upper()}", "").strip()
+    return value or None
+
+
+def get_token_limit(stage: str, default: int) -> int:
+    """Read stage-specific max token override with safe fallback.
+
+    Env key format: APPLYPILOT_MAX_TOKENS_<STAGE> (e.g. SCORE, TAILOR, COVER, JUDGE).
+    """
+    raw = os.environ.get(f"APPLYPILOT_MAX_TOKENS_{stage.upper()}", "").strip()
+    if not raw:
+        return default
+    try:
+        value = int(raw)
+        return value if value > 0 else default
+    except ValueError:
+        log.warning("Invalid %s=%r; using default %d",
+                    f"APPLYPILOT_MAX_TOKENS_{stage.upper()}", raw, default)
+        return default
+
+
+def get_client(quality: bool = False, model_override: str | None = None) -> LLMClient:
     """Return (or create) the module-level LLMClient singleton.
 
     Args:
         quality: If True, return a client configured with LLM_MODEL_QUALITY
                  for critical steps like resume tailoring and cover letters.
+        model_override: Optional explicit model name for this client.
     """
     global _instance, _quality_instance
+
+    if model_override:
+        key = ("quality" if quality else "fast") + ":" + model_override
+        client = _stage_instances.get(key)
+        if client is None:
+            base_url, model, api_key = _detect_provider(quality=quality, model_override=model_override)
+            log.info("LLM provider (%s override): %s  model: %s",
+                     "quality" if quality else "fast", base_url, model)
+            client = LLMClient(base_url, model, api_key, quality=quality)
+            _stage_instances[key] = client
+        return client
 
     if quality:
         if _quality_instance is None:
@@ -522,3 +565,8 @@ def get_client(quality: bool = False) -> LLMClient:
         log.info("LLM provider: %s  model: %s", base_url, model)
         _instance = LLMClient(base_url, model, api_key, quality=False)
     return _instance
+
+
+def get_stage_client(stage: str, *, quality: bool) -> LLMClient:
+    """Return a client for a pipeline stage, honoring per-stage model overrides."""
+    return get_client(quality=quality, model_override=_stage_model_override(stage))
