@@ -19,7 +19,7 @@ import sqlite3
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from urllib.parse import quote_plus
 
 import yaml
@@ -36,6 +36,8 @@ from applypilot.database import get_stats, init_db, write_with_retry
 from applypilot.llm import get_client
 
 log = logging.getLogger(__name__)
+
+UTC = timezone.utc
 
 # Fix Windows encoding -- prevents charmap errors on emoji/unicode in job titles
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":

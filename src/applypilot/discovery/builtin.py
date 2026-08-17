@@ -26,13 +26,15 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from html.parser import HTMLParser
 
 from applypilot import config
 from applypilot.database import get_connection, init_db, write_with_retry
 
 log = logging.getLogger(__name__)
+
+UTC = timezone.utc
 
 
 _BASE = "https://builtin.com"

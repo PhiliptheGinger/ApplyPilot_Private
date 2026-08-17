@@ -10,11 +10,13 @@ search configuration YAML (searches.yaml) rather than being hardcoded.
 import logging
 import sqlite3
 import time
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from jobspy import scrape_jobs
 
 log = logging.getLogger(__name__)
+
+UTC = timezone.utc
 
 # Patch TLSRotating to always specify a client_identifier.
 # Without one, the tls-client Go binary receives a nil JA3 string and panics

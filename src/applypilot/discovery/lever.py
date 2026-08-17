@@ -11,7 +11,7 @@ Lever-specific URL template and per-posting normalizer.
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from applypilot.discovery.ats_common import (
     fetch_with_retry,
@@ -22,6 +22,8 @@ from applypilot.discovery.ats_common import (
 from applypilot.discovery.greenhouse import _location_ok, _strip_html
 
 log = logging.getLogger(__name__)
+
+UTC = timezone.utc
 
 LEVER_API = "https://api.lever.co/v0/postings/{slug}?mode=json"
 _DEFAULT_SITE = "Lever"

@@ -8,9 +8,11 @@ A job is marked "ghosted" if:
 
 import logging
 import sqlite3
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 log = logging.getLogger(__name__)
+
+UTC = timezone.utc
 
 
 def detect_ghosted(

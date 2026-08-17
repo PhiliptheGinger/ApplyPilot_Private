@@ -9,7 +9,7 @@ Supported formats: "pdf" (default), "docx".
 
 import logging
 import re
-from datetime import UTC
+from datetime import timezone
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +19,8 @@ from applypilot.config import TAILORED_DIR
 VALID_DOC_FORMATS = ("pdf", "docx")
 
 log = logging.getLogger(__name__)
+
+UTC = timezone.utc
 
 
 # ── URL / email auto-linking ─────────────────────────────────────────────

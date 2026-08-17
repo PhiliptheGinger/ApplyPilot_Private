@@ -17,7 +17,7 @@ import re
 import sqlite3
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
@@ -30,6 +30,8 @@ from applypilot.database import commit_with_retry, init_db, transition_state
 from applypilot.llm import get_client
 
 log = logging.getLogger(__name__)
+
+UTC = timezone.utc
 
 def _get_ua() -> str:
     """Build a realistic UA from the actual installed Chrome version."""

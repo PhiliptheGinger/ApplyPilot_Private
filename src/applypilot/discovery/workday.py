@@ -15,7 +15,7 @@ import time
 import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from html.parser import HTMLParser
 
 import yaml
@@ -25,6 +25,8 @@ from applypilot.config import CONFIG_DIR
 from applypilot.database import get_connection, init_db, write_with_retry
 
 log = logging.getLogger(__name__)
+
+UTC = timezone.utc
 
 
 # -- Employer registry from YAML --------------------------------------------
