@@ -14,6 +14,9 @@ from __future__ import annotations
 
 import glob as _glob
 import os
+import platform
+import shutil
+import subprocess
 import webbrowser
 from datetime import datetime
 from html import escape
@@ -881,7 +884,22 @@ applyFilters();
 
 
 def open_dashboard(output_path: str | None = None) -> None:
-    """Generate the dashboard and open it in the default browser."""
+    """Generate the dashboard and open it in Edge when available on Windows."""
     path = generate_dashboard(output_path)
-    console.print("[dim]Opening in browser...[/dim]")
-    webbrowser.open(f"file:///{path}")
+    uri = Path(path).resolve().as_uri()
+
+    if platform.system() == "Windows":
+        edge_candidates = [
+            shutil.which("msedge"),
+            os.path.join(os.environ.get("PROGRAMFILES", ""), "Microsoft/Edge/Application/msedge.exe"),
+            os.path.join(os.environ.get("PROGRAMFILES(X86)", ""), "Microsoft/Edge/Application/msedge.exe"),
+            os.path.join(os.environ.get("LOCALAPPDATA", ""), "Microsoft/Edge/Application/msedge.exe"),
+        ]
+        edge_path = next((candidate for candidate in edge_candidates if candidate and Path(candidate).exists()), None)
+        if edge_path:
+            console.print("[dim]Opening in Microsoft Edge...[/dim]")
+            subprocess.Popen([edge_path, uri])
+            return
+
+    console.print("[dim]Opening in default browser...[/dim]")
+    webbrowser.open(uri)

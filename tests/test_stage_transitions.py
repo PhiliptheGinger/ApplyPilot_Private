@@ -309,6 +309,31 @@ def test_enrich_partial_success_transitions_to_enriched(tmp_db, seed_job):
     assert current_state(conn, url) == "enriched"
 
 
+def test_scrape_detail_page_handles_patchright_timeout():
+    """A Patchright navigation timeout should be treated as a normal per-job error."""
+    from patchright.sync_api import TimeoutError as PatchrightTimeoutError
+
+    class _Page:
+        def __init__(self):
+            self.goto_kwargs = None
+
+        def goto(self, *args, **kwargs):
+            self.goto_kwargs = kwargs
+            raise PatchrightTimeoutError("Page.goto: Timeout 45000ms exceeded.")
+
+        def wait_for_load_state(self, *args, **kwargs):
+            raise AssertionError("should not reach wait_for_load_state when goto times out")
+
+    from applypilot.enrichment.detail import scrape_detail_page
+
+    page = _Page()
+    result = scrape_detail_page(page, "https://example.com/job")
+
+    assert page.goto_kwargs["wait_until"] == "domcontentloaded"
+    assert result["status"] == "error"
+    assert result["error"] == "timeout"
+
+
 # ---------------------------------------------------------------------------
 # A4 — database.py: VALID_TRANSITIONS direct edges (Fix 3)
 # ---------------------------------------------------------------------------
