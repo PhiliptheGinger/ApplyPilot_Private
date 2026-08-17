@@ -9,11 +9,11 @@ import logging
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from applypilot.config import RESUME_PATH, load_profile
 from applypilot.database import get_connection, get_jobs_by_stage, write_with_retry
-from applypilot.llm import get_client
+from applypilot.llm import get_stage_client, get_token_limit
 
 log = logging.getLogger(__name__)
 
@@ -307,8 +307,12 @@ def score_job(resume_text: str, job: dict, profile: dict | None = None) -> dict:
             {"role": "user", "content": f"RESUME:\n{resume_text}\n\n---\n\nJOB POSTING:\n{job_text}"},
         ]
 
-        client = get_client()
-        response = client.chat(messages, max_tokens=8192, temperature=0.2)
+        client = get_stage_client("score", quality=False)
+        response = client.chat(
+            messages,
+            max_tokens=get_token_limit("score", 8192),
+            temperature=0.2,
+        )
         return _parse_score_response(response)
     except Exception as exc:
         log.exception("LLM error scoring job '%s'", (job or {}).get("title") or "?")
@@ -380,7 +384,7 @@ def _flush_score_batch(conn, batch: list[dict], now: str) -> None:
             else:
                 delay = _score_backoff_minutes(retry_count)
                 next_retry = (
-                    datetime.now(UTC) + timedelta(minutes=delay)
+                    datetime.now(timezone.utc) + timedelta(minutes=delay)
                 ).isoformat()
                 conn.execute(
                     "UPDATE jobs SET score_error = ?, score_attempts = ?, "
@@ -447,7 +451,7 @@ def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1,
         return result
 
     def _flush_and_log(batch: list[dict], completed: int) -> list[dict]:
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         try:
             write_with_retry(conn, _flush_score_batch, conn, batch, now)
         except Exception:
@@ -491,7 +495,7 @@ def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1,
 
     # Flush remaining
     if batch:
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         try:
             write_with_retry(conn, _flush_score_batch, conn, batch, now)
         except Exception:

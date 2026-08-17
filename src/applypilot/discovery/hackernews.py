@@ -20,7 +20,7 @@ import logging
 import re
 import sqlite3
 import time
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 import httpx
 
@@ -29,6 +29,8 @@ from applypilot.database import init_db, write_with_retry
 from applypilot.llm import get_client
 
 log = logging.getLogger(__name__)
+
+UTC = timezone.utc
 
 # HN API endpoints
 _ALGOLIA_SEARCH = "https://hn.algolia.com/api/v1/search_by_date"

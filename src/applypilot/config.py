@@ -26,17 +26,23 @@ SEARCH_CONFIG_PATH = APP_DIR / "searches.yaml"
 ENV_PATH = APP_DIR / ".env"
 
 # Generated output
-# Completed resumes destination:
+# Internal tailored-resume working directory.
+# This is where generated artifacts are retained as source-of-truth.
+TAILORED_DIR = Path(
+    os.environ.get("APPLYPILOT_TAILORED_DIR", str(APP_DIR / "tailored_resumes"))
+)
+
+# Submitted resume export destination:
 # - APPLYPILOT_COMPLETED_RESUMES_DIR overrides everything
 # - Windows default: ~/Downloads/Resumes
-# - Non-Windows default: ~/.applypilot/tailored_resumes
-_DEFAULT_TAILORED_DIR = (
+# - Non-Windows default: ~/.applypilot/submitted_resumes
+_DEFAULT_COMPLETED_RESUMES_DIR = (
     Path.home() / "Downloads" / "Resumes"
     if platform.system() == "Windows"
-    else APP_DIR / "tailored_resumes"
+    else APP_DIR / "submitted_resumes"
 )
-TAILORED_DIR = Path(
-    os.environ.get("APPLYPILOT_COMPLETED_RESUMES_DIR", str(_DEFAULT_TAILORED_DIR))
+COMPLETED_RESUMES_DIR = Path(
+    os.environ.get("APPLYPILOT_COMPLETED_RESUMES_DIR", str(_DEFAULT_COMPLETED_RESUMES_DIR))
 )
 COVER_LETTER_DIR = APP_DIR / "cover_letters"
 TRACKING_DIR = APP_DIR / "tracking"
@@ -124,7 +130,18 @@ def get_chrome_user_data() -> Path:
 
 def ensure_dirs():
     """Create all required directories."""
-    for d in [APP_DIR, TAILORED_DIR, COVER_LETTER_DIR, TRACKING_DIR, LOG_DIR, CHROME_WORKER_DIR, APPLY_WORKER_DIR, SESSIONS_DIR, FILES_DIR]:
+    for d in [
+        APP_DIR,
+        TAILORED_DIR,
+        COMPLETED_RESUMES_DIR,
+        COVER_LETTER_DIR,
+        TRACKING_DIR,
+        LOG_DIR,
+        CHROME_WORKER_DIR,
+        APPLY_WORKER_DIR,
+        SESSIONS_DIR,
+        FILES_DIR,
+    ]:
         d.mkdir(parents=True, exist_ok=True)
 
 

@@ -16,11 +16,15 @@ import os
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from applypilot.config import TAILORED_DIR, load_profile
-from applypilot.database import get_connection, get_jobs_by_stage, transition_state, write_with_retry
-from applypilot.llm import get_client
+from applypilot.llm import get_stage_client, get_token_limit
+from applypilot.scoring.fact_approval import (
+    extract_facts_from_resume_json,
+    is_auto_approvable,
+    record_approved_facts,
+)
 from applypilot.scoring.resume_router import load_resume_text_for_job
 from applypilot.scoring.validator import (
     sanitize_text,
@@ -620,8 +624,12 @@ def judge_tailored_resume(
         )},
     ]
 
-    client = get_client()  # judge uses fast model (binary evaluation)
-    response = client.chat(messages, max_tokens=4096, temperature=0.1)
+    client = get_stage_client("judge", quality=False)  # judge uses fast model (binary evaluation)
+    response = client.chat(
+        messages,
+        max_tokens=get_token_limit("judge", 4096),
+        temperature=0.1,
+    )
 
     passed = "VERDICT: PASS" in response.upper()
     issues = "none"
@@ -676,10 +684,11 @@ def tailor_resume(
         "judge": None,
         "status": "pending",
         "standup_decision": standup_decision,
+        "approved_facts": [],
     }
     avoid_notes: list[str] = []
     tailored = ""
-    client = get_client(quality=True)
+    client = get_stage_client("tailor", quality=True)
     tailor_prompt_base = _build_tailor_prompt(profile, standup_decision=standup_decision)
 
     for attempt in range(max_retries + 1):
@@ -697,7 +706,11 @@ def tailor_resume(
             {"role": "user", "content": f"ORIGINAL RESUME:\n{resume_text}\n\n---\n\nTARGET JOB:\n{job_text}\n\nReturn the JSON:"},
         ]
 
-        raw = client.chat(messages, max_tokens=16384, temperature=0.4)
+        raw = client.chat(
+            messages,
+            max_tokens=get_token_limit("tailor", 16384),
+            temperature=0.4,
+        )
 
         # Parse JSON from response
         try:
@@ -721,6 +734,19 @@ def tailor_resume(
 
         # Assemble text (header injected by code, em dashes auto-fixed)
         tailored = assemble_resume_text(data, profile)
+        candidate_facts = extract_facts_from_resume_json(data, profile)
+        report["approved_facts"] = sorted(candidate_facts)
+
+        if is_auto_approvable(candidate_facts):
+            report["judge"] = {
+                "passed": True,
+                "verdict": "SKIP",
+                "issues": "none",
+                "raw": "auto-approved via fact-subset",
+            }
+            report["status"] = "approved"
+            report["auto_approved_by_facts"] = True
+            return tailored, report
 
         # Layer 2: LLM judge — skip on first clean pass to save an LLM call
         is_clean = not validation.get("warnings")
@@ -885,6 +911,10 @@ def _tailor_one_job(job: dict, resume_text: str | None, profile: dict, doc_forma
     if resume_text is None:
         resume_text, _ = load_resume_text_for_job(job)
     tailored, report = tailor_resume(resume_text, job, profile)
+    approved_facts = set(report.get("approved_facts") or [])
+    if report.get("status") == "approved" and approved_facts:
+        source = f"{job.get('url', '')}:{job.get('title', '')}"
+        record_approved_facts(approved_facts, source=source)
 
     # Filename: FirstName_LastName_JobTitle_hash.docx per Jobscan §3.
     # Hash retains uniqueness since the same title may recur across employers.
@@ -934,7 +964,7 @@ def _tailor_one_job(job: dict, resume_text: str | None, profile: dict, doc_forma
                 "comments": (
                     f"Customized for: {job_title}\n"
                     f"Source: {site}\n"
-                    f"Date: {datetime.now(UTC).strftime('%Y-%m-%d')}"
+                    f"Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
                 ),
             }
             doc_path = str(convert_to_pdf(txt_path, doc_format=doc_format, metadata=metadata))
@@ -959,6 +989,7 @@ def _mark_tailor_result(
     path: str | None,
     *,
     attempts: int | None = None,
+    auto_approved_by_facts: bool = False,
     now: str | None = None,
 ) -> None:
     """Persist one tailor result to the DB and emit a state transition.
@@ -970,7 +1001,9 @@ def _mark_tailor_result(
     ``"failed_judge"``, ``"error"``, ``"exhausted_retries"``.
     """
     if now is None:
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
+
+    from applypilot.database import transition_state
 
     if status == "approved":
         # Atomic: write path AND increment counter in one UPDATE.
@@ -978,8 +1011,9 @@ def _mark_tailor_result(
         # already written so state drift is recoverable via backfill.
         conn.execute(
             "UPDATE jobs SET tailored_resume_path=?, tailored_at=?, "
-            "tailor_attempts=COALESCE(tailor_attempts,0)+1 WHERE url=?",
-            (path, now, url),
+            "tailor_attempts=COALESCE(tailor_attempts,0)+1, "
+            "tailor_auto_approved=? WHERE url=?",
+            (path, now, 1 if auto_approved_by_facts else 0, url),
         )
         transition_state(
             conn, url, "tailored",
@@ -1018,6 +1052,8 @@ def run_tailoring(min_score: int | None = None, limit: int = 20, workers: int = 
     from applypilot.config import DEFAULTS
     if min_score is None:
         min_score = DEFAULTS["min_score"]
+
+    from applypilot.database import get_connection, get_jobs_by_stage, write_with_retry
 
     profile = load_profile()
     conn = get_connection()
@@ -1148,7 +1184,7 @@ def run_tailoring(min_score: int | None = None, limit: int = 20, workers: int = 
             )
 
     # Persist to DB: increment attempt counter for ALL, save path only for approved
-    now = datetime.now(UTC).isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     def _flush_tailor_results(conn, results, now):
         for r in results:
@@ -1158,7 +1194,9 @@ def run_tailoring(min_score: int | None = None, limit: int = 20, workers: int = 
             stored_path = r.get("pdf_path") or r.get("path")
             _mark_tailor_result(
                 conn, r["url"], r["status"], stored_path,
-                attempts=r.get("attempts"), now=now,
+                attempts=r.get("attempts"),
+                auto_approved_by_facts=bool(r.get("auto_approved_by_facts")),
+                now=now,
             )
 
     try:

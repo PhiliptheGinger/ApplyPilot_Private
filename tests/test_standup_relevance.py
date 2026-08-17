@@ -180,7 +180,7 @@ def test_tailor_resume_passes_job_description_and_profile_source(monkeypatch):
         "education": [{"institution": "State University", "degree": "BS", "dates": "2016 - 2020"}],
     }
     stub = _StubClient(payload)
-    monkeypatch.setattr(t, "get_client", lambda quality=False: stub)
+    monkeypatch.setattr(t, "get_stage_client", lambda stage, quality=False: stub)
 
     tailored, report = tailor_resume("ORIGINAL RESUME", job, profile, max_retries=0)
 

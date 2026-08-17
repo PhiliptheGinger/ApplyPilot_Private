@@ -22,7 +22,7 @@ import time
 import urllib.error
 import urllib.request
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 import yaml
 
@@ -30,6 +30,8 @@ from applypilot.config import CONFIG_DIR
 from applypilot.database import get_connection, init_db, write_with_retry
 
 log = logging.getLogger(__name__)
+
+UTC = timezone.utc
 
 
 _HEADERS = {

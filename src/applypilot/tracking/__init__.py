@@ -5,7 +5,7 @@ and maintains per-job tracking documents with timelines and action items.
 """
 
 import logging
-from datetime import UTC, datetime, timezone
+from datetime import datetime, timezone
 
 from rich.console import Console
 from rich.table import Table
@@ -20,6 +20,8 @@ from applypilot.database import (
 
 log = logging.getLogger(__name__)
 console = Console()
+
+UTC = timezone.utc
 
 
 def show_action_items() -> None:

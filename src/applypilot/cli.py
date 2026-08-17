@@ -27,6 +27,52 @@ log = logging.getLogger(__name__)
 # Valid pipeline stages (in execution order)
 VALID_STAGES = ("discover", "enrich", "score", "tailor", "cover", "pdf")
 
+DEFAULT_TITLE_REJECT_PATTERNS = (
+    r"\bsenior\b",
+    r"\bstaff\b",
+    r"\bprincipal\b",
+    r"\blead\b",
+    r"\bmanager\b",
+    r"\bhead\b",
+    r"\bdirector\b",
+    r"\bvp\b",
+)
+
+
+def _resolve_title_reject_patterns(
+    *,
+    use_defaults: bool,
+    use_config: bool,
+    cli_patterns: list[str] | None,
+) -> list[str]:
+    """Build title-reject regex pattern list from defaults, config, and CLI.
+
+    Priority order: defaults -> searches.yaml -> CLI overrides (append).
+    Duplicates are removed while preserving order.
+    """
+    patterns: list[str] = []
+    if use_defaults:
+        patterns.extend(DEFAULT_TITLE_REJECT_PATTERNS)
+
+    if use_config:
+        cfg = config.load_search_config() or {}
+        from_cfg = cfg.get("title_reject_patterns")
+        if from_cfg is None and isinstance(cfg.get("filters"), dict):
+            from_cfg = cfg["filters"].get("title_reject_patterns")
+        if isinstance(from_cfg, list):
+            patterns.extend(str(p) for p in from_cfg if str(p).strip())
+
+    if cli_patterns:
+        patterns.extend(p for p in cli_patterns if (p or "").strip())
+
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for p in patterns:
+        if p not in seen:
+            seen.add(p)
+            deduped.append(p)
+    return deduped
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -111,6 +157,14 @@ def run(
         False, "--list-sources",
         help="List available discovery sources and exit.",
     ),
+    auto_reject_titles: bool = typer.Option(
+        False, "--auto-reject-titles",
+        help="Before running stages, bulk-archive title-pattern matches (senior/staff/lead/etc).",
+    ),
+    reject_pattern: list[str] | None = typer.Option(
+        None, "--reject-pattern",
+        help="Regex title reject pattern. Repeatable. Used with --auto-reject-titles.",
+    ),
 ) -> None:
     """Run pipeline stages: discover, enrich, score, tailor, cover, pdf."""
     # Handle --list-sources before bootstrap (no DB/env needed)
@@ -148,6 +202,22 @@ def run(
             console.print(f"[red]{e}[/red]")
             raise typer.Exit(code=1)
 
+    if auto_reject_titles:
+        from applypilot.database import reject_jobs_by_title_patterns
+        patterns = _resolve_title_reject_patterns(
+            use_defaults=True,
+            use_config=True,
+            cli_patterns=reject_pattern,
+        )
+        if not patterns:
+            console.print("[yellow]Title reject pass requested but no patterns were configured.[/yellow]")
+        else:
+            res = reject_jobs_by_title_patterns(patterns, dry_run=dry_run, sample_limit=5)
+            verb = "would archive" if dry_run else "archived"
+            console.print(
+                f"[cyan]Title reject pass:[/cyan] {verb} {res['updated']} / {res['matched']} matched job(s)"
+            )
+
     # Validate --doc-format
     from applypilot.scoring.pdf import VALID_DOC_FORMATS
     if doc_format not in VALID_DOC_FORMATS:
@@ -177,6 +247,106 @@ def run(
 
 
 @app.command()
+def stop(
+    stream: bool = typer.Option(True, "--stream/--no-stream", help="Stop an active `applypilot run --stream` process."),
+    signal_process: bool = typer.Option(True, "--signal/--no-signal", help="Also send an OS interrupt signal to the active stream PID."),
+) -> None:
+    """Request graceful shutdown of long-running pipeline processes."""
+    from applypilot.config import ensure_dirs, load_env
+
+    load_env()
+    ensure_dirs()
+
+    if not stream:
+        console.print("[yellow]No stop target selected.[/yellow]")
+        return
+
+    from applypilot.pipeline import (
+        get_stream_pid,
+        request_stream_interrupt_signal,
+        request_stream_stop,
+    )
+
+    pid = get_stream_pid()
+    request_stream_stop()
+    console.print("[green]Stop requested for stream pipeline.[/green]")
+
+    if pid:
+        console.print(f"  Recorded PID: {pid}")
+    else:
+        console.print("  [dim]No recorded stream PID found. A stale stop request was still written.[/dim]")
+
+    if signal_process:
+        signaled = request_stream_interrupt_signal()
+        if signaled:
+            console.print("  [green]Interrupt signal sent to stream process.[/green]")
+        else:
+            console.print("  [yellow]Could not send interrupt signal (PID missing or process already exited).[/yellow]")
+
+
+@app.command("reject-titles")
+def reject_titles(
+    pattern: list[str] | None = typer.Option(
+        None,
+        "--pattern",
+        "-p",
+        help="Regex title pattern to reject. Repeatable. Example: -p '\\bsenior\\b'",
+    ),
+    use_defaults: bool = typer.Option(
+        True,
+        "--defaults/--no-defaults",
+        help="Include built-in senior-role reject patterns.",
+    ),
+    use_config: bool = typer.Option(
+        True,
+        "--from-config/--no-from-config",
+        help="Include patterns from searches.yaml: title_reject_patterns (or filters.title_reject_patterns).",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Preview matching jobs without updating DB.",
+    ),
+    sample: int = typer.Option(20, "--sample", help="How many sample matches to print."),
+) -> None:
+    """Bulk archive jobs whose title matches reject patterns."""
+    _bootstrap()
+
+    from applypilot.database import reject_jobs_by_title_patterns
+
+    patterns = _resolve_title_reject_patterns(
+        use_defaults=use_defaults,
+        use_config=use_config,
+        cli_patterns=pattern,
+    )
+
+    if not patterns:
+        console.print("[red]No patterns specified.[/red] Use --pattern or --defaults.")
+        raise typer.Exit(code=1)
+
+    result = reject_jobs_by_title_patterns(
+        patterns,
+        dry_run=dry_run,
+        sample_limit=max(1, sample),
+    )
+
+    action = "Would reject" if dry_run else "Rejected"
+    console.print(f"[bold]{action}[/bold] {result['matched']} title-matched job(s).")
+    if not dry_run:
+        console.print(f"Updated: {result['updated']}")
+
+    sample_rows = result.get("sample") or []
+    if sample_rows:
+        t = Table(title="Title Reject Sample", show_header=True, header_style="bold cyan")
+        t.add_column("Pattern")
+        t.add_column("Title", max_width=60)
+        t.add_column("URL", max_width=80)
+        for row in sample_rows:
+            t.add_row(str(row.get("pattern", "")), str(row.get("title", "")), str(row.get("url", "")))
+        console.print(t)
+
+
+@app.command()
 def apply(
     limit: int | None = typer.Option(None, "--limit", "-l", help="Max applications to submit."),
     workers: int = typer.Option(5, "--workers", "-w", help="Number of parallel browser workers."),
@@ -194,6 +364,10 @@ def apply(
     ),
     max_score: int | None = typer.Option(None, "--max-score", help="Maximum fit score for job selection (useful for testing on lower-score jobs)."),
     model: str = typer.Option("sonnet", "--model", "-m", help="Claude model name (sonnet | haiku | opus)."),
+    apply_engine: str = typer.Option(
+        "claude", "--apply-engine",
+        help="Apply engine: claude (current) or deterministic (Playwright rules).",
+    ),
     continuous: bool = typer.Option(False, "--continuous", "-c", help="Run forever, polling for new jobs."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Preview actions without submitting."),
     headless: bool = typer.Option(False, "--headless", help="Run browsers in headless mode."),
@@ -213,6 +387,10 @@ def apply(
 ) -> None:
     """Launch auto-apply to submit job applications."""
     _bootstrap()
+
+    if apply_engine not in ("claude", "deterministic"):
+        console.print("[red]Invalid --apply-engine:[/red] choose 'claude' or 'deterministic'.")
+        raise typer.Exit(code=1)
 
     from applypilot.config import PROFILE_PATH as _profile_path
     from applypilot.config import check_tier
@@ -281,8 +459,21 @@ def apply(
     from applypilot.apply.launcher import set_doc_format
     set_doc_format(doc_format)
 
-    # Check 1: Tier 3 required (Claude Code CLI + Chrome)
-    check_tier(3, "auto-apply")
+    # Check 1: Engine prerequisites
+    if apply_engine == "claude":
+        # Tier 3 requires Claude Code CLI + Chrome
+        check_tier(3, "auto-apply")
+    else:
+        # Deterministic engine still requires Chrome, but not Claude CLI.
+        from applypilot.config import get_chrome_path
+        try:
+            get_chrome_path()
+        except FileNotFoundError:
+            console.print(
+                "[red]Deterministic apply engine requires Chrome/Chromium.[/red]\n"
+                "Install Chrome or set CHROME_PATH."
+            )
+            raise typer.Exit(code=1)
 
     # Check 2: Profile exists
     if not _profile_path.exists():
@@ -333,6 +524,7 @@ def apply(
     console.print(f"  Limit:    {'unlimited' if continuous else effective_limit}")
     console.print(f"  Workers:  {workers}")
     console.print(f"  Model:    {model}")
+    console.print(f"  Engine:   {apply_engine}")
     console.print(f"  Headless: {headless}")
     console.print(f"  Dry run:  {dry_run}")
     if fresh_sessions:
@@ -355,6 +547,7 @@ def apply(
         fresh_sessions=fresh_sessions,
         no_hitl=no_hitl,
         no_focus=no_focus,
+        apply_engine=apply_engine,
     )
 
 
@@ -381,11 +574,13 @@ def status() -> None:
     summary.add_row("Scored by LLM", str(stats["scored"]))
     summary.add_row("Pending scoring", str(stats["unscored"]))
     summary.add_row("Tailored resumes", str(stats["tailored"]))
+    summary.add_row("Tailor auto-approved", str(stats.get("tailor_auto_approved", 0)))
     summary.add_row("Pending tailoring (7+)", str(stats["untailored_eligible"]))
     summary.add_row("Cover letters", str(stats["with_cover_letter"]))
     summary.add_row("Ready to apply", str(stats["ready_to_apply"]))
     summary.add_row("Applied", str(stats["applied"]))
     summary.add_row("Apply errors", str(stats["apply_errors"]))
+    summary.add_row("Title-pattern rejected", str(stats.get("title_rejected", 0)))
     if stats.get("needs_human", 0) > 0:
         summary.add_row("Needs human review", str(stats["needs_human"]))
 

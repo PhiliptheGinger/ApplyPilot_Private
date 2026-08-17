@@ -10,11 +10,10 @@ import logging
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from applypilot.config import COVER_LETTER_DIR, load_profile
-from applypilot.database import get_connection, transition_state, write_with_retry
-from applypilot.llm import get_client
+from applypilot.llm import get_stage_client, get_token_limit
 from applypilot.scoring.resume_router import (
     is_communication_role,
     load_resume_text_for_job,
@@ -27,6 +26,14 @@ from applypilot.scoring.validator import (
 log = logging.getLogger(__name__)
 
 MAX_ATTEMPTS = 5  # max cross-run retries before giving up
+
+
+def get_client(quality: bool = True):
+    """Compatibility wrapper used by tests and call sites.
+
+    Internally routes to the stage-aware client selection logic.
+    """
+    return get_stage_client("cover", quality=quality)
 
 DEFAULT_COMMUNICATION_DIFFERENTIATOR = (
     "Not something I normally put on my resume, but I believe this is a "
@@ -194,8 +201,13 @@ def generate_cover_letter(
             )},
         ]
 
-        # Cover letters are short; request a reasonable max output (≈1200 tokens)
-        letter = client.chat(messages, max_tokens=1200, temperature=0.7)
+        # Higher ceiling helps thinking-models avoid truncation while
+        # still letting prompts enforce concise output.
+        letter = client.chat(
+            messages,
+            max_tokens=get_token_limit("cover", 8192),
+            temperature=0.7,
+        )
         letter = sanitize_text(letter)  # auto-fix em dashes, smart quotes
 
         validation = validate_cover_letter(letter)
@@ -278,7 +290,7 @@ def _cover_one_job(job: dict, resume_text: str | None, profile: dict, doc_format
             "comments": (
                 f"Cover letter for: {job_title}\n"
                 f"Source: {site}\n"
-                f"Date: {datetime.now(UTC).strftime('%Y-%m-%d')}"
+                f"Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
             ),
         }
         doc_path = str(convert_to_pdf(cl_path, doc_format=doc_format, metadata=cl_metadata))
@@ -308,7 +320,9 @@ def _mark_cover_result(
     Transitions to ``ready_to_apply`` on success, ``cover_failed`` on failure.
     """
     if now is None:
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
+
+    from applypilot.database import transition_state
 
     if path:
         conn.execute(
@@ -353,6 +367,8 @@ def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: in
     from applypilot.database import get_jobs_by_stage
     if min_score is None:
         min_score = DEFAULTS["min_score"]
+
+    from applypilot.database import get_connection, write_with_retry
 
     profile = load_profile()
     conn = get_connection()
@@ -470,7 +486,7 @@ def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: in
             results.append(result)
 
     # Persist to DB: increment attempt counter for ALL, save path only for successes
-    now = datetime.now(UTC).isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     saved = sum(1 for r in results if r.get("path"))
 
     def _flush_cover_results(conn, results, now):

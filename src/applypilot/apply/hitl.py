@@ -32,7 +32,7 @@ import subprocess
 import sys
 import threading
 import time
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from applypilot import config
@@ -47,6 +47,8 @@ from applypilot.database import (
 )
 
 logger = logging.getLogger(__name__)
+
+UTC = timezone.utc
 
 
 # ---------------------------------------------------------------------------
@@ -530,6 +532,7 @@ def _run_hitl(
     total_workers: int = 1,
     model: str = "sonnet",
     dry_run: bool = False,
+    apply_engine: str = "claude",
     no_hitl: bool = False,
     chrome_proc=None,
     add_event=None,
@@ -689,6 +692,7 @@ def _run_hitl(
         last_result, last_dur, last_qs = run_job(
             job, port=port, worker_id=worker_id,
             model=model, dry_run=dry_run, skip_tab_reset=True,
+            apply_engine=apply_engine,
             extra_context=action_log_section)
         _hitl_reason = last_result.split(":", 1)[-1] if ":" in last_result else last_result
         if _hitl_reason not in _HITL_TRANSIENT_ERRORS:

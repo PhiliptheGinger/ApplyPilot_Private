@@ -17,7 +17,7 @@ import re
 import sqlite3
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
@@ -31,11 +31,26 @@ from applypilot.llm import get_client
 
 log = logging.getLogger(__name__)
 
+UTC = timezone.utc
+
 def _get_ua() -> str:
     """Build a realistic UA from the actual installed Chrome version."""
     from applypilot.apply.chrome import _get_real_user_agent
     return _get_real_user_agent()
 
+def _load_ethical_keywords() -> list[str]:
+	"""Load ethical incompatibility keywords from searches.yaml."""
+	try:
+		from applypilot.config import load_searches
+		config = load_searches()
+		return [
+			str(keyword).strip().lower()
+			for keyword in config.get("exclude_description_keywords", [])
+			if str(keyword).strip()
+		]
+	except Exception:
+		log.debug("Could not load ethical exclusion keywords", exc_info=True)
+		return []
 
 UA = _get_ua()
 
@@ -764,10 +779,6 @@ def scrape_detail_page(page, url: str) -> dict:
             result["elapsed"] = time.time() - t0
             return result
         page.wait_for_load_state("domcontentloaded", timeout=15000)
-        try:
-            page.wait_for_load_state("networkidle", timeout=10000)
-        except (TimeoutError, RuntimeError):
-            log.debug("networkidle wait failed", exc_info=True)
     except (TimeoutError, RuntimeError, OSError) as e:
         err_str = str(e)
         if "timeout" in err_str.lower():
@@ -819,11 +830,9 @@ def scrape_detail_page(page, url: str) -> dict:
 
     if result.get("full_description"):
         result["status"] = "ok" if result.get("application_url") else "partial"
-    elif result.get("application_url"):
-        result["status"] = "partial"
     else:
         result["status"] = "error"
-        result["error"] = "no data extracted"
+        result["error"] = "no description extracted"
 
     result["elapsed"] = time.time() - t0
     return result

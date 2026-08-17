@@ -204,13 +204,25 @@ Do NOT fill out forms for jobs that are clearly onsite in a non-acceptable locat
 def _build_salary_section(profile: dict) -> str:
     """Build the salary negotiation instructions.
 
-    Adapts floor, range, and currency from the profile's compensation section.
+    Adapts floor, range, and currency from application_profile.compensation
+    when present, then falls back to legacy profile.compensation.
     """
-    comp = profile["compensation"]
+    app_prof = profile.get("application_profile", {})
+    comp = app_prof.get("compensation", profile.get("compensation", {})) or {}
+
     currency = comp.get("salary_currency", "USD")
-    floor = comp["salary_expectation"]
-    range_min = comp.get("salary_range_min", floor)
-    range_max = comp.get("salary_range_max", str(int(floor) + 20000) if floor.isdigit() else floor)
+    floor = str(
+        comp.get("salary_expectation")
+        or comp.get("desired_salary")
+        or "Not specified"
+    )
+    range_min = str(comp.get("salary_range_min", floor))
+    range_max = str(
+        comp.get(
+            "salary_range_max",
+            str(int(floor) + 20000) if floor.isdigit() else floor,
+        )
+    )
     conversion_note = comp.get("currency_conversion_note", "")
 
     # Compute example hourly rates at 3 salary levels
@@ -247,10 +259,11 @@ def _build_screening_section(profile: dict) -> str:
     """Build the screening questions guidance section."""
     personal = profile["personal"]
     exp = profile.get("experience", {})
+    app_prof = profile.get("application_profile", {})
     city = personal.get("city", "their city")
     years = exp.get("years_of_experience_total", "multiple")
     target_role = exp.get("target_role", personal.get("current_job_title", "software engineer"))
-    work_auth = profile["work_authorization"]
+    work_auth = app_prof.get("work_authorization", profile.get("work_authorization", {}))
 
     return f"""== SCREENING QUESTIONS (be strategic) ==
 Hard facts -> answer truthfully from the profile. No guessing. This includes:
@@ -270,7 +283,8 @@ EEO/demographics -> Use the values from APPLICANT PROFILE above (gender, race, v
 def _build_hard_rules(profile: dict) -> str:
     """Build the hard rules section with work auth and name from profile."""
     personal = profile["personal"]
-    work_auth = profile["work_authorization"]
+    app_prof = profile.get("application_profile", {})
+    work_auth = app_prof.get("work_authorization", profile.get("work_authorization", {}))
 
     full_name = personal["full_name"]
     preferred_name = personal.get("preferred_name", full_name.split()[0])
