@@ -24,6 +24,7 @@ from bs4 import BeautifulSoup
 
 # Patchright (Playwright drop-in with TLS-fingerprint and JS-stealth patches)
 # is a hard dependency — see pyproject.toml.
+from patchright.sync_api import TimeoutError as PatchrightTimeoutError
 from patchright.sync_api import sync_playwright
 
 from applypilot.database import commit_with_retry, init_db, transition_state
@@ -773,13 +774,13 @@ def scrape_detail_page(page, url: str) -> dict:
     t0 = time.time()
 
     try:
-        resp = page.goto(url, timeout=45000)
+        resp = page.goto(url, timeout=45000, wait_until="domcontentloaded")
         if resp and resp.status in PERMANENT_FAILURES:
             result["error"] = f"HTTP {resp.status}"
             result["elapsed"] = time.time() - t0
             return result
         page.wait_for_load_state("domcontentloaded", timeout=15000)
-    except (TimeoutError, RuntimeError, OSError) as e:
+    except (TimeoutError, PatchrightTimeoutError, RuntimeError, OSError) as e:
         err_str = str(e)
         if "timeout" in err_str.lower():
             result["error"] = "timeout"

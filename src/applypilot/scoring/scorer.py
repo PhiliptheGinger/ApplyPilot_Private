@@ -44,7 +44,7 @@ If non_us_only, you MAY still produce a SCORE based on tech-stack fit (for audit
 eligibility tag is what determines whether the application proceeds.
 
 SCORING CRITERIA:
-- 10: Near-perfect IC engineering match. The role is a software/platform/infrastructure engineer position requiring the candidate's exact stack (Go/Kotlin/Python/Java, distributed systems, K8s). Seniority aligns (Senior/Staff/Principal). The candidate would be a top-tier applicant with minimal gaps.
+- 10: Near-perfect IC engineering match. The role is a software/platform/infrastructure engineer position requiring the candidate's exact stack (Go/Kotlin/Python/Java, distributed systems, K8s). Seniority aligns with the candidate's documented level. The candidate would be a top-tier applicant with minimal gaps.
 - 9: Excellent engineering match. Strong alignment on tech stack and seniority, with 1-2 gaps in secondary skills or slightly different domain.
 - 7-8: Good engineering match. Candidate has most required technical skills. Minor gaps in specific frameworks or domain experience, easily bridged.
 - 5-6: Moderate match. The role is engineering but uses a different primary stack, or there's a seniority mismatch (e.g., junior role or executive-only role with no IC component).
@@ -58,6 +58,8 @@ ADDITIONAL RULES:
 - LOCATION is N/A: check the description for any office/city requirement. If the description implies onsite in a specific US city outside Seattle/Bellevue/Kirkland/Redmond, cap at 7.
 - Distinguish REQUIRED skills from NICE-TO-HAVE. Only penalize for missing required skills.
 - Value transferable experience: workflow orchestration, distributed systems, microservices, developer platforms transfer across domains.
+- Treat missing or blank candidate seniority fields as unknown, not as "several years" or Software Engineer experience.
+- When seniority is unknown, do not assume alignment with Senior, Staff, Principal, Lead, Architect, Director, or executive roles. Cap those roles at 6 unless the resume and profile provide clear evidence of equivalent scope.
 
 You MUST include all four lines below. Do not skip REASONING.
 
@@ -92,7 +94,7 @@ _INELIGIBLE_TITLE_PATTERNS = re.compile(
     r'|\(m/[fw]/d\)'                # German job title suffix (m/f/d) or (m/w/d)
     r'|\bm/[fw]/d\b'
     r'|\bOnly hiring in\b'
-    # Seniority mismatches (user is Senior/Staff/Principal level)
+    # Seniority mismatches that should not enter the actionable queue.
     r'|\bJunior\b'
     r'|\bIntern(ship)?\b'
     r'|\bFresher\b'
@@ -152,6 +154,11 @@ _INELIGIBLE_LOCATION_PATTERNS = re.compile(
     r'|\bTurkey\b|\bTürkiye\b|\bUAE\b|\bSaudi Arabia\b'
     # Oceania
     r'|\bAustralia\b|\bNew Zealand\b',
+    re.IGNORECASE,
+)
+
+_SENIOR_TITLE_PATTERN = re.compile(
+    r"\b(?:senior|sr\.?|staff|principal|lead|architect|director|vp|vice president|chief)\b",
     re.IGNORECASE,
 )
 
@@ -251,9 +258,9 @@ def _build_candidate_summary(profile: dict) -> str:
     """Build a candidate summary string from profile for the scoring prompt."""
     exp = profile.get("experience", {})
     boundary = profile.get("skills_boundary", {})
-    years = exp.get("years_of_experience_total", "several")
-    current_title = exp.get("current_job_title", "Software Engineer")
-    target = exp.get("target_role", "Software Engineer")
+    years = exp.get("years_of_experience_total") or "unknown"
+    current_title = exp.get("current_job_title") or "not specified"
+    target = exp.get("target_role") or "not specified"
     languages = boundary.get("languages", [])
     platforms = boundary.get("platforms", [])
     parts = [f"{current_title} with {years} years experience."]
@@ -263,6 +270,15 @@ def _build_candidate_summary(profile: dict) -> str:
         parts.append(f"Platforms: {', '.join(platforms[:6])}.")
     parts.append(f"Targets: {target}.")
     return " ".join(parts)
+
+
+def _seniority_is_unknown(profile: dict) -> bool:
+    """Return whether the profile documents no current level or target role."""
+    exp = profile.get("experience", {})
+    return not any(
+        exp.get(field)
+        for field in ("years_of_experience_total", "current_job_title", "target_role")
+    )
 
 
 def score_job(resume_text: str, job: dict, profile: dict | None = None) -> dict:
@@ -313,7 +329,14 @@ def score_job(resume_text: str, job: dict, profile: dict | None = None) -> dict:
             max_tokens=get_token_limit("score", 8192),
             temperature=0.2,
         )
-        return _parse_score_response(response)
+        result = _parse_score_response(response)
+        if _seniority_is_unknown(profile) and _SENIOR_TITLE_PATTERN.search(job.get("title") or ""):
+            result["score"] = min(result["score"], 6)
+            result["reasoning"] = (
+                f"{result['reasoning']} Seniority is undocumented in the candidate profile, "
+                "so this role is capped at 6 pending profile evidence."
+            )
+        return result
     except Exception as exc:
         log.exception("LLM error scoring job '%s'", (job or {}).get("title") or "?")
         return {"score": None, "keywords": "", "reasoning": "", "eligibility": None,
