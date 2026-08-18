@@ -102,11 +102,11 @@ def test_legacy_stack_title_rejected():
     assert _check_ineligible(_job(title="Senior TIBCO Developer")) is not None
 
 
-def test_senior_backend_python_not_rejected():
-    """Ensure backend/platform engineer titles stay clean."""
-    assert _check_ineligible(_job(title="Senior Backend Engineer, Python")) is None
-    assert _check_ineligible(_job(title="Staff Platform Engineer - Go")) is None
-    assert _check_ineligible(_job(title="Principal Software Engineer")) is None
+def test_senior_backend_python_rejected():
+    """Seniority exclusions apply even when the technical stack matches."""
+    assert _check_ineligible(_job(title="Senior Backend Engineer, Python")) is not None
+    assert _check_ineligible(_job(title="Staff Platform Engineer - Go")) is not None
+    assert _check_ineligible(_job(title="Principal Software Engineer")) is not None
 
 
 # ── Regional sales tags ─────────────────────────────────────────────
@@ -168,32 +168,31 @@ def test_non_us_country_in_location_rejected(loc):
 
 # ── Must NOT reject legit US roles ──────────────────────────────────
 
-def test_senior_us_remote_not_rejected():
-    assert _check_ineligible(_job(title="Senior Software Engineer", location="Remote (US)")) is None
+def test_senior_us_remote_rejected():
+    assert _check_ineligible(_job(title="Senior Software Engineer", location="Remote (US)")) is not None
 
 
-def test_staff_engineer_not_rejected():
-    assert _check_ineligible(_job(title="Staff Software Engineer", location="Seattle, WA")) is None
+def test_staff_engineer_rejected():
+    assert _check_ineligible(_job(title="Staff Software Engineer", location="Seattle, WA")) is not None
 
 
-def test_principal_engineer_not_rejected():
-    assert _check_ineligible(_job(title="Principal Platform Engineer", location="San Francisco, CA")) is None
+def test_principal_engineer_rejected():
+    assert _check_ineligible(_job(title="Principal Platform Engineer", location="San Francisco, CA")) is not None
 
 
-def test_senior_with_global_office_mention_not_rejected():
-    """A US role mentioning a global office in the description should NOT be rejected.
+def test_us_role_with_global_office_mention_not_rejected():
+    """A non-senior US role mentioning a global office should remain eligible.
 
     The description pre-filter is narrow — requires explicit regional restrictions
     like 'Remote (Europe)' or 'EMEA only', not a casual office mention.
     """
     desc = "We're a US-based company with offices in San Francisco, London, and Tokyo. "
     desc += "This role is US-remote. You'll work on distributed systems."
-    assert _check_ineligible(_job(description=desc)) is None
+    assert _check_ineligible(_job(title="Software Engineer", description=desc)) is None
 
 
-def test_associate_director_not_rejected():
-    """Ensure 'Associate' doesn't falsely match 'Entry Level'-like patterns."""
-    assert _check_ineligible(_job(title="Associate Director of Engineering")) is None
+def test_associate_director_rejected():
+    assert _check_ineligible(_job(title="Associate Director of Engineering")) is not None
 
 
 # ── 2026-04-30: Buried-in-description non-US restrictions ───────────
