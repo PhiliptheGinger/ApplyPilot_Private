@@ -85,7 +85,7 @@ def seed_job():
         now = datetime.now(timezone.utc).isoformat()
         row = {
             "url": f"https://example.com/job/{suffix}",
-            "title": "Senior Software Engineer",
+            "title": "Software Engineer",
             "description": "A job.",
             "full_description": "A full description.",
             "location": "Remote (US)",

@@ -96,14 +96,16 @@ SQLite with WAL mode. Thread-local connections.
 | What | Path |
 |------|------|
 | Source code | `src/applypilot/` (editable install) |
-| Venv | `.venv/` |
+| Venv | `venv/` |
 | Resume (txt) | `~/.applypilot/resume.txt` |
 | Resume (PDF) | `~/.applypilot/resume.pdf` |
 | API keys | `~/.applypilot/.env` (NEVER commit.) |
-| Profile | `~/.applypilot/profile.json` |
+| Profile | `data/profile.json` (project canonical profile) |
 | Search config | `~/.applypilot/searches.yaml` |
 | Database | `~/.applypilot/applypilot.db` |
-| Tailored resumes | `~/.applypilot/tailored_resumes/{site}_{title}_{hash}.txt` (+`.pdf`) |
+| Tailored resumes (new source files) | `data/resumes/applypilot/{name}_{title}_{hash}.txt` (+`.pdf`) |
+| Tailored resumes (submitted copies) | `data/resumes/applypilot/submitted/` |
+| Legacy tailored exports | `~/Downloads/Resumes/` (existing database rows may reference these historical exports) |
 | Cover letters | `~/.applypilot/cover_letters/{site}_{title}_{hash}_CL.txt` (+`.pdf`) |
 | Apply logs | `~/.applypilot/logs/claude_{YYYYMMDD_HHMMSS}_w{N}_{site}.txt` |
 | Dashboard | `~/.applypilot/dashboard.html` |
