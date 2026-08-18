@@ -6,6 +6,7 @@ resume.txt
 resume_technical.txt
 resume_communication.txt
 data/resumes/*.txt
+data/resumes/applypilot/
 resume.pdf
 *.env
 .env.*

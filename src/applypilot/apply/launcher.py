@@ -33,6 +33,17 @@ from applypilot.database import (
     get_in_flight_by_company,
     transition_state,
 )
+
+
+_AUTO_REJECT_TITLE_PATTERN = re.compile(
+    r"\b(?:senior|sr\.?|staff|principal|lead|manager|head|director|vp|vice president|chief)\b",
+    re.IGNORECASE,
+)
+
+
+def _auto_reject_title(title: str | None) -> bool:
+    """Return whether a title is excluded from automatic application."""
+    return bool(_AUTO_REJECT_TITLE_PATTERN.search(title or ""))
 from applypilot.apply import prompt as prompt_mod
 from applypilot.apply.chrome import (  # noqa: F401  (re-exports)
     launch_chrome, cleanup_worker, kill_all_chrome,
@@ -1513,10 +1524,30 @@ def acquire_job(target_url: str | None = None,
                 LIMIT 1
             """, (target_url, target_url, like, like,
                   target_url, target_url)).fetchone()
+            if row and _auto_reject_title(row["title"]):
+                conn.execute(
+                    "UPDATE jobs SET apply_category='archived_ineligible', "
+                    "apply_error=?, last_attempted_at=? WHERE url=?",
+                    ("title_pattern_reject:auto_apply", datetime.now(timezone.utc).isoformat(), row["url"]),
+                )
+                transition_state(
+                    conn, row["url"], "archived",
+                    reason="title_pattern_reject:auto_apply",
+                    metadata={"title": row["title"][:120]},
+                    force=True,
+                )
+                commit_with_retry(conn)
+                logger.info("Skipping seniority-rejected target: %s", row["url"][:80])
+                row = None
         else:
             blocked_sites, blocked_patterns = _load_blocked()
             site_filter = " AND ".join(f"site != '{s}'" for s in blocked_sites) if blocked_sites else "1=1"
             url_filter = " AND ".join(f"url NOT LIKE '{p}'" for p in blocked_patterns) if blocked_patterns else "1=1"
+            manual_domains = config.load_sites_config().get("manual_ats", [])
+            manual_ats_filter = " AND ".join(
+                "LOWER(j.application_url) NOT LIKE ?" for _ in manual_domains
+            ) or "1=1"
+            manual_ats_params = [f"%{domain.lower()}%" for domain in manual_domains]
             max_score_filter = f"AND j.fit_score <= {max_score}" if max_score is not None else ""
 
             # Per-worker concurrency: don't let two workers run the same company or ATS
@@ -1575,6 +1606,7 @@ def acquire_job(target_url: str | None = None,
                   AND {url_filter}
                   {company_excl}
                   {age_filter}
+                  AND {manual_ats_filter}
                   AND NOT EXISTS (
                       SELECT 1 FROM jobs j2
                       WHERE j2.application_url = j.application_url
@@ -1585,7 +1617,24 @@ def acquire_job(target_url: str | None = None,
                   )
                 ORDER BY j.fit_score DESC, j.discovered_at DESC, j.url
                 LIMIT 100
-            """, (min_score, *company_excl_params, *age_params)).fetchall()
+            """, (min_score, *company_excl_params, *age_params, *manual_ats_params)).fetchall()
+
+            title_rejected = [candidate for candidate in candidates if _auto_reject_title(candidate["title"])]
+            for candidate in title_rejected:
+                conn.execute(
+                    "UPDATE jobs SET apply_category='archived_ineligible', "
+                    "apply_error=?, last_attempted_at=? WHERE url=?",
+                    ("title_pattern_reject:auto_apply", datetime.now(timezone.utc).isoformat(), candidate["url"]),
+                )
+                transition_state(
+                    conn, candidate["url"], "archived",
+                    reason="title_pattern_reject:auto_apply",
+                    metadata={"title": candidate["title"][:120]},
+                    force=True,
+                )
+            if title_rejected:
+                commit_with_retry(conn)
+                candidates = [candidate for candidate in candidates if not _auto_reject_title(candidate["title"])]
 
             # Build in-flight buckets once, reuse for every candidate.
             # Use resolve_company_key so Greenhouse/Workday jobs (NULL company,
@@ -1676,7 +1725,13 @@ def acquire_job(target_url: str | None = None,
                 "acquire_job: candidate had no application_url; "
                 "marked manual_only: %s", row["url"][:80],
             )
-            return None
+            return acquire_job(
+                target_url=target_url,
+                min_score=min_score,
+                max_score=max_score,
+                max_age_days=max_age_days,
+                worker_id=worker_id,
+            )
 
         apply_url = row["application_url"]
         if is_manual_ats(apply_url):
@@ -1692,7 +1747,13 @@ def acquire_job(target_url: str | None = None,
                              force=True)
             commit_with_retry(conn)
             logger.info("Skipping manual ATS: %s", row["url"][:80])
-            return None
+            return acquire_job(
+                target_url=target_url,
+                min_score=min_score,
+                max_score=max_score,
+                max_age_days=max_age_days,
+                worker_id=worker_id,
+            )
 
         now = datetime.now(timezone.utc).isoformat()
         conn.execute("""

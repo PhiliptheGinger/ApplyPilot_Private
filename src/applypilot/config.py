@@ -26,21 +26,16 @@ SEARCH_CONFIG_PATH = APP_DIR / "searches.yaml"
 ENV_PATH = APP_DIR / ".env"
 
 # Generated output
-# Internal tailored-resume working directory.
-# This is where generated artifacts are retained as source-of-truth.
+# Keep ApplyPilot-generated documents separate from hand-maintained source resumes.
+PROJECT_GENERATED_RESUMES_DIR = PROJECT_ROOT / "data" / "resumes" / "applypilot"
 TAILORED_DIR = Path(
-    os.environ.get("APPLYPILOT_TAILORED_DIR", str(APP_DIR / "tailored_resumes"))
+    os.environ.get("APPLYPILOT_TAILORED_DIR", str(PROJECT_GENERATED_RESUMES_DIR))
 )
 
 # Submitted resume export destination:
 # - APPLYPILOT_COMPLETED_RESUMES_DIR overrides everything
-# - Windows default: ~/Downloads/Resumes
-# - Non-Windows default: ~/.applypilot/submitted_resumes
-_DEFAULT_COMPLETED_RESUMES_DIR = (
-    Path.home() / "Downloads" / "Resumes"
-    if platform.system() == "Windows"
-    else APP_DIR / "submitted_resumes"
-)
+# - Default: data/resumes/applypilot/submitted
+_DEFAULT_COMPLETED_RESUMES_DIR = PROJECT_GENERATED_RESUMES_DIR / "submitted"
 COMPLETED_RESUMES_DIR = Path(
     os.environ.get("APPLYPILOT_COMPLETED_RESUMES_DIR", str(_DEFAULT_COMPLETED_RESUMES_DIR))
 )
