@@ -11,7 +11,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 
-from applypilot.config import RESUME_PATH, load_profile
+from applypilot.config import RESUME_PATH, load_profile, load_search_config
 from applypilot.database import get_connection, get_jobs_by_stage, write_with_retry
 from applypilot.llm import get_stage_client, get_token_limit
 
@@ -210,6 +210,16 @@ def _check_ineligible(job: dict) -> str | None:
     m = _INELIGIBLE_DESC_PATTERNS.search(desc_head)
     if m:
         return f"non-US geography in description: {m.group(0)[:80]}"
+
+    search_cfg = load_search_config() or {}
+    excluded_titles = search_cfg.get("exclude_titles") or []
+    configured_title_patterns = search_cfg.get("title_reject_patterns") or []
+    if isinstance(search_cfg.get("filters"), dict):
+        configured_title_patterns = configured_title_patterns or search_cfg["filters"].get("title_reject_patterns", [])
+    title_patterns = [str(pattern) for pattern in (*excluded_titles, *configured_title_patterns)]
+    if any(pattern.strip() and re.search(pattern, title, re.IGNORECASE) for pattern in title_patterns):
+        return f"title excluded by search configuration: {title}"
+
     return None
 
 

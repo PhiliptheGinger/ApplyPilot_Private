@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import os
+import re
 
 import typer
 from rich.console import Console
@@ -29,13 +31,18 @@ VALID_STAGES = ("discover", "enrich", "score", "tailor", "cover", "pdf")
 
 DEFAULT_TITLE_REJECT_PATTERNS = (
     r"\bsenior\b",
+    r"\bsr\.?\b",
     r"\bstaff\b",
     r"\bprincipal\b",
     r"\blead\b",
     r"\bmanager\b",
     r"\bhead\b",
     r"\bdirector\b",
-    r"\bvp\b",
+    r"\b(?:vp|vice president)\b",
+    r"\bchief\b",
+    r"\barchitect\b",
+    r"\bdistinguished\b",
+    r"\bfellow\b",
 )
 
 
@@ -61,6 +68,9 @@ def _resolve_title_reject_patterns(
             from_cfg = cfg["filters"].get("title_reject_patterns")
         if isinstance(from_cfg, list):
             patterns.extend(str(p) for p in from_cfg if str(p).strip())
+        exclude_titles = cfg.get("exclude_titles")
+        if isinstance(exclude_titles, list):
+            patterns.extend(re.escape(str(p).strip()) for p in exclude_titles if str(p).strip())
 
     if cli_patterns:
         patterns.extend(p for p in cli_patterns if (p or "").strip())
@@ -257,10 +267,6 @@ def stop(
     load_env()
     ensure_dirs()
 
-    if not stream:
-        console.print("[yellow]No stop target selected.[/yellow]")
-        return
-
     from applypilot.pipeline import (
         get_stream_pid,
         request_stream_interrupt_signal,
@@ -275,6 +281,27 @@ def stop(
         console.print(f"  Recorded PID: {pid}")
     else:
         console.print("  [dim]No recorded stream PID found. A stale stop request was still written.[/dim]")
+
+    # Windows-specific fallback: if the stream pid is stale or missing, terminate
+    # any active python run process so the discovery pipeline is not left running.
+    if signal_process and not pid:
+        import subprocess
+        if os.name == "nt":
+            res = subprocess.run(
+                [
+                    "powershell",
+                    "-NoProfile",
+                    "-Command",
+                    "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'python.*applypilot run' } | ForEach-Object { taskkill /PID $_.ProcessId /T /F }",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if res.returncode == 0:
+                console.print("  [green]Killed active applypilot run process tree.[/green]")
+            else:
+                console.print("  [yellow]No active applypilot run process tree was found.[/yellow]")
 
     if signal_process:
         signaled = request_stream_interrupt_signal()

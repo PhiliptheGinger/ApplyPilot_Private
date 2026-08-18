@@ -23,8 +23,10 @@ already defined.
 from __future__ import annotations
 
 import logging
+import os
 import queue
 import signal
+import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -680,32 +682,70 @@ def main(limit: int = 1, target_url: str | None = None,
 
     worker_label = f"{workers} worker{'s' if workers > 1 else ''}"
     console.print(f"Launching apply pipeline ({mode_label}, {worker_label}, poll every {POLL_INTERVAL}s)...")
-    console.print("[dim]Ctrl+C = skip current job(s) | Ctrl+C x2 = stop[/dim]")
+    console.print("[dim]Hotkeys: [S] skip current job | [Q] quit all | Ctrl+C = skip current job(s) | Ctrl+C x2 = stop[/dim]")
 
-    # Double Ctrl+C handler
+    def _skip_active_jobs() -> None:
+        with _claude_lock:
+            for wid, cproc in list(_claude_procs.items()):
+                if cproc.poll() is None:
+                    _kill_process_tree(cproc.pid)
+        console.print("\n[yellow]Skipping current job(s)...[/yellow]")
+
+    def _stop_all() -> None:
+        console.print("\n[red bold]STOPPING[/red bold]")
+        _stop_event.set()
+        with _claude_lock:
+            for wid, cproc in list(_claude_procs.items()):
+                if cproc.poll() is None:
+                    _kill_process_tree(cproc.pid)
+        kill_all_chrome()
+
+    # Double Ctrl+C handler remains for compatibility with terminal expectations.
     _ctrl_c_count = 0
 
     def _sigint_handler(sig, frame):
         nonlocal _ctrl_c_count
         _ctrl_c_count += 1
         if _ctrl_c_count == 1:
-            console.print("\n[yellow]Skipping current job(s)... (Ctrl+C again to STOP)[/yellow]")
-            # Kill all active Claude processes to skip current jobs
-            with _claude_lock:
-                for wid, cproc in list(_claude_procs.items()):
-                    if cproc.poll() is None:
-                        _kill_process_tree(cproc.pid)
+            _skip_active_jobs()
         else:
-            console.print("\n[red bold]STOPPING[/red bold]")
-            _stop_event.set()
-            with _claude_lock:
-                for wid, cproc in list(_claude_procs.items()):
-                    if cproc.poll() is None:
-                        _kill_process_tree(cproc.pid)
-            kill_all_chrome()
+            _stop_all()
             raise KeyboardInterrupt
 
     signal.signal(signal.SIGINT, _sigint_handler)
+
+    def _watch_keyboard() -> None:
+        try:
+            while not _stop_event.is_set():
+                if os.name == "nt":
+                    import msvcrt
+                    if msvcrt.kbhit():
+                        key = msvcrt.getwch().lower()
+                        if key == 's':
+                            _skip_active_jobs()
+                        elif key == 'q':
+                            _stop_all()
+                            return
+                else:
+                    import select
+                    dr, _, _ = select.select([sys.stdin], [], [], 0.25)
+                    if not dr:
+                        continue
+                    ch = sys.stdin.read(1)
+                    if not ch:
+                        continue
+                    key = ch.lower()
+                    if key == 's':
+                        _skip_active_jobs()
+                    elif key == 'q':
+                        _stop_all()
+                        return
+                time.sleep(0.05)
+        except Exception:
+            logger.debug("keyboard watcher exited", exc_info=True)
+
+    kb_thread = threading.Thread(target=_watch_keyboard, daemon=True)
+    kb_thread.start()
 
     try:
         with Live(render_full(), console=console, refresh_per_second=2) as live:

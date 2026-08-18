@@ -101,10 +101,21 @@ defaults:
 # Negative keywords -- skip jobs with these in the title (case-insensitive)
 # Ethical incompatibility -- reject jobs whose title contains these terms.
 exclude_titles:
+  - "senior"
+  - "sr."
+  - "staff"
+  - "principal"
+  - "lead"
+  - "manager"
+  - "head"
   - "senior director"
+  - "director"
   - "VP "
   - "vice president"
   - "chief"
+  - "architect"
+  - "distinguished"
+  - "fellow"
   - "intern"
   - "internship"
   - "co-op"
