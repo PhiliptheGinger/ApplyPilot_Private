@@ -28,7 +28,16 @@ dependencies = [
     "pyyaml>=6.0",
     "pandas>=2.0",
     "mcp>=1.9",
-    "python-jobspy>=1.1",
+    # Pinned to the one window (1.1.45-1.1.46) that has hours_old (added
+    # 1.1.45, our code has called it since before this pin existed) without
+    # jobspy's own markdownify pin (added 1.1.47, and every later release
+    # through 1.1.82 requires markdownify<0.14.0 -- directly incompatible
+    # with our own markdownify>=0.14.1 below; there's no version that
+    # satisfies both). The unpinned >=1.1 this replaced let pip resolve to
+    # whatever was newest at install time; 1.1.13 predated hours_old
+    # entirely (TypeError: unexpected keyword argument), anything >=1.1.47
+    # conflicts on markdownify.
+    "python-jobspy>=1.1.45,<1.1.47",
     "markdownify>=0.14.1",
     "websocket-client>=1.0",
     "python-docx>=1.1",
