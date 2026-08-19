@@ -951,7 +951,7 @@ def _run_detail_scraper(
         f"WHERE ({skip_filter}) AND ("
         "  detail_scraped_at IS NULL "
         "  OR (detail_error_category = 'retriable' "
-        "      AND (enrich_next_retry_at IS NULL OR enrich_next_retry_at <= datetime('now')))"
+        "      AND (enrich_next_retry_at IS NULL OR datetime(enrich_next_retry_at) <= datetime('now')))"
         ")"
     )
     rows = conn.execute(
@@ -1075,7 +1075,7 @@ def stream_detail(
                 f"WHERE ({skip_filter}) AND ("
                 "  detail_scraped_at IS NULL "
                 "  OR (detail_error_category = 'retriable' "
-                "      AND (enrich_next_retry_at IS NULL OR enrich_next_retry_at <= datetime('now')))"
+                "      AND (enrich_next_retry_at IS NULL OR datetime(enrich_next_retry_at) <= datetime('now')))"
                 ") "
                 "ORDER BY site, discovered_at DESC LIMIT 200"
             ).fetchall()

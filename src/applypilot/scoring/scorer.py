@@ -86,7 +86,8 @@ ADDITIONAL RULES:
 - Roles requiring a security clearance, or roles at defense, weapons, military, or law-enforcement
   contractors, are OUT OF SCOPE regardless of technical fit — score 1-2 and say why in REASONING.
 
-You MUST include all four lines below. Do not skip REASONING.
+Output ONLY the four lines below -- no walkthrough, no markdown headers, no
+preamble before them. You MUST include all four lines. Do not skip REASONING.
 
 ELIGIBILITY: [eligible|non_us_only]
 SCORE: [1-10]
@@ -267,31 +268,36 @@ def _parse_score_response(response: str) -> dict:
         eligibility is one of: 'eligible' | 'non_us_only'.
         Older models that omit ELIGIBILITY default to 'eligible' (preserves
         prior behavior; new prompt requires the line so absence is rare).
+
+    Uses regex search (not line.startswith()) because the claude_cli fallback
+    tier answers in markdown -- "**SCORE: 1**" -- which a plain startswith()
+    check misses entirely, silently defaulting every field (score=0). The
+    \\**\\[? padding here absorbs bold markers and/or brackets around each
+    label so both plain-text and markdown-formatted responses parse the same.
     """
     score = 0
     keywords = ""
     reasoning = response
     eligibility = "eligible"
 
-    for line in response.split("\n"):
-        line = line.strip()
-        if line.startswith("ELIGIBILITY:"):
-            value = line.replace("ELIGIBILITY:", "").strip().lower()
-            value = re.sub(r"[\[\]\s]+", "_", value).strip("_")
-            if "non" in value and "us" in value:
-                eligibility = "non_us_only"
-            else:
-                eligibility = "eligible"
-        elif line.startswith("SCORE:"):
-            try:
-                score = int(re.search(r"\d+", line).group())
-                score = max(1, min(10, score))
-            except (AttributeError, ValueError):
-                score = 0
-        elif line.startswith("KEYWORDS:"):
-            keywords = line.replace("KEYWORDS:", "").strip()
-        elif line.startswith("REASONING:"):
-            reasoning = line.replace("REASONING:", "").strip()
+    elig_match = re.search(r"ELIGIBILITY:\s*\**\[?([a-z_\s]+?)\]?\**\s*(?:\n|$)", response, re.IGNORECASE)
+    if elig_match:
+        value = re.sub(r"[\[\]\s]+", "_", elig_match.group(1).strip().lower()).strip("_")
+        eligibility = "non_us_only" if ("non" in value and "us" in value) else "eligible"
+
+    score_match = re.search(r"SCORE:\s*\**\[?\s*(\d+)", response, re.IGNORECASE)
+    if score_match:
+        score = max(1, min(10, int(score_match.group(1))))
+
+    kw_match = re.search(r"KEYWORDS:\s*\**\[?(.+?)\]?\**\s*(?:\n|$)", response, re.IGNORECASE)
+    if kw_match:
+        keywords = kw_match.group(1).strip()
+
+    # DOTALL + greedy: claude_cli often wraps reasoning across several
+    # sentences/paragraphs rather than one line, unlike the terser API models.
+    reasoning_match = re.search(r"REASONING:\s*\**\[?(.+)", response, re.IGNORECASE | re.DOTALL)
+    if reasoning_match:
+        reasoning = reasoning_match.group(1).strip().rstrip("*").strip()
 
     return {"score": score, "keywords": keywords, "reasoning": reasoning,
             "eligibility": eligibility}

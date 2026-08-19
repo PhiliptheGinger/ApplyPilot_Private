@@ -1651,14 +1651,19 @@ def get_jobs_by_stage(conn: sqlite3.Connection | None = None,
         "pending_detail": (
             "detail_scraped_at IS NULL "
             "OR (detail_error_category = 'retriable' "
-            "    AND (enrich_next_retry_at IS NULL OR enrich_next_retry_at <= datetime('now')))"
+            # datetime(col) normalizes Python's isoformat() ('...T..+00:00')
+            # to SQLite's own 'YYYY-MM-DD HH:MM:SS' before comparing -- a bare
+            # string compare against datetime('now') is wrong because 'T'
+            # (0x54) sorts after ' ' (0x20), so every retry timestamp looks
+            # "in the future" forever and retries never fire.
+            "    AND (enrich_next_retry_at IS NULL OR datetime(enrich_next_retry_at) <= datetime('now')))"
         ),
         "enriched": "full_description IS NOT NULL",
         "pending_score": (
             "full_description IS NOT NULL AND ("
             "  (fit_score IS NULL AND score_error IS NULL) "
             "  OR (score_error IS NOT NULL AND score_attempts < 5 "
-            "      AND (score_next_retry_at IS NULL OR score_next_retry_at <= datetime('now')))"
+            "      AND (score_next_retry_at IS NULL OR datetime(score_next_retry_at) <= datetime('now')))"
             ")"
         ),
         "scored": "fit_score IS NOT NULL",

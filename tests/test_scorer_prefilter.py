@@ -296,6 +296,29 @@ def test_parser_missing_eligibility_defaults_to_eligible():
     assert parsed["eligibility"] == "eligible"
 
 
+def test_parser_handles_markdown_bold_fields():
+    """Regression test for 2026-08-18: the claude_cli fallback tier answers in
+    markdown ("**SCORE: 1**") rather than plain lines. The old startswith()
+    check missed every field entirely, silently defaulting score to 0 for 9 of
+    25 jobs before this was caught. Also covers multi-paragraph reasoning with
+    a markdown preamble before the four required fields, which claude_cli
+    produces despite being told not to."""
+    from applypilot.scoring.scorer import _parse_score_response
+    response = (
+        "I'll evaluate this job against the candidate's profile.\n\n"
+        "## GEOGRAPHY CHECK\n\nNo restriction found.\n\n"
+        "**ELIGIBILITY: eligible**\n\n"
+        "**SCORE: 7**\n\n"
+        "**KEYWORDS:** Help Desk, CompTIA A+, Troubleshooting\n\n"
+        "**REASONING:** Strong match on certification and hands-on background."
+    )
+    parsed = _parse_score_response(response)
+    assert parsed["score"] == 7
+    assert parsed["eligibility"] == "eligible"
+    assert parsed["keywords"] == "Help Desk, CompTIA A+, Troubleshooting"
+    assert parsed["reasoning"] == "Strong match on certification and hands-on background."
+
+
 # ── Ethical exclusions (defense/weapons/surveillance/policing) ──────────
 # Regression test for the 2026-08-18 bug: detail.py's ethical-keyword loader
 # called a config function that didn't exist and was never even called, so
