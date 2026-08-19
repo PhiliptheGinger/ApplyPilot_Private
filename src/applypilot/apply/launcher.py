@@ -1379,6 +1379,16 @@ def _make_mcp_config(cdp_port: int, worker_id: int = 0) -> dict:
             "playwright": {
                 "command": "npx",
                 "args": [
+                    # --prefer-offline: skip the npm-registry round-trip when
+                    # this pinned version is already cached (it is, after the
+                    # first run) -- Claude Code gives MCP servers a 30s connect
+                    # budget, and registry latency alone can eat several
+                    # seconds of that. Found via a live CONNECT_TIMEOUT: both
+                    # this and the gmail server failed identically (30043ms),
+                    # and unrelated Claude Code telemetry calls timed out in
+                    # the same run, pointing at registry/network slowness
+                    # rather than anything wrong with the MCP config itself.
+                    "--prefer-offline",
                     # Pinned (was @latest — every apply run re-resolved the tag,
                     # so a compromised release would be picked up within hours).
                     # Bump deliberately after a release has soaked ~2 weeks;
@@ -1393,7 +1403,7 @@ def _make_mcp_config(cdp_port: int, worker_id: int = 0) -> dict:
                 "command": "npx",
                 # Pinned: this package holds the Gmail OAuth tokens. 1.1.11
                 # verified byte-identical to the registry tarball 2026-06-10.
-                "args": ["-y", "@gongrzhe/server-gmail-autoauth-mcp@1.1.11"],
+                "args": ["-y", "--prefer-offline", "@gongrzhe/server-gmail-autoauth-mcp@1.1.11"],
             },
         }
     }
