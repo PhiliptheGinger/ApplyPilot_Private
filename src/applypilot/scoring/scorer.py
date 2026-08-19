@@ -24,10 +24,12 @@ SCORE_PROMPT_TEMPLATE = """You are a job fit evaluator. Given a candidate's resu
 
 THE CANDIDATE: {candidate_summary}
 
+LOCATION: The candidate is {location_context}.
+
 ⚠️ GEOGRAPHY CHECK — DO THIS FIRST, BEFORE ANYTHING ELSE:
-The candidate is US-based (Seattle, WA). Any role restricted to non-US geography is INELIGIBLE.
+The candidate is US-based. Any role restricted to non-US geography is INELIGIBLE.
 Read the FULL description for buried sentences like "This role will be remote and based in the UK"
-or "Remote — Ontario, BC or Alberta". A perfect tech stack on a non-US role is still INELIGIBLE.
+or "Remote — Ontario, BC or Alberta". A perfect skills match on a non-US role is still INELIGIBLE.
 
 Output ELIGIBILITY: non_us_only when the role's hiring location is restricted to a non-US country
 even if the role is remote. Output ELIGIBILITY: eligible when the role is open to US workers
@@ -40,26 +42,49 @@ Common signals for non_us_only:
 - UK/Canada right-to-work questions in the form
 - CET / GMT+N / IST timezone requirement
 
-If non_us_only, you MAY still produce a SCORE based on tech-stack fit (for audit), but the
+If non_us_only, you MAY still produce a SCORE based on general fit (for audit), but the
 eligibility tag is what determines whether the application proceeds.
 
-SCORING CRITERIA:
-- 10: Near-perfect IC engineering match. The role is a software/platform/infrastructure engineer position requiring the candidate's exact stack (Go/Kotlin/Python/Java, distributed systems, K8s). Seniority aligns with the candidate's documented level. The candidate would be a top-tier applicant with minimal gaps.
-- 9: Excellent engineering match. Strong alignment on tech stack and seniority, with 1-2 gaps in secondary skills or slightly different domain.
-- 7-8: Good engineering match. Candidate has most required technical skills. Minor gaps in specific frameworks or domain experience, easily bridged.
-- 5-6: Moderate match. The role is engineering but uses a different primary stack, or there's a seniority mismatch (e.g., junior role or executive-only role with no IC component).
-- 3-4: Weak match. Engineering role but wrong specialization (frontend-only, mobile, ML research, data science), or a non-engineering role with some technical overlap.
-- 1-2: Poor match. Non-engineering role (recruiting, design, marketing, product management, sales), completely different field, OR non-US geographic restriction.
+⚠️ SENIORITY / EXPERIENCE CHECK — DO THIS SECOND, BEFORE SCORING TECH-STACK OVERLAP:
+This candidate has NO professional software engineering employment history. Any role titled or
+scoped as Senior / Staff / Principal / Lead / Architect / Director / Manager / VP / Chief, OR any
+role that requires 3+ years of professional software engineering experience, OR a completed
+CS/engineering degree as a hard requirement, is a POOR fit (score 1-2) no matter how many tech-stack
+keywords in the description overlap with the candidate's personal projects. A job description
+mentioning "Python" or "automation" does NOT by itself qualify this candidate for an experienced-IC
+or senior role — do not let keyword overlap override this check.
+
+SCORING CRITERIA — the candidate's real, documented qualifications are: a CompTIA A+
+certification, a Media Studies degree (no CS/engineering degree), hands-on customer-facing and
+technical-troubleshooting work history (automotive alignment technician, warehouse operations,
+installation, sales), and personal-project-level Python (self-taught, not professional employment):
+
+- 9-10: Entry-level / no-experience-required IT support, help desk, desktop support, technical
+  support, customer support, systems administration, or network engineering role. Matches the
+  CompTIA A+ certification and hands-on troubleshooting / customer-facing background directly.
+  Does not require a CS degree or an advanced cert beyond A+.
+- 7-8: Same IT-support family as above but with 1-2 stretch requirements (e.g. "1-2 years
+  preferred" rather than required, or a nice-to-have second cert like Network+/Security+), OR a
+  genuinely entry-level / new-grad / junior software, backend, or Python role that explicitly does
+  not require prior professional software engineering experience or a CS degree.
+- 5-6: IT support role requiring 2+ years of experience the candidate doesn't have, OR a junior
+  software/backend role nominally wanting ~1 year of experience where the rest of the requirements
+  are learnable and stack-agnostic.
+- 3-4: Software/backend/data engineering role requiring 2+ years of professional experience or a
+  CS degree as a hard requirement, even if the candidate's personal Python projects touch some of
+  the listed tech stack.
+- 1-2: Any Senior/Staff/Principal/Lead/Architect/Director/Manager/VP/Chief-scoped role, any role
+  requiring 3+ years of professional experience or a completed CS/engineering degree, non-technical
+  roles that don't match the candidate's actual background (recruiting, design, marketing, product
+  management, sales, executive), OR non-US geographic restriction.
 
 ADDITIONAL RULES:
-- Non-engineering roles (recruiters, designers, PMs, marketing, sales, executive search) score 1-2 MAX regardless of seniority or domain.
-- Roles requiring a specific language the candidate doesn't know (Rust, C++, Ruby, Scala, Clojure) as the PRIMARY requirement score 4-6 max depending on transferability.
-- "CTO" or "VP Engineering" roles that are purely management with no IC engineering component score 5-6 max.
-- LOCATION is N/A: check the description for any office/city requirement. If the description implies onsite in a specific US city outside Seattle/Bellevue/Kirkland/Redmond, cap at 7.
-- Distinguish REQUIRED skills from NICE-TO-HAVE. Only penalize for missing required skills.
-- Value transferable experience: workflow orchestration, distributed systems, microservices, developer platforms transfer across domains.
-- Treat missing or blank candidate seniority fields as unknown, not as "several years" or Software Engineer experience.
-- When seniority is unknown, do not assume alignment with Senior, Staff, Principal, Lead, Architect, Director, or executive roles. Cap those roles at 6 unless the resume and profile provide clear evidence of equivalent scope.
+- Distinguish REQUIRED skills from NICE-TO-HAVE. Only penalize for missing required skills, but do
+  NOT let a long list of matching keyword buzzwords override the seniority/experience check above.
+- LOCATION: if the description implies onsite in a specific city outside the candidate's stated
+  location/relocation area above, and is not remote, cap the score at 6.
+- Roles requiring a security clearance, or roles at defense, weapons, military, or law-enforcement
+  contractors, are OUT OF SCOPE regardless of technical fit — score 1-2 and say why in REASONING.
 
 You MUST include all four lines below. Do not skip REASONING.
 
@@ -94,14 +119,10 @@ _INELIGIBLE_TITLE_PATTERNS = re.compile(
     r'|\(m/[fw]/d\)'                # German job title suffix (m/f/d) or (m/w/d)
     r'|\bm/[fw]/d\b'
     r'|\bOnly hiring in\b'
-    # Seniority mismatches that should not enter the actionable queue.
-    r'|\bJunior\b'
-    r'|\bIntern(ship)?\b'
-    r'|\bFresher\b'
-    r'|\bEntry[- ]?Level\b'
-    r'|\bNew[- ]Grad\b'
-    r'|\bTrainee\b'
-    r'|\bApprentice\b'
+    # NOTE: Junior/Intern/Entry-Level/New-Grad/Trainee/Apprentice/Graduate titles are
+    # intentionally NOT excluded here — this candidate has no professional software
+    # engineering experience, so those levels are the actual target, not noise.
+    # Internships/co-ops are still excluded via searches.yaml exclude_titles below.
     # Sales-adjacency (not IC engineering)
     r'|\bSales Engineer\b'
     r'|\bSolutions Engineer\b'
@@ -113,9 +134,6 @@ _INELIGIBLE_TITLE_PATTERNS = re.compile(
     r'|\bStocker\b|\bForklift\b|\bWarehouse Associate\b|\bTruck Driver\b'
     r'|\bBakery Clerk\b|\bDeli Clerk\b|\bProduce Clerk\b|\bMember Service\b'
     r'|\bOptician\b|\bOptical\b'
-    # More seniority — "Graduate Developer"/"Graduate Software Engineer" patterns
-    # Protected: "Graduate School", "Graduate Student" (those don't appear in job titles)
-    r'|\bGraduate\b'
     # Non-engineering roles
     r'|\bRecruiter\b'
     r'|\bTalent Acquisition\b|\bTalent Scout\b|\bTalent Sourcer\b'
@@ -220,6 +238,21 @@ def _check_ineligible(job: dict) -> str | None:
     if any(pattern.strip() and re.search(pattern, title, re.IGNORECASE) for pattern in title_patterns):
         return f"title excluded by search configuration: {title}"
 
+    # Ethical exclusions (military/weapons/surveillance/policing/defense contractors,
+    # see searches.yaml exclude_description_keywords). Checked against title + full
+    # description head, not just the location field, since these are about the
+    # employer's line of business, not geography.
+    ethical_keywords = [
+        str(k).strip().lower()
+        for k in (search_cfg.get("exclude_description_keywords") or [])
+        if str(k).strip()
+    ]
+    if ethical_keywords:
+        haystack = f"{title}\n{desc_head}".lower()
+        for kw in ethical_keywords:
+            if kw in haystack:
+                return f"ethical exclusion keyword matched: {kw!r}"
+
     return None
 
 
@@ -265,30 +298,76 @@ def _parse_score_response(response: str) -> dict:
 
 
 def _build_candidate_summary(profile: dict) -> str:
-    """Build a candidate summary string from profile for the scoring prompt."""
+    """Build a candidate summary string from profile for the scoring prompt.
+
+    Pulls only real, documented facts (education, certifications, prior job
+    titles, project-level skills) -- no inferred seniority or stack.
+    """
     exp = profile.get("experience", {})
-    boundary = profile.get("skills_boundary", {})
-    years = exp.get("years_of_experience_total") or "unknown"
-    current_title = exp.get("current_job_title") or "not specified"
-    target = exp.get("target_role") or "not specified"
-    languages = boundary.get("languages", [])
-    platforms = boundary.get("platforms", [])
-    parts = [f"{current_title} with {years} years experience."]
-    if languages:
-        parts.append(f"Primary stack: {', '.join(languages[:8])}.")
-    if platforms:
-        parts.append(f"Platforms: {', '.join(platforms[:6])}.")
-    parts.append(f"Targets: {target}.")
+    education = profile.get("education") or []
+    certs = profile.get("certifications") or []
+    skills = profile.get("skills_inventory") or []
+    experience_inventory = profile.get("experience_inventory") or []
+
+    parts: list[str] = []
+
+    degree_bits = [
+        f"{item.get('official_degree')} ({item.get('institution', '')})"
+        for item in education
+        if isinstance(item, dict) and item.get("official_degree")
+    ]
+    if degree_bits:
+        parts.append(f"Education: {'; '.join(degree_bits)}. No CS/engineering degree.")
+
+    cert_names = [c.get("name") for c in certs if isinstance(c, dict) and c.get("name")]
+    if cert_names:
+        parts.append(f"Certifications: {', '.join(cert_names)}.")
+
+    work_roles = [
+        item.get("role_title") or item.get("role_type")
+        for item in experience_inventory
+        if isinstance(item, dict) and (item.get("role_title") or item.get("role_type"))
+    ]
+    if work_roles:
+        parts.append(f"Work history (non-software roles): {', '.join(work_roles)}.")
+
+    demonstrated = [
+        s.get("name") for s in skills
+        if isinstance(s, dict) and s.get("resume_allowed")
+        and str(s.get("proficiency", "")).lower() not in ("", "learning")
+    ]
+    if demonstrated:
+        parts.append(f"Demonstrated project-level skills: {', '.join(demonstrated)}.")
+
+    current_title = exp.get("current_job_title") or "none"
+    years = exp.get("years_of_experience_total") or "0 / not documented"
+    parts.append(f"Current job title: {current_title}. Documented years of professional software engineering experience: {years}.")
+
+    parts.append(
+        "CRITICAL: this candidate has NO professional software engineering employment history. "
+        "All programming experience is self-taught, personal-project-level Python only. Do not "
+        "infer prior IC engineering experience, a CS background, or industry seniority merely "
+        "because the candidate is applying to technical roles."
+    )
     return " ".join(parts)
 
 
-def _seniority_is_unknown(profile: dict) -> bool:
-    """Return whether the profile documents no current level or target role."""
-    exp = profile.get("experience", {})
-    return not any(
-        exp.get(field)
-        for field in ("years_of_experience_total", "current_job_title", "target_role")
-    )
+def _build_location_context(profile: dict) -> str:
+    """Build a location/relocation summary string for the scoring prompt."""
+    loc = (profile.get("application_profile") or {}).get("location") or {}
+    bits: list[str] = []
+    city = loc.get("current_city") or ""
+    state = loc.get("current_state") or ""
+    if city or state:
+        bits.append(f"based in {', '.join(x for x in (city, state) if x)}")
+    arrangement = loc.get("preferred_work_arrangement")
+    if arrangement:
+        bits.append(f"prefers {arrangement} work")
+    if loc.get("willing_to_relocate") and loc.get("relocation_preference"):
+        bits.append(f"open to relocating within {loc['relocation_preference']}")
+    if loc.get("willing_onsite") or loc.get("willing_hybrid"):
+        bits.append("open to onsite/hybrid within that area or a reasonable commute")
+    return "; ".join(bits) or "US-based; location preferences not specified in profile"
 
 
 def score_job(resume_text: str, job: dict, profile: dict | None = None) -> dict:
@@ -309,17 +388,23 @@ def score_job(resume_text: str, job: dict, profile: dict | None = None) -> dict:
     # is still recorded so audit views can see the original LLM-style severity.
     ineligible_reason = _check_ineligible(job)
     if ineligible_reason:
-        log.info("Pre-filter INELIGIBLE (non_us_only): %s — %s", (job.get("title") or "?")[:60], ineligible_reason)
+        log.info("Pre-filter INELIGIBLE: %s — %s", (job.get("title") or "?")[:60], ineligible_reason)
+        # eligibility="non_us_only" is reused here as the generic "force archive,
+        # never tailor/apply" signal for ALL pre-filter rejections (geography,
+        # title-pattern, ethical exclusion) -- see _flush_score_batch's archive routing.
         return {
             "score": 2,
             "keywords": "",
-            "reasoning": f"Ineligible: {ineligible_reason}. Candidate is US-based.",
+            "reasoning": f"Ineligible: {ineligible_reason}.",
             "eligibility": "non_us_only",
         }
 
     try:
         candidate_summary = _build_candidate_summary(profile)
-        score_prompt = SCORE_PROMPT_TEMPLATE.format(candidate_summary=candidate_summary)
+        location_context = _build_location_context(profile)
+        score_prompt = SCORE_PROMPT_TEMPLATE.format(
+            candidate_summary=candidate_summary, location_context=location_context,
+        )
 
         job_text = (
             f"TITLE: {job['title']}\n"
@@ -340,11 +425,16 @@ def score_job(resume_text: str, job: dict, profile: dict | None = None) -> dict:
             temperature=0.2,
         )
         result = _parse_score_response(response)
-        if _seniority_is_unknown(profile) and _SENIOR_TITLE_PATTERN.search(job.get("title") or ""):
-            result["score"] = min(result["score"], 6)
+        if _SENIOR_TITLE_PATTERN.search(job.get("title") or ""):
+            # Hard backstop independent of the LLM's own judgment: this candidate has
+            # no professional software engineering experience (a documented fact, not
+            # an unknown), so a Senior/Staff/Principal/Lead/Architect/Director/VP/Chief
+            # title is always a poor fit regardless of keyword overlap in the prompt.
+            result["score"] = min(result["score"], 3)
             result["reasoning"] = (
-                f"{result['reasoning']} Seniority is undocumented in the candidate profile, "
-                "so this role is capped at 6 pending profile evidence."
+                f"{result['reasoning']} Title indicates a senior/staff/principal-level role; "
+                "the candidate has no professional software engineering experience, so this "
+                "is capped at 3."
             )
         return result
     except Exception as exc:

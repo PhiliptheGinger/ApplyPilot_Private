@@ -59,18 +59,22 @@ def _build_fallback_chain(primary_model: str, quality: bool = False) -> list[Mod
     anthropic_url = "https://api.anthropic.com"
     deepseek_url = "https://api.deepseek.com/v1"
 
-    # Gemini chains — use verified model IDs only
+    # Gemini chains — use verified model IDs only.
+    # 2026-08-18: gemini-2.5-* / gemini-2.0-* all 404 ("no longer available to
+    # new users") on this key's project; Google's error pointed at the 3.x
+    # generation. gemini-3.1-pro-preview 429s (quota), so quality tier tries
+    # it first but falls back fast to the working flash models.
     if quality:
         gemini_models = [
-            "gemini-2.5-pro",
-            "gemini-2.5-flash",
-            "gemini-2.0-flash",
+            "gemini-3.1-pro-preview",
+            "gemini-3.6-flash",
+            "gemini-3.5-flash",
         ]
     else:
         gemini_models = [
-            "gemini-2.5-flash",
-            "gemini-2.0-flash",
-            "gemini-2.0-flash-lite",
+            "gemini-3.6-flash",
+            "gemini-3.5-flash",
+            "gemini-3.1-flash-lite",
         ]
 
     # OpenAI fallbacks (cost-efficient)
@@ -156,7 +160,7 @@ def _detect_provider(quality: bool = False, model_override: str | None = None) -
     if gemini_key and not local_url:
         return (
             "https://generativelanguage.googleapis.com/v1beta/openai",
-            chosen_model or "gemini-2.5-flash",
+            chosen_model or "gemini-3.6-flash",
             gemini_key,
         )
     if openai_key and not local_url:
@@ -554,7 +558,7 @@ def get_client(quality: bool = False, model_override: str | None = None) -> LLMC
         if _quality_instance is None:
             # Always construct a quality client when requested. The underlying
             # _detect_provider will honor LLM_MODEL_QUALITY if set, otherwise
-            # fall back to sane defaults (gemini-2.5-flash by default).
+            # fall back to sane defaults (gemini-3.6-flash by default).
             base_url, model, api_key = _detect_provider(quality=True)
             log.info("LLM quality provider: %s  model: %s", base_url, model)
             _quality_instance = LLMClient(base_url, model, api_key, quality=True)

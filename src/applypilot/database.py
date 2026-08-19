@@ -494,7 +494,7 @@ VALID_STATES: frozenset[str] = frozenset({
 
 VALID_TRANSITIONS: dict[str, frozenset[str]] = {
     "discovered":     frozenset({"enriched", "enrich_failed", "archived"}),
-    "enriched":       frozenset({"scored", "score_failed", "archived"}),
+    "enriched":       frozenset({"scored", "low_score", "score_failed", "archived"}),
     "enrich_failed":  frozenset({"enriched", "archived"}),  # retriable
     "scored":         frozenset({"low_score", "tailoring", "tailored", "tailor_failed", "archived"}),
     "score_failed":   frozenset({"scored", "archived"}),

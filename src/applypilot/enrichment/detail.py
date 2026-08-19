@@ -39,20 +39,6 @@ def _get_ua() -> str:
     from applypilot.apply.chrome import _get_real_user_agent
     return _get_real_user_agent()
 
-def _load_ethical_keywords() -> list[str]:
-	"""Load ethical incompatibility keywords from searches.yaml."""
-	try:
-		from applypilot.config import load_searches
-		config = load_searches()
-		return [
-			str(keyword).strip().lower()
-			for keyword in config.get("exclude_description_keywords", [])
-			if str(keyword).strip()
-		]
-	except Exception:
-		log.debug("Could not load ethical exclusion keywords", exc_info=True)
-		return []
-
 UA = _get_ua()
 
 # Stealth JS patches — hides automation signals from bot detectors
