@@ -2376,6 +2376,13 @@ def run_job(job: dict, port: int, worker_id: int = 0,
                             "turns": msg.get("num_turns", 0),
                         }
                         text_parts.append(msg.get("result", ""))
+                    elif msg_type == "system":
+                        # Was previously silently dropped, which meant MCP
+                        # server connection failures were invisible -- the
+                        # agent would just report "no browser tools" with no
+                        # trace of *why* in our own logs. Dump the raw event
+                        # (init carries mcp_servers status + the tool list).
+                        lf.write(f"  [system:{msg.get('subtype', '?')}] {json.dumps(msg)[:4000]}\n")
                 except json.JSONDecodeError:
                     text_parts.append(line)
                     lf.write(line + "\n")
