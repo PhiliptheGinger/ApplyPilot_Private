@@ -701,9 +701,10 @@ def _run_sequential(
             kwargs: dict = {}
             if name in ("tailor", "cover", "pdf"):
                 kwargs["doc_format"] = doc_format
+            if name in ("score", "tailor", "cover"):
+                kwargs["limit"] = limit
             if name in ("tailor", "cover"):
                 kwargs["min_score"] = min_score
-                kwargs["limit"] = limit
             if name in ("discover", "enrich", "score", "tailor", "cover"):
                 kwargs["workers"] = workers
             if name == "discover" and sources is not None:
