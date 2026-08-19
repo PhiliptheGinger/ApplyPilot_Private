@@ -289,14 +289,14 @@ def _run_enrich(workers: int = 1) -> dict:
         return {"status": f"error: {e}"}
 
 
-def _run_score(workers: int = 1, max_age_days: int | None = None) -> dict:
+def _run_score(workers: int = 1, max_age_days: int | None = None, limit: int = 0) -> dict:
     """Stage: LLM scoring — assign fit scores 1-10."""
     from applypilot.config import DEFAULTS
     if max_age_days is None:
         max_age_days = DEFAULTS["max_job_age_days"]
     try:
         from applypilot.scoring.scorer import run_scoring
-        run_scoring(workers=workers, max_age_days=max_age_days)
+        run_scoring(workers=workers, max_age_days=max_age_days, limit=limit)
         return {"status": "ok"}
     except Exception as e:
         log.exception("Scoring failed")
@@ -585,9 +585,10 @@ def _run_stage_streaming(
     kwargs: dict = {}
     if stage in ("tailor", "cover", "pdf"):
         kwargs["doc_format"] = doc_format
+    if stage in ("score", "tailor", "cover"):
+        kwargs["limit"] = limit
     if stage in ("tailor", "cover"):
         kwargs["min_score"] = min_score
-        kwargs["limit"] = limit
     if stage in ("discover", "enrich", "score", "tailor", "cover"):
         kwargs["workers"] = workers
     if stage == "discover" and sources is not None:
@@ -837,7 +838,7 @@ def run_pipeline(
         stages: List of stage names, or None / ["all"] for full pipeline.
         min_score: Minimum fit score for tailor/cover stages.
         max_age_days: Only process jobs discovered within this many days.
-        limit: Max jobs per batch for tailor/cover stages. Default: 20.
+        limit: Max jobs per batch for score/tailor/cover stages. Default: 20.
         dry_run: If True, preview stages without executing.
         stream: If True, run stages concurrently (streaming mode).
         workers: Number of parallel threads for discovery/enrichment stages.
