@@ -510,16 +510,18 @@ def apply(
         )
         raise typer.Exit(code=1)
 
-    # Check 3: Tailored resumes exist (skip for --gen with --url)
-    if not (gen and url):
+    # Check 3: Tailored resumes exist in the real ready_to_apply queue.
+    # Skipped when --url targets a specific job -- acquire_job's own
+    # state != 'archived' check is the real gate for that path.
+    if not gen and not url:
         conn = get_connection()
         ready = conn.execute(
-            "SELECT COUNT(*) FROM jobs WHERE tailored_resume_path IS NOT NULL AND applied_at IS NULL"
+            "SELECT COUNT(*) FROM jobs WHERE state = 'ready_to_apply'"
         ).fetchone()[0]
         if ready == 0:
             console.print(
-                "[red]No tailored resumes ready.[/red]\n"
-                "Run [bold]applypilot run score tailor[/bold] first to prepare applications."
+                "[red]No jobs in the ready_to_apply queue.[/red]\n"
+                "Run [bold]applypilot run score tailor cover[/bold] first to prepare applications."
             )
             raise typer.Exit(code=1)
 

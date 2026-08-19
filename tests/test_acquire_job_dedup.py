@@ -21,6 +21,19 @@ flips a single assertion rather than the entire test file.
 
 from __future__ import annotations
 
+import pytest
+
+
+@pytest.fixture
+def seed_job(seed_job):
+    """Override the conftest fixture: acquire_job only ever considers
+    state == 'ready_to_apply', so these selection-logic tests need
+    candidates seeded in that state by default."""
+    def _seed(conn, **overrides):
+        overrides.setdefault("state", "ready_to_apply")
+        return seed_job(conn, **overrides)
+    return _seed
+
 
 def _setup_apply_env(monkeypatch) -> None:
     """Quiet the company-cap loader and avoid touching the user's profile."""

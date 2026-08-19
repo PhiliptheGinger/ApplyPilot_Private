@@ -1059,11 +1059,7 @@ def get_stats(conn: sqlite3.Connection | None = None) -> dict:
     ).fetchone()[0]
 
     stats["ready_to_apply"] = conn.execute(
-        "SELECT COUNT(*) FROM jobs "
-        "WHERE tailored_resume_path IS NOT NULL "
-        "AND applied_at IS NULL "
-        "AND application_url IS NOT NULL "
-        "AND (eligibility IS NULL OR eligibility = 'eligible')"
+        "SELECT COUNT(*) FROM jobs WHERE state = 'ready_to_apply'"
     ).fetchone()[0]
 
     stats["needs_human"] = conn.execute(
