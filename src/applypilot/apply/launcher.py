@@ -1449,6 +1449,9 @@ def acquire_job(target_url: str | None = None,
     """Atomically acquire the next job to apply to.
 
     Enforces:
+      - state == 'ready_to_apply' (candidates archived by scoring fixes,
+        ethics filters, or the seniority guard never resurface here even
+        if a stale tailored_resume_path/apply_status still looks eligible)
       - Minimum fit score (config.DEFAULTS["min_score"] default)
       - Job age cutoff (config.DEFAULTS["max_job_age_days"] default)
       - Per-company open-pipeline cap (YAML-configurable)
@@ -1519,6 +1522,7 @@ def acquire_job(target_url: str | None = None,
                 WHERE (url = ? OR application_url = ? OR application_url LIKE ? OR url LIKE ?)
                   AND tailored_resume_path IS NOT NULL
                   AND (apply_status IS NULL OR apply_status != 'in_progress')
+                  AND (state IS NULL OR state != 'archived')
                 ORDER BY
                     CASE WHEN url = ? OR application_url = ? THEN 0 ELSE 1 END
                 LIMIT 1
@@ -1595,6 +1599,7 @@ def acquire_job(target_url: str | None = None,
                        j.strategy
                 FROM jobs j
                 WHERE j.tailored_resume_path IS NOT NULL
+                  AND j.state = 'ready_to_apply'
                   AND (j.apply_status IS NULL OR j.apply_status = 'failed')
                   AND (j.apply_attempts IS NULL OR j.apply_attempts < {config.DEFAULTS["max_apply_attempts"]})
                   AND j.fit_score >= ?

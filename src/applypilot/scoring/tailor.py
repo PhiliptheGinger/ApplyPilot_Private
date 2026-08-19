@@ -1083,6 +1083,7 @@ def run_tailoring(min_score: int | None = None, limit: int = 20, workers: int = 
         SELECT LOWER(company) AS key, COUNT(*) AS n
         FROM jobs
         WHERE tailored_resume_path IS NOT NULL
+          AND state != 'archived'
           AND company IS NOT NULL AND TRIM(company) != ''
           AND discovered_at > datetime('now', ?)
         GROUP BY key
@@ -1090,6 +1091,7 @@ def run_tailoring(min_score: int | None = None, limit: int = 20, workers: int = 
         SELECT LOWER(site) AS key, COUNT(*) AS n
         FROM jobs
         WHERE tailored_resume_path IS NOT NULL
+          AND state != 'archived'
           AND (company IS NULL OR TRIM(company) = '')
           AND strategy IN ('greenhouse_api', 'workday_api', 'lever_api',
                            'ashby_api', 'amazon_jobs', 'microsoft_careers',

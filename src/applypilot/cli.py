@@ -17,6 +17,19 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
     datefmt="%H:%M:%S",
 )
+# The handler basicConfig() just attached to the root logger -- kept so
+# --quiet can raise its level without touching the root logger's own
+# level (which the per-run FileHandler in pipeline.py relies on staying
+# at INFO so the full detail still lands in ~/.applypilot/logs/).
+_console_handler = logging.getLogger().handlers[0]
+
+# httpx/httpcore/openai's HTTP client logs every single request at INFO
+# ("HTTP Request: POST ... 200 OK"), which drowns out our own per-job
+# progress lines on any run of more than a few dozen jobs. These libraries
+# don't carry information we act on -- our own request/retry logging
+# (llm.py) already covers failures -- so keep them at WARNING.
+for _noisy_logger in ("httpx", "httpcore", "openai"):
+    logging.getLogger(_noisy_logger).setLevel(logging.WARNING)
 
 app = typer.Typer(
     name="applypilot",
@@ -175,8 +188,18 @@ def run(
         None, "--reject-pattern",
         help="Regex title reject pattern. Repeatable. Used with --auto-reject-titles.",
     ),
+    quiet: bool = typer.Option(
+        False, "--quiet", "-q",
+        help=(
+            "Suppress per-job/HTTP console logging (stage banners and the final "
+            "summary still print). Full detail still goes to the per-run log "
+            "file under ~/.applypilot/logs/ -- use that for after-the-fact review."
+        ),
+    ),
 ) -> None:
     """Run pipeline stages: discover, enrich, score, tailor, cover, pdf."""
+    if quiet:
+        _console_handler.setLevel(logging.WARNING)
     # Handle --list-sources before bootstrap (no DB/env needed)
     if list_sources:
         from applypilot.pipeline import _SOURCE_ALIASES, DISCOVERY_SOURCES
@@ -510,16 +533,18 @@ def apply(
         )
         raise typer.Exit(code=1)
 
-    # Check 3: Tailored resumes exist (skip for --gen with --url)
-    if not (gen and url):
+    # Check 3: Tailored resumes exist in the real ready_to_apply queue.
+    # Skipped when --url targets a specific job -- acquire_job's own
+    # state != 'archived' check is the real gate for that path.
+    if not gen and not url:
         conn = get_connection()
         ready = conn.execute(
-            "SELECT COUNT(*) FROM jobs WHERE tailored_resume_path IS NOT NULL AND applied_at IS NULL"
+            "SELECT COUNT(*) FROM jobs WHERE state = 'ready_to_apply'"
         ).fetchone()[0]
         if ready == 0:
             console.print(
-                "[red]No tailored resumes ready.[/red]\n"
-                "Run [bold]applypilot run score tailor[/bold] first to prepare applications."
+                "[red]No jobs in the ready_to_apply queue.[/red]\n"
+                "Run [bold]applypilot run score tailor cover[/bold] first to prepare applications."
             )
             raise typer.Exit(code=1)
 
