@@ -1379,6 +1379,16 @@ def _make_mcp_config(cdp_port: int, worker_id: int = 0) -> dict:
             "playwright": {
                 "command": "npx",
                 "args": [
+                    # --prefer-offline: skip the npm-registry round-trip when
+                    # this pinned version is already cached (it is, after the
+                    # first run) -- Claude Code gives MCP servers a 30s connect
+                    # budget, and registry latency alone can eat several
+                    # seconds of that. Found via a live CONNECT_TIMEOUT: both
+                    # this and the gmail server failed identically (30043ms),
+                    # and unrelated Claude Code telemetry calls timed out in
+                    # the same run, pointing at registry/network slowness
+                    # rather than anything wrong with the MCP config itself.
+                    "--prefer-offline",
                     # Pinned (was @latest — every apply run re-resolved the tag,
                     # so a compromised release would be picked up within hours).
                     # Bump deliberately after a release has soaked ~2 weeks;
@@ -1393,7 +1403,7 @@ def _make_mcp_config(cdp_port: int, worker_id: int = 0) -> dict:
                 "command": "npx",
                 # Pinned: this package holds the Gmail OAuth tokens. 1.1.11
                 # verified byte-identical to the registry tarball 2026-06-10.
-                "args": ["-y", "@gongrzhe/server-gmail-autoauth-mcp@1.1.11"],
+                "args": ["-y", "--prefer-offline", "@gongrzhe/server-gmail-autoauth-mcp@1.1.11"],
             },
         }
     }
@@ -1522,7 +1532,7 @@ def acquire_job(target_url: str | None = None,
                 WHERE (url = ? OR application_url = ? OR application_url LIKE ? OR url LIKE ?)
                   AND tailored_resume_path IS NOT NULL
                   AND (apply_status IS NULL OR apply_status != 'in_progress')
-                  AND (state IS NULL OR state != 'archived')
+                  AND (state IS NULL OR state NOT IN ('archived', 'manual_only'))
                 ORDER BY
                     CASE WHEN url = ? OR application_url = ? THEN 0 ELSE 1 END
                 LIMIT 1
@@ -2376,6 +2386,13 @@ def run_job(job: dict, port: int, worker_id: int = 0,
                             "turns": msg.get("num_turns", 0),
                         }
                         text_parts.append(msg.get("result", ""))
+                    elif msg_type == "system":
+                        # Was previously silently dropped, which meant MCP
+                        # server connection failures were invisible -- the
+                        # agent would just report "no browser tools" with no
+                        # trace of *why* in our own logs. Dump the raw event
+                        # (init carries mcp_servers status + the tool list).
+                        lf.write(f"  [system:{msg.get('subtype', '?')}] {json.dumps(msg)[:4000]}\n")
                 except json.JSONDecodeError:
                     text_parts.append(line)
                     lf.write(line + "\n")

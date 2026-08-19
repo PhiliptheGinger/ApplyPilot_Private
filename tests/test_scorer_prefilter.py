@@ -348,3 +348,72 @@ def test_non_defense_description_not_rejected_by_ethical_filter(monkeypatch):
     )
     job = _job(title="Software Engineer", description="We build SaaS billing software.")
     assert scorer_mod._check_ineligible(job) is None
+
+
+# ── Advanced-degree requirement (candidate has a Bachelor's only) ───────
+# Regression test for the 2026-08-19 incident: a PayPal "Software Engineer"
+# posting (plain title, no seniority signal) required a Master's degree in
+# its description body. Scored 8 under the pre-a6f72a6 rubric and sat in
+# ready_to_apply with a tailored resume/cover letter already generated.
+
+_NO_ADVANCED_DEGREE_PROFILE = {
+    "education": [{"official_degree": "Bachelor of Arts in Media Studies"}],
+}
+_MASTERS_PROFILE = {
+    "education": [{"official_degree": "Master of Science in Computer Science"}],
+}
+
+
+def test_masters_required_curly_apostrophe_rejected():
+    # Real-world scrape artifact: source HTML used a curly apostrophe (U+2019),
+    # not straight ASCII -- the regex must handle both.
+    job = _job(
+        title="Software Engineer",
+        description="Minimum Requirements: Master’s degree, or foreign equivalent, "
+                     "in Computer Science, Engineering, or a closely related field.",
+    )
+    assert _check_ineligible(job, _NO_ADVANCED_DEGREE_PROFILE) is not None
+
+
+def test_masters_required_straight_apostrophe_rejected():
+    job = _job(
+        title="Software Engineer",
+        description="Required Qualifications: Master's degree in Computer Science required.",
+    )
+    assert _check_ineligible(job, _NO_ADVANCED_DEGREE_PROFILE) is not None
+
+
+def test_masters_preferred_not_rejected():
+    # "Preferred" is not a hard requirement -- must not fire.
+    job = _job(
+        title="Software Engineer",
+        description="Bachelor's degree required; Master's degree preferred.",
+    )
+    assert _check_ineligible(job, _NO_ADVANCED_DEGREE_PROFILE) is None
+
+
+def test_bachelors_or_masters_not_rejected():
+    # Either degree clears the bar -- must not fire.
+    job = _job(
+        title="Software Engineer",
+        description="Requires a Bachelor's or Master's degree in a related field.",
+    )
+    assert _check_ineligible(job, _NO_ADVANCED_DEGREE_PROFILE) is None
+
+
+def test_masters_required_but_candidate_has_one_not_rejected():
+    job = _job(
+        title="Software Engineer",
+        description="Minimum Requirements: Master's degree, or foreign equivalent, in Computer Science.",
+    )
+    assert _check_ineligible(job, _MASTERS_PROFILE) is None
+
+
+def test_masters_required_without_profile_not_rejected():
+    # profile=None (the default) preserves prior behavior -- this guard only
+    # activates when a profile is actually supplied.
+    job = _job(
+        title="Software Engineer",
+        description="Minimum Requirements: Master's degree, or foreign equivalent, in Computer Science.",
+    )
+    assert _check_ineligible(job) is None
