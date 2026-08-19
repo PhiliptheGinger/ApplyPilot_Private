@@ -303,8 +303,29 @@ def _run_one_search(
         try:
             df = _scrape_with_retry(kwargs, max_retries=max_retries)
             all_dfs.append(df)
-        except Exception:
-            log.exception("[%s] (non-gd) error", label)
+        except Exception as e:
+            # jobspy's Country enum doesn't cover every country LinkedIn
+            # returns for remote-eligible listings (seen live: Liechtenstein,
+            # Kosovo, Malta). One such listing raises inside a worker thread,
+            # and jobspy's own ThreadPoolExecutor + future.result() re-raises
+            # for the WHOLE combined-site call -- so Indeed/ZipRecruiter's
+            # already-fetched results in the same call get discarded too,
+            # not just LinkedIn's. Retry once without LinkedIn to recover
+            # the other sites' data instead of losing the entire query.
+            if "linkedin" in other_sites and "invalid country string" in str(e).lower():
+                log.warning("[%s] LinkedIn location-parsing error (%s); retrying without LinkedIn",
+                            label, str(e).split("\n")[0][:100])
+                retry_sites = [site for site in other_sites if site != "linkedin"]
+                if retry_sites:
+                    retry_kwargs = {**kwargs, "site_name": retry_sites}
+                    retry_kwargs.pop("linkedin_fetch_description", None)
+                    try:
+                        df = _scrape_with_retry(retry_kwargs, max_retries=max_retries)
+                        all_dfs.append(df)
+                    except Exception:
+                        log.exception("[%s] (non-gd, retry without linkedin) error", label)
+            else:
+                log.exception("[%s] (non-gd) error", label)
 
     # Run Glassdoor separately with simplified location
     if has_glassdoor:
@@ -523,6 +544,32 @@ def _full_crawl(
     }
 
 
+def _filter_supported_sites(sites: list[str] | None) -> list[str] | None:
+    """Drop board names this installed jobspy version doesn't recognize.
+
+    2026-08-19 incident: searches.yaml's `boards` list included "google"
+    (added back when a newer jobspy version supported it), but the pin in
+    pyproject.toml (1.1.45-1.1.46 -- see that comment for why) predates
+    Site.GOOGLE entirely. Without this filter, scrape_jobs() raises a bare
+    KeyError deep in jobspy's own site-name lookup for every single query
+    that includes the unsupported name, rather than just skipping that one
+    board and running the rest.
+    """
+    if not sites:
+        return sites
+    from jobspy import Site
+    supported = {s.name.lower() for s in Site}
+    kept = [s for s in sites if s.lower() in supported]
+    dropped = [s for s in sites if s.lower() not in supported]
+    if dropped:
+        log.warning(
+            "Dropping board(s) not supported by the installed jobspy version: %s. "
+            "Remove from searches.yaml's `boards` list to silence this.",
+            ", ".join(dropped),
+        )
+    return kept
+
+
 # -- Public entry point ------------------------------------------------------
 
 def run_discovery(cfg: dict | None = None, sites_override: list[str] | None = None) -> dict:
@@ -549,6 +596,7 @@ def run_discovery(cfg: dict | None = None, sites_override: list[str] | None = No
 
     proxy = cfg.get("proxy")
     sites = sites_override or cfg.get("sites") or cfg.get("boards")
+    sites = _filter_supported_sites(sites)
     results_per_site = cfg.get("defaults", {}).get("results_per_site", 100)
     hours_old = cfg.get("defaults", {}).get("hours_old", 72)
     tiers = cfg.get("tiers")
