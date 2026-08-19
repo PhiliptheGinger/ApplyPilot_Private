@@ -181,6 +181,36 @@ _SENIOR_TITLE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# Catches postings that state an advanced degree as a hard minimum -- common
+# Workday/PERM boilerplate ("Minimum Requirements: Master's degree, or foreign
+# equivalent, in Computer Science...") that a generic "Software Engineer" title
+# gives no hint of. Found via a live example (PayPal "Software Engineer",
+# 2026-08-19): scored 8 under the pre-a6f72a6 rubric and sat in ready_to_apply
+# with a tailored resume/cover letter already generated. Deliberately narrow --
+# only fires on "degree...required"-style minimums, not "Master's preferred"
+# or "Bachelor's or Master's" postings the candidate could plausibly clear.
+# Scraped descriptions use whatever apostrophe the source site's HTML used --
+# straight ('), curly right single quote (U+2019), or curly left (U+2018,
+# occasionally misused as an apostrophe) all show up in the wild.
+_APOS = "['‘’]?"
+
+_ADVANCED_DEGREE_REQUIRED_PATTERN = re.compile(
+    r"(?:master" + _APOS + r"s|ph\.?d\.?|doctoral|doctorate)\s+degree,?\s+(?:or\s+(?:foreign\s+)?equivalent\s+)?(?:is\s+)?required"
+    r"|(?:minimum\s+requirements?|required\s+qualifications?|basic\s+qualifications?)\s*:?\s*(?:[^.\n]{0,40})?"
+    r"(?:master" + _APOS + r"s|ph\.?d\.?|doctoral|doctorate)\s+degree"
+    r"|master" + _APOS + r"s\s+degree,?\s+or\s+foreign\s+equivalent",
+    re.IGNORECASE,
+)
+
+
+def _candidate_has_advanced_degree(profile: dict) -> bool:
+    """True if any profile education entry is a Master's/PhD or higher."""
+    for item in profile.get("education") or []:
+        degree = str((item or {}).get("official_degree") or "").lower()
+        if any(term in degree for term in ("master", "m.s.", "phd", "ph.d", "doctor")):
+            return True
+    return False
+
 # Description-level non-US patterns. Scans the full description (capped at
 # 6000 chars by the caller). Patterns intentionally narrow — must explicitly
 # RESTRICT to a non-US country, not merely mention global offices.
@@ -211,8 +241,9 @@ _INELIGIBLE_DESC_PATTERNS = re.compile(
 _DESC_SCAN_CHARS = 6000
 
 
-def _check_ineligible(job: dict) -> str | None:
-    """Return an ineligibility reason if the job is obviously non-US, else None.
+def _check_ineligible(job: dict, profile: dict | None = None) -> str | None:
+    """Return an ineligibility reason if the job is obviously non-US or the
+    candidate categorically can't meet a stated hard requirement, else None.
 
     Checked before the LLM call to save tokens and ensure consistency.
     Scans title, location field, and the first ``_DESC_SCAN_CHARS`` of the
@@ -229,6 +260,11 @@ def _check_ineligible(job: dict) -> str | None:
     m = _INELIGIBLE_DESC_PATTERNS.search(desc_head)
     if m:
         return f"non-US geography in description: {m.group(0)[:80]}"
+
+    if profile is not None and not _candidate_has_advanced_degree(profile):
+        m = _ADVANCED_DEGREE_REQUIRED_PATTERN.search(desc_head)
+        if m:
+            return f"advanced degree required, candidate has none: {m.group(0)[:80]}"
 
     search_cfg = load_search_config() or {}
     excluded_titles = search_cfg.get("exclude_titles") or []
@@ -392,7 +428,7 @@ def score_job(resume_text: str, job: dict, profile: dict | None = None) -> dict:
     # Rule-based pre-filter: catch obvious non-US ineligible jobs before LLM call.
     # Tags eligibility=non_us_only so downstream stages skip the job; the score
     # is still recorded so audit views can see the original LLM-style severity.
-    ineligible_reason = _check_ineligible(job)
+    ineligible_reason = _check_ineligible(job, profile)
     if ineligible_reason:
         log.info("Pre-filter INELIGIBLE: %s — %s", (job.get("title") or "?")[:60], ineligible_reason)
         # eligibility="non_us_only" is reused here as the generic "force archive,
