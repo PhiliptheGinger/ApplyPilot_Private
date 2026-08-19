@@ -1522,7 +1522,7 @@ def acquire_job(target_url: str | None = None,
                 WHERE (url = ? OR application_url = ? OR application_url LIKE ? OR url LIKE ?)
                   AND tailored_resume_path IS NOT NULL
                   AND (apply_status IS NULL OR apply_status != 'in_progress')
-                  AND (state IS NULL OR state != 'archived')
+                  AND (state IS NULL OR state NOT IN ('archived', 'manual_only'))
                 ORDER BY
                     CASE WHEN url = ? OR application_url = ? THEN 0 ELSE 1 END
                 LIMIT 1
