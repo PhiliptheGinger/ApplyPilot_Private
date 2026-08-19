@@ -1,8 +1,10 @@
 """Tests for the pre-filter patterns in scorer.py.
 
-Validated 2026-04-23 against 5,938 historical scored jobs. Any pattern
-that rejects a job with LLM score >= 8 was either a clear LLM mis-score
-(Junior/Intern roles scored high) or a dual-geography edge case.
+Validated 2026-04-23 against 5,938 historical scored jobs, then revised
+2026-08-18: the candidate profile has no professional software engineering
+experience, so Junior/Entry-Level/New-Grad/Trainee/Apprentice/Graduate titles
+are the actual target level, not noise to reject. Internships/co-ops remain
+excluded via searches.yaml exclude_titles (candidate wants full-time work).
 """
 
 import pytest
@@ -14,10 +16,10 @@ def _job(title="Senior Software Engineer", location="Remote", description="US-re
     return {"title": title, "location": location, "full_description": description}
 
 
-# ── Seniority rejects ───────────────────────────────────────────────
+# ── Seniority: junior/entry-level titles are ELIGIBLE (candidate's real level) ──
 
-def test_junior_title_rejected():
-    assert _check_ineligible(_job(title="Junior Software Engineer")) is not None
+def test_junior_title_not_rejected():
+    assert _check_ineligible(_job(title="Junior Software Engineer")) is None
 
 
 def test_intern_title_rejected():
@@ -28,24 +30,24 @@ def test_internship_title_rejected():
     assert _check_ineligible(_job(title="Software Engineering Internship")) is not None
 
 
-def test_fresher_title_rejected():
-    assert _check_ineligible(_job(title="Fresher Software Engineer")) is not None
+def test_fresher_title_not_rejected():
+    assert _check_ineligible(_job(title="Fresher Software Engineer")) is None
 
 
-def test_entry_level_title_rejected():
-    assert _check_ineligible(_job(title="Software Engineer I - Entry Level")) is not None
+def test_entry_level_title_not_rejected():
+    assert _check_ineligible(_job(title="Software Engineer I - Entry Level")) is None
 
 
-def test_new_grad_title_rejected():
-    assert _check_ineligible(_job(title="New Grad Software Engineer")) is not None
+def test_new_grad_title_not_rejected():
+    assert _check_ineligible(_job(title="New Grad Software Engineer")) is None
 
 
-def test_trainee_title_rejected():
-    assert _check_ineligible(_job(title="Software Engineer Trainee")) is not None
+def test_trainee_title_not_rejected():
+    assert _check_ineligible(_job(title="Software Engineer Trainee")) is None
 
 
-def test_apprentice_title_rejected():
-    assert _check_ineligible(_job(title="Software Apprentice")) is not None
+def test_apprentice_title_not_rejected():
+    assert _check_ineligible(_job(title="Software Apprentice")) is None
 
 
 # ── Sales-adjacency rejects ─────────────────────────────────────────
@@ -68,9 +70,9 @@ def test_customer_success_engineer_rejected():
 
 # ── Additional safe patterns (validated 2026-04-23 round 2) ─────────
 
-def test_graduate_title_rejected():
-    assert _check_ineligible(_job(title="Graduate Developer")) is not None
-    assert _check_ineligible(_job(title="Graduate Software Engineer")) is not None
+def test_graduate_title_not_rejected():
+    assert _check_ineligible(_job(title="Graduate Developer")) is None
+    assert _check_ineligible(_job(title="Graduate Software Engineer")) is None
 
 
 def test_recruiter_title_rejected():
@@ -292,3 +294,57 @@ def test_parser_missing_eligibility_defaults_to_eligible():
     response = "SCORE: 8\nKEYWORDS: foo\nREASONING: bar"
     parsed = _parse_score_response(response)
     assert parsed["eligibility"] == "eligible"
+
+
+def test_parser_handles_markdown_bold_fields():
+    """Regression test for 2026-08-18: the claude_cli fallback tier answers in
+    markdown ("**SCORE: 1**") rather than plain lines. The old startswith()
+    check missed every field entirely, silently defaulting score to 0 for 9 of
+    25 jobs before this was caught. Also covers multi-paragraph reasoning with
+    a markdown preamble before the four required fields, which claude_cli
+    produces despite being told not to."""
+    from applypilot.scoring.scorer import _parse_score_response
+    response = (
+        "I'll evaluate this job against the candidate's profile.\n\n"
+        "## GEOGRAPHY CHECK\n\nNo restriction found.\n\n"
+        "**ELIGIBILITY: eligible**\n\n"
+        "**SCORE: 7**\n\n"
+        "**KEYWORDS:** Help Desk, CompTIA A+, Troubleshooting\n\n"
+        "**REASONING:** Strong match on certification and hands-on background."
+    )
+    parsed = _parse_score_response(response)
+    assert parsed["score"] == 7
+    assert parsed["eligibility"] == "eligible"
+    assert parsed["keywords"] == "Help Desk, CompTIA A+, Troubleshooting"
+    assert parsed["reasoning"] == "Strong match on certification and hands-on background."
+
+
+# ── Ethical exclusions (defense/weapons/surveillance/policing) ──────────
+# Regression test for the 2026-08-18 bug: detail.py's ethical-keyword loader
+# called a config function that didn't exist and was never even called, so
+# exclude_description_keywords (military/defense contractor/weapons/etc.) was
+# silently a no-op end to end. Enforcement now lives in _check_ineligible.
+
+def test_defense_contractor_description_rejected(monkeypatch):
+    import applypilot.scoring.scorer as scorer_mod
+
+    monkeypatch.setattr(
+        scorer_mod, "load_search_config",
+        lambda: {"exclude_description_keywords": ["defense contractor", "autonomous weapons"]},
+    )
+    job = _job(
+        title="Software Engineer",
+        description="We are a leading defense contractor building next-generation systems.",
+    )
+    assert scorer_mod._check_ineligible(job) is not None
+
+
+def test_non_defense_description_not_rejected_by_ethical_filter(monkeypatch):
+    import applypilot.scoring.scorer as scorer_mod
+
+    monkeypatch.setattr(
+        scorer_mod, "load_search_config",
+        lambda: {"exclude_description_keywords": ["defense contractor", "autonomous weapons"]},
+    )
+    job = _job(title="Software Engineer", description="We build SaaS billing software.")
+    assert scorer_mod._check_ineligible(job) is None

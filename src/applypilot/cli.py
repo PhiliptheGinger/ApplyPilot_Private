@@ -150,7 +150,7 @@ def run(
             f"Default: {config.DEFAULTS['max_job_age_days']}."
         ),
     ),
-    limit: int | None = typer.Option(None, "--limit", "-l", help="Max jobs per stage (tailor/cover). Default: 20."),
+    limit: int | None = typer.Option(None, "--limit", "-l", help="Max jobs per stage (score/tailor/cover). Default: 20."),
     workers: int = typer.Option(
         1, "--workers", "-w",
         help="Parallel threads for Workday/smart-extract stages. (JobSpy runs sequentially regardless.)",

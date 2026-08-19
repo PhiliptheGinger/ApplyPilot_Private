@@ -18,8 +18,11 @@ OpenAI and Anthropic if their API keys are configured.
 
 import logging
 import os
+import shutil
+import subprocess
 import time
 from dataclasses import dataclass
+from pathlib import Path
 
 import httpx
 
@@ -39,9 +42,29 @@ log = logging.getLogger(__name__)
 class ModelEntry:
     """A model with everything needed to call it."""
     name: str
-    provider: str           # "gemini", "openai", "anthropic", "local"
-    base_url: str
+    provider: str           # "gemini", "openai", "anthropic", "claude_cli", "local"
+    base_url: str            # for claude_cli: the resolved path to the claude binary
     api_key: str
+
+
+def _find_claude_cli() -> str | None:
+    """Locate the Claude Code CLI binary, or None if not installed.
+
+    Used as a zero-marginal-cost fallback tier: the user's existing Max plan
+    subscription (OAuth login) rather than a metered ANTHROPIC_API_KEY. Checks
+    PATH first, then the installer's default location, since a subprocess's
+    inherited PATH doesn't always include user-local install dirs.
+    """
+    found = shutil.which("claude")
+    if found:
+        return found
+    for candidate in (
+        Path.home() / ".local" / "bin" / "claude.exe",
+        Path.home() / ".local" / "bin" / "claude",
+    ):
+        if candidate.exists():
+            return str(candidate)
+    return None
 
 
 def _build_fallback_chain(primary_model: str, quality: bool = False) -> list[ModelEntry]:
@@ -59,18 +82,22 @@ def _build_fallback_chain(primary_model: str, quality: bool = False) -> list[Mod
     anthropic_url = "https://api.anthropic.com"
     deepseek_url = "https://api.deepseek.com/v1"
 
-    # Gemini chains — use verified model IDs only
+    # Gemini chains — use verified model IDs only.
+    # 2026-08-18: gemini-2.5-* / gemini-2.0-* all 404 ("no longer available to
+    # new users") on this key's project; Google's error pointed at the 3.x
+    # generation. gemini-3.1-pro-preview 429s (quota), so quality tier tries
+    # it first but falls back fast to the working flash models.
     if quality:
         gemini_models = [
-            "gemini-2.5-pro",
-            "gemini-2.5-flash",
-            "gemini-2.0-flash",
+            "gemini-3.1-pro-preview",
+            "gemini-3.6-flash",
+            "gemini-3.5-flash",
         ]
     else:
         gemini_models = [
-            "gemini-2.5-flash",
-            "gemini-2.0-flash",
-            "gemini-2.0-flash-lite",
+            "gemini-3.6-flash",
+            "gemini-3.5-flash",
+            "gemini-3.1-flash-lite",
         ]
 
     # OpenAI fallbacks (cost-efficient)
@@ -118,6 +145,17 @@ def _build_fallback_chain(primary_model: str, quality: bool = False) -> list[Mod
         for m in deepseek_models:
             chain.append(ModelEntry(m, "deepseek", deepseek_url, deepseek_key))
 
+    # Claude Code CLI fallback: uses the user's existing Max plan OAuth login
+    # (flat subscription, no per-token billing) instead of a metered
+    # ANTHROPIC_API_KEY. Tried before the paid Anthropic API tier since it's
+    # effectively free for a Max-plan user; much slower per call (CLI startup
+    # overhead, ~15s vs ~1-3s for a direct API call) so it's a fallback, not
+    # the primary path.
+    claude_cli_path = _find_claude_cli()
+    if claude_cli_path:
+        cli_model = "sonnet" if quality else "haiku"
+        chain.append(ModelEntry(cli_model, "claude_cli", claude_cli_path, ""))
+
     # Anthropic fallbacks
     if anthropic_key:
         for m in anthropic_models:
@@ -156,7 +194,7 @@ def _detect_provider(quality: bool = False, model_override: str | None = None) -
     if gemini_key and not local_url:
         return (
             "https://generativelanguage.googleapis.com/v1beta/openai",
-            chosen_model or "gemini-2.5-flash",
+            chosen_model or "gemini-3.6-flash",
             gemini_key,
         )
     if openai_key and not local_url:
@@ -257,6 +295,8 @@ class LLMClient:
         """Try a single model entry. Dispatches to the right provider."""
         if entry.provider == "anthropic":
             return self._try_anthropic(entry, messages, temperature, max_tokens, is_last)
+        elif entry.provider == "claude_cli":
+            return self._try_claude_cli(entry, messages, is_last)
         else:
             return self._try_openai_compat(entry, messages, temperature, max_tokens, is_last)
 
@@ -490,6 +530,66 @@ class LLMClient:
 
         return None
 
+    def _try_claude_cli(self, entry: ModelEntry, messages: list[dict],
+                        is_last: bool = False) -> str | None:
+        """Try the Claude Code CLI in one-shot print mode.
+
+        Uses the user's Max plan OAuth login (subprocess env strips
+        ANTHROPIC_API_KEY so it can't override that auth with API billing —
+        same guard as apply/launcher.py's agent subprocess). No tools, no
+        MCP config: --system-prompt fully replaces the default system prompt
+        so no coding-agent framing leaks into the response, and the job text
+        goes over stdin (unbounded, unlike a command-line arg).
+        """
+        system_text = ""
+        user_parts: list[str] = []
+        for msg in messages:
+            if msg["role"] == "system":
+                system_text = msg["content"]
+            else:
+                user_parts.append(msg["content"])
+        user_text = "\n\n".join(user_parts)
+        if not user_text.strip():
+            return None
+
+        cmd = [entry.base_url, "--model", entry.name, "-p",
+               "--output-format", "text", "--permission-mode", "dontAsk"]
+        if system_text:
+            cmd += ["--system-prompt", system_text]
+
+        env = os.environ.copy()
+        env.pop("CLAUDECODE", None)
+        env.pop("CLAUDE_CODE_ENTRYPOINT", None)
+        env.pop("ANTHROPIC_API_KEY", None)
+
+        try:
+            proc = subprocess.run(
+                cmd, input=user_text, capture_output=True, text=True,
+                encoding="utf-8", errors="replace", env=env, timeout=180,
+            )
+        except subprocess.TimeoutExpired:
+            log.warning("claude_cli/%s timed out after 180s", entry.name)
+            if not is_last:
+                return None
+            raise RuntimeError(f"claude_cli/{entry.name} timed out")
+
+        combined = f"{proc.stdout}\n{proc.stderr}".lower()
+        if "usage limit" in combined or "rate limit" in combined or "overloaded" in combined:
+            log.warning("claude_cli/%s hit usage/rate limit, marking exhausted for 30min", entry.name)
+            self._exhausted[entry.name] = time.time() + 1800
+            return None
+
+        if proc.returncode != 0 or not proc.stdout.strip():
+            log.warning("claude_cli/%s failed (exit %d): %s",
+                        entry.name, proc.returncode, proc.stderr[:300])
+            if not is_last:
+                return None
+            raise RuntimeError(f"claude_cli/{entry.name} failed: {proc.stderr[:300]}")
+
+        if entry.name != self.model:
+            log.info("Used fallback claude_cli/%s (primary: %s)", entry.name, self.model)
+        return proc.stdout.strip()
+
     def ask(self, prompt: str, **kwargs) -> str:
         """Convenience: single user prompt -> assistant response."""
         return self.chat([{"role": "user", "content": prompt}], **kwargs)
@@ -554,7 +654,7 @@ def get_client(quality: bool = False, model_override: str | None = None) -> LLMC
         if _quality_instance is None:
             # Always construct a quality client when requested. The underlying
             # _detect_provider will honor LLM_MODEL_QUALITY if set, otherwise
-            # fall back to sane defaults (gemini-2.5-flash by default).
+            # fall back to sane defaults (gemini-3.6-flash by default).
             base_url, model, api_key = _detect_provider(quality=True)
             log.info("LLM quality provider: %s  model: %s", base_url, model)
             _quality_instance = LLMClient(base_url, model, api_key, quality=True)

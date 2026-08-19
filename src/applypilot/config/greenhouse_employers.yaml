@@ -20,10 +20,10 @@ employers:
     neighborhood: "Downtown Seattle"
     tier: 1
 
-  andurilindustries:
-    name: "Anduril Industries"
-    neighborhood: "Fremont / Ship Canal"
-    tier: 1
+  # Anduril Industries removed 2026-08-18: defense/weapons contractor,
+  # matches the candidate's own exclude_description_keywords ethics list
+  # (searches.yaml). Was 2,206 of ~4,975 enriched jobs in the DB before the
+  # ethical-exclusion enforcement bug (scorer.py/detail.py) was fixed.
 
   # ── Tier 1-2 scale-ups ──
 

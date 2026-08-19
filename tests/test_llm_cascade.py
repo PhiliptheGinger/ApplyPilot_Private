@@ -154,16 +154,17 @@ class TestBuildFallbackChain(unittest.TestCase):
         self.assertGreater(len(names), 0, "Should have at least one model when keys are set")
 
     def test_raises_without_api_keys(self):
-        """RuntimeError is raised when no API keys are configured."""
+        """RuntimeError is raised when no API keys or Claude CLI are available."""
         env_without_keys = {
             k: v for k, v in __import__("os").environ.items()
             if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY",
                          "ANTHROPIC_API_KEY", "DEEPSEEK_API_KEY", "LLM_URL")
         }
         with patch.dict("os.environ", env_without_keys, clear=True):
-            from applypilot.llm import _build_fallback_chain
-            with self.assertRaises(RuntimeError):
-                _build_fallback_chain("gemini-2.5-flash", quality=False)
+            import applypilot.llm as llm_mod
+            with patch.object(llm_mod, "_find_claude_cli", return_value=None):
+                with self.assertRaises(RuntimeError):
+                    llm_mod._build_fallback_chain("gemini-2.5-flash", quality=False)
 
 
 if __name__ == "__main__":
