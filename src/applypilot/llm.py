@@ -574,8 +574,32 @@ class LLMClient:
             raise RuntimeError(f"claude_cli/{entry.name} timed out")
 
         combined = f"{proc.stdout}\n{proc.stderr}".lower()
-        if "usage limit" in combined or "rate limit" in combined or "overloaded" in combined:
-            log.warning("claude_cli/%s hit usage/rate limit, marking exhausted for 30min", entry.name)
+        matched_limit_text = "usage limit" in combined or "rate limit" in combined or "overloaded" in combined
+        # 2026-08-19 incident: a Max-plan 5-hour usage window at 100%
+        # utilization (confirmed via ~/.claude.json's cachedUsageUtilization)
+        # made claude_cli/sonnet fail 50/50 tailor calls with exit 1 and
+        # completely empty stdout/stderr -- no text for the check above to
+        # match, so every call fell through to the hard RuntimeError below
+        # instead of backing off. Verified live on 2.1.234 that this specific
+        # exit-1-empty-output signature is how a fast local usage-limit
+        # rejection presents in -p mode (real failures/successes both produce
+        # real text). Still a heuristic, not a certainty -- some other exit-1
+        # cause could in principle also produce empty output, so this is
+        # logged distinctly from a text-matched limit rather than folded in
+        # silently.
+        empty_output_failure = (
+            proc.returncode != 0 and not proc.stdout.strip() and not proc.stderr.strip()
+        )
+        if matched_limit_text or empty_output_failure:
+            if empty_output_failure and not matched_limit_text:
+                log.warning(
+                    "claude_cli/%s failed with exit %d and empty output; treating as "
+                    "exhausted (heuristic for Max-plan usage-limit fast-fail, not a "
+                    "confirmed rate-limit message)",
+                    entry.name, proc.returncode,
+                )
+            else:
+                log.warning("claude_cli/%s hit usage/rate limit, marking exhausted for 30min", entry.name)
             self._exhausted[entry.name] = time.time() + 1800
             return None
 
