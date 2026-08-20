@@ -167,5 +167,79 @@ class TestBuildFallbackChain(unittest.TestCase):
                     llm_mod._build_fallback_chain("gemini-2.5-flash", quality=False)
 
 
+class TestClaudeCliFailureClassification(unittest.TestCase):
+    """_try_claude_cli's failure classification.
+
+    2026-08-19 incident: a Max-plan 5-hour usage window at 100% utilization
+    made claude_cli/sonnet fail 50/50 tailor calls with exit 1 and
+    completely empty stdout/stderr. The text-substring rate-limit check
+    ("usage limit"/"rate limit"/"overloaded") can never match empty text,
+    so every call fell through to a hard RuntimeError instead of backing
+    off like a real rate-limit message does. These tests cover the
+    empty-output heuristic added for that case, and confirm it doesn't
+    swallow genuine errors that do carry real diagnostic text.
+    """
+
+    def _entry(self):
+        from applypilot.llm import ModelEntry
+        return ModelEntry("sonnet", "claude_cli", "/fake/path/to/claude", "")
+
+    def _messages(self):
+        return [{"role": "user", "content": "hello"}]
+
+    def _fake_proc(self, returncode, stdout, stderr):
+        from types import SimpleNamespace
+        return SimpleNamespace(returncode=returncode, stdout=stdout, stderr=stderr)
+
+    def test_empty_output_nonzero_exit_marks_exhausted_not_raised(self):
+        """Exit 1, empty stdout/stderr -- must back off gracefully, not
+        raise RuntimeError, even when this is the last chain entry."""
+        client = _make_client(1)
+        entry = self._entry()
+        with patch("applypilot.llm.subprocess.run",
+                    return_value=self._fake_proc(1, "", "")):
+            result = client._try_claude_cli(entry, self._messages(), is_last=True)
+        self.assertIsNone(result)
+        self.assertIn(entry.name, client._exhausted)
+
+    def test_text_matched_rate_limit_marks_exhausted(self):
+        """Existing substring-match path still works unchanged."""
+        client = _make_client(1)
+        entry = self._entry()
+        with patch("applypilot.llm.subprocess.run",
+                    return_value=self._fake_proc(1, "", "Error: usage limit reached")):
+            result = client._try_claude_cli(entry, self._messages(), is_last=True)
+        self.assertIsNone(result)
+        self.assertIn(entry.name, client._exhausted)
+
+    def test_genuine_error_with_text_still_raises_when_last(self):
+        """A real error message (non-empty stderr, no limit keywords) must
+        still surface as RuntimeError -- the empty-output heuristic only
+        applies when there's truly nothing to diagnose from."""
+        client = _make_client(1)
+        entry = self._entry()
+        with patch("applypilot.llm.subprocess.run",
+                    return_value=self._fake_proc(1, "", "invalid --system-prompt argument")):
+            with self.assertRaises(RuntimeError):
+                client._try_claude_cli(entry, self._messages(), is_last=True)
+        self.assertNotIn(entry.name, client._exhausted)
+
+    def test_genuine_error_with_text_returns_none_when_not_last(self):
+        client = _make_client(1)
+        entry = self._entry()
+        with patch("applypilot.llm.subprocess.run",
+                    return_value=self._fake_proc(1, "", "some other error")):
+            result = client._try_claude_cli(entry, self._messages(), is_last=False)
+        self.assertIsNone(result)
+
+    def test_success_returns_stripped_stdout(self):
+        client = _make_client(1)
+        entry = self._entry()
+        with patch("applypilot.llm.subprocess.run",
+                    return_value=self._fake_proc(0, "CLAUDE_TEST\n", "")):
+            result = client._try_claude_cli(entry, self._messages(), is_last=True)
+        self.assertEqual(result, "CLAUDE_TEST")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
