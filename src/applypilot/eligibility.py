@@ -63,11 +63,14 @@ def revalidate_seniority(conn=None, *, dry_run: bool = False) -> dict:
     """Re-run the current seniority disqualifier against already-scored rows.
 
     For rule changes made after jobs were already scored (the exact failure
-    mode above): finds any non-archived, non-applied job whose title now
-    matches SENIORITY_TITLE_PATTERN and archives it, regardless of what
-    fit_score it was previously assigned. Safe to call repeatedly -- reuses
-    database.reject_jobs_by_title_patterns(), which already excludes
-    'applied'/'manual_only'/'archived' rows, so a second run against
+    mode above): finds any still-pre-tailoring job whose title now matches
+    SENIORITY_TITLE_PATTERN and archives it, regardless of what fit_score it
+    was previously assigned. Jobs that have already reached the protected
+    post-tailoring lifecycle states (tailored / cover_failed / ready_to_apply /
+    applying / applied) are intentionally left alone so the state machine
+    can continue to operate. Safe to call repeatedly -- reuses
+    database.reject_jobs_by_title_patterns(), which already excludes the
+    protected states and archived/manual-only rows, so a second run against
     already-archived matches is a no-op (idempotent), and rows that don't
     match are never touched. No job record is deleted; fit_score,
     score_reasoning, tailored_resume_path, and cover_letter_path are all

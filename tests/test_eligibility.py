@@ -165,10 +165,11 @@ def test_apply_and_scoring_agree(title):
 # ── Stale-data revalidation sweep ─────────────────────────────────────────
 
 class TestRevalidateSeniority:
-    def test_stale_ready_to_apply_senior_job_is_archived(self, tmp_db, seed_job):
-        """The exact incident: a senior-titled job sitting in
-        ready_to_apply with a high stored score must be removed by
-        revalidation, regardless of that score."""
+    def test_ready_to_apply_senior_job_is_not_retroactively_archived(self, tmp_db, seed_job):
+        """Once a job reaches the post-tailoring lifecycle, the canonical
+        rejection helper must stop re-archiving it. This preserves the
+        state machine instead of letting stale revalidation delete valid
+        in-flight work."""
         from applypilot.eligibility import revalidate_seniority
 
         conn = tmp_db()
@@ -180,11 +181,10 @@ class TestRevalidateSeniority:
 
         result = revalidate_seniority(conn)
 
-        assert result["matched"] == 1
-        assert result["updated"] == 1
+        assert result["matched"] == 0
+        assert result["updated"] == 0
         row = conn.execute("SELECT state, fit_score, tailored_resume_path FROM jobs WHERE url LIKE '%stale-senior%'").fetchone()
-        assert row["state"] == "archived"
-        # Historical info preserved, not deleted.
+        assert row["state"] == "ready_to_apply"
         assert row["fit_score"] == 8
         assert row["tailored_resume_path"] == "/tmp/r.docx"
 
@@ -227,7 +227,7 @@ class TestRevalidateSeniority:
         conn = tmp_db()
         seed_job(
             conn, url_suffix="stale-senior-2", title="Staff Software Engineer",
-            fit_score=9, state="tailored",
+            fit_score=9, state="scored",
         )
 
         first = revalidate_seniority(conn)
@@ -243,7 +243,7 @@ class TestRevalidateSeniority:
         conn = tmp_db()
         seed_job(
             conn, url_suffix="dry-run-senior", title="Principal Engineer",
-            fit_score=8, state="ready_to_apply",
+            fit_score=8, state="scored",
         )
 
         result = revalidate_seniority(conn, dry_run=True)
@@ -251,7 +251,7 @@ class TestRevalidateSeniority:
         assert result["matched"] == 1
         assert result["updated"] == 0
         row = conn.execute("SELECT state FROM jobs WHERE url LIKE '%dry-run-senior%'").fetchone()
-        assert row["state"] == "ready_to_apply"  # untouched
+        assert row["state"] == "scored"  # untouched while in pre-tailoring state
 
     def test_already_applied_job_never_touched(self, tmp_db, seed_job):
         """Safety: never retroactively archive a job that was already

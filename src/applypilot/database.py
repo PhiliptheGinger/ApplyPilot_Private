@@ -932,12 +932,25 @@ def reject_jobs_by_title_patterns(
     if not compiled:
         return {"matched": 0, "updated": 0, "sample": []}
 
+    protected_states = {
+        "applied",
+        "applying",
+        "cover_writing",
+        "cover_failed",
+        "manual_only",
+        "archived",
+        "ready_to_apply",
+        "tailored",
+    }
+
     rows = conn.execute(
         """
         SELECT url, title
         FROM jobs
         WHERE applied_at IS NULL
-          AND COALESCE(state, '') NOT IN ('applied', 'manual_only', 'archived')
+          AND COALESCE(state, '') NOT IN ('applied', 'applying', 'cover_writing',
+                                         'cover_failed', 'manual_only', 'archived',
+                                         'ready_to_apply', 'tailored')
         """
     ).fetchall()
 
@@ -1714,6 +1727,7 @@ def get_jobs_by_stage(conn: sqlite3.Connection | None = None,
         "pending_cover": (
             "fit_score >= ? AND tailored_resume_path IS NOT NULL "
             "AND full_description IS NOT NULL "
+            "AND COALESCE(state, '') IN ('tailored', 'cover_failed') "
             "AND (cover_letter_path IS NULL OR cover_letter_path = '') "
             "AND COALESCE(cover_attempts, 0) < 5 "   # keep in sync with cover_letter.MAX_ATTEMPTS
             "AND (eligibility IS NULL OR eligibility = 'eligible')"
