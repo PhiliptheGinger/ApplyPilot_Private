@@ -20,6 +20,7 @@ import logging
 import os
 import shutil
 import subprocess
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -31,8 +32,26 @@ import httpx
 #   APPLYPILOT_MODEL_JUDGE
 #   APPLYPILOT_MAX_TOKENS_SCORE, APPLYPILOT_MAX_TOKENS_TAILOR,
 #   APPLYPILOT_MAX_TOKENS_COVER, APPLYPILOT_MAX_TOKENS_JUDGE
+#   APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY (default: true) -- when true, the
+#   claude_cli fallback tier is never added to any fallback chain built by
+#   this module. Nothing in this module ever serves the auto-apply stage
+#   (apply/launcher.py talks to the `claude` CLI directly, independent of
+#   this file) -- everything here is score/tailor/cover/judge/discover/
+#   enrich/tracking, i.e. "normal" stages. Auto-apply and this module's
+#   claude_cli tier draw on the same underlying Max-plan usage window, so
+#   by default normal stages don't touch it at all, leaving the full
+#   window free for auto-apply. Set to "false"/"0"/"no" to restore the
+#   old behavior (claude_cli as a last-resort fallback for these stages
+#   too). 2026-08-20 incident: a cover run exhausted all 4 API providers,
+#   cascaded to claude_cli for every remaining job, and burned a chunk of
+#   the shared session window that auto-apply needed later.
 
 log = logging.getLogger(__name__)
+
+
+def _claude_cli_reserved_for_apply() -> bool:
+    raw = os.environ.get("APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY", "true").strip().lower()
+    return raw not in ("false", "0", "no")
 
 # ---------------------------------------------------------------------------
 # Model registry — each entry knows its provider, endpoint, and API key
@@ -152,7 +171,8 @@ def _build_fallback_chain(primary_model: str, quality: bool = False) -> list[Mod
     # overhead, ~15s vs ~1-3s for a direct API call) so it's a fallback, not
     # the primary path.
     claude_cli_path = _find_claude_cli()
-    if claude_cli_path:
+    claude_reserved = claude_cli_path and _claude_cli_reserved_for_apply()
+    if claude_cli_path and not claude_reserved:
         cli_model = "sonnet" if quality else "haiku"
         chain.append(ModelEntry(cli_model, "claude_cli", claude_cli_path, ""))
 
@@ -163,9 +183,15 @@ def _build_fallback_chain(primary_model: str, quality: bool = False) -> list[Mod
 
     # If nothing was added (no keys), raise
     if not chain:
+        reserved_note = (
+            " claude_cli is installed but reserved for auto-apply "
+            "(APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY=false to allow it here)."
+            if claude_reserved else ""
+        )
         raise RuntimeError(
             "No LLM provider configured. "
             "Set GEMINI_API_KEY, OPENAI_API_KEY, DEEPSEEK_API_KEY, or ANTHROPIC_API_KEY."
+            + reserved_note
         )
 
     return chain
@@ -236,6 +262,13 @@ class LLMClient:
         self._client = httpx.Client(timeout=_TIMEOUT)
         # Track which models are temporarily exhausted (store until timestamp)
         self._exhausted: dict[str, float] = {}
+        # claude_cli specifically is serialized (not just exhaustion-tracked):
+        # concurrent workers can each pass the "not exhausted yet" check before
+        # any of them has finished a ~3-30s subprocess call and written the
+        # exhaustion flag, producing a burst of near-simultaneous claude_cli
+        # invocations against a scarce, shared Max-plan session window. Gemini/
+        # OpenAI/Anthropic don't need this -- they're not the reserved resource.
+        self._claude_cli_lock = threading.Lock()
 
         chain_names = [f"{e.name} ({e.provider})" for e in self._fallback_chain]
         log.info("Fallback chain (%s): %s",
@@ -552,67 +585,98 @@ class LLMClient:
         if not user_text.strip():
             return None
 
-        cmd = [entry.base_url, "--model", entry.name, "-p",
-               "--output-format", "text", "--permission-mode", "dontAsk"]
-        if system_text:
-            cmd += ["--system-prompt", system_text]
-
-        env = os.environ.copy()
-        env.pop("CLAUDECODE", None)
-        env.pop("CLAUDE_CODE_ENTRYPOINT", None)
-        env.pop("ANTHROPIC_API_KEY", None)
-
-        try:
-            proc = subprocess.run(
-                cmd, input=user_text, capture_output=True, text=True,
-                encoding="utf-8", errors="replace", env=env, timeout=180,
-            )
-        except subprocess.TimeoutExpired:
-            log.warning("claude_cli/%s timed out after 180s", entry.name)
-            if not is_last:
+        # Serialize claude_cli access (see the lock's docstring in __init__).
+        # Re-check exhaustion after acquiring: another thread may have just
+        # marked this entry exhausted while we were waiting for the lock, in
+        # which case there's no point spawning a doomed subprocess too.
+        with self._claude_cli_lock:
+            exhausted_until = self._exhausted.get(entry.name)
+            if exhausted_until is not None and exhausted_until > time.time():
                 return None
-            raise RuntimeError(f"claude_cli/{entry.name} timed out")
 
-        combined = f"{proc.stdout}\n{proc.stderr}".lower()
-        matched_limit_text = "usage limit" in combined or "rate limit" in combined or "overloaded" in combined
-        # 2026-08-19 incident: a Max-plan 5-hour usage window at 100%
-        # utilization (confirmed via ~/.claude.json's cachedUsageUtilization)
-        # made claude_cli/sonnet fail 50/50 tailor calls with exit 1 and
-        # completely empty stdout/stderr -- no text for the check above to
-        # match, so every call fell through to the hard RuntimeError below
-        # instead of backing off. Verified live on 2.1.234 that this specific
-        # exit-1-empty-output signature is how a fast local usage-limit
-        # rejection presents in -p mode (real failures/successes both produce
-        # real text). Still a heuristic, not a certainty -- some other exit-1
-        # cause could in principle also produce empty output, so this is
-        # logged distinctly from a text-matched limit rather than folded in
-        # silently.
-        empty_output_failure = (
-            proc.returncode != 0 and not proc.stdout.strip() and not proc.stderr.strip()
-        )
-        if matched_limit_text or empty_output_failure:
-            if empty_output_failure and not matched_limit_text:
-                log.warning(
-                    "claude_cli/%s failed with exit %d and empty output; treating as "
-                    "exhausted (heuristic for Max-plan usage-limit fast-fail, not a "
-                    "confirmed rate-limit message)",
-                    entry.name, proc.returncode,
+            cmd = [entry.base_url, "--model", entry.name, "-p",
+                   "--output-format", "text", "--permission-mode", "dontAsk"]
+            if system_text:
+                cmd += ["--system-prompt", system_text]
+
+            env = os.environ.copy()
+            env.pop("CLAUDECODE", None)
+            env.pop("CLAUDE_CODE_ENTRYPOINT", None)
+            env.pop("ANTHROPIC_API_KEY", None)
+
+            try:
+                proc = subprocess.run(
+                    cmd, input=user_text, capture_output=True, text=True,
+                    encoding="utf-8", errors="replace", env=env, timeout=180,
                 )
-            else:
-                log.warning("claude_cli/%s hit usage/rate limit, marking exhausted for 30min", entry.name)
-            self._exhausted[entry.name] = time.time() + 1800
-            return None
+            except subprocess.TimeoutExpired:
+                log.warning("claude_cli/%s timed out after 180s", entry.name)
+                if not is_last:
+                    return None
+                raise RuntimeError(f"claude_cli/{entry.name} timed out")
 
-        if proc.returncode != 0 or not proc.stdout.strip():
-            log.warning("claude_cli/%s failed (exit %d): %s",
-                        entry.name, proc.returncode, proc.stderr[:300])
-            if not is_last:
+            combined = f"{proc.stdout}\n{proc.stderr}".lower()
+            # 2026-08-20 incident: Claude Code printed "You've hit your session
+            # limit - resets 4pm (America/New_York)" but ApplyPilot logged an
+            # EMPTY error and then retried claude_cli for every remaining job.
+            # Two separate gaps caused that: (a) "session limit" didn't match
+            # any of the original three keywords, so this fell through to the
+            # generic failure path instead of the backoff path below; (b) the
+            # diagnostic further down only ever read proc.stderr, so even the
+            # generic failure path showed nothing when the message was on
+            # stdout (which -p --output-format text apparently uses for this
+            # kind of rejection).
+            matched_limit_text = any(
+                phrase in combined for phrase in
+                ("usage limit", "session limit", "rate limit", "overloaded")
+            )
+            # 2026-08-19 incident: a Max-plan 5-hour usage window at 100%
+            # utilization (confirmed via ~/.claude.json's cachedUsageUtilization)
+            # made claude_cli/sonnet fail 50/50 tailor calls with exit 1 and
+            # completely empty stdout/stderr -- no text for the check above to
+            # match, so every call fell through to the hard RuntimeError below
+            # instead of backing off. Verified live on 2.1.234 that this specific
+            # exit-1-empty-output signature is how a fast local usage-limit
+            # rejection presents in -p mode (real failures/successes both produce
+            # real text). Still a heuristic, not a certainty -- some other exit-1
+            # cause could in principle also produce empty output, so this is
+            # logged distinctly from a text-matched limit rather than folded in
+            # silently.
+            empty_output_failure = (
+                proc.returncode != 0 and not proc.stdout.strip() and not proc.stderr.strip()
+            )
+            if matched_limit_text or empty_output_failure:
+                if empty_output_failure and not matched_limit_text:
+                    log.warning(
+                        "claude_cli/%s failed with exit %d and empty output; treating as "
+                        "exhausted (heuristic for Max-plan usage-limit fast-fail, not a "
+                        "confirmed rate-limit message)",
+                        entry.name, proc.returncode,
+                    )
+                else:
+                    log.warning("claude_cli/%s hit usage/session/rate limit, marking exhausted for 30min",
+                                entry.name)
+                self._exhausted[entry.name] = time.time() + 1800
                 return None
-            raise RuntimeError(f"claude_cli/{entry.name} failed: {proc.stderr[:300]}")
 
-        if entry.name != self.model:
-            log.info("Used fallback claude_cli/%s (primary: %s)", entry.name, self.model)
-        return proc.stdout.strip()
+            if proc.returncode != 0 or not proc.stdout.strip():
+                # Prefer stderr (conventional error stream) but fall back to
+                # stdout -- this specific CLI/mode has been observed putting
+                # rejection messages on stdout instead. Safe to log either:
+                # this is the failure path, so there's no successful model
+                # response (which is the only place resume/job-description
+                # content would appear) to leak here -- just Claude Code's
+                # own short system message about why it declined.
+                diag = (proc.stderr.strip() or proc.stdout.strip())[:300]
+                log.warning("claude_cli/%s failed (exit %d): %s",
+                            entry.name, proc.returncode, diag)
+                if not is_last:
+                    return None
+                raise RuntimeError(f"claude_cli/{entry.name} failed: {diag}")
+
+            if entry.name != self.model:
+                log.info("Used fallback claude_cli/%s (primary: %s)", entry.name, self.model)
+            return proc.stdout.strip()
 
     def ask(self, prompt: str, **kwargs) -> str:
         """Convenience: single user prompt -> assistant response."""
