@@ -240,6 +240,107 @@ class TestClaudeCliFailureClassification(unittest.TestCase):
             result = client._try_claude_cli(entry, self._messages(), is_last=True)
         self.assertEqual(result, "CLAUDE_TEST")
 
+    def test_session_limit_text_marks_exhausted(self):
+        """2026-08-20 incident: the real message is 'session limit', not
+        'usage limit' -- the original three keywords didn't match it."""
+        client = _make_client(1)
+        entry = self._entry()
+        with patch("applypilot.llm.subprocess.run",
+                    return_value=self._fake_proc(
+                        1, "You've hit your session limit · resets 4pm (America/New_York)", "")):
+            result = client._try_claude_cli(entry, self._messages(), is_last=True)
+        self.assertIsNone(result)
+        self.assertIn(entry.name, client._exhausted)
+
+    def test_stdout_only_diagnostic_is_captured_not_dropped(self):
+        """A failure whose only diagnostic text is on stdout (empty stderr)
+        must still surface that text -- the original code only ever read
+        proc.stderr, so this exact case silently produced an empty error."""
+        client = _make_client(1)
+        entry = self._entry()
+        with patch("applypilot.llm.subprocess.run",
+                    return_value=self._fake_proc(1, "Error: invalid model configuration", "")):
+            with self.assertRaises(RuntimeError) as ctx:
+                client._try_claude_cli(entry, self._messages(), is_last=True)
+        self.assertIn("invalid model configuration", str(ctx.exception))
+
+    def test_lock_short_circuits_after_concurrent_exhaustion(self):
+        """Simulates the race this incident's cascade came from: another
+        thread marks the entry exhausted between this thread deciding to
+        try claude_cli and actually acquiring the lock. The re-check inside
+        the lock must skip the subprocess call entirely rather than spawning
+        another doomed ~3-30s claude invocation."""
+        client = _make_client(1)
+        entry = self._entry()
+        client._exhausted[entry.name] = time.time() + 1800  # pre-exhausted
+        with patch("applypilot.llm.subprocess.run") as mock_run:
+            result = client._try_claude_cli(entry, self._messages(), is_last=True)
+        self.assertIsNone(result)
+        mock_run.assert_not_called()
+
+
+class TestClaudeCliReserveForApply(unittest.TestCase):
+    """APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY gates whether claude_cli is ever
+    added to a fallback chain built by this module.
+
+    Nothing in llm.py serves the auto-apply stage -- apply/launcher.py talks
+    to the `claude` CLI directly and never imports this module -- so every
+    caller of _build_fallback_chain (score/tailor/cover/judge/discover/
+    enrich/tracking) is, by definition, a "normal" stage. A single global
+    gate is therefore sufficient to express "reserve Claude for auto-apply"
+    without needing per-stage plumbing.
+    """
+
+    def _chain(self, reserve_value: str | None, quality: bool = False):
+        import applypilot.llm as llm_mod
+        env = {
+            k: v for k, v in __import__("os").environ.items()
+            if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
+                         "DEEPSEEK_API_KEY", "LLM_URL", "APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY")
+        }
+        env["GEMINI_API_KEY"] = "fake-gemini-key"  # keep the chain non-empty
+        if reserve_value is not None:
+            env["APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY"] = reserve_value
+        with patch.dict("os.environ", env, clear=True):
+            with patch.object(llm_mod, "_find_claude_cli", return_value="/fake/path/to/claude"):
+                return llm_mod._build_fallback_chain("gemini-3.6-flash", quality=quality)
+
+    def test_claude_cli_excluded_by_default(self):
+        providers = [e.provider for e in self._chain(reserve_value=None)]
+        self.assertNotIn("claude_cli", providers)
+
+    def test_claude_cli_excluded_when_explicitly_true(self):
+        providers = [e.provider for e in self._chain(reserve_value="true")]
+        self.assertNotIn("claude_cli", providers)
+
+    def test_claude_cli_included_when_reserve_disabled(self):
+        providers = [e.provider for e in self._chain(reserve_value="false")]
+        self.assertIn("claude_cli", providers)
+
+    def test_unreserved_claude_cli_still_quality_aware(self):
+        """Turning the reserve off shouldn't change the existing
+        sonnet-for-quality / haiku-for-fast model selection."""
+        fast = next(e for e in self._chain("false", quality=False) if e.provider == "claude_cli")
+        quality = next(e for e in self._chain("false", quality=True) if e.provider == "claude_cli")
+        self.assertEqual(fast.name, "haiku")
+        self.assertEqual(quality.name, "sonnet")
+
+    def test_reserved_and_no_other_provider_raises_with_explanatory_note(self):
+        """When claude_cli is the only thing installed and it's reserved,
+        the resulting RuntimeError should say why rather than just looking
+        like no provider was ever configured."""
+        import applypilot.llm as llm_mod
+        env = {
+            k: v for k, v in __import__("os").environ.items()
+            if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
+                         "DEEPSEEK_API_KEY", "LLM_URL", "APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY")
+        }
+        with patch.dict("os.environ", env, clear=True):
+            with patch.object(llm_mod, "_find_claude_cli", return_value="/fake/path/to/claude"):
+                with self.assertRaises(RuntimeError) as ctx:
+                    llm_mod._build_fallback_chain("gemini-3.6-flash", quality=False)
+        self.assertIn("reserved for auto-apply", str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
