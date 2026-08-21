@@ -33,17 +33,21 @@ from applypilot.database import (
     get_in_flight_by_company,
     transition_state,
 )
-
-
-_AUTO_REJECT_TITLE_PATTERN = re.compile(
-    r"\b(?:senior|sr\.?|staff|principal|lead|manager|head|director|vp|vice president|chief)\b",
-    re.IGNORECASE,
-)
+from applypilot.eligibility import seniority_disqualifier
 
 
 def _auto_reject_title(title: str | None) -> bool:
-    """Return whether a title is excluded from automatic application."""
-    return bool(_AUTO_REJECT_TITLE_PATTERN.search(title or ""))
+    """Return whether a title is excluded from automatic application.
+
+    Defense-in-depth: scorer.py's pre-LLM _check_ineligible() should already
+    have kept a seniority-mismatched job from ever reaching tailor/cover/
+    ready_to_apply, but this is the last gate before a real Claude Code
+    apply attempt fires, so it re-checks the same canonical predicate
+    (applypilot.eligibility) rather than a separately-maintained pattern --
+    two independent copies of this regex is exactly what caused the
+    2026-08-21 incident (a stale pre-guard score reaching ready_to_apply).
+    """
+    return seniority_disqualifier(title) is not None
 from applypilot.apply import prompt as prompt_mod
 from applypilot.apply.chrome import (  # noqa: F401  (re-exports)
     launch_chrome, cleanup_worker, kill_all_chrome,
@@ -2077,6 +2081,43 @@ def _activate_agent_tab(port: int, timeout: float = 20.0) -> None:
         time.sleep(0.75)
 
 
+def _classify_claude_apply_exhaustion(output: str, returncode: int) -> str | None:
+    """Classify a finished claude-apply subprocess's accumulated output.
+
+    2026-08-20 incident: a real Max/Pro session-limit rejection ("You've hit
+    your session limit...") was indistinguishable from genuine API-billing
+    exhaustion ("credit balance is too low") -- both fell through to the same
+    permanent "credits_exhausted" path, which stopped the entire worker even
+    though a session limit is temporary and resets on a schedule.
+
+    Returns one of:
+      "billing"       -- genuine, permanent API-billing exhaustion (unfunded
+                          account). Unrelated to and cannot self-resolve like
+                          a Max/Pro session-limit reset.
+      "session_limit" -- explicit usage/session/rate-limit wording matched.
+      "empty_output"  -- non-zero exit with completely empty output. Mirrors
+                          llm.py::_try_claude_cli's empirically-confirmed
+                          Max-plan fast-fail signature, but logged distinctly
+                          here since this is a longer streaming agent session
+                          (not the one-shot -p path that signature was
+                          confirmed on), so the same heuristic is less certain
+                          in this context.
+      None            -- not an exhaustion condition (genuine success or a
+                          genuine, non-quota error).
+    """
+    lower = output.lower()
+    session_limit_phrases = ("session limit", "usage limit", "rate limit", "overloaded")
+    billing_phrases = ("credit balance is too low", "insufficient credits")
+
+    if any(p in lower for p in session_limit_phrases):
+        return "session_limit"
+    if any(p in lower for p in billing_phrases):
+        return "billing"
+    if returncode != 0 and not output.strip():
+        return "empty_output"
+    return None
+
+
 def run_job(job: dict, port: int, worker_id: int = 0,
             model: str = "sonnet", dry_run: bool = False,
             apply_engine: str = "claude",
@@ -2423,14 +2464,41 @@ def run_job(job: dict, port: int, worker_id: int = 0,
             prev_cost = ws.total_cost if ws else 0.0
             update_state(worker_id, total_cost=prev_cost + cost)
 
-        # Detect Claude Code credit exhaustion — stop the entire worker
-        if "credit balance is too low" in output.lower() or "insufficient credits" in output.lower():
+        # Detect Claude Code exhaustion: genuine billing exhaustion (permanent,
+        # stops the whole worker) vs. a temporary Max/Pro session-limit hit
+        # (must not consume an apply attempt, must not permanently fail the
+        # job, must not make the worker burn through the next candidate).
+        exhaustion_kind = _classify_claude_apply_exhaustion(output, returncode)
+        if exhaustion_kind == "billing":
             add_event(f"[W{worker_id}] CREDIT EXHAUSTED — Claude Code credits depleted")
             update_state(worker_id, status="credits_exhausted",
                          last_action="NO CREDITS")
             logger.error("Claude Code credits exhausted. Cannot auto-apply. "
                          "Top up at https://console.anthropic.com/settings/billing")
             return "failed:credits_exhausted", duration_ms, []
+
+        if exhaustion_kind in ("session_limit", "empty_output"):
+            from applypilot.claude_status import record_apply_exhaustion
+            if exhaustion_kind == "empty_output":
+                logger.warning(
+                    "[W%d] claude apply session exited %s with empty output; treating as "
+                    "session-limit exhaustion (heuristic, not a confirmed rate-limit message)",
+                    worker_id, returncode,
+                )
+            else:
+                logger.warning("[W%d] claude apply session hit usage/session limit", worker_id)
+            add_event(f"[W{worker_id}] Claude session limit hit — job requeued, pausing apply")
+            update_state(worker_id, status="claude_session_exhausted",
+                         last_action="session limit, backing off")
+            record_apply_exhaustion(exhaustion_kind)
+            return "failed:claude_session_exhausted", duration_ms, []
+
+        # Reaching here means this invocation ran without hitting any quota
+        # signal -- clears a previously-recorded exhaustion (if any) even
+        # when the apply attempt itself fails for an unrelated reason, since
+        # that still proves Claude is currently usable.
+        from applypilot.claude_status import record_apply_success
+        record_apply_success()
 
         # Parse ACCOUNT_CREATED lines and save to DB
         _parse_account_created(output, job.get("url"))

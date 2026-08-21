@@ -279,6 +279,87 @@ class TestClaudeCliFailureClassification(unittest.TestCase):
         mock_run.assert_not_called()
 
 
+class TestClaudeCliExhaustionReasonAndCapacityProbe(unittest.TestCase):
+    """The scheduler.py-facing additions: claude_cli_exhaustion_reason()
+    (distinguish quota-text-match vs empty-output-heuristic exhaustion
+    without parsing logs) and has_available_model() (cheap read-only
+    capacity probe). Both are purely additive -- _try_claude_cli's
+    str | None return contract and existing callers are unchanged.
+    """
+
+    def _entry(self):
+        from applypilot.llm import ModelEntry
+        return ModelEntry("sonnet", "claude_cli", "/fake/path/to/claude", "")
+
+    def _messages(self):
+        return [{"role": "user", "content": "hello"}]
+
+    def _fake_proc(self, returncode, stdout, stderr):
+        from types import SimpleNamespace
+        return SimpleNamespace(returncode=returncode, stdout=stdout, stderr=stderr)
+
+    def test_reason_is_quota_text_match(self):
+        client = _make_client(1)
+        entry = self._entry()
+        with patch("applypilot.llm.subprocess.run",
+                    return_value=self._fake_proc(1, "", "Error: usage limit reached")):
+            result = client._try_claude_cli(entry, self._messages(), is_last=True)
+        self.assertIsNone(result)
+        self.assertEqual(client.claude_cli_exhaustion_reason(entry.name), "quota_text_match")
+
+    def test_reason_is_empty_output_heuristic(self):
+        client = _make_client(1)
+        entry = self._entry()
+        with patch("applypilot.llm.subprocess.run",
+                    return_value=self._fake_proc(1, "", "")):
+            client._try_claude_cli(entry, self._messages(), is_last=True)
+        self.assertEqual(client.claude_cli_exhaustion_reason(entry.name), "empty_output_heuristic")
+
+    def test_reason_is_none_when_not_exhausted(self):
+        client = _make_client(1)
+        entry = self._entry()
+        self.assertIsNone(client.claude_cli_exhaustion_reason(entry.name))
+        with patch("applypilot.llm.subprocess.run",
+                    return_value=self._fake_proc(0, "ok", "")):
+            client._try_claude_cli(entry, self._messages(), is_last=True)
+        self.assertIsNone(client.claude_cli_exhaustion_reason(entry.name))
+
+    def test_reason_cleared_once_exhaustion_window_expires(self):
+        client = _make_client(1)
+        entry = self._entry()
+        with patch("applypilot.llm.subprocess.run",
+                    return_value=self._fake_proc(1, "", "")):
+            client._try_claude_cli(entry, self._messages(), is_last=True)
+        self.assertIsNotNone(client.claude_cli_exhaustion_reason(entry.name))
+        client._exhausted[entry.name] = time.time() - 1  # force-expire
+        self.assertIsNone(client.claude_cli_exhaustion_reason(entry.name))
+
+    def test_has_available_model_true_when_nothing_exhausted(self):
+        client = _make_client(3)
+        self.assertTrue(client.has_available_model())
+
+    def test_has_available_model_false_when_everything_exhausted(self):
+        client = _make_client(2)
+        for entry in client._fallback_chain:
+            client._exhausted[entry.name] = time.time() + 1800
+        self.assertFalse(client.has_available_model())
+
+    def test_has_available_model_true_when_some_entries_free(self):
+        client = _make_client(3)
+        client._exhausted[client._fallback_chain[0].name] = time.time() + 1800
+        self.assertTrue(client.has_available_model())
+
+    def test_has_available_model_makes_no_calls(self):
+        """Pure read of in-memory state -- must never invoke a network or
+        subprocess call just to answer the capacity question."""
+        client = _make_client(3)
+        with patch("applypilot.llm.subprocess.run") as mock_run, \
+             patch("applypilot.llm.httpx.Client.post") as mock_post:
+            client.has_available_model()
+        mock_run.assert_not_called()
+        mock_post.assert_not_called()
+
+
 class TestClaudeCliReserveForApply(unittest.TestCase):
     """APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY gates whether claude_cli is ever
     added to a fallback chain built by this module.
@@ -340,6 +421,183 @@ class TestClaudeCliReserveForApply(unittest.TestCase):
                 with self.assertRaises(RuntimeError) as ctx:
                     llm_mod._build_fallback_chain("gemini-3.6-flash", quality=False)
         self.assertIn("reserved for auto-apply", str(ctx.exception))
+
+
+class TestFullCascadeIntegration(unittest.TestCase):
+    """End-to-end cascade tests using real provider names and the real
+    _build_fallback_chain, exercising the actual quota-detection logic in
+    _try_openai_compat/_try_claude_cli rather than a mocked _try_entry.
+
+    2026-08-21 incident: a cover run exhausted all 4 configured API models
+    (gemini-3.6-flash, gemini-3.5-flash, gpt-4.1-mini, gpt-4.1-nano) and the
+    RuntimeError's model list didn't include Claude. Root cause found by
+    inspecting the current repo (not assumed from memory): this is the
+    intended behavior of APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY defaulting to
+    true (added in adf6deb), which excludes claude_cli from every chain
+    built by this module so score/tailor/cover/judge never compete with
+    auto-apply for the shared Max-plan session window. These tests exercise
+    that exact scenario end-to-end, both with and without the reserve.
+    """
+
+    def _fake_response(self, status_code, text="", json_data=None):
+        from unittest.mock import MagicMock
+        resp = MagicMock()
+        resp.status_code = status_code
+        resp.text = text
+        if json_data is not None:
+            resp.json.return_value = json_data
+        resp.raise_for_status = lambda: None
+        return resp
+
+    def _success_json(self, text="ok"):
+        return {"choices": [{"message": {"content": text}}]}
+
+    def _fake_proc(self, returncode=0, stdout="", stderr=""):
+        from types import SimpleNamespace
+        return SimpleNamespace(returncode=returncode, stdout=stdout, stderr=stderr)
+
+    def _build_real_client(self, env, quality=False, primary=None, claude_cli_path=None):
+        """Construct a real LLMClient (real fallback chain, real provider
+        names) against a controlled environment. HTTP/subprocess calls are
+        mocked by the individual tests, not here."""
+        import applypilot.llm as llm_mod
+        base_env = {
+            k: v for k, v in __import__("os").environ.items()
+            if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
+                         "DEEPSEEK_API_KEY", "LLM_URL", "APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY")
+        }
+        base_env.update(env)
+        primary = primary or ("gemini-3.1-pro-preview" if quality else "gemini-3.6-flash")
+        with patch.dict("os.environ", base_env, clear=True):
+            with patch.object(llm_mod, "_find_claude_cli", return_value=claude_cli_path):
+                return llm_mod.LLMClient(
+                    "https://fake", primary, base_env.get("GEMINI_API_KEY", ""), quality=quality,
+                )
+
+    def test_gemini_quota_exhaustion_falls_through_to_openai(self):
+        """Gemini exhaustion causes fallback to OpenAI."""
+        client = self._build_real_client(
+            {"GEMINI_API_KEY": "fake-gemini", "OPENAI_API_KEY": "fake-openai"})
+        gemini_names = {e.name for e in client._fallback_chain if e.provider == "gemini"}
+        self.assertTrue(gemini_names, "test needs at least one gemini entry in the chain")
+
+        def fake_post(url, json=None, headers=None):
+            if json["model"] in gemini_names:
+                return self._fake_response(429, text='{"error": "Quota exceeded"}')
+            return self._fake_response(200, json_data=self._success_json("openai response"))
+
+        with patch.object(client._client, "post", side_effect=fake_post):
+            result = client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertEqual(result, "openai response")
+        for name in gemini_names:
+            self.assertIn(name, client._exhausted)
+
+    def test_openai_quota_exhaustion_falls_through_within_openai(self):
+        """OpenAI exhaustion causes fallback (here: to the next OpenAI
+        model, since only OPENAI_API_KEY is configured)."""
+        client = self._build_real_client({"OPENAI_API_KEY": "fake-openai"})
+        openai_entries = [e for e in client._fallback_chain if e.provider == "openai"]
+        self.assertGreaterEqual(len(openai_entries), 2, "need 2+ openai models to test fallback")
+        first, second = openai_entries[0], openai_entries[1]
+
+        def fake_post(url, json=None, headers=None):
+            if json["model"] == first.name:
+                return self._fake_response(429, text='{"error": "quota exceeded"}')
+            return self._fake_response(200, json_data=self._success_json("second openai model"))
+
+        with patch.object(client._client, "post", side_effect=fake_post):
+            result = client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertEqual(result, "second openai model")
+        self.assertIn(first.name, client._exhausted)
+        self.assertNotIn(second.name, client._exhausted)
+
+    def test_claude_cli_reached_when_apis_exhausted_and_unreserved(self):
+        """Claude CLI is reached when earlier providers are exhausted --
+        with the reserve explicitly turned off."""
+        client = self._build_real_client(
+            {"GEMINI_API_KEY": "fake-gemini", "OPENAI_API_KEY": "fake-openai",
+             "APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY": "false"},
+            claude_cli_path="/fake/claude",
+        )
+        self.assertTrue(
+            any(e.provider == "claude_cli" for e in client._fallback_chain),
+            "claude_cli should be in the chain when unreserved",
+        )
+
+        def fake_post(url, json=None, headers=None):
+            return self._fake_response(429, text='{"error": "quota exceeded"}')
+
+        with patch.object(client._client, "post", side_effect=fake_post):
+            with patch("applypilot.llm.subprocess.run",
+                        return_value=self._fake_proc(0, "claude response", "")) as mock_run:
+                result = client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertEqual(result, "claude response")
+        mock_run.assert_called_once()
+
+    def test_claude_cli_not_reached_when_reserved_matches_incident(self):
+        """The exact 2026-08-21 incident: Claude installed, all 4 API
+        models exhausted, reserve at its default (true) -- claude_cli must
+        never be touched, and the RuntimeError's model list must match
+        what the user actually saw (no sonnet/haiku in it)."""
+        client = self._build_real_client(
+            {"GEMINI_API_KEY": "fake-gemini", "OPENAI_API_KEY": "fake-openai"},
+            claude_cli_path="/fake/claude",  # installed, but reserved by default
+        )
+        self.assertNotIn("claude_cli", [e.provider for e in client._fallback_chain])
+
+        def fake_post(url, json=None, headers=None):
+            return self._fake_response(429, text='{"error": "quota exceeded"}')
+
+        with patch.object(client._client, "post", side_effect=fake_post):
+            with patch("applypilot.llm.subprocess.run") as mock_run:
+                with self.assertRaises(RuntimeError) as ctx:
+                    client.chat([{"role": "user", "content": "hi"}])
+
+        mock_run.assert_not_called()
+        message = str(ctx.exception)
+        self.assertIn("All models exhausted", message)
+        self.assertNotIn("sonnet", message)
+        self.assertNotIn("haiku", message)
+
+    def test_unrelated_provider_not_marked_exhausted_on_sibling_failure(self):
+        """A non-quota failure on one entry doesn't mark a sibling entry
+        (or itself, for a per-request error) exhausted."""
+        client = self._build_real_client(
+            {"GEMINI_API_KEY": "fake-gemini", "OPENAI_API_KEY": "fake-openai"})
+        gemini_first = next(e for e in client._fallback_chain if e.provider == "gemini")
+
+        def fake_post(url, json=None, headers=None):
+            if json["model"] == gemini_first.name:
+                # Content-safety-style 400 -- explicitly NOT a quota signal.
+                return self._fake_response(400, text='{"error": "content filtered"}')
+            return self._fake_response(200, json_data=self._success_json("fallback ok"))
+
+        with patch.object(client._client, "post", side_effect=fake_post):
+            client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertNotIn(gemini_first.name, client._exhausted)
+
+    def test_all_exhausted_raises_runtime_error_with_model_list(self):
+        """All-model exhaustion still raises the expected RuntimeError,
+        naming every model that was attempted."""
+        client = self._build_real_client(
+            {"GEMINI_API_KEY": "fake-gemini", "OPENAI_API_KEY": "fake-openai"})
+        chain_names = [e.name for e in client._fallback_chain]
+
+        def fake_post(url, json=None, headers=None):
+            return self._fake_response(429, text='{"error": "quota exceeded"}')
+
+        with patch.object(client._client, "post", side_effect=fake_post):
+            with self.assertRaises(RuntimeError) as ctx:
+                client.chat([{"role": "user", "content": "hi"}])
+
+        message = str(ctx.exception)
+        self.assertIn("All models exhausted", message)
+        for name in chain_names:
+            self.assertIn(name, message)
 
 
 if __name__ == "__main__":

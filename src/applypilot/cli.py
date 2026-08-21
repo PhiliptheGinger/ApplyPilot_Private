@@ -280,6 +280,132 @@ def run(
 
 
 @app.command()
+def revalidate_seniority(
+    dry_run: bool = typer.Option(
+        False, "--dry-run",
+        help="Report matches without archiving anything.",
+    ),
+) -> None:
+    """Re-check every non-archived, non-applied job against the current
+    seniority hard-disqualifier (applypilot.eligibility) and archive any
+    match, regardless of a previously stored fit_score.
+
+    Safe to run repeatedly whenever the seniority rule changes -- jobs that
+    don't match are never touched, and already-archived matches are a
+    no-op on a second run. No job record is deleted or has its fit_score/
+    tailored_resume_path/cover_letter_path overwritten; only state and
+    apply_category/apply_error change, so the prior score is preserved for
+    audit.
+    """
+    _bootstrap()
+
+    from applypilot.eligibility import revalidate_seniority as _revalidate
+
+    result = _revalidate(dry_run=dry_run)
+    verb = "Would archive" if dry_run else "Archived"
+    console.print(
+        f"[cyan]Seniority revalidation:[/cyan] {verb} {result['updated']} / "
+        f"{result['matched']} matched job(s)."
+    )
+    if result["sample"]:
+        t = Table(show_header=True, header_style="bold cyan")
+        t.add_column("Title")
+        t.add_column("URL", overflow="fold")
+        for row in result["sample"][:20]:
+            t.add_row(row["title"], row["url"])
+        console.print(t)
+        if len(result["sample"]) > 20:
+            console.print(f"[dim]...and {len(result['sample']) - 20} more.[/dim]")
+
+
+@app.command("run-continuous")
+def run_continuous(
+    ready_buffer: int = typer.Option(
+        config.DEFAULTS["ready_buffer"], "--ready-buffer",
+        help="Target ready_to_apply queue size while Claude is available.",
+    ),
+    ready_buffer_unknown: int = typer.Option(
+        config.DEFAULTS["ready_buffer_unknown"], "--ready-buffer-unknown",
+        help="Smaller target used while Claude's reset time is unknown or it's unavailable for auth/transient reasons.",
+    ),
+    poll_interval: int = typer.Option(
+        config.DEFAULTS["poll_interval"], "--poll-interval",
+        help="Seconds between planning cycles when Claude is available.",
+    ),
+    cache_max_age: float = typer.Option(
+        config.DEFAULTS["scheduler_cache_max_age"], "--cache-max-age",
+        help="Seconds -- ~/.claude.json's cached usage state older than this is treated as unusable.",
+    ),
+    max_batch: int = typer.Option(
+        config.DEFAULTS["scheduler_max_batch"], "--max-batch",
+        help="Hard per-cycle ceiling on tailor/cover work regardless of estimated capacity.",
+    ),
+    safety_margin: float = typer.Option(
+        config.DEFAULTS["scheduler_safety_margin"], "--safety-margin",
+        help="Discount applied to measured tailor/cover throughput when estimating capacity before a known reset.",
+    ),
+    min_score: int = typer.Option(
+        config.DEFAULTS["min_score"], "--min-score",
+        help=f"Minimum fit score for tailor/cover/apply (default: {config.DEFAULTS['min_score']}).",
+    ),
+    max_age_days: int = typer.Option(
+        config.DEFAULTS["max_job_age_days"], "--max-age-days",
+        help=f"Skip jobs older than this many days (default: {config.DEFAULTS['max_job_age_days']}).",
+    ),
+    doc_format: str = typer.Option("docx", "--doc-format", help="Document format for resumes/cover letters: docx (default) or pdf."),
+    no_continuous_apply: bool = typer.Option(
+        False, "--no-continuous-apply",
+        help="Run the upstream scheduler only -- do not also run the continuous apply worker in this process.",
+    ),
+) -> None:
+    """Run discover/enrich/score/tailor/cover/apply continuously, sizing
+    upstream (tailor/cover) work to the ready_to_apply queue and pacing it
+    around Claude Code CLI availability for auto-apply.
+
+    Re-queries the database every cycle -- a newly discovered high-scoring
+    job enters the very next batch naturally. Single instance only (a
+    second concurrent `run-continuous` refuses to start). Stop with Ctrl+C.
+    """
+    _bootstrap()
+
+    from applypilot.config import check_tier
+    check_tier(2, "AI scoring/tailoring")
+
+    from applypilot.scoring.pdf import VALID_DOC_FORMATS
+    if doc_format not in VALID_DOC_FORMATS:
+        console.print(f"[red]Invalid --doc-format:[/red] '{doc_format}'. Must be one of: {', '.join(VALID_DOC_FORMATS)}")
+        raise typer.Exit(code=1)
+
+    from applypilot.scheduler import SchedulerAlreadyRunning, SchedulerConfig, run_continuous as _run_continuous
+
+    cfg = SchedulerConfig(
+        ready_buffer=ready_buffer,
+        ready_buffer_unknown=ready_buffer_unknown,
+        poll_interval=poll_interval,
+        cache_max_age=cache_max_age,
+        max_batch=max_batch,
+        safety_margin=safety_margin,
+        no_continuous_apply=no_continuous_apply,
+        min_score=min_score,
+        max_age_days=max_age_days,
+        doc_format=doc_format,
+    )
+
+    console.print("\n[bold blue]Launching continuous scheduler[/bold blue]")
+    console.print(f"  Ready buffer:      {ready_buffer} (unknown-reset: {ready_buffer_unknown})")
+    console.print(f"  Poll interval:     {poll_interval}s")
+    console.print(f"  Max batch:         {max_batch}")
+    console.print(f"  Continuous apply:  {'no' if no_continuous_apply else 'yes'}")
+    console.print("[dim]Ctrl+C to stop.[/dim]\n")
+
+    try:
+        _run_continuous(cfg)
+    except SchedulerAlreadyRunning as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(code=1)
+
+
+@app.command()
 def stop(
     stream: bool = typer.Option(True, "--stream/--no-stream", help="Stop an active `applypilot run --stream` process."),
     signal_process: bool = typer.Option(True, "--signal/--no-signal", help="Also send an OS interrupt signal to the active stream PID."),
