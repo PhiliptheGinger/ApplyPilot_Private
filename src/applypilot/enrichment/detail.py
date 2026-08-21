@@ -617,13 +617,20 @@ def _classify_detail_error(error: str, current_retry_count: int) -> tuple[str, s
     if current_retry_count >= MAX_DETAIL_RETRIES:
         return "permanent", None
 
-    if any(p in error for p in _EXPIRED_PATTERNS):
+    # Case-insensitive: an uncaught-exception message built from
+    # type(e).__name__ (e.g. "TimeoutError: Timeout 30000ms exceeded.")
+    # capitalizes "Timeout", which a case-sensitive check against the
+    # lowercase "timeout" pattern would silently miss -- misclassifying a
+    # genuinely retriable transient failure as permanent after one try.
+    error_lower = error.lower()
+
+    if any(p.lower() in error_lower for p in _EXPIRED_PATTERNS):
         return "expired", None
 
-    if any(p in error for p in _PERMANENT_PATTERNS):
+    if any(p.lower() in error_lower for p in _PERMANENT_PATTERNS):
         return "permanent", None
 
-    if any(p in error for p in _RETRIABLE_PATTERNS):
+    if any(p.lower() in error_lower for p in _RETRIABLE_PATTERNS):
         # Exponential backoff: 5min, 20min, 80min, ~5h, ~21h
         delay_minutes = min(5 * (4 ** current_retry_count), 24 * 60)
         next_retry = datetime.now(UTC) + timedelta(minutes=delay_minutes)
@@ -863,7 +870,24 @@ def scrape_site_batch(
             for i, (url, title) in enumerate(jobs):
                 log.info("[%d/%d] %s", i + 1, len(jobs), title[:50] if title else url[:50])
 
-                result = scrape_detail_page(page, url)
+                try:
+                    result = scrape_detail_page(page, url)
+                except Exception as e:
+                    # A single job's page must never take down the whole
+                    # batch. Previously an uncaught exception here (most
+                    # commonly a Playwright/Patchright timeout from
+                    # collect_detail_intelligence's page.title()/
+                    # query_selector_all() calls on a slow post-
+                    # domcontentloaded page -- e.g. an ad-heavy "Built In"
+                    # listing -- propagated straight out of this loop,
+                    # aborting every remaining job for every remaining
+                    # site in the run. Synthesize a result matching
+                    # scrape_detail_page's own error shape so it flows
+                    # through the SAME existing retry/backoff handling
+                    # below as any other per-job failure.
+                    log.warning("  CRASHED: %s: %s", type(e).__name__, e)
+                    result = {"status": "error", "error": f"{type(e).__name__}: {e}"}
+
                 stats["processed"] += 1
 
                 tier = result.get("tier_used")
@@ -1009,7 +1033,21 @@ def _run_detail_scraper(
         with ThreadPoolExecutor(max_workers=min(workers, len(order))) as pool:
             futures = {pool.submit(_scrape_site, site): site for site in order}
             for future in as_completed(futures):
-                _merge_stats(future.result())
+                site = futures[future]
+                try:
+                    stats = future.result()
+                except Exception as e:
+                    # Same failure semantics as the sequential path: a
+                    # whole-site-batch crash (e.g. browser launch failure
+                    # inside that thread) must not abort collecting
+                    # results from the other already-completed/still-
+                    # running futures. That site's jobs stay untouched
+                    # (detail_scraped_at still NULL) and are naturally
+                    # retried on the next enrichment pass -- exactly like
+                    # a sequential-mode site crash.
+                    log.error("%s: CRASHED: %s", site, e)
+                    continue
+                _merge_stats(stats)
     else:
         # Sequential mode (default)
         for site in order:
@@ -1017,7 +1055,17 @@ def _run_detail_scraper(
             delay = SITE_DELAYS.get(site, 2.0)
             log.info("%s -- %d jobs (delay=%.1fs)", site, len(jobs), delay)
 
-            stats = scrape_site_batch(conn, site, jobs, delay=delay, max_jobs=max_per_site)
+            try:
+                stats = scrape_site_batch(conn, site, jobs, delay=delay, max_jobs=max_per_site)
+            except Exception as e:
+                # Per-job failures are already isolated inside
+                # scrape_site_batch; this guards the rarer case of a
+                # site-batch-level crash (e.g. browser launch failure)
+                # so it only costs this one site's jobs, not every other
+                # queued site in the run. Same convention already used
+                # by stream_detail()'s equivalent per-site call below.
+                log.error("%s: CRASHED: %s", site, e)
+                continue
             _merge_stats(stats)
 
             log.info("Site summary: %d ok, %d partial, %d error | T1=%d T2=%d T3=%d",

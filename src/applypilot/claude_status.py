@@ -143,53 +143,100 @@ def binding_window(cached: dict, now: datetime) -> tuple[str, datetime] | None:
 
 # ---------------------------------------------------------------------------
 # Observed-exhaustion signal, reported by apply/launcher.py::run_job
+#
+# 2026-08-21 fix: this was previously a single timestamp
+# (_apply_exhausted_until) that played two incompatible roles at once --
+# "is Claude currently believed exhausted" AND "when has the cooldown
+# expired." Once time.time() passed that timestamp, _apply_signal() would
+# report (False, None) -- i.e. AVAILABLE -- purely because a clock ticked
+# past a fixed 30-minute mark, with no actual evidence Claude recovered.
+# Worse, that silent flip could fire well before a scheduler-computed
+# EXHAUSTED_KNOWN_RESET estimate (e.g. a real 3-hour session limit),
+# undermining the whole point of tracking a reset estimate.
+#
+# Fixed by splitting the two concerns: `_apply_exhausted`/
+# `_apply_exhaustion_reason` are now durable -- they change ONLY on an
+# explicit record_apply_exhaustion()/record_apply_success() call, never
+# from time passing. `_apply_probe_after` is purely a "when is it worth
+# trying again" hint, consulted only by probe_due() (used by ClaudeGate to
+# let periodic real attempts through even while nominally paused -- since
+# an actual successful Claude call is the ONLY thing that can ever clear
+# the durable flag, something has to be allowed to attempt one).
 # ---------------------------------------------------------------------------
 
 _apply_signal_lock = threading.Lock()
-_apply_exhausted_until: float | None = None
+_apply_exhausted: bool = False
 _apply_exhaustion_reason: str | None = None
+_apply_probe_after: float | None = None
 
 
 def record_apply_exhaustion(reason: str, cooldown_seconds: float = 1800) -> None:
     """Record that the apply-side Claude Code CLI just showed a real,
     observed exhaustion signal (not derived from the cache). `reason` is a
     short machine tag, e.g. "session_limit" or "empty_output".
+
+    This is durable: it does NOT auto-clear after `cooldown_seconds`. That
+    window only controls when `probe_due()` starts allowing a real retry
+    attempt -- recovery itself is only ever established by a subsequent
+    record_apply_success() call (see probe_due()'s docstring).
     """
-    global _apply_exhausted_until, _apply_exhaustion_reason
+    global _apply_exhausted, _apply_exhaustion_reason, _apply_probe_after
     with _apply_signal_lock:
-        _apply_exhausted_until = time.time() + cooldown_seconds
+        _apply_exhausted = True
         _apply_exhaustion_reason = reason
-    log.info("Apply-side Claude signal: exhausted (reason=%s, cooldown=%ss)",
+        _apply_probe_after = time.time() + cooldown_seconds
+    log.info("Apply-side Claude signal: exhausted (reason=%s, next probe eligible in %ss)",
              reason, cooldown_seconds)
 
 
 def record_apply_success() -> None:
     """Clear any recorded exhaustion -- a run_job invocation just completed
     without hitting a quota/session-limit condition, proving Claude is
-    currently usable regardless of what the cache says.
+    currently usable regardless of what the cache says. This is the ONLY
+    way the durable exhausted flag is ever cleared.
     """
-    global _apply_exhausted_until, _apply_exhaustion_reason
-    was_exhausted = _apply_exhausted_until is not None and _apply_exhausted_until > time.time()
+    global _apply_exhausted, _apply_exhaustion_reason, _apply_probe_after
     with _apply_signal_lock:
-        _apply_exhausted_until = None
+        was_exhausted = _apply_exhausted
+        _apply_exhausted = False
         _apply_exhaustion_reason = None
+        _apply_probe_after = None
     if was_exhausted:
-        log.info("Apply-side Claude signal: cleared (usable again)")
+        log.info("Apply-side Claude signal: cleared (usable again -- confirmed by a successful call)")
 
 
 def _apply_signal() -> tuple[bool, str | None]:
+    """Durable exhaustion belief -- does NOT expire with the passage of
+    time. See probe_due() for whether it's time to attempt a real retry.
+    """
     with _apply_signal_lock:
-        if _apply_exhausted_until is not None and _apply_exhausted_until > time.time():
-            return True, _apply_exhaustion_reason
-        return False, None
+        return _apply_exhausted, _apply_exhaustion_reason
+
+
+def probe_due() -> bool:
+    """True if Claude is currently believed exhausted AND enough time has
+    passed that a real attempt is worth making.
+
+    This is the ONLY mechanism that can lead to recovery -- unlike the
+    pre-fix behavior, reaching this point never itself flips any state to
+    available. It just tells the apply gate (ClaudeGate.is_paused) to let
+    exactly the next real attempt through. That attempt's own outcome
+    (record_apply_success or another record_apply_exhaustion) is what
+    actually changes the durable belief.
+    """
+    with _apply_signal_lock:
+        if not _apply_exhausted or _apply_probe_after is None:
+            return False
+        return time.time() >= _apply_probe_after
 
 
 def reset_apply_signal_for_tests() -> None:
     """Test-only helper: force the module back to a clean AVAILABLE state."""
-    global _apply_exhausted_until, _apply_exhaustion_reason
+    global _apply_exhausted, _apply_exhaustion_reason, _apply_probe_after
     with _apply_signal_lock:
-        _apply_exhausted_until = None
+        _apply_exhausted = False
         _apply_exhaustion_reason = None
+        _apply_probe_after = None
 
 
 # ---------------------------------------------------------------------------
@@ -351,8 +398,36 @@ class ClaudeGate:
             self._state = availability.state
 
     def is_paused(self) -> bool:
+        """False (proceed) when genuinely available, OR when a probe is
+        due -- exhaustion is durable (see probe_due's docstring), so
+        without this a scheduler-gated continuous worker would block
+        acquire_job() forever once exhausted, since nothing would ever be
+        allowed to make the real attempt that could prove recovery.
+        """
         with self._lock:
-            return self._paused
+            paused = self._paused
+        if not paused:
+            return False
+        return not probe_due()
+
+    def is_probe_attempt(self) -> bool:
+        """True if the gate is currently letting an attempt through
+        specifically BECAUSE a probe is due -- Claude is still durably
+        believed exhausted, and this attempt is the one that gets to
+        establish whether it has actually recovered. False when genuinely
+        available (nothing to probe) or when still paused (is_paused()
+        would be True and nothing should be attempted at all).
+
+        Callers that proceed after `is_paused()` returns False should
+        check this too and carry the result explicitly into the actual
+        attempt (rather than re-deriving it later), so a probe that fails
+        via a generic/timeout path -- which does not itself produce a
+        billing/session-limit signal to re-record -- knows to re-arm the
+        probe window instead of silently leaving it expired.
+        """
+        with self._lock:
+            paused = self._paused
+        return paused and probe_due()
 
     @property
     def state(self) -> str:

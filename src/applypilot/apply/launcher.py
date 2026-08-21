@@ -2122,7 +2122,8 @@ def run_job(job: dict, port: int, worker_id: int = 0,
             model: str = "sonnet", dry_run: bool = False,
             apply_engine: str = "claude",
             skip_tab_reset: bool = False,
-            extra_context: str | None = None) -> tuple[str, int, list[dict]]:
+            extra_context: str | None = None,
+            is_probe: bool = False) -> tuple[str, int, list[dict]]:
     """Spawn a Claude Code session for one job application.
 
     Args:
@@ -2134,6 +2135,17 @@ def run_job(job: dict, port: int, worker_id: int = 0,
         skip_tab_reset: If True, don't close leftover tabs (used after HITL/takeover).
         extra_context: Optional instructions from a previous human takeover, prepended
             to the agent prompt so it knows what was done.
+        is_probe: True if the caller let this attempt through specifically
+            because claude_status.probe_due() was true (Claude is still
+            durably believed exhausted, and this is the attempt meant to
+            establish recovery -- see ClaudeGate.is_probe_attempt()).
+            Explicitly carried by the caller rather than re-derived here,
+            since by the time a slow/timing-out attempt finishes, the
+            module-level probe window may have already moved. When True
+            and this attempt fails via a generic/timeout path that
+            produces no billing/session-limit signal of its own, the
+            probe window is re-armed so the gate doesn't stay open
+            indefinitely on a signal nothing ever renewed.
 
     Returns:
         Tuple of (status_string, duration_ms, screening_questions).
@@ -2282,6 +2294,9 @@ def run_job(job: dict, port: int, worker_id: int = 0,
     start = time.time()
     stats: dict = {}
     proc = None
+    # Tracks whether record_apply_success() has already completed inside
+    # this call -- see the generic except handler below.
+    apply_success_recorded = False
 
     try:
         proc = subprocess.Popen(
@@ -2499,6 +2514,11 @@ def run_job(job: dict, port: int, worker_id: int = 0,
         # that still proves Claude is currently usable.
         from applypilot.claude_status import record_apply_success
         record_apply_success()
+        # Set only after record_apply_success() actually returns -- if it
+        # raises, this line is skipped and the except handler below still
+        # sees apply_success_recorded=False, which is correct (nothing was
+        # actually recorded).
+        apply_success_recorded = True
 
         # Parse ACCOUNT_CREATED lines and save to DB
         _parse_account_created(output, job.get("url"))
@@ -2612,11 +2632,29 @@ def run_job(job: dict, port: int, worker_id: int = 0,
         elapsed = int(time.time() - start)
         add_event(f"[W{worker_id}] TIMEOUT ({elapsed}s)")
         update_state(worker_id, status="failed", last_action=f"TIMEOUT ({elapsed}s)")
+        if is_probe:
+            # A generic timeout carries no billing/session-limit signal of
+            # its own, so nothing else would re-arm the probe window --
+            # left alone, probe_due() would stay true forever and the gate
+            # would keep letting every subsequent job through uncontested.
+            # Durable exhaustion itself is untouched (already True); this
+            # only pushes the next-probe-eligible time back out.
+            from applypilot.claude_status import record_apply_exhaustion
+            record_apply_exhaustion("probe_failed:timeout")
         return "failed:timeout", duration_ms, []
     except Exception as e:
         duration_ms = int((time.time() - start) * 1000)
         add_event(f"[W{worker_id}] ERROR: {str(e)[:40]}")
         update_state(worker_id, status="failed", last_action=f"ERROR: {str(e)[:25]}")
+        if is_probe and not apply_success_recorded:
+            # If record_apply_success() already completed earlier in this
+            # same call, Claude itself is proven usable -- an unrelated
+            # crash in the post-success bookkeeping below it (RESULT-line
+            # parsing, mark_qa_outcome, save_path, etc.) must not overwrite
+            # that with a fresh exhaustion record. Only re-arm when the
+            # exception happened BEFORE success was ever established.
+            from applypilot.claude_status import record_apply_exhaustion
+            record_apply_exhaustion(f"probe_failed:{type(e).__name__}")
         return f"failed:{str(e)[:100]}", duration_ms, []
     finally:
         with _claude_lock:

@@ -279,9 +279,24 @@ def _check_ineligible(job: dict, profile: dict | None = None) -> str | None:
     configured_title_patterns = search_cfg.get("title_reject_patterns") or []
     if isinstance(search_cfg.get("filters"), dict):
         configured_title_patterns = configured_title_patterns or search_cfg["filters"].get("title_reject_patterns", [])
-    title_patterns = [str(pattern) for pattern in (*excluded_titles, *configured_title_patterns)]
-    if any(pattern.strip() and re.search(pattern, title, re.IGNORECASE) for pattern in title_patterns):
-        return f"title excluded by search configuration: {title}"
+
+    # exclude_titles are plain words/phrases (e.g. "VP ", "head", "lead"),
+    # not regex -- matching them with a raw re.search let "VP " match
+    # inside "MVP", "head" match inside "Overhead Crane Technician", and
+    # "lead" match inside "Lead Abatement Technician", wrongly excluding
+    # legitimate non-senior titles. Word-boundary match instead (also
+    # strips any manual trailing-space hack in the config, e.g. "VP ").
+    # title_reject_patterns are genuine user-supplied regex (same
+    # convention as cli.py's DEFAULT_TITLE_REJECT_PATTERNS) and are left
+    # untouched.
+    for raw_term in excluded_titles:
+        term = str(raw_term).strip()
+        if term and re.search(rf"\b{re.escape(term)}\b", title, re.IGNORECASE):
+            return f"title excluded by search configuration: {title}"
+    for pattern in configured_title_patterns:
+        pattern = str(pattern)
+        if pattern.strip() and re.search(pattern, title, re.IGNORECASE):
+            return f"title excluded by search configuration: {title}"
 
     # Ethical exclusions (military/weapons/surveillance/policing/defense contractors,
     # see searches.yaml exclude_description_keywords). Checked against title + full

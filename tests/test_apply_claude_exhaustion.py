@@ -14,9 +14,11 @@ permanently failed.
 
 from __future__ import annotations
 
+import subprocess
 import sys
 import threading
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -307,3 +309,257 @@ class TestGatePreventsAcquisition:
         )
 
         assert acquire_calls["n"] == 1
+
+
+# ── ClaudeGate.is_probe_attempt() ────────────────────────────────────────
+
+class TestClaudeGateIsProbeAttempt:
+    def test_false_when_genuinely_available(self):
+        g = claude_status.ClaudeGate()
+        g.set(claude_status.ClaudeAvailability(
+            claude_status.AVAILABLE, None, None, None, None, "ok"))
+        assert g.is_probe_attempt() is False
+
+    def test_false_when_paused_with_no_real_signal(self):
+        """Told 'exhausted' via .set() but with no corresponding real
+        apply-side signal recorded -- probe_due() is false, so this isn't
+        a probe (nothing is being attempted at all; is_paused() is True)."""
+        g = claude_status.ClaudeGate()
+        g.set(claude_status.ClaudeAvailability(
+            claude_status.EXHAUSTED_UNKNOWN_RESET, None, None, None, None, "x"))
+        assert g.is_probe_attempt() is False
+
+    def test_true_when_probe_due(self):
+        claude_status.record_apply_exhaustion("session_limit", cooldown_seconds=-1)
+        g = claude_status.ClaudeGate()
+        g.set(claude_status.ClaudeAvailability(
+            claude_status.EXHAUSTED_UNKNOWN_RESET, None, None, None, None, "x"))
+        assert g.is_paused() is False
+        assert g.is_probe_attempt() is True
+
+
+# ── run_job(): a failed probe must re-arm, not silently expire ──────────
+
+def _fake_timeout_proc(cmd):
+    """subprocess.Popen replacement whose .wait() raises TimeoutExpired
+    after an empty stdout stream, matching a hung/never-responding claude
+    invocation without needing a real subprocess."""
+    proc = MagicMock()
+    proc.stdin = MagicMock()
+    proc.stdout = iter([])  # no stream-json lines
+    proc.wait.side_effect = subprocess.TimeoutExpired(cmd=cmd, timeout=300)
+    proc.poll.return_value = 0  # skip the _kill_process_tree cleanup path
+    proc.pid = 424242
+    return proc
+
+
+class TestRunJobProbeRearm:
+    """Covers the fix: run_job's subprocess.TimeoutExpired/generic-Exception
+    handlers previously did nothing to the exhaustion signal. When the
+    caller explicitly marks the attempt as a probe (is_probe=True) and it
+    fails via one of these generic paths -- which carry no billing/
+    session-limit text of their own to re-detect -- the probe window must
+    be re-armed via the existing claude_status machinery so probe_due()
+    doesn't stay stuck true forever. Durable exhaustion must stay set the
+    whole time, and the state must never read as AVAILABLE.
+    """
+
+    def _job(self):
+        return {
+            "url": "https://example.com/job/1",
+            "title": "Software Engineer",
+            "application_url": "https://example.com/job/1",
+            "site": "acme",
+            "fit_score": 9,
+        }
+
+    def _run_with_mocked_subprocess(self, monkeypatch, tmp_path, *, is_probe: bool):
+        import applypilot.apply.launcher as launcher
+        from applypilot import config as cfg
+
+        monkeypatch.setattr(cfg, "APP_DIR", tmp_path)
+        monkeypatch.setattr(cfg, "LOG_DIR", tmp_path / "logs")
+        monkeypatch.setattr(cfg, "APPLY_WORKER_DIR", tmp_path / "apply-workers")
+        (tmp_path / "logs").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "apply-workers" / "worker-0").mkdir(parents=True, exist_ok=True)
+
+        monkeypatch.setattr(launcher, "reset_worker_dir", lambda worker_id: None)
+        monkeypatch.setattr(launcher, "_reset_browser_tabs", lambda port: None)
+        monkeypatch.setattr(launcher, "_refresh_gmail_token", lambda: True)
+        monkeypatch.setattr(launcher, "_make_mcp_config", lambda port, worker_id=0: {})
+        monkeypatch.setattr(launcher, "_activate_agent_tab", lambda *a, **k: None)
+        monkeypatch.setattr(launcher.prompt_mod, "build_prompt", lambda **k: "prompt text")
+
+        def _fake_popen(cmd, **kwargs):
+            return _fake_timeout_proc(cmd)
+
+        monkeypatch.setattr(launcher.subprocess, "Popen", _fake_popen)
+
+        return launcher.run_job(
+            self._job(), port=9333, worker_id=0, model="sonnet",
+            dry_run=True, apply_engine="claude", is_probe=is_probe,
+        )
+
+    def test_full_probe_rearm_lifecycle(self, monkeypatch, tmp_path):
+        """1. record exhaustion  2. advance to probe_due  3. run a probe
+        that times out (generic-failure path)  4. exhaustion still durable
+        5. probe window re-armed  6. immediate second probe_due() is false
+        7. state is never AVAILABLE.
+        """
+        # 1 + 2: a prior exhaustion whose cooldown has already elapsed.
+        claude_status.record_apply_exhaustion("session_limit", cooldown_seconds=-1)
+        assert claude_status.probe_due() is True
+
+        # 3: the probe attempt times out (generic-failure path, no
+        # billing/session-limit text of its own).
+        result, duration_ms, screening_qs = self._run_with_mocked_subprocess(
+            monkeypatch, tmp_path, is_probe=True)
+        assert result == "failed:timeout"
+
+        # 4: durable exhaustion is untouched (still true).
+        exhausted, reason = claude_status._apply_signal()
+        assert exhausted is True
+
+        # 5 + 6: the probe window was re-armed -- NOT left in the past --
+        # so an immediate re-check is false again.
+        assert claude_status.probe_due() is False
+
+        # 7: never reported as AVAILABLE at any point in this lifecycle.
+        avail = claude_status.check_claude_availability(
+            cache_path=tmp_path / "no-cache.json", check_auth=False)
+        assert avail.state != claude_status.AVAILABLE
+
+    def test_non_probe_timeout_does_not_touch_exhaustion_signal(self, monkeypatch, tmp_path):
+        """Control case: an ordinary (non-probe) attempt that times out
+        must retain the EXISTING behavior -- no exhaustion signal touched
+        at all, since Claude was never durably exhausted to begin with."""
+        assert claude_status._apply_signal() == (False, None)
+
+        result, duration_ms, screening_qs = self._run_with_mocked_subprocess(
+            monkeypatch, tmp_path, is_probe=False)
+        assert result == "failed:timeout"
+
+        assert claude_status._apply_signal() == (False, None)
+        assert claude_status.probe_due() is False
+
+    def test_probe_generic_exception_also_rearms(self, monkeypatch, tmp_path):
+        """Same contract for the generic Exception path (not just
+        TimeoutExpired) -- e.g. a broken pipe writing to stdin."""
+        import applypilot.apply.launcher as launcher
+
+        claude_status.record_apply_exhaustion("session_limit", cooldown_seconds=-1)
+        assert claude_status.probe_due() is True
+
+        def _fake_popen(cmd, **kwargs):
+            proc = MagicMock()
+            proc.stdin = MagicMock()
+            proc.stdin.write.side_effect = OSError("broken pipe")
+            return proc
+
+        import applypilot.apply.launcher as launcher_mod
+        from applypilot import config as cfg
+        monkeypatch.setattr(cfg, "APP_DIR", tmp_path)
+        monkeypatch.setattr(cfg, "LOG_DIR", tmp_path / "logs")
+        monkeypatch.setattr(cfg, "APPLY_WORKER_DIR", tmp_path / "apply-workers")
+        (tmp_path / "logs").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "apply-workers" / "worker-0").mkdir(parents=True, exist_ok=True)
+        monkeypatch.setattr(launcher_mod, "reset_worker_dir", lambda worker_id: None)
+        monkeypatch.setattr(launcher_mod, "_reset_browser_tabs", lambda port: None)
+        monkeypatch.setattr(launcher_mod, "_refresh_gmail_token", lambda: True)
+        monkeypatch.setattr(launcher_mod, "_make_mcp_config", lambda port, worker_id=0: {})
+        monkeypatch.setattr(launcher_mod.prompt_mod, "build_prompt", lambda **k: "prompt text")
+        monkeypatch.setattr(launcher_mod.subprocess, "Popen", _fake_popen)
+
+        result, duration_ms, screening_qs = launcher.run_job(
+            self._job(), port=9333, worker_id=0, model="sonnet",
+            dry_run=True, apply_engine="claude", is_probe=True,
+        )
+
+        assert result.startswith("failed:")
+        exhausted, _ = claude_status._apply_signal()
+        assert exhausted is True
+        assert claude_status.probe_due() is False
+
+    def test_probe_success_not_undone_by_post_success_crash(self, monkeypatch, tmp_path):
+        """Final pre-merge audit regression: a probe whose Claude invocation
+        genuinely succeeds (real RESULT:APPLIED output) must have that
+        recovery preserved even when unrelated post-success bookkeeping
+        (mark_qa_outcome, as if hitting a still-locked SQLite DB after
+        commit_with_retry's own retries were exhausted) raises afterward.
+        record_apply_success() already ran by that point -- the crash must
+        NOT re-arm exhaustion just because is_probe was True.
+        """
+        import applypilot.apply.launcher as launcher_mod
+        import applypilot.database as database_mod
+        import json as _json
+        import sqlite3
+        from applypilot import config as cfg
+
+        # 1: Claude starts durably exhausted.
+        exhausted_before, _ = claude_status._apply_signal()
+        assert exhausted_before is False  # clean fixture state first...
+        claude_status.record_apply_exhaustion("session_limit", cooldown_seconds=-1)
+        exhausted_before, _ = claude_status._apply_signal()
+        assert exhausted_before is True
+
+        # 2: the probe window is open.
+        assert claude_status.probe_due() is True
+
+        monkeypatch.setattr(cfg, "APP_DIR", tmp_path)
+        monkeypatch.setattr(cfg, "LOG_DIR", tmp_path / "logs")
+        monkeypatch.setattr(cfg, "APPLY_WORKER_DIR", tmp_path / "apply-workers")
+        (tmp_path / "logs").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "apply-workers" / "worker-0").mkdir(parents=True, exist_ok=True)
+        monkeypatch.setattr(launcher_mod, "reset_worker_dir", lambda worker_id: None)
+        monkeypatch.setattr(launcher_mod, "_reset_browser_tabs", lambda port: None)
+        monkeypatch.setattr(launcher_mod, "_refresh_gmail_token", lambda: True)
+        monkeypatch.setattr(launcher_mod, "_make_mcp_config", lambda port, worker_id=0: {})
+        monkeypatch.setattr(launcher_mod, "_activate_agent_tab", lambda *a, **k: None)
+        monkeypatch.setattr(launcher_mod.prompt_mod, "build_prompt", lambda **k: "prompt text")
+
+        # 3: Claude's own subprocess genuinely succeeds -- real stream-json
+        # output containing RESULT:APPLIED, normal exit code.
+        def _fake_popen(cmd, **kwargs):
+            proc = MagicMock()
+            proc.stdin = MagicMock()
+            applied_line = _json.dumps({
+                "type": "assistant",
+                "message": {"content": [{"type": "text", "text": "RESULT:APPLIED"}]},
+            })
+            proc.stdout = iter([applied_line])
+            proc.wait = MagicMock(return_value=None)
+            proc.returncode = 0
+            proc.poll.return_value = 0
+            proc.pid = 424244
+            return proc
+
+        monkeypatch.setattr(launcher_mod.subprocess, "Popen", _fake_popen)
+
+        # 5: realistic post-success bookkeeping (mark_qa_outcome, called
+        # from the RESULT:APPLIED branch since the job has a url) raises.
+        monkeypatch.setattr(
+            database_mod, "mark_qa_outcome",
+            MagicMock(side_effect=sqlite3.OperationalError("database is locked")),
+        )
+
+        result, duration_ms, screening_qs = launcher_mod.run_job(
+            self._job(), port=9333, worker_id=0, model="sonnet",
+            dry_run=True, apply_engine="claude", is_probe=True,
+        )
+
+        # 4 + 6: record_apply_success() was reached (verified below via the
+        # durable state), and the crash still surfaces as a real failure --
+        # it isn't silently swallowed.
+        assert result.startswith("failed:")
+        assert "locked" in result.lower()
+
+        # 7 + 8: durable exhaustion was cleared by the genuine success and
+        # MUST stay cleared -- the post-success crash must not re-arm it,
+        # and the system must not report exhausted/anything but AVAILABLE.
+        exhausted_after, reason_after = claude_status._apply_signal()
+        assert exhausted_after is False
+        assert reason_after is None
+
+        avail = claude_status.check_claude_availability(
+            cache_path=tmp_path / "no-cache.json", check_auth=False)
+        assert avail.state == claude_status.AVAILABLE

@@ -301,9 +301,35 @@ class TestApplySignal:
         cs.record_apply_success()
         assert cs._apply_signal() == (False, None)
 
-    def test_exhaustion_expires_after_cooldown(self):
+    def test_exhaustion_is_durable_past_a_negative_cooldown(self):
+        """2026-08-21 fix: a fixed cooldown must NEVER silently declare
+        recovery by itself. Even with cooldown_seconds=-1 (the probe
+        window is immediately open), the durable exhausted flag stays set
+        -- only record_apply_success() can clear it."""
         cs.record_apply_exhaustion("session_limit", cooldown_seconds=-1)
-        assert cs._apply_signal() == (False, None)
+        exhausted, reason = cs._apply_signal()
+        assert exhausted is True
+        assert reason == "session_limit"
+
+    def test_probe_due_false_before_cooldown(self):
+        cs.record_apply_exhaustion("session_limit", cooldown_seconds=1800)
+        assert cs.probe_due() is False
+
+    def test_probe_due_true_after_cooldown(self):
+        cs.record_apply_exhaustion("session_limit", cooldown_seconds=-1)
+        assert cs.probe_due() is True
+        # Durability: probe being due is not the same as being available.
+        exhausted, _ = cs._apply_signal()
+        assert exhausted is True
+
+    def test_probe_due_false_when_never_exhausted(self):
+        assert cs.probe_due() is False
+
+    def test_probe_due_false_after_recovery(self):
+        cs.record_apply_exhaustion("session_limit", cooldown_seconds=-1)
+        assert cs.probe_due() is True
+        cs.record_apply_success()
+        assert cs.probe_due() is False
 
     def test_check_claude_availability_uses_real_signal_by_default(self, tmp_path):
         cs.record_apply_exhaustion("session_limit", cooldown_seconds=1800)
@@ -311,6 +337,54 @@ class TestApplySignal:
             cache_path=tmp_path / "nope.json", check_auth=False,
         )
         assert avail.state == cs.EXHAUSTED_UNKNOWN_RESET
+
+    def test_full_lifecycle_does_not_auto_recover_from_elapsed_cooldown(self, tmp_path):
+        """Integration-style: exhaustion -> advance past the cooldown/reset
+        estimate -> call the REAL (unmocked) availability logic -> must NOT
+        become AVAILABLE merely because the timer expired. Recovery must
+        require an actual positive signal (record_apply_success), not just
+        elapsed time."""
+        cs.record_apply_exhaustion("session_limit", cooldown_seconds=1800)
+
+        # Simulate real time having advanced well past the cooldown/reset
+        # estimate, with no probe attempted yet.
+        cs._apply_probe_after = time.time() - 1
+
+        avail = cs.check_claude_availability(
+            cache_path=tmp_path / "nope.json", check_auth=False,
+        )
+        assert avail.state != cs.AVAILABLE
+        assert avail.state == cs.EXHAUSTED_UNKNOWN_RESET
+
+        # A probe is now due (gate would let a real attempt through)...
+        assert cs.probe_due() is True
+        # ...but merely being "due" is still not recovery.
+        avail_still_checking = cs.check_claude_availability(
+            cache_path=tmp_path / "nope.json", check_auth=False,
+        )
+        assert avail_still_checking.state != cs.AVAILABLE
+
+        # Only a genuine positive signal (the probe attempt actually
+        # succeeding) establishes recovery.
+        cs.record_apply_success()
+        avail_after_recovery = cs.check_claude_availability(
+            cache_path=tmp_path / "nope.json", check_auth=False,
+        )
+        assert avail_after_recovery.state == cs.AVAILABLE
+
+    def test_repeated_failed_probes_stay_exhausted_and_extend_backoff(self, tmp_path):
+        """A probe that fails again must re-arm the durable flag and push
+        the next probe window out further -- it must not accidentally
+        clear anything."""
+        cs.record_apply_exhaustion("session_limit", cooldown_seconds=-1)
+        assert cs.probe_due() is True
+
+        # The probe attempt happens (a real run_job call) and fails again.
+        cs.record_apply_exhaustion("session_limit", cooldown_seconds=1800)
+        assert cs.probe_due() is False
+        exhausted, reason = cs._apply_signal()
+        assert exhausted is True
+        assert reason == "session_limit"
 
 
 # ── ClaudeGate ────────────────────────────────────────────────────────────
@@ -331,3 +405,41 @@ class TestClaudeGate:
         g.set(cs.ClaudeAvailability(cs.EXHAUSTED_UNKNOWN_RESET, None, None, None, None, "x"))
         assert g.is_paused() is True
         assert g.state == cs.EXHAUSTED_UNKNOWN_RESET
+
+    def test_stays_paused_while_no_real_exhaustion_recorded(self):
+        """A gate told 'exhausted' via .set() but with no corresponding
+        real apply-side signal recorded must stay conservatively paused
+        (probe_due() is false with nothing to probe for)."""
+        g = cs.ClaudeGate()
+        g.set(cs.ClaudeAvailability(cs.EXHAUSTED_UNKNOWN_RESET, None, None, None, None, "x"))
+        assert cs.probe_due() is False
+        assert g.is_paused() is True
+
+    def test_probe_due_lets_a_paused_gate_through(self):
+        """The fix's key invariant: durable exhaustion alone must not
+        block forever -- once a real probe is due, the gate must let it
+        through so recovery can ever be established."""
+        cs.record_apply_exhaustion("session_limit", cooldown_seconds=-1)
+        g = cs.ClaudeGate()
+        g.set(cs.ClaudeAvailability(cs.EXHAUSTED_UNKNOWN_RESET, None, None, None, None, "x"))
+        assert cs.probe_due() is True
+        assert g.is_paused() is False
+
+    def test_gate_re_pauses_after_a_failed_probe(self):
+        cs.record_apply_exhaustion("session_limit", cooldown_seconds=-1)
+        g = cs.ClaudeGate()
+        g.set(cs.ClaudeAvailability(cs.EXHAUSTED_UNKNOWN_RESET, None, None, None, None, "x"))
+        assert g.is_paused() is False  # probe allowed through
+
+        # The probe attempt (a real run_job call) fails again.
+        cs.record_apply_exhaustion("session_limit", cooldown_seconds=1800)
+        g.set(cs.ClaudeAvailability(cs.EXHAUSTED_UNKNOWN_RESET, None, None, None, None, "x"))
+        assert g.is_paused() is True
+
+    def test_available_state_never_consults_probe_due(self):
+        """When genuinely available, is_paused() short-circuits before
+        ever looking at probe_due() -- confirms the two mechanisms don't
+        interfere with the ordinary available path."""
+        g = cs.ClaudeGate()
+        g.set(cs.ClaudeAvailability(cs.AVAILABLE, None, None, None, None, "ok"))
+        assert g.is_paused() is False

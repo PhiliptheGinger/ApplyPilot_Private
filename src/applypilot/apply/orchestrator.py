@@ -241,16 +241,25 @@ def _worker_loop_body(
         # gate defaults to never-paused, so a standalone continuous worker
         # (no scheduler running) is unaffected. Only gates continuous mode --
         # a bounded --limit run's semantics are left untouched.
-        if continuous and _claude_gate.is_paused():
-            empty_polls += 1
-            update_state(worker_id, status="idle",
-                         last_action=f"paused: Claude {_claude_gate.state}")
-            if empty_polls == 1:
-                add_event(f"[W{worker_id}] Paused: Claude {_claude_gate.state}, "
-                          f"resuming when available")
-            if _stop_event.wait(timeout=POLL_INTERVAL):
-                break
-            continue
+        _is_probe_attempt = False
+        if continuous:
+            if _claude_gate.is_paused():
+                empty_polls += 1
+                update_state(worker_id, status="idle",
+                             last_action=f"paused: Claude {_claude_gate.state}")
+                if empty_polls == 1:
+                    add_event(f"[W{worker_id}] Paused: Claude {_claude_gate.state}, "
+                              f"resuming when available")
+                if _stop_event.wait(timeout=POLL_INTERVAL):
+                    break
+                continue
+            # is_paused() was False -- either genuinely available, or a
+            # probe window is open while still durably exhausted. Capture
+            # which one explicitly now and carry it through to run_job(),
+            # rather than letting run_job() re-derive it later (by the
+            # time a slow attempt finishes, the module-level probe window
+            # may have already moved).
+            _is_probe_attempt = _claude_gate.is_probe_attempt()
 
         update_state(worker_id, status="idle", job_title="", company="",
                      last_action="waiting for job", actions=0)
@@ -341,6 +350,7 @@ def _worker_loop_body(
                 apply_engine=apply_engine,
                 skip_tab_reset=_this_had_interrupted_job,
                 extra_context=_reconnect_ctx,
+                is_probe=_is_probe_attempt,
             )
 
             # --- Relaunch sub-loop: handles Q&A, HITL, and takeover without closing Chrome ---

@@ -74,8 +74,11 @@ def _location_ok(location: str | None, accept: list[str], reject: list[str]) -> 
     loc = location.lower()
     if any(r in loc for r in ("remote", "anywhere", "work from home", "wfh", "distributed")):
         return True
+    # Word-boundary match, not plain substring -- a bare "in" check let
+    # reject pattern "India" match "Indianapolis, IN", wrongly discarding
+    # a legitimate US posting before it ever reached scoring.
     for r in reject:
-        if r.lower() in loc:
+        if re.search(rf"\b{re.escape(r.lower())}\b", loc):
             return False
     for a in accept:
         if a.lower() in loc:

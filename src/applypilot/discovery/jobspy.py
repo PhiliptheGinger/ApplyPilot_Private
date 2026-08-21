@@ -8,6 +8,7 @@ search configuration YAML (searches.yaml) rather than being hardcoded.
 """
 
 import logging
+import re
 import sqlite3
 import time
 from datetime import datetime, timezone
@@ -140,9 +141,12 @@ def _location_ok(location: str | None, accept: list[str], reject: list[str]) -> 
     if any(r in loc for r in ("remote", "anywhere", "work from home", "wfh", "distributed")):
         return True
 
-    # Reject non-remote matches
+    # Reject non-remote matches. Word-boundary match, not plain substring --
+    # a bare "in" check let reject pattern "India" match "Indianapolis, IN"
+    # (and "NC" match "France"), wrongly discarding legitimate US postings
+    # before they ever reached scoring.
     for r in reject:
-        if r.lower() in loc:
+        if re.search(rf"\b{re.escape(r.lower())}\b", loc):
             return False
 
     # Accept matches
