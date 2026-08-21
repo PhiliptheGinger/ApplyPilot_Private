@@ -262,6 +262,12 @@ class LLMClient:
         self._client = httpx.Client(timeout=_TIMEOUT)
         # Track which models are temporarily exhausted (store until timestamp)
         self._exhausted: dict[str, float] = {}
+        # Additive, read-only classification alongside self._exhausted -- lets
+        # a caller (the continuous scheduler) distinguish *why* claude_cli was
+        # marked exhausted without parsing logs or changing _try_claude_cli's
+        # str | None return contract. Never consulted by chat()/_try_claude_cli
+        # itself for control flow, so it can't change existing behavior.
+        self._exhaustion_reason: dict[str, str] = {}
         # claude_cli specifically is serialized (not just exhaustion-tracked):
         # concurrent workers can each pass the "not exhausted yet" check before
         # any of them has finished a ~3-30s subprocess call and written the
@@ -653,9 +659,11 @@ class LLMClient:
                         "confirmed rate-limit message)",
                         entry.name, proc.returncode,
                     )
+                    self._exhaustion_reason[entry.name] = "empty_output_heuristic"
                 else:
                     log.warning("claude_cli/%s hit usage/session/rate limit, marking exhausted for 30min",
                                 entry.name)
+                    self._exhaustion_reason[entry.name] = "quota_text_match"
                 self._exhausted[entry.name] = time.time() + 1800
                 return None
 
@@ -677,6 +685,26 @@ class LLMClient:
             if entry.name != self.model:
                 log.info("Used fallback claude_cli/%s (primary: %s)", entry.name, self.model)
             return proc.stdout.strip()
+
+    def claude_cli_exhaustion_reason(self, name: str) -> str | None:
+        """Return the last recorded exhaustion classification for a
+        claude_cli fallback-chain entry ("quota_text_match" or
+        "empty_output_heuristic"), or None if it isn't currently exhausted
+        or was never exhausted. Read-only; does not affect chat() routing.
+        """
+        if name not in self._exhausted or self._exhausted[name] <= time.time():
+            return None
+        return self._exhaustion_reason.get(name)
+
+    def has_available_model(self) -> bool:
+        """True if at least one entry in this client's fallback chain is not
+        currently marked exhausted. Read-only capacity probe (makes no
+        network/subprocess calls) -- used by the continuous scheduler to
+        judge whether upstream work is worth attempting when Claude itself
+        is unavailable.
+        """
+        now = time.time()
+        return any(self._exhausted.get(e.name, 0) <= now for e in self._fallback_chain)
 
     def ask(self, prompt: str, **kwargs) -> str:
         """Convenience: single user prompt -> assistant response."""

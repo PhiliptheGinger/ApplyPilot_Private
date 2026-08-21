@@ -582,6 +582,44 @@ def state_history(conn: sqlite3.Connection, job_url: str) -> list[dict]:
             for r in rows]
 
 
+# Stage completion transitions, keyed for get_recent_stage_throughput().
+# "cover" is deliberately narrower than any transition landing on
+# ready_to_apply -- tailored -> ready_to_apply (no cover step) must not be
+# counted as cover throughput, so it's matched on from_state as well.
+_STAGE_THROUGHPUT_FILTERS: dict[str, tuple[str, tuple]] = {
+    "score":  ("to_state = 'scored'", ()),
+    "tailor": ("to_state = 'tailored'", ()),
+    "cover":  ("from_state = 'cover_writing' AND to_state = 'ready_to_apply'", ()),
+}
+
+
+def get_recent_stage_throughput(stage: str, window_minutes: int = 60,
+                                conn: sqlite3.Connection | None = None) -> dict:
+    """Read-only: count job_state_transitions completions for `stage` within
+    the last `window_minutes`. No schema changes -- reuses the existing
+    audit table.
+
+    Returns {"count": int, "window_minutes": int, "rate_per_minute": float}.
+    Callers are responsible for deciding whether `count` is high enough to
+    treat `rate_per_minute` as meaningful (this function does not fabricate
+    a rate estimate from too little data -- it just reports what happened).
+    """
+    if stage not in _STAGE_THROUGHPUT_FILTERS:
+        raise ValueError(f"Unknown stage for throughput: {stage!r}")
+    where, extra_params = _STAGE_THROUGHPUT_FILTERS[stage]
+
+    if conn is None:
+        conn = get_connection()
+    cutoff = (datetime.now(UTC) - timedelta(minutes=window_minutes)).isoformat()
+    row = conn.execute(
+        f"SELECT COUNT(*) FROM job_state_transitions WHERE {where} AND at >= ?",
+        (*extra_params, cutoff),
+    ).fetchone()
+    count = row[0] if row else 0
+    rate = (count / window_minutes) if window_minutes > 0 else 0.0
+    return {"count": count, "window_minutes": window_minutes, "rate_per_minute": rate}
+
+
 def backfill_states(conn: sqlite3.Connection | None = None) -> dict[str, int]:
     """Derive `state` for every job at the default ('discovered') value.
 

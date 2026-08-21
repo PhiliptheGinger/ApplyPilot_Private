@@ -357,6 +357,13 @@ DEFAULTS = {
     "poll_interval": 60,
     "apply_timeout": 300,
     "viewport": "1280x900",
+    # applypilot run-continuous (scheduler.py) -- all overridable via CLI flags.
+    "ready_buffer": 5,                        # target ready_to_apply size when Claude is available
+    "ready_buffer_unknown": 2,                 # smaller target used during EXHAUSTED_UNKNOWN_RESET/AUTH_FAILURE/TRANSIENT_ERROR
+    "scheduler_max_batch": 20,                 # hard per-cycle ceiling regardless of estimated capacity
+    "scheduler_safety_margin": 0.5,            # discount applied to measured tailor/cover throughput
+    "scheduler_cache_max_age": 600,            # seconds -- ~/.claude.json cache older than this is treated as unusable
+    "scheduler_discover_interval": 3600,
 }
 
 

@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 
 from applypilot.config import RESUME_PATH, load_profile, load_search_config
 from applypilot.database import get_connection, get_jobs_by_stage, write_with_retry
+from applypilot.eligibility import seniority_disqualifier
 from applypilot.llm import get_stage_client, get_token_limit
 
 log = logging.getLogger(__name__)
@@ -176,11 +177,6 @@ _INELIGIBLE_LOCATION_PATTERNS = re.compile(
     re.IGNORECASE,
 )
 
-_SENIOR_TITLE_PATTERN = re.compile(
-    r"\b(?:senior|sr\.?|staff|principal|lead|architect|director|vp|vice president|chief)\b",
-    re.IGNORECASE,
-)
-
 # Catches postings that state an advanced degree as a hard minimum -- common
 # Workday/PERM boilerplate ("Minimum Requirements: Master's degree, or foreign
 # equivalent, in Computer Science...") that a generic "Software Engineer" title
@@ -260,6 +256,18 @@ def _check_ineligible(job: dict, profile: dict | None = None) -> str | None:
     m = _INELIGIBLE_DESC_PATTERNS.search(desc_head)
     if m:
         return f"non-US geography in description: {m.group(0)[:80]}"
+
+    # Hard disqualifier, checked before the LLM call so a stale/rescored
+    # title can never accumulate enough other points to reach min_score --
+    # this candidate has no professional software engineering experience,
+    # so a Senior/Staff/Principal/Lead/Architect/Director/Manager/Head/VP/
+    # Chief/Distinguished/Fellow title is always disqualifying regardless
+    # of keyword overlap elsewhere in the description. See applypilot.
+    # eligibility for the single canonical definition (also used by
+    # apply/launcher.py's acquisition-time defense-in-depth check).
+    seniority_reason = seniority_disqualifier(title)
+    if seniority_reason:
+        return seniority_reason
 
     if profile is not None and not _candidate_has_advanced_degree(profile):
         m = _ADVANCED_DEGREE_REQUIRED_PATTERN.search(desc_head)
@@ -467,17 +475,6 @@ def score_job(resume_text: str, job: dict, profile: dict | None = None) -> dict:
             temperature=0.2,
         )
         result = _parse_score_response(response)
-        if _SENIOR_TITLE_PATTERN.search(job.get("title") or ""):
-            # Hard backstop independent of the LLM's own judgment: this candidate has
-            # no professional software engineering experience (a documented fact, not
-            # an unknown), so a Senior/Staff/Principal/Lead/Architect/Director/VP/Chief
-            # title is always a poor fit regardless of keyword overlap in the prompt.
-            result["score"] = min(result["score"], 3)
-            result["reasoning"] = (
-                f"{result['reasoning']} Title indicates a senior/staff/principal-level role; "
-                "the candidate has no professional software engineering experience, so this "
-                "is capped at 3."
-            )
         return result
     except Exception as exc:
         log.exception("LLM error scoring job '%s'", (job or {}).get("title") or "?")

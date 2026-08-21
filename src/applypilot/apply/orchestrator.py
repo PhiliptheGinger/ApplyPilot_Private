@@ -35,6 +35,7 @@ from rich.console import Console
 from rich.live import Live
 
 from applypilot import config
+from applypilot.claude_status import gate as _claude_gate
 from applypilot.apply.chrome import (
     BASE_CDP_PORT,
     _AdoptedChromeProcess,
@@ -84,6 +85,13 @@ logger = logging.getLogger(__name__)
 # Default polling interval when the queue is empty. Mutated by ``main`` via
 # ``global POLL_INTERVAL = poll_interval``; read by ``_worker_loop_body``.
 POLL_INTERVAL = config.DEFAULTS["poll_interval"]
+
+# Fixed, conservative backoff after a temporary Claude session-limit hit
+# during apply, independent of the scheduler's own adaptive backoff (which
+# only exists when `applypilot run-continuous` is active). Prevents a
+# standalone `applypilot apply --continuous` worker from hammering an
+# already-exhausted Claude session in a tight loop.
+_SESSION_LIMIT_BACKOFF_SECONDS = 300
 
 
 def _probe_for_reconnect(worker_id: int, port: int) -> tuple[int | None, str | None]:
@@ -227,6 +235,23 @@ def _worker_loop_body(
         if not continuous and jobs_done >= limit:
             break
 
+        # Continuous-worker gate: when a run-continuous scheduler is active
+        # and has observed Claude as unavailable, skip acquisition entirely
+        # rather than pull a job and then hit the exhaustion mid-run. The
+        # gate defaults to never-paused, so a standalone continuous worker
+        # (no scheduler running) is unaffected. Only gates continuous mode --
+        # a bounded --limit run's semantics are left untouched.
+        if continuous and _claude_gate.is_paused():
+            empty_polls += 1
+            update_state(worker_id, status="idle",
+                         last_action=f"paused: Claude {_claude_gate.state}")
+            if empty_polls == 1:
+                add_event(f"[W{worker_id}] Paused: Claude {_claude_gate.state}, "
+                          f"resuming when available")
+            if _stop_event.wait(timeout=POLL_INTERVAL):
+                break
+            continue
+
         update_state(worker_id, status="idle", job_title="", company="",
                      last_action="waiting for job", actions=0)
 
@@ -335,6 +360,23 @@ def _worker_loop_body(
                     _log_failed_attempt(job, reason, worker_id, duration_ms, True)
                     failed += 1
                     _stop_event.set()
+                    break
+                elif "claude_session_exhausted" in result:
+                    # Temporary Max/Pro session-limit hit: release the job
+                    # back to the pool untouched -- no apply_attempts
+                    # increment, no permanent failure, no counting toward
+                    # this worker's --limit -- instead of burning a
+                    # candidate. Back off briefly so this worker doesn't
+                    # hammer Claude again immediately even without a
+                    # scheduler active (the scheduler's gate above handles
+                    # the same thing on its next planning cycle when one is
+                    # running).
+                    release_lock(job["url"])
+                    add_event(f"[W{worker_id}] Claude session limit — job requeued, backing off")
+                    update_state(worker_id, status="idle",
+                                 last_action="claude session limit, backing off")
+                    was_skipped = True
+                    _stop_event.wait(timeout=_SESSION_LIMIT_BACKOFF_SECONDS)
                     break
                 elif result == "applied":
                     mark_result(job["url"], "applied", duration_ms=duration_ms)
