@@ -86,6 +86,35 @@ def _find_claude_cli() -> str | None:
     return None
 
 
+def local_openai_base_url(raw_url: str) -> str:
+    """Normalize a configured local LLM URL for THIS module's OpenAI-
+    compatible request construction.
+
+    APPLYPILOT_LOCAL_LLM_URL is consumed by two independent code paths
+    that expect different URL shapes:
+      - local_tailor.get_local_tailoring_plan() posts directly to Ollama's
+        *native* endpoint, {url}/api/chat -- it wants the bare server root
+        (e.g. http://127.0.0.1:11434), no /v1.
+      - This module's LLMClient is OpenAI-compatible-only: every "local"
+        ModelEntry goes through _try_openai_compat, which always posts to
+        {entry.base_url}/chat/completions -- exactly like it does for
+        Gemini/OpenAI, whose base_urls already end in their API's versioned
+        root. Ollama only serves an OpenAI-compatible surface under /v1, so
+        the same bare root that's correct for /api/chat resolves to a 404
+        here (POST http://host:port/chat/completions matches no route).
+    A single env var can't literally satisfy both conventions at once, so
+    each consumer normalizes it for its OWN endpoint style instead of
+    requiring the user to guess the "right" one. This is that
+    normalization for the OpenAI-compatible side: append /v1 unless
+    already present, so both the documented convention (already includes
+    /v1) and Ollama's bare default root work without user action.
+    """
+    url = raw_url.rstrip("/")
+    if url.endswith("/v1"):
+        return url
+    return f"{url}/v1"
+
+
 def _build_fallback_chain(primary_model: str, quality: bool = False) -> list[ModelEntry]:
     """Build a cross-provider fallback chain starting from the primary model.
 
@@ -206,7 +235,7 @@ def _build_fallback_chain(primary_model: str, quality: bool = False) -> list[Mod
     _local_url = os.environ.get("APPLYPILOT_LOCAL_LLM_URL", "").rstrip("/")
     _local_model = os.environ.get("APPLYPILOT_LOCAL_LLM_MODEL", "llama3.2")
     if _local_url:
-        chain.append(ModelEntry(_local_model, "local", _local_url, ""))
+        chain.append(ModelEntry(_local_model, "local", local_openai_base_url(_local_url), ""))
 
     # If nothing was added (no keys, no local), raise
     if not chain:

@@ -9,13 +9,26 @@ Covers:
 - _build_fallback_chain raises RuntimeError when no keys are configured
 """
 
+import socket
 import sys
 import time
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+
+def _local_ollama_reachable() -> bool:
+    """Cheap TCP probe -- used only to skip the live Ollama integration
+    test when nothing is listening (e.g. CI), not to gate any real logic."""
+    try:
+        with socket.create_connection(("127.0.0.1", 11434), timeout=0.5):
+            return True
+    except OSError:
+        return False
 
 
 def _make_client(n_models: int = 2):
@@ -116,6 +129,154 @@ class TestModelExhaustion(unittest.TestCase):
         self.assertIn(first_name, call_order)
         self.assertIn(second_name, call_order)
         self.assertEqual(result, "success from fallback")
+
+
+class TestLocalOpenAIBaseURLNormalization(unittest.TestCase):
+    """2026-08-22 incident: a real Ollama endpoint configured via
+    APPLYPILOT_LOCAL_LLM_URL=http://127.0.0.1:11434 (no /v1) responded 200
+    to a direct httpx POST at /api/chat, but `applypilot test-local`
+    reported "model not found (404)" for the exact same model.
+
+    Root cause: APPLYPILOT_LOCAL_LLM_URL is consumed by two independent
+    code paths that want different URL shapes --
+    local_tailor.get_local_tailoring_plan() posts straight to Ollama's
+    NATIVE {url}/api/chat (needs the bare root), while this module's
+    LLMClient is OpenAI-compatible-only: _try_openai_compat always posts to
+    {entry.base_url}/chat/completions, exactly like it does for Gemini/
+    OpenAI whose base_urls already include their versioned API root.
+    Ollama only serves an OpenAI-compatible surface under /v1, so a bare
+    root resolves to POST http://host:port/chat/completions -- a route
+    Ollama doesn't register at all, hence the (misleadingly-labeled)
+    "model not found (404)".
+
+    local_openai_base_url() normalizes for the OpenAI-compatible side only
+    (appending /v1 if not already present); local_tailor.py's own
+    /api/chat construction is untouched and still wants the bare root.
+    """
+
+    def test_local_openai_base_url_appends_v1_when_missing(self):
+        from applypilot.llm import local_openai_base_url
+        self.assertEqual(
+            local_openai_base_url("http://127.0.0.1:11434"),
+            "http://127.0.0.1:11434/v1",
+        )
+
+    def test_local_openai_base_url_strips_trailing_slash_first(self):
+        from applypilot.llm import local_openai_base_url
+        self.assertEqual(
+            local_openai_base_url("http://127.0.0.1:11434/"),
+            "http://127.0.0.1:11434/v1",
+        )
+
+    def test_local_openai_base_url_idempotent_when_already_present(self):
+        """A URL already following the documented /v1 convention (as
+        every pre-existing test/example in this codebase uses) must be
+        left completely unchanged -- not doubled to .../v1/v1."""
+        from applypilot.llm import local_openai_base_url
+        self.assertEqual(
+            local_openai_base_url("http://localhost:11434/v1"),
+            "http://localhost:11434/v1",
+        )
+        self.assertEqual(
+            local_openai_base_url("http://localhost:11434/v1/"),
+            "http://localhost:11434/v1",
+        )
+
+    def test_fallback_chain_local_entry_gets_normalized_base_url(self):
+        """The exact regression: APPLYPILOT_LOCAL_LLM_URL configured as the
+        bare Ollama root must still produce a local ModelEntry whose
+        base_url is usable by _try_openai_compat's {base_url}/chat/completions
+        construction."""
+        from applypilot.llm import _build_fallback_chain
+        env = {
+            k: v for k, v in __import__("os").environ.items()
+            if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
+                         "DEEPSEEK_API_KEY", "LLM_URL",
+                         "APPLYPILOT_LOCAL_LLM_URL", "APPLYPILOT_LOCAL_LLM_MODEL")
+        }
+        env["APPLYPILOT_LOCAL_LLM_URL"] = "http://127.0.0.1:11434"  # bare root, no /v1
+        env["APPLYPILOT_LOCAL_LLM_MODEL"] = "qwen3:1.7b"
+        with patch.dict("os.environ", env, clear=True), \
+             patch("applypilot.llm._find_claude_cli", return_value=None):
+            chain = _build_fallback_chain("qwen3:1.7b", quality=False)
+
+        local_entries = [e for e in chain if e.provider == "local"]
+        self.assertEqual(len(local_entries), 1)
+        self.assertEqual(local_entries[0].base_url, "http://127.0.0.1:11434/v1")
+
+    def test_chat_posts_to_v1_chat_completions_not_bare_chat_completions(self):
+        """End-to-end at the request-construction level: with a bare-root
+        local URL, the actual outgoing POST must hit /v1/chat/completions
+        -- the route Ollama actually serves -- not bare /chat/completions,
+        which 404s (reproduced live against a real Ollama instance)."""
+        from applypilot.llm import LLMClient, ModelEntry, local_openai_base_url
+
+        raw_url = "http://127.0.0.1:11434"
+        fake_chain = [ModelEntry("qwen3:1.7b", "local", local_openai_base_url(raw_url), "")]
+        with patch("applypilot.llm._build_fallback_chain", return_value=fake_chain):
+            client = LLMClient(base_url=raw_url, model="qwen3:1.7b", api_key="")
+
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = {"choices": [{"message": {"content": "OK"}}]}
+
+        with patch.object(client._client, "post", return_value=resp) as mock_post:
+            result = client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertEqual(result, "OK")
+        called_url = mock_post.call_args[0][0]
+        self.assertEqual(called_url, "http://127.0.0.1:11434/v1/chat/completions")
+        self.assertNotEqual(called_url, "http://127.0.0.1:11434/chat/completions")
+
+
+@pytest.mark.skipif(
+    not _local_ollama_reachable(), reason="No local Ollama instance reachable at 127.0.0.1:11434",
+)
+class TestRealOllamaIntegration(unittest.TestCase):
+    """Live regression test against a real, running Ollama instance with
+    qwen3:1.7b -- reproduces the exact reported scenario end-to-end rather
+    than mocking httpx. Skipped automatically when no local Ollama is
+    reachable (e.g. in CI)."""
+
+    def test_test_local_style_chat_succeeds_against_real_ollama(self):
+        from applypilot.llm import LLMClient, ModelEntry, local_openai_base_url
+
+        raw_url = "http://127.0.0.1:11434"  # bare root, exactly as reported
+        model = "qwen3:1.7b"
+        env = {
+            k: v for k, v in __import__("os").environ.items()
+            if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
+                         "DEEPSEEK_API_KEY", "LLM_URL",
+                         "APPLYPILOT_LOCAL_LLM_URL", "APPLYPILOT_LOCAL_LLM_MODEL")
+        }
+        env["APPLYPILOT_LOCAL_LLM_URL"] = raw_url
+        env["APPLYPILOT_LOCAL_LLM_MODEL"] = model
+        with patch.dict("os.environ", env, clear=True):
+            client = LLMClient(raw_url, model, "", quality=False)
+            # Mirrors cli.py's test-local: pin to only the local entry.
+            client._fallback_chain = [
+                ModelEntry(model, "local", local_openai_base_url(raw_url), ""),
+            ]
+
+            # max_tokens generously high: qwen3's thinking tokens (visible
+            # via Ollama's OpenAI-compat "reasoning" field, separate from
+            # "content") consume budget before any content is emitted, and
+            # this module's "/no_think" prompt-prefix convention (chat()'s
+            # "Qwen3 optimization") does NOT actually suppress that on this
+            # endpoint -- confirmed live: with max_tokens=200 the reasoning
+            # alone exhausts the budget (finish_reason="length", content
+            # ""), deterministically at temperature=0. That's a separate,
+            # pre-existing behavior (local_tailor.py's own Ollama-native
+            # call sidesteps it with the real "think": false API param
+            # instead of a prompt prefix) -- not the 404/routing bug this
+            # test targets, so it's worked around here with headroom
+            # rather than fixed.
+            reply = client.chat(
+                [{"role": "user", "content": "Reply with exactly: OK"}],
+                max_tokens=1000,
+            )
+        self.assertIn("OK", reply)
 
 
 class TestBuildFallbackChain(unittest.TestCase):

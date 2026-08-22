@@ -299,14 +299,17 @@ def test_local_cmd() -> None:
     Exit code 0 = working, 1 = not configured or unreachable.
     """
     _bootstrap()
-    from applypilot.llm import ModelEntry, is_local_configured, local_available, LLMClient
+    from applypilot.llm import (
+        ModelEntry, is_local_configured, local_available, local_openai_base_url, LLMClient,
+    )
 
     if not is_local_configured():
         console.print(
             "[yellow]No local LLM configured.[/yellow]  "
             "Set [bold]APPLYPILOT_LOCAL_LLM_URL[/bold] in "
             "[dim]~/.applypilot/.env[/dim] or the environment.\n"
-            "Example (Ollama default): APPLYPILOT_LOCAL_LLM_URL=http://localhost:11434/v1"
+            "Example (Ollama default): APPLYPILOT_LOCAL_LLM_URL=http://localhost:11434 "
+            "(with or without a trailing /v1 -- both work)"
         )
         raise typer.Exit(code=1)
 
@@ -327,7 +330,12 @@ def test_local_cmd() -> None:
         # pin the chat probe to only the local entry so a configured cloud
         # key (e.g. GEMINI_API_KEY) can never mask a broken/unreachable
         # local model behind a "working" cloud fallback response.
-        client._fallback_chain = [ModelEntry(model, "local", url, "")]
+        #
+        # LLMClient is OpenAI-compatible-only (always posts to
+        # {base_url}/chat/completions), so the entry's base_url must be
+        # the /v1 root regardless of whether the user configured the bare
+        # server root or already included /v1 -- see local_openai_base_url.
+        client._fallback_chain = [ModelEntry(model, "local", local_openai_base_url(url), "")]
         reply = client.chat(
             [{"role": "user", "content": 'Reply with exactly: {"status":"ok"}'}],
             max_tokens=30,

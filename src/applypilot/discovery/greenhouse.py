@@ -58,7 +58,19 @@ class _HTMLStripper(HTMLParser):
     def handle_starttag(self, tag: str, attrs: list) -> None:
         if tag in ("script", "style"):
             self._skip = True
-        elif tag in ("p", "br", "li", "div", "tr", "h1", "h2", "h3", "h4"):
+        elif tag == "li":
+            # Preserve list-item structure with a "- " marker (matches
+            # enrichment/detail.py's clean_description, which does the same
+            # for the non-Greenhouse enrichment path) -- without it, a real
+            # <ul><li>Experience with Python</li></ul> requirements list
+            # flattens to bare, unmarked lines indistinguishable from
+            # prose. local_tailor._REQUIREMENT_MARKER_RE looks for exactly
+            # this kind of bullet/numbered prefix to extract requirement
+            # lines, so losing it here silently made the local-tailoring
+            # planner treat jobs with genuine itemized requirements as
+            # having nothing to extract at all.
+            self.parts.append("\n- ")
+        elif tag in ("p", "br", "div", "tr", "h1", "h2", "h3", "h4"):
             self.parts.append("\n")
 
     def handle_endtag(self, tag: str) -> None:
