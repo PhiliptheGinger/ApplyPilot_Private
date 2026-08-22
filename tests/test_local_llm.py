@@ -29,16 +29,19 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
 def _matchable_job_and_profile():
-    """A minimal (job, profile) pair that deterministically produces both a
-    non-empty extracted requirement line and a non-empty retrieved evidence
-    item, so get_local_tailoring_plan actually calls the local model instead
-    of taking its no-LLM-needed short-circuit. Used by tests that exercise
-    the HTTP call itself (errors, malformed output, payload shape)."""
+    """A minimal (job, profile) pair that deterministically produces a
+    genuinely AMBIGUOUS requirement/evidence pairing -- two evidence items
+    tied for the top deterministic term-overlap score against the one
+    requirement line (see _pair_candidate_evidence) -- so
+    get_local_tailoring_plan actually calls the local model instead of
+    resolving everything itself. Used by tests that exercise the HTTP call
+    itself (errors, malformed output, payload shape)."""
     job = {"title": "Engineer", "full_description": "- Python experience required\n"}
     profile = {
         "resume_facts": {},
         "skills_inventory": [
             {"name": "Python", "resume_allowed": True, "relevance_categories": ["python"]},
+            {"name": "Python Fundamentals", "resume_allowed": True, "relevance_categories": ["python"]},
         ],
     }
     return job, profile
@@ -997,21 +1000,38 @@ class TestPlanUsesEvidenceGrounding(unittest.TestCase):
 
     def test_prompt_includes_evidence_section_when_matched(self):
         """get_local_tailoring_plan must actually send the retrieved
-        evidence to the local model, not just compute it and discard it."""
+        evidence to the local model when a requirement is genuinely
+        ambiguous between multiple deterministically-tied candidates (see
+        _pair_candidate_evidence) -- not just compute it and discard it."""
         from applypilot.scoring import local_tailor
 
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.raise_for_status.return_value = None
         mock_resp.json.return_value = {"message": {"content": '{"matches":[]}'}}
+        job = self._job()
+        # Two projects with identical category/concept tags, so both tie
+        # for the top pair-score against the single requirement line --
+        # a genuine ambiguity that must reach the model.
+        profile = {
+            "project_inventory": [
+                {"name": "Standup-OCR", "relevance_categories": ["python", "ocr", "automation"],
+                 "factual_concepts": ["Python", "OCR"], "resume_allowed": True},
+                {"name": "Doc-OCR Pipeline", "relevance_categories": ["python", "ocr", "automation"],
+                 "factual_concepts": ["Python", "OCR"], "resume_allowed": True},
+            ],
+            "skills_inventory": [], "experience_inventory": [],
+        }
         env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
         with patch.dict("os.environ", env, clear=False), \
              patch("httpx.post", return_value=mock_resp) as mock_post:
-            local_tailor.get_local_tailoring_plan("Resume text.", self._job(), _sample_profile())
+            local_tailor.get_local_tailoring_plan("Resume text.", job, profile)
         sent_payload = mock_post.call_args.kwargs["json"]
         user_content = sent_payload["messages"][1]["content"]
         self.assertIn("EVIDENCE", user_content)
         self.assertIn("Standup-OCR", user_content)
+        self.assertIn("Doc-OCR Pipeline", user_content)
+        self.assertIn("candidates:", user_content)
 
     def test_plan_grounded_in_evidence_not_literal_resume_survives_validation(self):
         """A plan entry grounded in the retrieved EVIDENCE block
@@ -1044,6 +1064,143 @@ class TestPlanUsesEvidenceGrounding(unittest.TestCase):
         self.assertTrue(plan["requirements"][0]["supported"])
         self.assertIn("ocr", plan["keyword_targets"])
         self.assertIn("Standup-OCR", plan["matching_projects"])
+
+
+# ---------------------------------------------------------------------------
+# 12c. Deterministic requirement<->evidence PAIR scoring narrows candidates
+#
+# Regression coverage for a real live-test failure (jobs 20171/20170): with
+# a flat E1..En evidence list and no per-requirement signal, Qwen3:1.7b
+# matched a "Practice excellent customer service" requirement to the
+# Python skill (topically present *somewhere* in the evidence, but with no
+# actual bearing on customer service) while missing genuinely relevant
+# customer-service/sales evidence. _pair_candidate_evidence closes that gap
+# deterministically -- these tests exercise it directly and end-to-end.
+# ---------------------------------------------------------------------------
+
+def _job_domain_mix_profile():
+    """Evidence spanning three unrelated domains (customer service,
+    sales, technical) so a requirement about one domain has a
+    deterministically obvious in-domain candidate and several
+    deterministically obvious NON-candidates -- exactly the shape of the
+    live 20171/20170 failures (Mavis/Waffle House misread as Python)."""
+    return {
+        "experience_inventory": [
+            {"name": "National Tire and Battery / Mavis",
+             "relevance_categories": ["automotive", "customer service"], "resume_allowed": True},
+            {"name": "AMP Smart", "relevance_categories": ["sales"], "resume_allowed": True},
+            {"name": "Waffle House", "relevance_categories": ["customer service"], "resume_allowed": True},
+        ],
+        "skills_inventory": [
+            {"name": "Python", "relevance_categories": ["technical"], "resume_allowed": True},
+            {"name": "CompTIA A+", "relevance_categories": ["information technology"], "resume_allowed": True},
+        ],
+        "project_inventory": [],
+    }
+
+
+def _job_domain_mix_job():
+    # Every category term below must appear somewhere in the description
+    # so rank_profile_evidence retrieves all five items -- the prose line
+    # (not a bullet) supplies terms for items whose specific requirement
+    # bullet won't mention them, mirroring how a real posting's "About us"
+    # boilerplate primes retrieval without being a requirement itself.
+    return {
+        "title": "Hardware Sales Associate",
+        "full_description": (
+            "We value sales, technical, information technology, and "
+            "automotive skills, plus excellent customer service.\n"
+        ),
+    }
+
+
+class TestPairScoringNarrowsCandidates(unittest.TestCase):
+    def _ranked(self):
+        from applypilot.scoring.local_tailor import rank_profile_evidence
+        return rank_profile_evidence(_job_domain_mix_job(), _job_domain_mix_profile(), top_n=10)
+
+    def test_customer_service_requirement_excludes_python(self):
+        from applypilot.scoring.local_tailor import _pair_candidate_evidence
+        ranked = self._ranked()
+        names = [r["name"] for r in ranked]
+        cands = _pair_candidate_evidence(
+            "Practice excellent customer service at all times", ranked,
+        )
+        cand_names = {names[i - 1] for i in cands}
+        self.assertTrue(cand_names & {"National Tire and Battery / Mavis", "Waffle House"})
+        self.assertNotIn("Python", cand_names)
+        self.assertNotIn("CompTIA A+", cand_names)
+
+    def test_sales_outreach_requirement_favors_amp_smart(self):
+        from applypilot.scoring.local_tailor import _pair_candidate_evidence
+        ranked = self._ranked()
+        names = [r["name"] for r in ranked]
+        cands = _pair_candidate_evidence(
+            "Generate leads and close sales with new customers", ranked,
+        )
+        cand_names = {names[i - 1] for i in cands}
+        self.assertIn("AMP Smart", cand_names)
+        self.assertNotIn("Python", cand_names)
+        self.assertNotIn("National Tire and Battery / Mavis", cand_names)
+
+    def test_technical_requirement_favors_python_and_a_plus(self):
+        from applypilot.scoring.local_tailor import _pair_candidate_evidence
+        ranked = self._ranked()
+        names = [r["name"] for r in ranked]
+        cands = _pair_candidate_evidence(
+            "Strong technical and information technology troubleshooting skills", ranked,
+        )
+        cand_names = {names[i - 1] for i in cands}
+        self.assertTrue(cand_names & {"Python", "CompTIA A+"})
+        self.assertNotIn("Waffle House", cand_names)
+        self.assertNotIn("AMP Smart", cand_names)
+
+    def test_irrelevant_evidence_excluded_from_candidates(self):
+        from applypilot.scoring.local_tailor import _pair_candidate_evidence
+        ranked = self._ranked()
+        cands = _pair_candidate_evidence("Lift up to 50 pounds of merchandise", ranked)
+        self.assertEqual(cands, [])
+
+    def test_end_to_end_model_cannot_select_python_for_customer_service_requirement(self):
+        """Even if the local model ignores its candidate hint and cites
+        Python for a customer-service requirement, get_local_tailoring_plan
+        must strip that pick -- enforcement happens in code (see
+        _merge_model_matches_with_resolved), not by trusting the prompt."""
+        from applypilot.scoring import local_tailor
+
+        job = {
+            "title": "Hardware Sales Associate",
+            "full_description": (
+                "- Practice excellent customer service at all times\n"
+                "\n"
+                "We value sales, technical, information technology, and "
+                "automotive skills.\n"
+            ),
+        }
+        profile = _job_domain_mix_profile()
+        ranked = local_tailor.rank_profile_evidence(job, profile, top_n=10)
+        names = [r["name"] for r in ranked]
+        waffle_id = names.index("Waffle House") + 1
+        python_id = names.index("Python") + 1
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.raise_for_status.return_value = None
+        mock_resp.json.return_value = {
+            "message": {"content": (
+                f'{{"matches":[{{"r":1,"e":[{waffle_id},{python_id}]}}]}}'
+            )}
+        }
+        env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
+        with patch.dict("os.environ", env, clear=False), \
+             patch("httpx.post", return_value=mock_resp):
+            plan = local_tailor.get_local_tailoring_plan("resume", job, profile)
+
+        self.assertIsNotNone(plan)
+        self.assertEqual(plan["requirements"][0]["resume_evidence"], ["Waffle House"])
+        self.assertNotIn("Python", plan["skills_to_emphasize"])
+        joined = " ".join(plan["_warnings"])
+        self.assertIn("not in its deterministic candidate tier", joined)
 
 
 # ---------------------------------------------------------------------------
@@ -1193,8 +1350,13 @@ class TestDebugPlanForJob(unittest.TestCase):
         mock_resp.status_code = 200
         mock_resp.raise_for_status.return_value = None
         mock_resp.json.return_value = {"message": {"content": '{"matches":[]}'}}
+        # "automation" only appears via the title, not this specific
+        # requirement line, so Standup-OCR (categories python/ocr/
+        # automation) and the Python skill (categories python/automation)
+        # tie for the top pair-score against it -- genuinely ambiguous,
+        # so the HTTP call actually happens.
         job = {"url": "https://example.com/j1", "title": "Python Automation Engineer",
-               "full_description": "- Python automation and OCR experience required\n"}
+               "full_description": "- Python experience required\n"}
         env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
         with patch.dict("os.environ", env, clear=False), \
              patch("httpx.post", return_value=mock_resp), \
@@ -1211,8 +1373,11 @@ class TestDebugPlanForJob(unittest.TestCase):
     def test_returns_none_when_local_planning_fails(self):
         from applypilot.scoring import local_tailor
 
+        # See the sibling test above for why this description (rather than
+        # the full "Python automation and OCR..." line) is needed to force
+        # a genuinely ambiguous pair-score and therefore an actual HTTP call.
         job = {"url": "https://example.com/j2", "title": "Python Automation Engineer",
-               "full_description": "- Python automation and OCR experience required\n"}
+               "full_description": "- Python experience required\n"}
         env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
         with patch.dict("os.environ", env, clear=False), \
              patch("httpx.post", side_effect=ConnectionError("refused")), \

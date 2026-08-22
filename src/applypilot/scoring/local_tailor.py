@@ -362,10 +362,38 @@ def _extract_requirement_lines(description: str, max_lines: int = 8) -> list[dic
     return _split_requirement_lines(description, max_lines=max_lines)[0]
 
 
-def _format_requirement_lines(lines: list[dict]) -> str:
+def _format_requirement_lines(
+    lines: list[dict],
+    candidates: dict[int, list[int]] | None = None,
+    only_ids: set[int] | None = None,
+) -> str:
+    """Render requirement lines as "R1 [required] ..." text.
+
+    `only_ids`, if given, renders just those requirement numbers (1-based,
+    matching `lines`' position) -- get_local_tailoring_plan uses this to
+    show the model only the requirements that are still genuinely
+    ambiguous after deterministic pair-scoring (see
+    _auto_resolve_requirements), not ones already resolved without it.
+
+    `candidates`, if given, appends a "(candidates: E2, E5)" hint naming
+    the deterministically top-scoring evidence numbers for that
+    requirement -- steering the model away from evidence a strictly
+    stronger candidate already outranks. This is only a hint: the actual
+    enforcement happens in code afterward (get_local_tailoring_plan
+    intersects the model's answer against this same candidate set), so an
+    ignored hint can't let a low-relevance pick through.
+    """
     if not lines:
         return ""
-    return "\n".join(f"R{i} [{l['importance']}] {l['text']}" for i, l in enumerate(lines, start=1))
+    rendered: list[str] = []
+    for i, l in enumerate(lines, start=1):
+        if only_ids is not None and i not in only_ids:
+            continue
+        line = f"R{i} [{l['importance']}] {l['text']}"
+        if candidates and candidates.get(i):
+            line += " (candidates: " + ", ".join(f"E{c}" for c in candidates[i]) + ")"
+        rendered.append(line)
+    return "\n".join(rendered)
 
 
 def _normalize_term(term: str) -> str:
@@ -499,6 +527,136 @@ def format_evidence_for_prompt(ranked: list[dict]) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Deterministic requirement <-> evidence PAIR scoring
+#
+# rank_profile_evidence already tells us WHY each evidence item matched the
+# job as a whole (matched_terms). What it doesn't do is tell the model
+# which of those terms are actually relevant to any ONE requirement line --
+# so a CPU-only 1-2B model, faced with a flat E1..En list and no per-
+# requirement signal, ends up re-deriving relevance from scratch per pair
+# and gets it wrong exactly where it matters: picking Python for a
+# "customer service" requirement because Python was topically present
+# *somewhere* in the evidence, or rejecting a genuinely relevant employer
+# because nothing in its own free-text reasoning connected the dots.
+#
+# This closes that gap without asking the model to reason better: for each
+# requirement line, re-score each evidence item's ALREADY-COMPUTED
+# matched_terms against just that line's text (not the whole job
+# description). An evidence item whose matched_terms don't appear anywhere
+# in a given requirement line has, by definition, no demonstrated overlap
+# with THAT requirement -- it's excluded outright, not just deprioritized.
+# Only the TOP-SCORING tier per requirement survives as a "candidate";
+# anything scoring lower is dropped even if nonzero, because a strictly
+# stronger deterministic match already exists for that requirement.
+#
+# What this buys the pipeline:
+#   - 0 candidates  -> requirement is unsupported. No LLM call needed.
+#   - 1 candidate   -> requirement is unambiguously supported by that one
+#                      item. No LLM call needed.
+#   - 2+ candidates -> genuinely ambiguous (deterministic scoring can't
+#                      break the tie) -- and ONLY THEN is the local model
+#                      asked, restricted to choosing among that tier.
+# If every requirement resolves in the first two buckets, the local model
+# is never called at all for this job.
+# ---------------------------------------------------------------------------
+
+def _pair_candidate_evidence(requirement_text: str, ranked_evidence: list[dict]) -> list[int]:
+    """Return the 1-based evidence indices that are the STRONGEST
+    deterministic match for one requirement line, by re-checking each
+    evidence item's job-level `matched_terms` against just this line's
+    text (see the module comment above).
+
+    Returns only the top-scoring tier -- ties for first place, never a
+    runner-up -- so a caller can treat this list as "the evidence this
+    requirement could plausibly cite" rather than "everything topically
+    nearby". Empty if no evidence item has any matched term in this line.
+    """
+    text_lower = requirement_text.lower()
+    scored: list[tuple[int, int]] = []
+    for idx, item in enumerate(ranked_evidence, start=1):
+        score = sum(1 for t in (item.get("matched_terms") or []) if _term_in_text(t, text_lower))
+        if score > 0:
+            scored.append((idx, score))
+    if not scored:
+        return []
+    top = max(s for _, s in scored)
+    return [idx for idx, s in scored if s == top]
+
+
+def _auto_resolve_requirements(
+    requirement_lines: list[dict], ranked_evidence: list[dict],
+) -> tuple[dict[int, list[int]], dict[int, list[int]]]:
+    """Run _pair_candidate_evidence for every requirement and sort the
+    results into what can be settled without the model vs. what's
+    genuinely ambiguous.
+
+    Returns (resolved, candidates):
+      resolved   -- requirement number -> evidence ids, for every
+                    requirement with 0 or 1 top-tier candidate (nothing
+                    for the model to decide).
+      candidates -- requirement number -> top-tier evidence ids, for
+                    EVERY requirement (including resolved ones, where it's
+                    just their 0/1-length entry). Used to (a) build the
+                    "(candidates: ...)" hint shown to the model for the
+                    still-ambiguous requirements and (b) hard-filter
+                    whatever the model answers afterward, so it can never
+                    select an evidence id outside this deterministic tier
+                    even if it ignores the hint.
+    """
+    resolved: dict[int, list[int]] = {}
+    candidates: dict[int, list[int]] = {}
+    for i, line in enumerate(requirement_lines, start=1):
+        cands = _pair_candidate_evidence(line["text"], ranked_evidence)
+        candidates[i] = cands
+        if len(cands) <= 1:
+            resolved[i] = cands
+    return resolved, candidates
+
+
+def _merge_model_matches_with_resolved(
+    raw_plan: dict,
+    resolved: dict[int, list[int]],
+    candidates: dict[int, list[int]],
+    ambiguous_ids: set[int],
+) -> tuple[dict, list[str]]:
+    """Combine the deterministically-resolved requirements with the local
+    model's answer for the (only) ambiguous ones, into the same
+    {"matches": [...]} shape validate_local_plan already expects.
+
+    The model was shown a hint naming each ambiguous requirement's
+    deterministic candidate tier (see _format_requirement_lines), but that
+    hint is advisory -- this is the actual enforcement: any evidence id the
+    model cites for an ambiguous requirement that isn't in that
+    requirement's candidate tier is dropped (not the whole match, just the
+    offending id), and any requirement number the model answers that
+    wasn't even shown to it (hallucinated, or one of the resolved ones) is
+    ignored entirely -- the deterministic answer already stands for those.
+    Returns (combined_plan_dict, extra_warnings).
+    """
+    warnings: list[str] = []
+    combined: dict[int, list[int]] = dict(resolved)
+    for entry in _as_list(raw_plan.get("matches")):
+        if not isinstance(entry, dict):
+            continue
+        r = entry.get("r")
+        if not isinstance(r, int) or isinstance(r, bool) or r not in ambiguous_ids:
+            continue
+        allowed = set(candidates.get(r, []))
+        picked: list[int] = []
+        for e in _as_list(entry.get("e")):
+            if isinstance(e, int) and not isinstance(e, bool) and e in allowed:
+                picked.append(e)
+            else:
+                warnings.append(
+                    f"Dropped model-selected evidence {e!r} for R{r}: not in its "
+                    "deterministic candidate tier"
+                )
+        combined[r] = picked
+    matches = [{"r": r, "e": ids} for r, ids in combined.items()]
+    return {"matches": matches}, warnings
+
+
+# ---------------------------------------------------------------------------
 # Structured tailoring PLAN (the normal, recommended local-model role)
 # ---------------------------------------------------------------------------
 
@@ -520,6 +678,14 @@ _PLAN_SYSTEM = (
     "the requirement's subject matter, not just share a job title or "
     "industry with it. If nothing in EVIDENCE supports a requirement, give "
     "it an empty list; do not guess or stretch a match.\n\n"
+    "You are only ever shown requirements that were too close to call "
+    "deterministically -- every requirement here already has a "
+    "'(candidates: E2, E5)' hint listing the ONLY evidence numbers worth "
+    "considering for it, pre-computed by scoring shared terms/categories "
+    "between the requirement and each evidence item. You MUST choose only "
+    "from a requirement's own candidates (or none) -- never cite an "
+    "evidence number for a requirement that isn't in its candidate list, "
+    "even if it appears elsewhere in EVIDENCE and seems related.\n\n"
     "Output ONLY this JSON shape, nothing else -- no markdown fences, no "
     "prose before or after it:\n"
     '{"matches": [{"r": 1, "e": [2, 5]}, {"r": 2, "e": []}]}\n'
@@ -552,9 +718,21 @@ def get_local_tailoring_plan(
     description and drops employer-benefit lines before the model ever
     sees them; rank_profile_evidence retrieves up to `top_n` (default 6,
     override via APPLYPILOT_LOCAL_EVIDENCE_TOPN) already-vetted profile
-    items. The model's only job is picking which evidence numbers support
-    each requirement number -- if either list is empty there is nothing to
-    match, so the local model isn't called at all.
+    items. If either list is empty there is nothing to match, so the local
+    model isn't called at all.
+
+    Otherwise, _auto_resolve_requirements pair-scores every requirement
+    against every evidence item's already-computed matched_terms (see the
+    module comment above _pair_candidate_evidence) and settles anything
+    with 0 or 1 top-tier candidate deterministically -- 0 means
+    unsupported, 1 means unambiguously supported by that item, neither
+    needs the model to weigh in. The local model is asked ONLY about
+    requirements left with 2+ tied top-tier candidates (genuine
+    ambiguity a lexical-overlap heuristic can't break), and even then its
+    answer is hard-filtered back down to that requirement's own candidate
+    set afterward -- so it can never select an evidence item a
+    deterministically stronger candidate already outranks. If nothing is
+    ambiguous, the model is never called for this job at all.
     """
     # Avoid circular import
     from applypilot.scoring.tailor import display_company
@@ -582,6 +760,25 @@ def get_local_tailoring_plan(
         plan["_warnings"].append(reason)
         return plan
 
+    resolved, candidates = _auto_resolve_requirements(requirement_lines, ranked_evidence)
+    ambiguous_ids = {i for i in range(1, len(requirement_lines) + 1) if i not in resolved}
+
+    if not ambiguous_ids:
+        log.debug(
+            "Local tailoring plan for %s: skipped LLM call -- all %d requirement(s) "
+            "resolved deterministically via requirement/evidence term overlap "
+            "(no requirement had 2+ evidence items tied for top relevance)",
+            (job.get("title") or "")[:40], len(requirement_lines),
+        )
+        combined = {"matches": [{"r": r, "e": ids} for r, ids in resolved.items()]}
+        plan = validate_local_plan(combined, requirement_lines, ranked_evidence)
+        plan["_warnings"].append(
+            "Skipped local LLM call: every requirement resolved deterministically "
+            "via requirement/evidence term overlap -- no requirement had 2+ "
+            "evidence items tied for top relevance."
+        )
+        return plan
+
     url = os.environ.get("APPLYPILOT_LOCAL_LLM_URL", _DEFAULT_LOCAL_URL).rstrip("/")
     model = os.environ.get("APPLYPILOT_LOCAL_LLM_MODEL", _DEFAULT_LOCAL_MODEL)
     timeout = float(os.environ.get("APPLYPILOT_LOCAL_LLM_TIMEOUT", "60"))
@@ -592,7 +789,9 @@ def get_local_tailoring_plan(
         f"COMPANY: {company or 'unknown'}"
     )
     evidence_text = format_evidence_for_prompt(ranked_evidence)
-    requirements_text = _format_requirement_lines(requirement_lines)
+    requirements_text = _format_requirement_lines(
+        requirement_lines, candidates=candidates, only_ids=ambiguous_ids,
+    )
 
     user_msg = (
         f"JOB:\n{job_text}\n\n"
@@ -632,12 +831,18 @@ def get_local_tailoring_plan(
             log.warning("Local tailoring plan for %s: parsed JSON was not an object (got %s)",
                         (job.get("title") or "")[:40], type(raw_plan).__name__)
             return None
-        sanitized = validate_local_plan(raw_plan, requirement_lines, ranked_evidence)
+        combined, filter_warnings = _merge_model_matches_with_resolved(
+            raw_plan, resolved, candidates, ambiguous_ids,
+        )
+        sanitized = validate_local_plan(combined, requirement_lines, ranked_evidence)
+        sanitized["_warnings"].extend(filter_warnings)
         log.debug(
-            "Local tailoring plan for %s: %d/%d requirement(s) supported, %d warning(s)",
+            "Local tailoring plan for %s: %d/%d requirement(s) supported, %d warning(s), "
+            "%d/%d requirement(s) sent to the model (rest resolved deterministically)",
             (job.get("title") or "")[:40],
             sum(1 for r in sanitized["requirements"] if r["supported"]),
             len(sanitized["requirements"]), len(sanitized["_warnings"]),
+            len(ambiguous_ids), len(requirement_lines),
         )
         return sanitized
     except httpx.TimeoutException as exc:
