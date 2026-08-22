@@ -737,6 +737,97 @@ class TestDeterministicRequirementExtraction(unittest.TestCase):
         self.assertFalse(any("Tuition" in t for t in texts))
         self.assertFalse(any("Career growth" in t for t in texts))
 
+    def test_real_world_total_compensation_bullets_are_all_filtered(self):
+        """The exact 'Total Compensation Package' block from a real posting
+        (O'Reilly Auto Parts, job 20172). The last three previously survived
+        the filter and the local model then marked two of them 'supported'
+        because a past employer plausibly offered them -- an employer's
+        offer laundered into a candidate qualification. Every one of these
+        must be dropped before the model ever sees it."""
+        from applypilot.scoring.local_tailor import _extract_requirement_lines
+        desc = (
+            "  * Competitive Wages & Paid Time Off \n"
+            "  * Stock Purchase Plan & 401k with Employer Contributions Starting Day One \n"
+            "  * Medical, Dental, & Vision Insurance with Optional Flexible Spending Account (FSA) \n"
+            "  * Team Member Health/Wellbeing Programs \n"
+            "  * Tuition Educational Assistance Programs \n"
+            "  * Opportunities for Career Growth \n"
+        )
+        self.assertEqual(_extract_requirement_lines(desc), [])
+
+    def test_benefit_phrasing_variants_are_recognized(self):
+        """Phrase/category matching, not one-off strings: each of these is a
+        differently-worded instance of a category the filter must cover."""
+        from applypilot.scoring.local_tailor import _is_benefit_line
+        for line in [
+            "Team Member Health/Wellbeing Programs",
+            "Employee Wellness Programs",
+            "Team wellness program and on-site fitness classes",
+            "Tuition Educational Assistance Programs",
+            "Tuition reimbursement after one year",
+            "Educational Assistance available day one",
+            "Opportunities for Career Growth",
+            "Career growth opportunities",
+            "Advancement opportunities within the organization",
+            "Generous PTO and paid holidays",
+            "Paid Time Off and paid parental leave",
+            "Competitive Wages & Paid Time Off",
+            "Competitive compensation and annual bonus",
+            "Competitive pay based on market data",
+            "401k with Employer Contributions Starting Day One",
+            "401(k) with company match",
+            "Retirement savings plan",
+            "Stock Purchase Plan & employee stock options",
+            "Employee stock purchase plan",
+            "Medical, Dental, & Vision Insurance",
+            "Comprehensive health, dental, and vision insurance",
+            "Vision insurance and life insurance",
+            "Optional Flexible Spending Account (FSA)",
+            "FSA and HSA options",
+        ]:
+            with self.subTest(line=line):
+                self.assertTrue(_is_benefit_line(line), f"not filtered: {line!r}")
+
+    def test_real_qualifications_are_not_filtered_as_benefits(self):
+        """The mirror-image failure: 'health', 'education' and 'career' are
+        ordinary words inside genuine requirements, so their presence alone
+        must never drop a line."""
+        from applypilot.scoring.local_tailor import _is_benefit_line
+        for line in [
+            "Bachelor's degree in Health Sciences required",
+            "5+ years of experience in health care operations",
+            "Experience with health insurance claims processing systems",
+            "Knowledge of retirement plan administration",
+            "Ability to educate customers on product options",
+            "Familiarity with career services software preferred",
+            "Must have a background in education technology",
+            "Responsible for payroll processing and reconciliation",
+            "Demonstrated track record of career-long technical leadership",
+            "3+ years of Python experience required",
+            "Ability to quickly match alphanumeric sequences",
+            "Ability to provide outstanding, friendly and professional customer service",
+            "Familiar with automotive parts, cataloging, and automotive sales or service",
+            "ASE certification",
+            "Fluency in multiple languages (Spanish is highly desired)",
+            "Bachelor's degree preferred",
+        ]:
+            with self.subTest(line=line):
+                self.assertFalse(_is_benefit_line(line), f"wrongly filtered: {line!r}")
+
+    def test_split_reports_dropped_benefit_lines(self):
+        from applypilot.scoring.local_tailor import _split_requirement_lines
+        desc = (
+            "- 3+ years of Python experience required\n"
+            "- Opportunities for Career Growth\n"
+            "- Tuition Educational Assistance Programs\n"
+        )
+        lines, dropped = _split_requirement_lines(desc)
+        self.assertEqual([l["text"] for l in lines],
+                         ["3+ years of Python experience required"])
+        self.assertEqual(dropped,
+                         ["Opportunities for Career Growth",
+                          "Tuition Educational Assistance Programs"])
+
 
 # ---------------------------------------------------------------------------
 # 11. Deterministic evidence retrieval/ranking (no LLM, no embeddings)
@@ -1005,6 +1096,50 @@ class TestSkipsLlmCallWhenNothingToMatch(unittest.TestCase):
         self.assertIsNotNone(plan)
         self.assertEqual(plan["unsupported_requirements"],
                           ["Culinary arts degree required"])
+
+    def test_benefits_only_posting_skips_llm_call(self):
+        """A posting whose only bullet lines are employer benefits has
+        nothing for the model to match, so it must not be called at all --
+        and the plan must say so, since 'no requirements' and 'all
+        requirements were perks' look identical in the debug output
+        otherwise."""
+        from applypilot.scoring import local_tailor
+        job = {
+            "title": "Parts Specialist",
+            "full_description": (
+                "Total Compensation Package\n"
+                "  * Competitive Wages & Paid Time Off \n"
+                "  * Stock Purchase Plan & 401k with Employer Contributions Starting Day One \n"
+                "  * Medical, Dental, & Vision Insurance with Optional Flexible Spending Account (FSA) \n"
+                "  * Team Member Health/Wellbeing Programs \n"
+                "  * Tuition Educational Assistance Programs \n"
+                "  * Opportunities for Career Growth \n"
+            ),
+        }
+        profile = {
+            "resume_facts": {},
+            "skills_inventory": [
+                {"name": "Customer Service", "resume_allowed": True,
+                 "relevance_categories": ["customer", "service", "retail"]},
+            ],
+        }
+        env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
+        with patch.dict("os.environ", env, clear=False), \
+             patch("httpx.post") as mock_post:
+            plan = local_tailor.get_local_tailoring_plan("resume", job, profile)
+
+        mock_post.assert_not_called()
+        self.assertIsNotNone(plan)
+        self.assertEqual(plan["requirements"], [])
+        self.assertEqual(plan["unsupported_requirements"], [])
+        # No fabricated candidate evidence anywhere in the plan.
+        self.assertEqual(plan["skills_to_emphasize"], [])
+        self.assertEqual(plan["matching_projects"], [])
+        self.assertEqual(plan["summary_focus"], [])
+        joined = " ".join(plan["_warnings"])
+        self.assertIn("Skipped local LLM call", joined)
+        self.assertIn("employer benefits/perks", joined)
+        self.assertIn("Tuition Educational Assistance Programs", joined)
 
 
 class TestThinkDisabled(unittest.TestCase):

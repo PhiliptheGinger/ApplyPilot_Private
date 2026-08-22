@@ -35,8 +35,10 @@ Public API
 
   get_local_tailoring_plan(resume_text, job, profile) -> dict | None
       Deterministically extracts requirement lines (see
-      _extract_requirement_lines -- employer-benefit lines like PTO/401(k)
-      are filtered out here, before the model ever sees them) and retrieves
+      _extract_requirement_lines / _is_benefit_line -- employer-benefit
+      lines like PTO/401(k)/tuition assistance/career-growth opportunities
+      are filtered out here, before the model ever sees them, so they can
+      never be "matched" to candidate evidence) and retrieves
       candidate evidence (rank_profile_evidence), asks the local model only
       to match requirement numbers to evidence numbers, then runs that
       through validate_local_plan() -- which does the actual field
@@ -199,42 +201,126 @@ _TERM_WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9+.#/_-]*")
 # Employer-offered benefits/perks/compensation lines are not candidate
 # qualifications and must never reach the local model as a "requirement" to
 # reason about -- deterministic preprocessing so a CPU-only small model
-# doesn't have to (re-)learn that PTO/401(k)/insurance aren't skills. This
-# is a filter over an already-narrow set (bullet/numbered lines), so a false
-# positive here just drops one line, not a whole section.
+# doesn't have to (re-)learn that PTO/401(k)/insurance aren't skills. It
+# gets this wrong in exactly the way that matters: shown "Tuition
+# Educational Assistance Programs" as a requirement, a small model happily
+# marks it "supported" because the candidate once worked somewhere that
+# offered tuition assistance -- turning an employer's offer into a claimed
+# candidate qualification. That distinction is decided here, in code,
+# before the model can blur it; it is not something to ask the model to
+# reason better about.
+#
+# Matching is two-tiered rather than a flat phrase list, because employers
+# phrase the same perk a dozen ways ("Tuition Reimbursement", "Tuition
+# Educational Assistance Programs", "Educational Assistance"):
+#
+#   _BENEFIT_LINE_RE   -- phrases that are unambiguous on their own. No
+#       employer asks a candidate to bring their own 401(k) or FSA.
+#   _BENEFIT_TOPIC_RE + _BENEFIT_FRAME_RE -- a benefit SUBJECT ("health",
+#       "career", "stock", "wages") appearing alongside benefit FRAMING
+#       ("programs", "opportunities", "assistance", "employer
+#       contributions"). Neither half drops a line by itself: "health",
+#       "education" and "career" are ordinary words inside real
+#       qualifications, and so are "plans" and "programs".
+#   _CANDIDATE_SIGNAL_RE -- vetoes the two-part rule when the line is
+#       phrased as something asked OF the candidate ("experience with
+#       health insurance claims", "knowledge of retirement plan
+#       administration"). Not applied to the unambiguous tier.
+#
+# This is a filter over an already-narrow set (bullet/numbered lines), so a
+# false positive here just drops one line, not a whole section.
 _BENEFIT_LINE_RE = re.compile(
+    r"("
+    r"\bpaid\s+(?:time\s+off|holidays?|sick\s+(?:leave|time)|parental\s+leave|"
+    r"vacation|maternity\s+leave|paternity\s+leave)\b|"
+    r"\bpto\b|\b401\s?\(?k\)?\b|\bhsa\b|\bfsa\b|\bespp\b|"
+    r"\bflexible\s+spending\b|"
+    r"\b(?:employee\s+)?stock\s+(?:purchase|option|award|grant)s?\b|"
+    r"\bequity\s+(?:grants?|awards?|package)\b|"
+    r"\b(?:medical|health|dental|vision)\s*[,/&]\s*(?:medical|health|dental|vision)\b|"
+    r"\b(?:life|disability|medical|dental|vision)\s+insurance\b|"
+    r"\b(?:tuition|education|educational)\s+(?:\w+\s+){0,2}?"
+    r"(?:reimbursement|assistance|benefits?)\b|"
+    r"\bemployer\s+(?:contribution|match)\w*\b|\bcompany\s+match\b|"
+    r"\bcompetitive\s+(?:salary|salaries|pay|wages?|compensation|benefits?)\b|"
+    r"\b(?:generous|comprehensive|robust|excellent)\s+(?:benefits?|pto|"
+    r"paid\s+time\s+off|compensation)\b|"
+    r"\b(?:benefits?|compensation|total\s+rewards?)\s+package\b|"
+    r"\bemployee\s+discounts?\b|\bgym\s+membership\b|\bcommuter\s+benefits?\b|"
+    r"\bprofessional\s+development\s+(?:budget|stipend|allowance|fund)\b"
+    r")", re.IGNORECASE,
+)
+
+# Benefit SUBJECTS. Deliberately broad -- on its own this matches plenty of
+# legitimate requirements, which is why it is never used alone. Some
+# categories live here rather than in the unambiguous tier on purpose:
+# "retirement plan" is a benefit on a perks list but a subject-matter
+# requirement in "knowledge of retirement plan administration", and only
+# this tier is subject to the _CANDIDATE_SIGNAL_RE veto.
+_BENEFIT_TOPIC_RE = re.compile(
     r"\b("
-    r"paid\s+time\s+off|\bpto\b|401\(?k\)?|health\s+insurance|dental\s+insurance|"
-    r"vision\s+insurance|medical,?\s+dental,?\s+(?:and\s+)?vision|"
-    r"health,?\s+dental,?\s+(?:and\s+)?vision|medical\s+(?:benefits|plan)|"
-    r"tuition\s+(?:reimbursement|assistance)|wellness\s+program|wellbeing\s+program|"
-    r"well-being\s+program|stock\s+(?:purchase|options?|awards?)\s+plan|"
-    r"employee\s+stock\s+purchase|equity\s+(?:grants?|awards?)|parental\s+leave|"
-    r"paid\s+holidays?|paid\s+sick\s+leave|employee\s+discounts?|gym\s+membership|"
-    r"life\s+insurance|disability\s+insurance|retirement\s+(?:plan|savings)|"
-    r"flexible\s+spending\s+account|\bfsa\b|\bhsa\b|commuter\s+benefits?|"
-    r"career\s+growth\s+opportunit\w*|professional\s+development\s+(?:budget|stipend)|"
-    r"competitive\s+(?:salary|pay|wages?|compensation)|generous\s+benefits|"
-    r"comprehensive\s+benefits"
+    r"health|healthcare|health\s?care|wellness|well-?being|medical|dental|vision|"
+    r"insurance|coverage|tuition|education(?:al)?|career|advancement|"
+    r"professional\s+development|retirement|pension|401k?|stock|equity|"
+    r"compensation|salary|salaries|wages?|pay|payroll|bonus(?:es)?|"
+    r"time\s+off|holidays?|vacation|leave|discounts?|perks?|benefits?|rewards?"
+    r")\b", re.IGNORECASE,
+)
+
+# Benefit FRAMING -- the words employers use when OFFERING something rather
+# than asking for it.
+_BENEFIT_FRAME_RE = re.compile(
+    r"\b("
+    r"programs?|plans?|packages?|benefits?|perks?|offerings?|opportunit\w+|"
+    r"assistance|reimbursement|insurance|coverage|contributions?|match(?:es|ing)?|"
+    r"discounts?|stipends?|allowances?|savings|purchase|bonus(?:es)?|eligib\w+|"
+    r"enrollment|competitive|generous|comprehensive|paid|"
+    r"employer[-\s]paid|company[-\s]paid"
+    r")\b", re.IGNORECASE,
+)
+
+# Phrasing that marks a line as something asked OF the candidate. Only
+# vetoes the two-part topic+frame rule, so genuine qualifications that
+# happen to be ABOUT benefits ("experience administering 401(k) plans" is
+# still dropped, "experience with health insurance claims" is not) stay in.
+_CANDIDATE_SIGNAL_RE = re.compile(
+    r"\b("
+    r"years?\s+of\s+experience|experience\s+(?:with|in|using|administering|"
+    r"supporting|managing)|abilit(?:y|ies)\s+to|able\s+to|proficien\w+|"
+    r"knowledge\s+of|familiar(?:ity)?\s+with|degree\s+in|certif\w+\s+in|"
+    r"background\s+in|understanding\s+of|skilled\s+in|expertise\s+in|"
+    r"responsible\s+for|must\s+(?:have|be|possess)|demonstrated\s+\w+|"
+    r"track\s+record\s+of"
     r")\b", re.IGNORECASE,
 )
 
 
-def _extract_requirement_lines(description: str, max_lines: int = 8) -> list[dict]:
-    """Pull bullet/numbered lines from the job description and tag each as
-    required/preferred/unspecified via simple keyword sniffing.
+def _is_benefit_line(text: str) -> bool:
+    """True if `text` reads as something the employer OFFERS (a benefit,
+    perk, or compensation item) rather than something it wants FROM the
+    candidate. See the comment block above for the two tiers."""
+    if _BENEFIT_LINE_RE.search(text):
+        return True
+    if _CANDIDATE_SIGNAL_RE.search(text):
+        return False
+    return bool(_BENEFIT_TOPIC_RE.search(text) and _BENEFIT_FRAME_RE.search(text))
 
-    Pure text processing -- no LLM call. Gives the local model (and the
-    debug command) a pre-highlighted starting point instead of re-deriving
-    requirements from a wall of text every time; it's a hint the model can
-    still disagree with, not a hard constraint. Lines that read as employer
-    benefits/perks/compensation (see _BENEFIT_LINE_RE) are dropped here --
-    they aren't candidate requirements at all, so there's no reason to spend
-    local-model reasoning re-discovering that on every job.
+
+def _split_requirement_lines(
+    description: str, max_lines: int = 8,
+) -> tuple[list[dict], list[str]]:
+    """Same extraction as _extract_requirement_lines, but also returns the
+    benefit/perk lines that were dropped.
+
+    Callers that report on their own behaviour (get_local_tailoring_plan,
+    which notes WHY it skipped the model) need to distinguish "this posting
+    had no bullet lines at all" from "every bullet line was an employer
+    benefit" -- the second is the interesting one.
     """
     if not description:
-        return []
+        return [], []
     lines: list[dict] = []
+    dropped: list[str] = []
     seen: set[str] = set()
     for match in _REQUIREMENT_MARKER_RE.finditer(description):
         text = match.group(1).strip()
@@ -244,7 +330,8 @@ def _extract_requirement_lines(description: str, max_lines: int = 8) -> list[dic
         if key in seen:
             continue
         seen.add(key)
-        if _BENEFIT_LINE_RE.search(text):
+        if _is_benefit_line(text):
+            dropped.append(text)
             continue
         if _PREFERRED_HINT_RE.search(text):
             importance = "preferred"
@@ -255,7 +342,24 @@ def _extract_requirement_lines(description: str, max_lines: int = 8) -> list[dic
         lines.append({"text": text, "importance": importance})
         if len(lines) >= max_lines:
             break
-    return lines
+    return lines, dropped
+
+
+def _extract_requirement_lines(description: str, max_lines: int = 8) -> list[dict]:
+    """Pull bullet/numbered lines from the job description and tag each as
+    required/preferred/unspecified via simple keyword sniffing.
+
+    Pure text processing -- no LLM call. Gives the local model (and the
+    debug command) a pre-highlighted starting point instead of re-deriving
+    requirements from a wall of text every time; it's a hint the model can
+    still disagree with, not a hard constraint. Lines that read as employer
+    benefits/perks/compensation (see _is_benefit_line) are dropped here --
+    they aren't candidate requirements at all, so there's no reason to spend
+    local-model reasoning re-discovering that on every job (and every reason
+    not to: a small model shown a benefit as a "requirement" tends to mark
+    it supported by association with a past employer).
+    """
+    return _split_requirement_lines(description, max_lines=max_lines)[0]
 
 
 def _format_requirement_lines(lines: list[dict]) -> str:
@@ -457,15 +561,26 @@ def get_local_tailoring_plan(
 
     top_n = int(os.environ.get("APPLYPILOT_LOCAL_EVIDENCE_TOPN", "6"))
     ranked_evidence = rank_profile_evidence(job, profile, top_n=top_n)
-    requirement_lines = _extract_requirement_lines(job.get("full_description") or "")
+    requirement_lines, dropped_benefits = _split_requirement_lines(
+        job.get("full_description") or ""
+    )
 
     if not requirement_lines or not ranked_evidence:
-        log.debug(
-            "Local tailoring plan for %s: skipped LLM call (%d requirement line(s), "
-            "%d evidence item(s) -- nothing to match)",
-            (job.get("title") or "")[:40], len(requirement_lines), len(ranked_evidence),
+        reason = (
+            f"Skipped local LLM call: {len(requirement_lines)} requirement line(s), "
+            f"{len(ranked_evidence)} evidence item(s) -- nothing to match."
         )
-        return validate_local_plan({"matches": []}, requirement_lines, ranked_evidence)
+        if not requirement_lines and dropped_benefits:
+            reason += (
+                f" All {len(dropped_benefits)} bullet line(s) in this posting were "
+                "employer benefits/perks, not candidate requirements: "
+                + "; ".join(dropped_benefits[:6])
+            )
+        log.debug("Local tailoring plan for %s: %s",
+                  (job.get("title") or "")[:40], reason)
+        plan = validate_local_plan({"matches": []}, requirement_lines, ranked_evidence)
+        plan["_warnings"].append(reason)
+        return plan
 
     url = os.environ.get("APPLYPILOT_LOCAL_LLM_URL", _DEFAULT_LOCAL_URL).rstrip("/")
     model = os.environ.get("APPLYPILOT_LOCAL_LLM_MODEL", _DEFAULT_LOCAL_MODEL)
