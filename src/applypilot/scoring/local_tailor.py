@@ -1,34 +1,51 @@
 """Local LLM support: a cheap, structured resume/job matching PLANNER.
 
-The local model's job is narrow and deliberate: given a job description and
-the candidate's existing resume, identify what ALREADY EXISTS that should be
-emphasized, reordered, or lightly reworded -- never to invent new facts.  It
-is a semantic preprocessor, not a resume writer.  The stronger cloud model
-remains responsible for final prose quality and can reject a bad local
-recommendation because it always receives the original resume and job too.
+The local model's job is narrow and deliberate, and deliberately NOT
+generative: given a numbered list of job requirements and a numbered list of
+already-vetted candidate evidence (both built with zero LLM calls), it picks
+which evidence numbers (if any) support each requirement number. It never
+writes prose, never restates text, and structurally cannot fabricate a
+skill/employer/tool -- its only possible outputs are references into two
+lists that were assembled deterministically before it ever ran. Everything
+that WAS previously asked of the model in free text (skills_to_emphasize,
+keyword_targets, matching_projects/certifications, summary_focus) is now
+derived in code from which evidence numbers got matched; anything that
+still requires real prose generation (bullet rewrites, resume bullet
+prioritization) is left to the cloud model, which has the full resume in
+hand and is far more reliable at freeform generation than a CPU-only 1-2B
+local model. See validate_local_plan() for where that derivation happens.
 
 Public API
 ----------
   rank_profile_evidence(job, profile, top_n=6) -> list[dict]
       Deterministic (no LLM, no embeddings) retrieval: ranks experience_
-      inventory/project_inventory/skills_inventory entries against the job
-      description by term overlap with their existing relevance_categories/
-      factual_concepts/name fields. Reduces the problem handed to the local
-      model instead of a flat resume dump. Each result records WHY it
-      matched (matched_terms) so the retrieval is inspectable, not a black
-      box -- see the `applypilot debug-local-plan` command.
+      inventory/project_inventory/skills_inventory/certifications entries
+      against the job description by term overlap with their existing
+      relevance_categories/factual_concepts/name fields. Reduces the
+      problem handed to the local model instead of a flat resume dump.
+      Each result records WHY it matched (matched_terms) so the retrieval
+      is inspectable, not a black box -- see the `applypilot
+      debug-local-plan` command. List order is also each item's E-number
+      in the local model's prompt (see format_evidence_for_prompt).
 
   format_evidence_for_prompt(ranked) -> str
-      Renders ranked evidence (plus each item's existing hand-written
-      `constraints`) as compact text for the local model's prompt.
+      Renders ranked evidence (numbered E1, E2, ... plus each item's
+      existing hand-written `constraints`) as compact text for the local
+      model's prompt.
 
   get_local_tailoring_plan(resume_text, job, profile) -> dict | None
-      Calls the local model with the job, deterministically-extracted
-      requirement lines, deterministically-retrieved candidate evidence,
-      and a short resume excerpt; parses its structured JSON plan; runs it
-      through validate_local_plan() (grounding + fabrication checks) before
-      returning it.  Returns None if the local model is unreachable, the
-      response is empty, or the output can't be parsed as JSON at all.
+      Deterministically extracts requirement lines (see
+      _extract_requirement_lines -- employer-benefit lines like PTO/401(k)
+      are filtered out here, before the model ever sees them) and retrieves
+      candidate evidence (rank_profile_evidence), asks the local model only
+      to match requirement numbers to evidence numbers, then runs that
+      through validate_local_plan() -- which does the actual field
+      derivation, not fabrication-checking, since closed-set number
+      references can't be ungrounded. Returns None if the local model is
+      unreachable, the response is empty, or the output can't be parsed as
+      JSON at all. Skips the LLM call entirely (returns an empty-but-valid
+      plan) when there are no requirement lines or no evidence to match
+      against -- there is nothing for the model to usefully decide.
 
   format_local_plan_for_cloud(plan) -> str
       Renders a validated plan as compact text for the cloud model's user
@@ -36,12 +53,18 @@ Public API
       `if rendered:` to decide whether to include a "TAILORING GUIDANCE"
       block at all.
 
-  validate_local_plan(plan, profile, resume_text, extra_grounding_text="") -> dict
-      Deterministic, code-only grounding checks (no LLM call).  Drops any
-      requirement/skill/bullet/keyword/rewrite that cannot be traced back to
-      text that already exists in the resume or extra_grounding_text (the
-      retrieved evidence block).  Never raises; a completely ungrounded
-      plan just comes back empty.
+  validate_local_plan(raw_plan, requirement_lines, ranked_evidence) -> dict
+      Deterministic, code-only (no LLM call). Reads the model's `matches`
+      (requirement number -> evidence numbers), drops any reference outside
+      the given lists' bounds, and builds the full structured plan dict
+      from that: per-requirement supported/resume_evidence, plus
+      skills_to_emphasize/matching_projects/matching_certifications/
+      keyword_targets/summary_focus/unsupported_requirements, all derived
+      from which evidence items got matched -- not asked of the model as
+      free text. bullets_to_prioritize/bullets_to_deemphasize/safe_rewrites
+      are always empty here (real generation tasks, left to the cloud
+      model); the keys are kept for output-shape compatibility. Never
+      raises; malformed matches are dropped and noted in "_warnings".
 
   debug_plan_for_job(job, profile) -> dict | None
       Backing function for the `applypilot debug-local-plan` CLI command:
@@ -75,7 +98,7 @@ import httpx
 
 log = logging.getLogger(__name__)
 
-_DEFAULT_LOCAL_URL = "http://localhost:11434/v1"
+_DEFAULT_LOCAL_URL = "http://localhost:11434"
 _DEFAULT_LOCAL_MODEL = "llama3.2"
 
 # The compact-prompt full-generation path (see _build_compact_local_prompt)
@@ -173,15 +196,41 @@ _PREFERRED_HINT_RE = re.compile(r"\b(preferred|nice[- ]to[- ]have|bonus|a\s+plus
 _REQUIRED_HINT_RE = re.compile(r"\b(required|must\s+have|minimum\s+qualif|required\s+qualif)\b", re.IGNORECASE)
 _TERM_WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9+.#/_-]*")
 
+# Employer-offered benefits/perks/compensation lines are not candidate
+# qualifications and must never reach the local model as a "requirement" to
+# reason about -- deterministic preprocessing so a CPU-only small model
+# doesn't have to (re-)learn that PTO/401(k)/insurance aren't skills. This
+# is a filter over an already-narrow set (bullet/numbered lines), so a false
+# positive here just drops one line, not a whole section.
+_BENEFIT_LINE_RE = re.compile(
+    r"\b("
+    r"paid\s+time\s+off|\bpto\b|401\(?k\)?|health\s+insurance|dental\s+insurance|"
+    r"vision\s+insurance|medical,?\s+dental,?\s+(?:and\s+)?vision|"
+    r"health,?\s+dental,?\s+(?:and\s+)?vision|medical\s+(?:benefits|plan)|"
+    r"tuition\s+(?:reimbursement|assistance)|wellness\s+program|wellbeing\s+program|"
+    r"well-being\s+program|stock\s+(?:purchase|options?|awards?)\s+plan|"
+    r"employee\s+stock\s+purchase|equity\s+(?:grants?|awards?)|parental\s+leave|"
+    r"paid\s+holidays?|paid\s+sick\s+leave|employee\s+discounts?|gym\s+membership|"
+    r"life\s+insurance|disability\s+insurance|retirement\s+(?:plan|savings)|"
+    r"flexible\s+spending\s+account|\bfsa\b|\bhsa\b|commuter\s+benefits?|"
+    r"career\s+growth\s+opportunit\w*|professional\s+development\s+(?:budget|stipend)|"
+    r"competitive\s+(?:salary|pay|wages?|compensation)|generous\s+benefits|"
+    r"comprehensive\s+benefits"
+    r")\b", re.IGNORECASE,
+)
 
-def _extract_requirement_lines(description: str, max_lines: int = 10) -> list[dict]:
+
+def _extract_requirement_lines(description: str, max_lines: int = 8) -> list[dict]:
     """Pull bullet/numbered lines from the job description and tag each as
     required/preferred/unspecified via simple keyword sniffing.
 
     Pure text processing -- no LLM call. Gives the local model (and the
     debug command) a pre-highlighted starting point instead of re-deriving
     requirements from a wall of text every time; it's a hint the model can
-    still disagree with, not a hard constraint.
+    still disagree with, not a hard constraint. Lines that read as employer
+    benefits/perks/compensation (see _BENEFIT_LINE_RE) are dropped here --
+    they aren't candidate requirements at all, so there's no reason to spend
+    local-model reasoning re-discovering that on every job.
     """
     if not description:
         return []
@@ -195,6 +244,8 @@ def _extract_requirement_lines(description: str, max_lines: int = 10) -> list[di
         if key in seen:
             continue
         seen.add(key)
+        if _BENEFIT_LINE_RE.search(text):
+            continue
         if _PREFERRED_HINT_RE.search(text):
             importance = "preferred"
         elif _REQUIRED_HINT_RE.search(text):
@@ -210,7 +261,7 @@ def _extract_requirement_lines(description: str, max_lines: int = 10) -> list[di
 def _format_requirement_lines(lines: list[dict]) -> str:
     if not lines:
         return ""
-    return "\n".join(f"- [{l['importance']}] {l['text']}" for l in lines)
+    return "\n".join(f"R{i} [{l['importance']}] {l['text']}" for i, l in enumerate(lines, start=1))
 
 
 def _normalize_term(term: str) -> str:
@@ -261,8 +312,9 @@ def _job_text_lower(job: dict) -> str:
 
 
 def rank_profile_evidence(job: dict, profile: dict, top_n: int = 6) -> list[dict]:
-    """Rank experience_inventory/project_inventory/skills_inventory items
-    against the job description via deterministic term overlap.
+    """Rank experience_inventory/project_inventory/skills_inventory/
+    certifications items against the job description via deterministic term
+    overlap.
 
     Items marked resume_allowed=False (private/unfinished) are excluded --
     same rule validator.py already applies elsewhere for these inventories.
@@ -270,16 +322,20 @@ def rank_profile_evidence(job: dict, profile: dict, top_n: int = 6) -> list[dict
     (matched-term count) descending, ties broken by inventory order.
 
     Returns entries shaped for both prompt-building and the debug CLI:
-      {"type": "experience" | "project" | "skill", "name": str, "score": int,
-       "matched_terms": list[str], "item": dict}
+      {"type": "experience" | "project" | "skill" | "certification",
+       "name": str, "score": int, "matched_terms": list[str], "item": dict}
     `matched_terms` is exactly what makes this inspectable -- the specific
     job-description terms/categories that caused the match, not a black box.
+    List order also fixes each item's E-number in the local model's prompt
+    (see format_evidence_for_prompt) -- the model only ever cites these
+    numbers back, never free text, so this order IS the grounding contract.
     """
     haystack = _job_text_lower(job)
     sources = (
         ("experience", profile.get("experience_inventory") or []),
         ("project", profile.get("project_inventory") or []),
         ("skill", profile.get("skills_inventory") or []),
+        ("certification", profile.get("certifications") or []),
     )
     ranked: list[dict] = []
     for kind, items in sources:
@@ -303,7 +359,10 @@ def rank_profile_evidence(job: dict, profile: dict, top_n: int = 6) -> list[dict
 
 
 def format_evidence_for_prompt(ranked: list[dict]) -> str:
-    """Render ranked evidence as compact text for the local model's prompt.
+    """Render ranked evidence as compact, numbered (E1, E2, ...) text for
+    the local model's prompt. The number is the ONLY thing the model may
+    cite back (see _PLAN_SYSTEM) -- free-text restatement is not part of
+    its output anymore, so there's no need to give it prose to echo.
 
     Includes each item's existing per-item `constraints` (project_inventory
     already carries hand-written anti-fabrication notes, e.g. "do not claim
@@ -313,21 +372,24 @@ def format_evidence_for_prompt(ranked: list[dict]) -> str:
     if not ranked:
         return ""
     lines: list[str] = []
-    for r in ranked:
+    for i, r in enumerate(ranked, start=1):
         item, kind, name = r["item"], r["type"], r["name"]
+        idx = f"E{i}"
         if kind == "skill":
             level = item.get("evidence_level", "")
-            lines.append(f"- [skill] {name}" + (f" ({level})" if level else ""))
+            lines.append(f"{idx} [skill] {name}" + (f" ({level})" if level else ""))
         elif kind == "project":
             concepts = ", ".join(c for c in (item.get("factual_concepts") or []) if isinstance(c, str))
-            lines.append(f"- [project] {name}" + (f": {concepts}" if concepts else ""))
+            lines.append(f"{idx} [project] {name}" + (f": {concepts}" if concepts else ""))
             for c in item.get("constraints") or []:
                 if isinstance(c, str) and c.strip():
                     lines.append(f"    constraint: {c.strip()}")
+        elif kind == "certification":
+            lines.append(f"{idx} [certification] {name}")
         else:  # experience
             desc = (item.get("description") or "")[:200]
             role_type = item.get("role_type", "")
-            header = f"- [experience] {name}" + (f" ({role_type})" if role_type else "")
+            header = f"{idx} [experience] {name}" + (f" ({role_type})" if role_type else "")
             lines.append(header + (f": {desc}" if desc else ""))
     return "\n".join(lines)
 
@@ -337,39 +399,28 @@ def format_evidence_for_prompt(ranked: list[dict]) -> str:
 # ---------------------------------------------------------------------------
 
 _PLAN_SYSTEM = (
-    "You are a resume-to-job matching analyst. Do NOT rewrite the resume. "
-    "Compare the JOB to the RESUME (and CANDIDATE EVIDENCE, if provided) and output ONLY "
-    "compact JSON \u2014 no prose, no fences, no explanation.\n\n"
-    "RULES:\n"
-    "- Only reference skills, tools, employers, projects, and facts that ALREADY appear in "
-    "the RESUME or CANDIDATE EVIDENCE sections below.\n"
-    "- If a requirement has no evidence in either section, list it in unsupported_requirements. "
-    "Do NOT invent evidence.\n"
-    "- bullets_to_prioritize and bullets_to_deemphasize must quote or closely paraphrase EXISTING resume bullets.\n"
-    "- safe_rewrites must preserve every fact (same employer, same numbers, same tools) \u2014 wording only.\n\n"
-    "Schema (all keys required, empty arrays if nothing applies):\n"
-    "{\n"
-    '  "requirements": [{"requirement": "...", "importance": "required or preferred", '
-    '"resume_evidence": ["..."], "supported": true or false}],\n'
-    '  "skills_to_emphasize": ["..."],\n'
-    '  "bullets_to_prioritize": ["..."],\n'
-    '  "bullets_to_deemphasize": ["..."],\n'
-    '  "matching_projects": ["..."],\n'
-    '  "matching_certifications": ["..."],\n'
-    '  "summary_focus": ["..."],\n'
-    '  "keyword_targets": ["..."],\n'
-    '  "safe_rewrites": [{"original": "...", "suggested": "..."}],\n'
-    '  "unsupported_requirements": ["..."]\n'
-    "}"
-)
-
-# List-typed keys in the plan schema (used for defensive type-coercion when
-# the local model's output has a malformed field, e.g. a string where a list
-# was expected -- a common small-model mistake).
-_PLAN_LIST_KEYS = (
-    "requirements", "skills_to_emphasize", "bullets_to_prioritize",
-    "bullets_to_deemphasize", "matching_projects", "matching_certifications",
-    "summary_focus", "keyword_targets", "safe_rewrites", "unsupported_requirements",
+    "You match a job's REQUIREMENTS against a candidate's EVIDENCE. Both "
+    "lists are pre-built and numbered; you only ever refer to them by "
+    "number. You never write sentences, never restate their text, and "
+    "never explain your answer -- you only output number references.\n\n"
+    "REQUIREMENTS are numbered R1, R2, ... -- lines pulled from the job "
+    "posting. Employer benefits/perks/pay are already excluded from this "
+    "list; every requirement here is something the employer wants FROM the "
+    "candidate.\n"
+    "EVIDENCE is numbered E1, E2, ... -- things the candidate has actually "
+    "done, holds, or knows. It was already verified; treat it as fact, not "
+    "as something to second-guess.\n\n"
+    "TASK: for each requirement number, decide which evidence numbers (zero "
+    "or more) show the candidate satisfies THAT SPECIFIC requirement. Being "
+    "topically related is not enough -- the evidence must actually cover "
+    "the requirement's subject matter, not just share a job title or "
+    "industry with it. If nothing in EVIDENCE supports a requirement, give "
+    "it an empty list; do not guess or stretch a match.\n\n"
+    "Output ONLY this JSON shape, nothing else -- no markdown fences, no "
+    "prose before or after it:\n"
+    '{"matches": [{"r": 1, "e": [2, 5]}, {"r": 2, "e": []}]}\n'
+    "Include exactly one entry per requirement number you were shown, in "
+    "order. Never cite an evidence number that wasn't listed."
 )
 
 
@@ -378,100 +429,85 @@ def get_local_tailoring_plan(
     job: dict,
     profile: dict,
 ) -> dict | None:
-    """Ask the local model for a structured tailoring plan and validate it.
+    """Ask the local model to match job requirements to candidate evidence,
+    then deterministically build and return the full plan (see
+    validate_local_plan). Returns None if the local model is unavailable,
+    the response is empty, or it isn't parseable as JSON at all. A plan
+    that IS parseable but matched nothing still comes back as a dict with
+    empty list fields -- callers should treat that the same as "no useful
+    guidance" via format_local_plan_for_cloud().
 
-    Returns the sanitized plan dict (see validate_local_plan) or None if the
-    local model is unavailable, the response is empty, or it isn't parseable
-    as JSON at all. A plan that IS parseable but fails every grounding check
-    still comes back as a dict with empty list fields -- callers should treat
-    that the same as "no useful guidance" via format_local_plan_for_cloud().
+    `resume_text` is accepted for interface/logging parity with callers
+    (tailor.py, debug_plan_for_job) but is not sent to the model or used
+    for grounding: grounding now comes entirely from rank_profile_evidence's
+    already-vetted profile data, referenced by number, which the model
+    cannot fabricate around (see the module docstring).
 
-    Rather than sending the whole (truncated) resume as the sole evidence
-    source, this also deterministically ranks experience_inventory/
-    project_inventory/skills_inventory items against the job description
-    (see rank_profile_evidence) and includes a curated CANDIDATE EVIDENCE
-    section built ONLY from that already-vetted profile data -- reducing
-    the problem handed to the local model instead of relying on it to find
-    relevance in a large, undifferentiated block of text. The resume
-    excerpt is kept too, shortened, purely for narrative/style continuity.
-
-    Inputs are trimmed so the whole prompt fits within a local model's context:
-    resume excerpt to 800 chars, description to 2 000 chars, evidence to
-    `top_n` (default 6, override via APPLYPILOT_LOCAL_EVIDENCE_TOPN) items.
+    Deterministic preprocessing does the rest of the work up front:
+    _extract_requirement_lines pulls bullet/numbered lines from the
+    description and drops employer-benefit lines before the model ever
+    sees them; rank_profile_evidence retrieves up to `top_n` (default 6,
+    override via APPLYPILOT_LOCAL_EVIDENCE_TOPN) already-vetted profile
+    items. The model's only job is picking which evidence numbers support
+    each requirement number -- if either list is empty there is nothing to
+    match, so the local model isn't called at all.
     """
+    # Avoid circular import
+    from applypilot.scoring.tailor import display_company
+
+    top_n = int(os.environ.get("APPLYPILOT_LOCAL_EVIDENCE_TOPN", "6"))
+    ranked_evidence = rank_profile_evidence(job, profile, top_n=top_n)
+    requirement_lines = _extract_requirement_lines(job.get("full_description") or "")
+
+    if not requirement_lines or not ranked_evidence:
+        log.debug(
+            "Local tailoring plan for %s: skipped LLM call (%d requirement line(s), "
+            "%d evidence item(s) -- nothing to match)",
+            (job.get("title") or "")[:40], len(requirement_lines), len(ranked_evidence),
+        )
+        return validate_local_plan({"matches": []}, requirement_lines, ranked_evidence)
+
     url = os.environ.get("APPLYPILOT_LOCAL_LLM_URL", _DEFAULT_LOCAL_URL).rstrip("/")
     model = os.environ.get("APPLYPILOT_LOCAL_LLM_MODEL", _DEFAULT_LOCAL_MODEL)
     timeout = float(os.environ.get("APPLYPILOT_LOCAL_LLM_TIMEOUT", "60"))
 
-    # Avoid circular import
-    from applypilot.scoring.tailor import display_company
-
     company = display_company(job)
     job_text = (
         f"TITLE: {job.get('title', '')}\n"
-        f"COMPANY: {company or 'unknown'}\n\n"
-        f"DESCRIPTION:\n{(job.get('full_description') or '')[:2000]}"
+        f"COMPANY: {company or 'unknown'}"
     )
-
-    top_n = int(os.environ.get("APPLYPILOT_LOCAL_EVIDENCE_TOPN", "6"))
-    ranked_evidence = rank_profile_evidence(job, profile, top_n=top_n)
     evidence_text = format_evidence_for_prompt(ranked_evidence)
-    requirement_lines = _extract_requirement_lines(job.get("full_description") or "")
     requirements_text = _format_requirement_lines(requirement_lines)
 
-    resume_excerpt = resume_text[:800]
+    user_msg = (
+        f"JOB:\n{job_text}\n\n"
+        f"REQUIREMENTS:\n{requirements_text}\n\n"
+        f"EVIDENCE:\n{evidence_text}\n\n"
+        "Return the JSON match list now:"
+    )
 
-    user_msg_parts = [f"JOB:\n{job_text}"]
-    if requirements_text:
-        user_msg_parts.append(
-            f"LIKELY REQUIREMENTS (auto-extracted from the posting; verify against "
-            f"the full JOB text above, this may be incomplete):\n{requirements_text}"
-        )
-    if evidence_text:
-        user_msg_parts.append(
-            f"CANDIDATE EVIDENCE (already-verified facts from the candidate's profile "
-            f"-- treat as equally authoritative to the resume below):\n{evidence_text}"
-        )
-    user_msg_parts.append(f"RESUME (excerpt, for style/context):\n{resume_excerpt}")
-    user_msg_parts.append("Return the JSON plan:")
-    user_msg = "\n\n".join(user_msg_parts)
-
-    # Qwen3 (and other hybrid-reasoning models served the same way) default
-    # to an extended internal "thinking" pass before producing output --
-    # confirmed live: an equivalent-shaped request against qwen3:8b via
-    # Ollama exceeded a 120s timeout for this planning task, while a bare,
-    # short single-user-message probe (no system prompt -- see cli.py's
-    # test-local, and the "Qwen3 optimization" in llm.py's LLMClient.chat())
-    # returned promptly. /no_think is the same lightweight control token
-    # llm.py already relies on for Qwen models; applied here directly since
-    # get_local_tailoring_plan talks to the local endpoint itself rather
-    # than going through LLMClient.chat() (whose check only fires when the
-    # FIRST message has role "user", which isn't the case for a system+user
-    # prompt pair like this one).
-    if "qwen" in model.lower() and not user_msg.startswith("/no_think"):
-        user_msg = f"/no_think\n{user_msg}"
-
+    # Native Ollama API disables reasoning explicitly with think=false.
     payload: dict = {
-	    "model": model,
-	    "messages": [
-		    {"role": "system", "content": _PLAN_SYSTEM},
-	    	{"role": "user", "content": user_msg},
-	    ],
-	    "temperature": 0.0,
-	    "max_tokens": int(os.environ.get("APPLYPILOT_LOCAL_LLM_MAX_TOKENS", "700")),
-	    "response_format": {"type": "json_object"},
+        "model": model,
+        "messages": [
+            {"role": "system", "content": _PLAN_SYSTEM},
+            {"role": "user", "content": user_msg},
+        ],
+        "think": False,
+        "stream": False,
+        "format": "json",
+        "options": {
+            "temperature": 0.0,
+            "num_predict": int(os.environ.get("APPLYPILOT_LOCAL_LLM_MAX_TOKENS", "300")),
+        },
     }
 
     try:
-        resp = httpx.post(f"{url}/chat/completions", json=payload, timeout=timeout)
+        resp = httpx.post(f"{url}/api/chat", json=payload, timeout=timeout)
         resp.raise_for_status()
         data = resp.json()
-        choices = data.get("choices") or []
-        if not choices:
-            log.warning("Local tailoring plan for %s: empty choices in response",
-                        (job.get("title") or "")[:40])
-            return None
-        text = (choices[0].get("message") or {}).get("content", "").strip()
+        message = data.get("message") or {}
+        text = (message.get("content") or "").strip()
         if not text:
             log.warning("Local tailoring plan for %s: empty message content in response",
                         (job.get("title") or "")[:40])
@@ -481,22 +517,20 @@ def get_local_tailoring_plan(
             log.warning("Local tailoring plan for %s: parsed JSON was not an object (got %s)",
                         (job.get("title") or "")[:40], type(raw_plan).__name__)
             return None
-        sanitized = validate_local_plan(
-            raw_plan, profile, resume_text, extra_grounding_text=evidence_text,
-        )
+        sanitized = validate_local_plan(raw_plan, requirement_lines, ranked_evidence)
         log.debug(
-            "Local tailoring plan for %s: %d requirement(s), %d bullet(s) prioritized, "
-            "%d dropped by validation",
-            (job.get("title") or "")[:40], len(sanitized["requirements"]),
-            len(sanitized["bullets_to_prioritize"]), len(sanitized["_warnings"]),
+            "Local tailoring plan for %s: %d/%d requirement(s) supported, %d warning(s)",
+            (job.get("title") or "")[:40],
+            sum(1 for r in sanitized["requirements"] if r["supported"]),
+            len(sanitized["requirements"]), len(sanitized["_warnings"]),
         )
         return sanitized
     except httpx.TimeoutException as exc:
         log.warning(
             "Local tailoring plan for %s timed out after %.0fs (model=%s). "
-            "Qwen-family models in particular can be slow without /no_think; "
-            "raise APPLYPILOT_LOCAL_LLM_TIMEOUT or use a smaller/faster model "
-            "if this persists. (%s)",
+            "Qwen-family models in particular can be slow; raise "
+            "APPLYPILOT_LOCAL_LLM_TIMEOUT or use a smaller/faster model if "
+            "this persists. (%s)",
             (job.get("title") or "")[:40], timeout, model, exc,
         )
         return None
@@ -513,11 +547,11 @@ def _parse_plan(text: str) -> dict:
     """Parse plan JSON; raise ValueError if malformed.
 
     Defense-in-depth for Qwen3/other hybrid-reasoning models: even with
-    /no_think requested (see get_local_tailoring_plan), some Ollama builds
-    still emit an empty (or populated) <think>...</think> block before the
-    real content. Stripped unconditionally before fence/brace extraction --
-    a cheap, pure-text operation, not dependent on which failure mode is
-    actually occurring for a given model/build.
+    "think": false requested (see get_local_tailoring_plan), some Ollama
+    builds still emit an empty (or populated) <think>...</think> block
+    before the real content. Stripped unconditionally before fence/brace
+    extraction -- a cheap, pure-text operation, not dependent on which
+    failure mode is actually occurring for a given model/build.
     """
     text = text.strip()
     text = _THINK_BLOCK_RE.sub("", text).strip()
@@ -547,181 +581,111 @@ def _as_list(value) -> list:
 # ---------------------------------------------------------------------------
 
 def validate_local_plan(
-    plan: dict, profile: dict, resume_text: str, extra_grounding_text: str = "",
+    raw_plan: dict, requirement_lines: list[dict], ranked_evidence: list[dict],
 ) -> dict:
-    """Deterministically strip any plan entry that isn't grounded in the
-    actual resume text (plus `extra_grounding_text`), or that reintroduces
-    a fabricated skill/tool.
+    """Deterministically build the full plan from the model's `matches`
+    (requirement number -> evidence numbers).
 
-    `extra_grounding_text` extends the grounding corpus beyond the literal
-    resume text -- used to include the deterministically-retrieved
-    CANDIDATE EVIDENCE block (see rank_profile_evidence/format_evidence_
-    for_prompt) that the local model was shown. Without this, evidence
-    phrased in profile.json's experience_inventory/project_inventory
-    (rather than verbatim in the resume file) would be wrongly treated as
-    ungrounded, since it's real, already-vetted candidate data, not
-    something the model invented.
+    There is nothing to "ground" here in the old sense: every number the
+    model can possibly cite resolves to a requirement_lines/ranked_evidence
+    entry that was already deterministically extracted/retrieved before the
+    model ran, so a valid reference is grounded by construction. The only
+    work left is (a) dropping references outside the given lists' bounds
+    (a malformed/hallucinated number, not a hallucinated fact) and (b)
+    deriving every other plan field from which evidence numbers ended up
+    matched to which requirements -- skills_to_emphasize, matching_projects,
+    matching_certifications, and keyword_targets are exactly "which matched
+    evidence items were skills/projects/certifications, and which job terms
+    made them match" (rank_profile_evidence already recorded that), not
+    something asked of the model as free text.
 
-    This is the factual-safety layer for the PLAN (separate from, and much
-    narrower than, applypilot.scoring.validator's full resume validation --
-    it only checks that the local model's suggestions reference things that
-    already exist, never that a whole generated resume is well-formed).
+    bullets_to_prioritize/bullets_to_deemphasize/safe_rewrites are always
+    returned empty -- those are real text-generation tasks (quoting/
+    rewriting actual resume prose), which this planner deliberately leaves
+    to the cloud model that has the full resume and is far more reliable at
+    freeform generation. The keys are kept so format_local_plan_for_cloud
+    and the debug CLI don't need to special-case an older/newer plan shape.
 
-    Never raises. Returns a plan dict with the same shape as the schema,
-    plus a "_warnings" key (list[str]) describing what was dropped and why --
-    intended for the debug CLI command, not for the cloud prompt.
+    Never raises. Returns a plan dict with the same shape as before, plus a
+    "_warnings" key (list[str]) noting any out-of-range references that
+    were dropped -- intended for the debug CLI command, not for the cloud
+    prompt.
     """
-    from applypilot.scoring.validator import FABRICATION_WATCHLIST, _build_skills_set
-
     warnings: list[str] = []
-    resume_lower = f"{resume_text}\n{extra_grounding_text}".lower()
-    allowed_skills = _build_skills_set(profile)
-    # Also allow resume-permitted skills_inventory entries -- the new
-    # evidence-retrieval layer can surface a skill from skills_inventory
-    # that isn't separately listed in skills_boundary; both are equally
-    # profile-vetted, so treating only one as authoritative would reject
-    # legitimate emphasis recommendations grounded in the new evidence.
-    for _skill in profile.get("skills_inventory") or []:
-        if (
-            isinstance(_skill, dict)
-            and _skill.get("resume_allowed") is not False
-            and isinstance(_skill.get("name"), str)
-            and _skill["name"].strip()
-        ):
-            allowed_skills.add(_skill["name"].strip().lower())
+    n_reqs = len(requirement_lines)
+    n_evid = len(ranked_evidence)
 
-    def _grounded(text: str, min_word_len: int = 4) -> bool:
-        """Loose check: at least one non-trivial word from `text` appears in
-        the resume, or the whole (short) phrase appears verbatim."""
-        if not text or not text.strip():
-            return False
-        if text.strip().lower() in resume_lower:
-            return True
-        words = [w.strip(".,;:()\"'").lower() for w in text.split()]
-        significant = [w for w in words if len(w) >= min_word_len]
-        if not significant:
-            return False
-        return any(w in resume_lower for w in significant)
-
-    # requirements: keep, but downgrade "supported" if the claimed evidence
-    # doesn't actually appear in the resume.
-    clean_requirements: list[dict] = []
-    for req in _as_list(plan.get("requirements")):
-        if not isinstance(req, dict) or not req.get("requirement"):
+    # requirement number -> evidence numbers cited for it (deduped)
+    matched: dict[int, list[int]] = {}
+    for entry in _as_list(raw_plan.get("matches")):
+        if not isinstance(entry, dict):
             continue
-        evidence = [e for e in _as_list(req.get("resume_evidence")) if isinstance(e, str) and e.strip()]
-        grounded_evidence = [e for e in evidence if _grounded(e)]
-        claimed_supported = bool(req.get("supported"))
-        supported = claimed_supported and bool(grounded_evidence)
-        if claimed_supported and not grounded_evidence:
-            warnings.append(
-                f"Downgraded unsupported claim: '{req['requirement']}' had no grounded evidence"
-            )
-        importance = req.get("importance") if req.get("importance") in ("required", "preferred") else "preferred"
+        r = entry.get("r")
+        if not isinstance(r, int) or isinstance(r, bool) or not (1 <= r <= n_reqs):
+            warnings.append(f"Dropped match with out-of-range requirement id: {r!r}")
+            continue
+        evidence_ids: list[int] = []
+        for e in _as_list(entry.get("e")):
+            if isinstance(e, int) and not isinstance(e, bool) and 1 <= e <= n_evid:
+                if e not in evidence_ids:
+                    evidence_ids.append(e)
+            else:
+                warnings.append(f"Dropped invalid evidence id {e!r} for requirement R{r}")
+        if evidence_ids:
+            matched.setdefault(r, [])
+            matched[r] = sorted(set(matched[r]) | set(evidence_ids))
+
+    clean_requirements: list[dict] = []
+    unsupported: list[str] = []
+    skills_seen: dict[str, None] = {}
+    projects_seen: dict[str, None] = {}
+    certs_seen: dict[str, None] = {}
+    keywords_seen: dict[str, None] = {}
+    required_supported: list[str] = []
+    any_supported: list[str] = []
+
+    for i, line in enumerate(requirement_lines, start=1):
+        evidence_ids = matched.get(i, [])
+        evidence_names: list[str] = []
+        for eid in evidence_ids:
+            item = ranked_evidence[eid - 1]
+            evidence_names.append(item["name"])
+            if item["type"] == "skill":
+                skills_seen.setdefault(item["name"], None)
+            elif item["type"] == "project":
+                projects_seen.setdefault(item["name"], None)
+            elif item["type"] == "certification":
+                certs_seen.setdefault(item["name"], None)
+            for term in item.get("matched_terms") or []:
+                keywords_seen.setdefault(term, None)
+        supported = bool(evidence_names)
+        importance = line["importance"] if line["importance"] in ("required", "preferred") else "preferred"
         clean_requirements.append({
-            "requirement": str(req["requirement"])[:200],
+            "requirement": line["text"],
             "importance": importance,
-            "resume_evidence": grounded_evidence[:3],
+            "resume_evidence": evidence_names,
             "supported": supported,
         })
-
-    # skills_to_emphasize: must be an allowed skill AND appear in the resume.
-    clean_skills: list[str] = []
-    for s in _as_list(plan.get("skills_to_emphasize")):
-        if not isinstance(s, str) or not s.strip():
-            continue
-        if s.lower() in allowed_skills and _grounded(s):
-            clean_skills.append(s)
+        if supported:
+            any_supported.append(line["text"])
+            if importance == "required":
+                required_supported.append(line["text"])
         else:
-            warnings.append(f"Dropped unsupported skill: '{s}'")
+            unsupported.append(line["text"])
 
-    # keyword_targets: domain terms are allowed even if not in skills_boundary,
-    # but they must still be grounded in the actual resume text.
-    clean_keywords: list[str] = []
-    for k in _as_list(plan.get("keyword_targets")):
-        if not isinstance(k, str) or not k.strip():
-            continue
-        if _grounded(k):
-            clean_keywords.append(k)
-        else:
-            warnings.append(f"Dropped ungrounded keyword: '{k}'")
-
-    def _clean_bullets(items: list, label: str) -> list[str]:
-        out: list[str] = []
-        for b in items:
-            if not isinstance(b, str) or not b.strip():
-                continue
-            if _grounded(b, min_word_len=5):
-                out.append(b)
-            else:
-                warnings.append(f"Dropped unverified {label}: '{b[:60]}'")
-        return out
-
-    clean_prioritize = _clean_bullets(_as_list(plan.get("bullets_to_prioritize")), "bullet (prioritize)")
-    clean_deemphasize = _clean_bullets(_as_list(plan.get("bullets_to_deemphasize")), "bullet (de-emphasize)")
-
-    clean_projects = [
-        p for p in _as_list(plan.get("matching_projects"))
-        if isinstance(p, str) and _grounded(p)
-    ]
-    clean_certs = [
-        c for c in _as_list(plan.get("matching_certifications"))
-        if isinstance(c, str) and _grounded(c)
-    ]
-
-    # safe_rewrites: the ORIGINAL text must be grounded (it's supposed to be
-    # an existing bullet/phrase); the SUGGESTED text must not introduce a
-    # fabrication-watchlist term unless that term is already an allowed skill.
-    clean_rewrites: list[dict] = []
-    for rw in _as_list(plan.get("safe_rewrites")):
-        if not isinstance(rw, dict):
-            continue
-        original = str(rw.get("original") or "").strip()
-        suggested = str(rw.get("suggested") or "").strip()
-        if not original or not suggested:
-            continue
-        if not _grounded(original, min_word_len=5):
-            warnings.append(f"Dropped rewrite with ungrounded original: '{original[:60]}'")
-            continue
-        suggested_lower = suggested.lower()
-        fabricated = [
-            f for f in FABRICATION_WATCHLIST
-            if len(f) > 2 and f in suggested_lower and not any(f in s for s in allowed_skills)
-        ]
-        if fabricated:
-            warnings.append(
-                f"Dropped rewrite introducing fabricated term(s): {', '.join(fabricated)}"
-            )
-            continue
-        clean_rewrites.append({"original": original[:300], "suggested": suggested[:300]})
-
-    # summary_focus: accept either a list of short phrases (schema) or a
-    # single string (backward-compat with the earlier one-sentence version).
-    raw_summary = plan.get("summary_focus")
-    if isinstance(raw_summary, str) and raw_summary.strip():
-        summary_focus = [raw_summary.strip()]
-    else:
-        summary_focus = [s for s in _as_list(raw_summary) if isinstance(s, str) and s.strip()][:5]
-
-    # unsupported_requirements: pass through untouched -- this list represents
-    # an ABSENCE of evidence, which is exactly the signal we want preserved so
-    # the cloud model knows not to fabricate for these.
-    unsupported = [
-        u for u in _as_list(plan.get("unsupported_requirements"))
-        if isinstance(u, str) and u.strip()
-    ][:10]
+    summary_focus = (required_supported or any_supported)[:3]
 
     return {
         "requirements": clean_requirements[:12],
-        "skills_to_emphasize": clean_skills[:10],
-        "bullets_to_prioritize": clean_prioritize[:8],
-        "bullets_to_deemphasize": clean_deemphasize[:8],
-        "matching_projects": clean_projects[:5],
-        "matching_certifications": clean_certs[:5],
+        "skills_to_emphasize": list(skills_seen)[:10],
+        "bullets_to_prioritize": [],
+        "bullets_to_deemphasize": [],
+        "matching_projects": list(projects_seen)[:5],
+        "matching_certifications": list(certs_seen)[:5],
         "summary_focus": summary_focus,
-        "keyword_targets": clean_keywords[:10],
-        "safe_rewrites": clean_rewrites[:6],
-        "unsupported_requirements": unsupported,
+        "keyword_targets": list(keywords_seen)[:10],
+        "safe_rewrites": [],
+        "unsupported_requirements": unsupported[:10],
         "_warnings": warnings,
     }
 
@@ -808,4 +772,6 @@ def debug_plan_for_job(job: dict, profile: dict) -> dict | None:
         "evidence": rank_profile_evidence(job, profile, top_n=top_n),
         "requirement_lines": _extract_requirement_lines(job.get("full_description") or ""),
     }
+
+
 
