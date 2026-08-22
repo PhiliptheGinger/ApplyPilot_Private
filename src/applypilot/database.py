@@ -1666,7 +1666,8 @@ def get_jobs_by_stage(conn: sqlite3.Connection | None = None,
                       stage: str = "discovered",
                       min_score: int | None = None,
                       max_age_days: int | None = None,
-                      limit: int = 100) -> list[dict]:
+                      limit: int = 100,
+                      urls: list[str] | None = None) -> list[dict]:
     """Fetch jobs filtered by pipeline stage.
 
     Args:
@@ -1679,11 +1680,26 @@ def get_jobs_by_stage(conn: sqlite3.Connection | None = None,
                       NULL discovered_at is treated as stale (excluded) when
                       filter is active.
         limit: Maximum number of rows to return (0 = no limit).
+        urls: If given, restrict results to exactly this set of job URLs
+              (still subject to the stage's own eligibility conditions and
+              max_age_days) instead of the stage's normal open-ended
+              selection. Used to preserve batch identity across pipeline
+              stages -- e.g. so a `tailor` stage that follows `score` in
+              the same sequential run only considers the jobs `score` just
+              selected, rather than independently re-querying and pulling
+              in unrelated already-eligible jobs from earlier runs. An
+              empty list (as opposed to None) means "restrict to nothing"
+              and short-circuits to []; `limit` is not applied on top of
+              an explicit `urls` restriction since the URL set is already
+              the definitive bound.
 
     Returns:
         List of job dicts.
     """
     from applypilot.config import DEFAULTS
+
+    if urls is not None and not urls:
+        return []
 
     if conn is None:
         conn = get_connection()
@@ -1757,6 +1773,10 @@ def get_jobs_by_stage(conn: sqlite3.Connection | None = None,
         where += " AND discovered_at > datetime('now', ?)"
         params.append(f"-{max_age_days} days")
 
+    if urls is not None:
+        where += f" AND url IN ({','.join('?' * len(urls))})"
+        params.extend(urls)
+
     query = f"""
         SELECT * FROM (
             SELECT *, ROW_NUMBER() OVER (
@@ -1767,7 +1787,7 @@ def get_jobs_by_stage(conn: sqlite3.Connection | None = None,
         )
         ORDER BY fit_score DESC NULLS LAST, _site_rank ASC, discovered_at DESC
     """
-    if limit > 0:
+    if limit > 0 and urls is None:
         query += " LIMIT ?"
         params.append(limit)
 

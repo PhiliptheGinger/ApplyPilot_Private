@@ -249,6 +249,146 @@ class TestLocalProviderUnavailable(unittest.TestCase):
         self.assertIsNone(kwargs.get("local_plan"))
 
 
+class TestLocalFirstObservability(unittest.TestCase):
+    """INFO-level observability for --local-first.
+
+    Regression coverage for a real integration gap: every log statement
+    inside get_local_tailoring_plan (and _tailor_one_job's own except
+    block) was at DEBUG, while cli.py's root logger defaults to INFO --
+    so a --local-first run produced zero lines in the log file grep'able
+    by "local|Ollama|planner|plan" REGARDLESS of whether the planner ran
+    successfully, found nothing useful, or failed outright. These tests
+    exercise the four outcomes _tailor_one_job must now report at INFO
+    (WARNING for the exception case), while confirming the local-first
+    failure still never blocks cloud tailoring from proceeding.
+    """
+
+    def _job_and_profile(self):
+        job = {"url": "https://example.com/j1", "title": "Help Desk Technician",
+               "site": "test", "full_description": "desc", "fit_score": 9}
+        profile = {"personal": {"full_name": "Jane Doe"}, "resume_facts": {}}
+        return job, profile
+
+    def _patched_tailor_resume(self, tailor_mod):
+        return patch.object(
+            tailor_mod, "tailor_resume",
+            return_value=("RESUME TEXT", {"status": "approved", "attempts": 1,
+                                           "approved_facts": []}),
+        )
+
+    def test_logs_info_when_plan_accepted(self):
+        from applypilot.scoring import tailor as tailor_mod
+        job, profile = self._job_and_profile()
+        plan = {"requirements": [{"requirement": "Python", "supported": True},
+                                  {"requirement": "SQL", "supported": False}]}
+
+        with patch.dict("os.environ", {"APPLYPILOT_LOCAL_PLAN": "1"}), \
+             patch("applypilot.scoring.local_tailor.get_local_tailoring_plan", return_value=plan), \
+             patch("applypilot.scoring.local_tailor.format_local_plan_for_cloud",
+                   return_value="Job requirements:\n- Python -- supported"), \
+             self._patched_tailor_resume(tailor_mod) as mock_tailor, \
+             patch.object(tailor_mod, "TAILORED_DIR", Path("/tmp/applypilot-test-tailor")):
+            tailor_mod.TAILORED_DIR.mkdir(parents=True, exist_ok=True)
+            with self.assertLogs("applypilot.scoring.tailor", level="INFO") as cm:
+                tailor_mod._tailor_one_job(job, "Original resume text.", profile)
+
+        joined = " ".join(cm.output)
+        self.assertIn("plan accepted", joined)
+        self.assertIn("1/2 requirement", joined)
+        # The accepted plan text must actually reach tailor_resume.
+        _, kwargs = mock_tailor.call_args
+        self.assertIn("supported", kwargs.get("local_plan") or "")
+
+    def test_logs_info_when_no_usable_plan(self):
+        """A plan the model DID produce but that has nothing to say (e.g.
+        every requirement unsupported, or a benefits-only posting) must be
+        distinguished from an outright planner failure."""
+        from applypilot.scoring import tailor as tailor_mod
+        job, profile = self._job_and_profile()
+        plan = {"requirements": []}
+
+        with patch.dict("os.environ", {"APPLYPILOT_LOCAL_PLAN": "1"}), \
+             patch("applypilot.scoring.local_tailor.get_local_tailoring_plan", return_value=plan), \
+             patch("applypilot.scoring.local_tailor.format_local_plan_for_cloud", return_value=""), \
+             self._patched_tailor_resume(tailor_mod) as mock_tailor, \
+             patch.object(tailor_mod, "TAILORED_DIR", Path("/tmp/applypilot-test-tailor")):
+            tailor_mod.TAILORED_DIR.mkdir(parents=True, exist_ok=True)
+            with self.assertLogs("applypilot.scoring.tailor", level="INFO") as cm:
+                tailor_mod._tailor_one_job(job, "Original resume text.", profile)
+
+        joined = " ".join(cm.output)
+        self.assertIn("no usable plan", joined)
+        _, kwargs = mock_tailor.call_args
+        self.assertIsNone(kwargs.get("local_plan"))
+
+    def test_logs_info_when_planner_returns_none(self):
+        """get_local_tailoring_plan returning None (unreachable/timed out/
+        unparseable -- it already logs the specific cause at WARNING
+        internally) must still produce a visible, at-a-glance INFO line
+        confirming local-first ran and got nothing, distinct from the
+        'model answered but had nothing useful' case above."""
+        from applypilot.scoring import tailor as tailor_mod
+        job, profile = self._job_and_profile()
+
+        with patch.dict("os.environ", {"APPLYPILOT_LOCAL_PLAN": "1"}), \
+             patch("applypilot.scoring.local_tailor.get_local_tailoring_plan", return_value=None), \
+             self._patched_tailor_resume(tailor_mod) as mock_tailor, \
+             patch.object(tailor_mod, "TAILORED_DIR", Path("/tmp/applypilot-test-tailor")):
+            tailor_mod.TAILORED_DIR.mkdir(parents=True, exist_ok=True)
+            with self.assertLogs("applypilot.scoring.tailor", level="INFO") as cm:
+                tailor_mod._tailor_one_job(job, "Original resume text.", profile)
+
+        joined = " ".join(cm.output)
+        self.assertIn("planner unavailable", joined)
+        _, kwargs = mock_tailor.call_args
+        self.assertIsNone(kwargs.get("local_plan"))
+
+    def test_logs_warning_on_planner_exception_and_still_tailors(self):
+        """A raised exception must produce a concise WARNING (type + message,
+        not a full traceback at that level) and must NOT prevent cloud
+        tailoring from proceeding."""
+        from applypilot.scoring import tailor as tailor_mod
+        job, profile = self._job_and_profile()
+
+        with patch.dict("os.environ", {"APPLYPILOT_LOCAL_PLAN": "1"}), \
+             patch("applypilot.scoring.local_tailor.get_local_tailoring_plan",
+                   side_effect=ValueError("boom")), \
+             self._patched_tailor_resume(tailor_mod) as mock_tailor, \
+             patch.object(tailor_mod, "TAILORED_DIR", Path("/tmp/applypilot-test-tailor")):
+            tailor_mod.TAILORED_DIR.mkdir(parents=True, exist_ok=True)
+            with self.assertLogs("applypilot.scoring.tailor", level="WARNING") as cm:
+                result = tailor_mod._tailor_one_job(job, "Original resume text.", profile)
+
+        self.assertEqual(result["status"], "approved")
+        joined = " ".join(cm.output)
+        self.assertIn("ValueError", joined)
+        self.assertIn("boom", joined)
+        _, kwargs = mock_tailor.call_args
+        self.assertIsNone(kwargs.get("local_plan"))
+        mock_tailor.assert_called_once()
+
+    def test_no_local_first_logging_when_disabled(self):
+        """With APPLYPILOT_LOCAL_PLAN unset, none of the local-first log
+        lines should appear at all -- it must stay fully opt-in."""
+        from applypilot.scoring import tailor as tailor_mod
+        job, profile = self._job_and_profile()
+
+        env = {k: v for k, v in __import__("os").environ.items()
+               if k != "APPLYPILOT_LOCAL_PLAN"}
+        with patch.dict("os.environ", env, clear=True), \
+             self._patched_tailor_resume(tailor_mod), \
+             patch.object(tailor_mod, "TAILORED_DIR", Path("/tmp/applypilot-test-tailor")):
+            tailor_mod.TAILORED_DIR.mkdir(parents=True, exist_ok=True)
+            with self.assertLogs("applypilot.scoring.tailor", level="INFO") as cm:
+                # at least one INFO line must exist elsewhere in
+                # _tailor_one_job for assertLogs not to raise; if this
+                # becomes a problem, swap for a plain caplog-free check.
+                tailor_mod.log.info("marker so assertLogs has something to capture")
+                tailor_mod._tailor_one_job(job, "Original resume text.", profile)
+
+        self.assertFalse(any("local-first" in line for line in cm.output))
+
+
 # ---------------------------------------------------------------------------
 # 4. Cloud models all exhausted but local model available
 # ---------------------------------------------------------------------------

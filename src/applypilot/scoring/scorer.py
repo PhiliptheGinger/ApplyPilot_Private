@@ -582,7 +582,13 @@ def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1,
         workers: Parallel LLM threads (default 1 = sequential).
 
     Returns:
-        {"scored": int, "errors": int, "elapsed": float, "distribution": list}
+        {"scored": int, "errors": int, "elapsed": float, "distribution": list,
+         "job_urls": list[str]} -- job_urls is every URL this run selected
+        for scoring (whether or not it succeeded), in selection order. A
+        sequential pipeline run can hand this to run_tailoring(job_ids=...)
+        so the following stage examines exactly this batch instead of
+        independently re-querying and picking up unrelated already-eligible
+        jobs from earlier runs.
     """
     resume_text = RESUME_PATH.read_text(encoding="utf-8")
     conn = get_connection()
@@ -601,12 +607,17 @@ def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1,
 
     if not jobs:
         log.info("No unscored jobs with descriptions found.")
-        return {"scored": 0, "errors": 0, "elapsed": 0.0, "distribution": []}
+        return {"scored": 0, "errors": 0, "elapsed": 0.0, "distribution": [], "job_urls": []}
 
     # Convert sqlite3.Row to dicts if needed
     if jobs and not isinstance(jobs[0], dict):
         columns = jobs[0].keys()
         jobs = [dict(zip(columns, row)) for row in jobs]
+
+    # Captured now (batch is fixed from here on) so callers can carry this
+    # exact batch's identity into a following stage -- see the job_urls
+    # note in the docstring above.
+    job_urls = [j["url"] for j in jobs if j.get("url")]
 
     log.info("Scoring %d jobs (workers=%d)...", len(jobs), workers)
     t0 = time.time()
@@ -698,4 +709,5 @@ def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1,
         "errors": errors,
         "elapsed": elapsed,
         "distribution": distribution,
+        "job_urls": job_urls,
     }

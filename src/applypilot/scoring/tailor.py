@@ -949,12 +949,43 @@ def _tailor_one_job(job: dict, resume_text: str | None, profile: dict, doc_forma
     local_plan_text: str | None = None
     if os.environ.get("APPLYPILOT_LOCAL_PLAN", "").lower() in ("1", "true", "yes"):
         from applypilot.scoring.local_tailor import format_local_plan_for_cloud, get_local_tailoring_plan
+        title_short = (job.get("title") or "")[:40]
+        log.info("local-first: requesting local tailoring plan for '%s'", title_short)
         try:
             plan = get_local_tailoring_plan(resume_text, job, profile)
-            local_plan_text = format_local_plan_for_cloud(plan) or None
-        except Exception:
-            log.debug("Local tailoring plan failed for %s",
-                      (job.get("title") or "")[:40], exc_info=True)
+            if plan is None:
+                # get_local_tailoring_plan already logged the specific cause
+                # (unreachable/timed out/unparseable) at WARNING internally --
+                # this just confirms, at a glance, that local-first ran and
+                # produced nothing for this job.
+                log.info(
+                    "local-first: planner unavailable for '%s' -- proceeding with "
+                    "normal cloud tailoring (see local_tailor WARNING above for cause)",
+                    title_short,
+                )
+            else:
+                local_plan_text = format_local_plan_for_cloud(plan) or None
+                if local_plan_text:
+                    reqs = plan.get("requirements") or []
+                    n_supported = sum(1 for r in reqs if r.get("supported"))
+                    log.info(
+                        "local-first: plan accepted for '%s' (%d/%d requirement(s) "
+                        "supported) -- handed to cloud finalization",
+                        title_short, n_supported, len(reqs),
+                    )
+                else:
+                    log.info(
+                        "local-first: no usable plan for '%s' (nothing to guide the "
+                        "cloud model) -- proceeding with normal cloud tailoring",
+                        title_short,
+                    )
+        except Exception as exc:
+            log.warning(
+                "local-first: planner raised %s for '%s': %s -- proceeding with "
+                "normal cloud tailoring",
+                type(exc).__name__, title_short, exc,
+            )
+            log.debug("local-first planner traceback for '%s'", title_short, exc_info=True)
     tailored, report = tailor_resume(resume_text, job, profile, local_plan=local_plan_text)
     approved_facts = set(report.get("approved_facts") or [])
     if report.get("status") == "approved" and approved_facts:
@@ -1081,15 +1112,31 @@ def _mark_tailor_result(
 
 
 def run_tailoring(min_score: int | None = None, limit: int = 20, workers: int = 1,
-                  doc_format: str = "docx", max_age_days: int | None = None) -> dict:
+                  doc_format: str = "docx", max_age_days: int | None = None,
+                  job_ids: list[str] | None = None) -> dict:
     """Generate tailored resumes for high-scoring jobs.
 
     Args:
         min_score: Minimum fit_score to tailor for (default from config).
-        limit: Maximum jobs to process.
+        limit: Maximum jobs to process. Ignored when job_ids is given -- see below.
         workers: Parallel LLM threads (default 1 = sequential).
         doc_format: Output document format — "docx" (default) or "pdf".
         max_age_days: Skip jobs older than this (default from config).
+        job_ids: If given (e.g. by a sequential pipeline run carrying
+            forward the exact batch a preceding `score` stage selected —
+            see run_scoring's job_urls / pipeline._run_sequential),
+            restrict candidates to exactly this set of job URLs instead of
+            independently querying for any eligible job. Still subject to
+            the normal pending_tailor eligibility conditions (min_score,
+            not yet tailored, attempts < 5, eligibility) and the
+            per-company cap below, so only the eligible subset of this
+            batch is actually tailored -- an ineligible job in the batch is
+            just skipped, never backfilled with an unrelated job to make
+            up the count. An empty list restricts to nothing (e.g. the
+            preceding score stage selected zero jobs this run) rather than
+            falling back to independent selection. None (the default)
+            preserves the original standalone behavior: select up to
+            `limit` eligible jobs with no batch restriction.
 
     Returns:
         {"approved": int, "failed": int, "errors": int, "elapsed": float}
@@ -1097,6 +1144,12 @@ def run_tailoring(min_score: int | None = None, limit: int = 20, workers: int = 
     from applypilot.config import DEFAULTS
     if min_score is None:
         min_score = DEFAULTS["min_score"]
+
+    if os.environ.get("APPLYPILOT_LOCAL_PLAN", "").lower() in ("1", "true", "yes"):
+        log.info(
+            "local-first: enabled -- each job gets a local tailoring plan pass "
+            "before cloud finalization"
+        )
 
     from applypilot.database import get_connection, get_jobs_by_stage, write_with_retry
 
@@ -1108,7 +1161,14 @@ def run_tailoring(min_score: int | None = None, limit: int = 20, workers: int = 
     # to disable.
     jobs = get_jobs_by_stage(conn=conn, stage="pending_tailor",
                              min_score=min_score, max_age_days=max_age_days,
-                             limit=limit)
+                             limit=limit, urls=job_ids)
+
+    if job_ids is not None:
+        log.info(
+            "Tailoring restricted to a carried batch of %d job(s) from the preceding "
+            "score stage (%d eligible after the pending_tailor filter).",
+            len(job_ids), len(jobs),
+        )
 
     # Per-company tailor cap: don't tailor more than N resumes per company
     # in the fresh window. Existing tailored docs count against the cap.

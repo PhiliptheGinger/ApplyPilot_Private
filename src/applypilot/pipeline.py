@@ -296,16 +296,26 @@ def _run_score(workers: int = 1, max_age_days: int | None = None, limit: int = 0
         max_age_days = DEFAULTS["max_job_age_days"]
     try:
         from applypilot.scoring.scorer import run_scoring
-        run_scoring(workers=workers, max_age_days=max_age_days, limit=limit)
-        return {"status": "ok"}
+        result = run_scoring(workers=workers, max_age_days=max_age_days, limit=limit)
+        # job_ids carries this run's exact batch identity forward so a
+        # following `tailor` stage in the same sequential run can restrict
+        # itself to these jobs instead of independently re-querying (see
+        # _run_sequential and run_tailoring's job_ids parameter).
+        return {"status": "ok", "job_ids": result.get("job_urls") or []}
     except Exception as e:
         log.exception("Scoring failed")
         return {"status": f"error: {e}"}
 
 
 def _run_tailor(min_score: int | None = None, max_age_days: int | None = None,
-                limit: int = 20, workers: int = 1, doc_format: str = "docx") -> dict:
-    """Stage: Resume tailoring — generate tailored resumes for high-fit jobs."""
+                limit: int = 20, workers: int = 1, doc_format: str = "docx",
+                job_ids: list[str] | None = None) -> dict:
+    """Stage: Resume tailoring — generate tailored resumes for high-fit jobs.
+
+    job_ids: an upstream score stage's exact batch (see _run_score/
+        _run_sequential), or None to independently select up to `limit`
+        eligible jobs (standalone `applypilot run tailor` behavior).
+    """
     from applypilot.config import DEFAULTS
     if min_score is None:
         min_score = DEFAULTS["min_score"]
@@ -314,7 +324,8 @@ def _run_tailor(min_score: int | None = None, max_age_days: int | None = None,
     try:
         from applypilot.scoring.tailor import run_tailoring
         run_tailoring(min_score=min_score, max_age_days=max_age_days,
-                      limit=limit, workers=workers, doc_format=doc_format)
+                      limit=limit, workers=workers, doc_format=doc_format,
+                      job_ids=job_ids)
         return {"status": "ok"}
     except Exception as e:
         log.exception("Tailoring failed")
@@ -686,6 +697,12 @@ def _run_sequential(
     results: list[dict] = []
     errors: dict[str, str] = {}
     pipeline_start = time.time()
+    # Batch identity carried from `score` to an immediately-following `tailor`
+    # stage in THIS SAME run -- see run_tailoring's job_ids parameter. None
+    # until a `score` stage actually completes here, so a standalone `tailor`
+    # run (no `score` stage in `ordered`) is completely unaffected and keeps
+    # its original independent-selection behavior.
+    scored_job_ids: list[str] | None = None
 
     for name in ordered:
         meta = STAGE_META[name]
@@ -711,8 +728,13 @@ def _run_sequential(
                 kwargs["sources"] = sources
             if name in ("score", "tailor", "cover"):
                 kwargs["max_age_days"] = max_age_days
+            if name == "tailor" and scored_job_ids is not None:
+                kwargs["job_ids"] = scored_job_ids
             result = runner(**kwargs)
             elapsed = time.time() - t0
+
+            if name == "score" and isinstance(result, dict) and "job_ids" in result:
+                scored_job_ids = result["job_ids"]
 
             status = "ok"
             if isinstance(result, dict):
