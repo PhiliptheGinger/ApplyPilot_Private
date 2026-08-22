@@ -16,13 +16,13 @@ import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
-from html.parser import HTMLParser
 
 import yaml
 
 from applypilot import config
 from applypilot.config import CONFIG_DIR
 from applypilot.database import get_connection, init_db, write_with_retry
+from applypilot.discovery.ats_common import strip_html_to_text
 
 log = logging.getLogger(__name__)
 
@@ -78,45 +78,15 @@ def _location_ok(location: str | None, accept: list[str], reject: list[str]) -> 
 
 
 # -- HTML stripper -----------------------------------------------------------
-
-class _HTMLStripper(HTMLParser):
-    """Strip HTML tags, keep text content."""
-
-    def __init__(self):
-        super().__init__()
-        self._parts: list[str] = []
-        self._skip = False
-
-    def handle_starttag(self, tag, attrs):
-        if tag in ("script", "style"):
-            self._skip = True
-        elif tag in ("br", "p", "div", "li", "tr", "h1", "h2", "h3", "h4", "h5", "h6"):
-            self._parts.append("\n")
-
-    def handle_endtag(self, tag):
-        if tag in ("script", "style"):
-            self._skip = False
-        elif tag in ("p", "div", "li", "tr"):
-            self._parts.append("\n")
-
-    def handle_data(self, data):
-        if not self._skip:
-            self._parts.append(data)
-
-    def get_text(self) -> str:
-        text = "".join(self._parts)
-        text = re.sub(r"[^\S\n]+", " ", text)
-        text = re.sub(r"\n{3,}", "\n\n", text)
-        return text.strip()
-
+#
+# Thin wrapper -- delegates to ats_common.strip_html_to_text, the one
+# canonical HTML-to-text converter shared by every direct-API ATS scraper.
+# See ats_common.py's module comment for why this used to be a separate
+# copy-pasted implementation per scraper (and the bug that cost).
 
 def strip_html(html: str) -> str:
     """Convert HTML to plain text."""
-    if not html:
-        return ""
-    stripper = _HTMLStripper()
-    stripper.feed(html)
-    return stripper.get_text()
+    return strip_html_to_text(html)
 
 
 # -- Proxy -------------------------------------------------------------------

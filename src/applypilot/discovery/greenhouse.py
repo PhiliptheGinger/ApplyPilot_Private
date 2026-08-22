@@ -12,16 +12,15 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 import sqlite3
 import urllib.error
 import urllib.request
-from html.parser import HTMLParser
 
 import yaml
 
 from applypilot import config
 from applypilot.config import CONFIG_DIR
+from applypilot.discovery.ats_common import strip_html_to_text
 
 log = logging.getLogger(__name__)
 
@@ -46,58 +45,16 @@ def load_employers() -> dict:
 
 
 # ── HTML strip helper ─────────────────────────────────────────────────
-
-class _HTMLStripper(HTMLParser):
-    """Strip HTML tags, preserve text content and line breaks."""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.parts: list[str] = []
-        self._skip = False
-
-    def handle_starttag(self, tag: str, attrs: list) -> None:
-        if tag in ("script", "style"):
-            self._skip = True
-        elif tag == "li":
-            # Preserve list-item structure with a "- " marker (matches
-            # enrichment/detail.py's clean_description, which does the same
-            # for the non-Greenhouse enrichment path) -- without it, a real
-            # <ul><li>Experience with Python</li></ul> requirements list
-            # flattens to bare, unmarked lines indistinguishable from
-            # prose. local_tailor._REQUIREMENT_MARKER_RE looks for exactly
-            # this kind of bullet/numbered prefix to extract requirement
-            # lines, so losing it here silently made the local-tailoring
-            # planner treat jobs with genuine itemized requirements as
-            # having nothing to extract at all.
-            self.parts.append("\n- ")
-        elif tag in ("p", "br", "div", "tr", "h1", "h2", "h3", "h4"):
-            self.parts.append("\n")
-
-    def handle_endtag(self, tag: str) -> None:
-        if tag in ("script", "style"):
-            self._skip = False
-
-    def handle_data(self, data: str) -> None:
-        if not self._skip and data.strip():
-            self.parts.append(data)
-
-    def text(self) -> str:
-        raw = "".join(self.parts)
-        # Collapse whitespace
-        raw = re.sub(r"[ \t]+", " ", raw)
-        raw = re.sub(r"\n{3,}", "\n\n", raw)
-        return raw.strip()
-
+#
+# Thin wrapper kept so `_strip_html` stays importable at this name/location
+# (lever.py reuses it directly; tests reference it by name). The actual
+# implementation is ats_common.strip_html_to_text -- the one canonical
+# HTML-to-text converter shared by every direct-API ATS scraper, so a fix
+# like <li> bullet preservation only ever needs to happen once. See
+# ats_common.py's module comment for the full incident history.
 
 def _strip_html(html: str) -> str:
-    if not html:
-        return ""
-    s = _HTMLStripper()
-    try:
-        s.feed(html)
-    except Exception:
-        return html  # fallback: return raw
-    return s.text()
+    return strip_html_to_text(html)
 
 
 # ── Location filter ───────────────────────────────────────────────────

@@ -27,10 +27,10 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
-from html.parser import HTMLParser
 
 from applypilot import config
 from applypilot.database import get_connection, init_db, write_with_retry
+from applypilot.discovery.ats_common import strip_html_to_text
 
 log = logging.getLogger(__name__)
 
@@ -49,34 +49,13 @@ _HEADERS = {
 }
 
 
-class _HTMLStripper(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__()
-        self.parts: list[str] = []
-
-    def handle_starttag(self, tag, attrs):
-        if tag in ("p", "br", "li", "div"):
-            self.parts.append("\n")
-
-    def handle_data(self, data):
-        if data.strip():
-            self.parts.append(data)
-
-    def text(self) -> str:
-        raw = "".join(self.parts)
-        raw = re.sub(r"[ \t]+", " ", raw)
-        return raw.strip()
-
+# Delegates to ats_common.strip_html_to_text -- the one canonical
+# HTML-to-text converter shared by every direct-API ATS scraper. See
+# ats_common.py's module comment for why this used to be a separate
+# copy-pasted implementation per scraper (and the bug that cost).
 
 def _strip_html(s: str | None) -> str:
-    if not s:
-        return ""
-    p = _HTMLStripper()
-    try:
-        p.feed(s)
-    except Exception:
-        return s
-    return p.text()
+    return strip_html_to_text(s)
 
 
 def _build_url(category: str, city: str | None, remote_only: bool, page: int) -> str:

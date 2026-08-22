@@ -10,17 +10,16 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 import sqlite3
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
-from html.parser import HTMLParser
 
 from applypilot import config
 from applypilot.database import get_connection, init_db, write_with_retry
+from applypilot.discovery.ats_common import strip_html_to_text
 
 log = logging.getLogger(__name__)
 
@@ -34,35 +33,13 @@ _HEADERS = {
 }
 
 
-class _HTMLStripper(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__()
-        self.parts: list[str] = []
-
-    def handle_starttag(self, tag, attrs):
-        if tag in ("p", "br", "li", "div"):
-            self.parts.append("\n")
-
-    def handle_data(self, data):
-        if data.strip():
-            self.parts.append(data)
-
-    def text(self) -> str:
-        raw = "".join(self.parts)
-        raw = re.sub(r"[ \t]+", " ", raw)
-        raw = re.sub(r"\n{3,}", "\n\n", raw)
-        return raw.strip()
-
+# Delegates to ats_common.strip_html_to_text -- the one canonical
+# HTML-to-text converter shared by every direct-API ATS scraper. See
+# ats_common.py's module comment for why this used to be a separate
+# copy-pasted implementation per scraper (and the bug that cost).
 
 def _strip_html(html: str) -> str:
-    if not html:
-        return ""
-    s = _HTMLStripper()
-    try:
-        s.feed(html)
-    except Exception:
-        return html
-    return s.text()
+    return strip_html_to_text(html)
 
 
 def _fetch_page(params: dict, timeout: float = 20.0) -> dict:

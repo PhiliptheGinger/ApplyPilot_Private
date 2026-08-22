@@ -17,12 +17,14 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sqlite3
 import time
 import urllib.error
 import urllib.request
 from collections.abc import Callable
 from datetime import datetime, timezone
+from html.parser import HTMLParser
 
 import yaml
 
@@ -30,6 +32,104 @@ from applypilot.config import CONFIG_DIR
 from applypilot.database import get_connection, init_db, write_with_retry
 
 log = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Canonical HTML-to-text conversion for direct-API ATS scrapers
+#
+# 2026-08-22 incident: five discovery modules (greenhouse, amazon, builtin,
+# costco, workday) each carried their own copy-pasted HTMLParser subclass
+# for turning a job posting's raw HTML `content` field into `full_description`
+# -- and every one of them flattened `<li>` to a bare newline, identical to
+# every other block tag. Since these are all "direct API" scrapers whose
+# full_description is already populated at DISCOVERY time (see
+# insert_normalized_jobs below: full_description present -> detail_scraped_at
+# is set immediately -> the job is marked "enriched" from the moment it's
+# inserted), enrichment/detail.py's OWN html-cleaning path (clean_description,
+# which correctly prefixes <li> with "- ") never runs for any of these jobs at
+# all -- there was no second chance to recover the structure.
+#
+# A real Greenhouse posting's genuinely itemized <ul><li>...</li></ul>
+# requirements list -- confirmed against the live API for an Axon posting --
+# was silently flattened to plain, unmarked lines indistinguishable from
+# prose. local_tailor._REQUIREMENT_MARKER_RE looks specifically for a
+# leading bullet/numeric marker to recognize a requirement line, so the
+# planner treated a job with real, itemized requirements as having nothing
+# to extract at all, and skipped the local model before its grounding/
+# pair-scoring logic ever ran -- correctly, given that (structure-less)
+# input, but misleadingly given the real posting.
+#
+# Five independent near-identical implementations is how the same bug got
+# introduced (and had to be fixed) five times over, with no single place
+# that enforces "an ATS's job description HTML gets converted correctly."
+# This is the one canonical implementation every direct-API scraper now
+# delegates to; each module keeps its own existing public function name as
+# a thin wrapper so no other code (tests, other scrapers importing it,
+# lever.py's re-use of greenhouse's stripper) needs to change.
+# ---------------------------------------------------------------------------
+
+class _StructureAwareHTMLStripper(HTMLParser):
+    """Strip HTML tags to plain text while preserving list-item structure.
+
+    <li> gets a "- " marker (matching enrichment/detail.py's
+    clean_description precedent) so downstream requirement-line extraction
+    (local_tailor._REQUIREMENT_MARKER_RE) can recognize it as a bullet line.
+    Other block-level tags (<p>, <br>, <div>, <tr>, <h1>-<h6>) still just
+    produce a bare line break -- unchanged from every scraper's prior
+    behavior for those tags. <script>/<style> content is always skipped.
+    """
+
+    _BLOCK_TAGS = frozenset({"p", "br", "div", "tr", "h1", "h2", "h3", "h4", "h5", "h6"})
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.parts: list[str] = []
+        self._skip = False
+
+    def handle_starttag(self, tag: str, attrs: list) -> None:
+        if tag in ("script", "style"):
+            self._skip = True
+        elif tag == "li":
+            self.parts.append("\n- ")
+        elif tag in self._BLOCK_TAGS:
+            self.parts.append("\n")
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in ("script", "style"):
+            self._skip = False
+
+    def handle_data(self, data: str) -> None:
+        if not self._skip and data.strip():
+            self.parts.append(data)
+
+    def text(self) -> str:
+        raw = "".join(self.parts)
+        raw = re.sub(r"[ \t]+", " ", raw)
+        # An empty (or whitespace-only) <li> still gets its "- " marker
+        # appended at start-tag time, before we know whether any text will
+        # follow -- drop the resulting bare "- " line rather than leaving a
+        # marker with nothing behind it.
+        raw = re.sub(r"\n- *(?=\n|$)", "\n", raw)
+        raw = re.sub(r"\n{3,}", "\n\n", raw)
+        return raw.strip()
+
+
+def strip_html_to_text(html: str | None) -> str:
+    """Convert a job posting's raw HTML `content` field to plain text.
+
+    The one canonical implementation for every direct-API ATS scraper --
+    see the module comment above for why this used to be five separate,
+    subtly different copies. Never raises: malformed HTML falls back to
+    the raw input rather than losing the description entirely.
+    """
+    if not html:
+        return ""
+    stripper = _StructureAwareHTMLStripper()
+    try:
+        stripper.feed(html)
+    except Exception:
+        return html
+    return stripper.text()
 
 UTC = timezone.utc
 
