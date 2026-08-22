@@ -157,8 +157,8 @@ class TestBuildFallbackChain(unittest.TestCase):
         """RuntimeError is raised when no API keys or Claude CLI are available."""
         env_without_keys = {
             k: v for k, v in __import__("os").environ.items()
-            if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY",
-                         "ANTHROPIC_API_KEY", "DEEPSEEK_API_KEY", "LLM_URL")
+            if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
+                         "DEEPSEEK_API_KEY", "LLM_URL", "APPLYPILOT_LOCAL_LLM_URL")
         }
         with patch.dict("os.environ", env_without_keys, clear=True):
             import applypilot.llm as llm_mod
@@ -377,7 +377,8 @@ class TestClaudeCliReserveForApply(unittest.TestCase):
         env = {
             k: v for k, v in __import__("os").environ.items()
             if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-                         "DEEPSEEK_API_KEY", "LLM_URL", "APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY")
+                         "DEEPSEEK_API_KEY", "LLM_URL", "APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY",
+                         "APPLYPILOT_LOCAL_LLM_URL")
         }
         env["GEMINI_API_KEY"] = "fake-gemini-key"  # keep the chain non-empty
         if reserve_value is not None:
@@ -414,7 +415,8 @@ class TestClaudeCliReserveForApply(unittest.TestCase):
         env = {
             k: v for k, v in __import__("os").environ.items()
             if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-                         "DEEPSEEK_API_KEY", "LLM_URL", "APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY")
+                         "DEEPSEEK_API_KEY", "LLM_URL", "APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY",
+                         "APPLYPILOT_LOCAL_LLM_URL")
         }
         with patch.dict("os.environ", env, clear=True):
             with patch.object(llm_mod, "_find_claude_cli", return_value="/fake/path/to/claude"):
@@ -464,7 +466,8 @@ class TestFullCascadeIntegration(unittest.TestCase):
         base_env = {
             k: v for k, v in __import__("os").environ.items()
             if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-                         "DEEPSEEK_API_KEY", "LLM_URL", "APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY")
+                         "DEEPSEEK_API_KEY", "LLM_URL", "APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY",
+                         "APPLYPILOT_LOCAL_LLM_URL")
         }
         base_env.update(env)
         primary = primary or ("gemini-3.1-pro-preview" if quality else "gemini-3.6-flash")

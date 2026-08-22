@@ -19,7 +19,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 from applypilot.config import TAILORED_DIR, load_profile
-from applypilot.llm import get_stage_client, get_token_limit
+from applypilot.llm import get_stage_client, get_token_limit, is_local_configured
 from applypilot.scoring.fact_approval import (
     extract_facts_from_resume_json,
     is_auto_approvable,
@@ -648,7 +648,8 @@ def judge_tailored_resume(
 # ── Core Tailoring ───────────────────────────────────────────────────────
 
 def tailor_resume(
-    resume_text: str, job: dict, profile: dict, max_retries: int = 2
+    resume_text: str, job: dict, profile: dict, max_retries: int = 2,
+    local_plan: str | None = None,
 ) -> tuple[str, dict]:
     """Generate a tailored resume via JSON output + fresh context on each retry.
 
@@ -659,12 +660,15 @@ def tailor_resume(
     - Em dashes and smart quotes are auto-fixed, not rejected
     - First attempt skips LLM judge if programmatic validation passes clean
     - Final attempt accepts validation-passing resumes even if judge disagrees
+    - local_plan: optional JSON string from local model (see local_tailor.py);
+      prepended to the user message to guide the cloud model's focus.
 
     Args:
         resume_text: Base resume text.
         job: Job dict with title, site, location, full_description.
         profile: User profile dict.
         max_retries: Maximum retry attempts.
+        local_plan: Optional tailoring plan JSON from a local first-pass.
 
     Returns:
         (tailored_text, report) where report contains validation details.
@@ -689,7 +693,29 @@ def tailor_resume(
     avoid_notes: list[str] = []
     tailored = ""
     client = get_stage_client("tailor", quality=True)
-    tailor_prompt_base = _build_tailor_prompt(profile, standup_decision=standup_decision)
+    # When only the local fallback is available (all cloud models exhausted), use
+    # a shorter compact prompt that fits within a 7B-13B model's context budget.
+    # This is an emergency DEGRADED MODE, not equivalent to normal cloud
+    # finalization -- see local_tailor.LOCAL_FULL_GENERATION_IS_DEGRADED.
+    # has_cloud_available() is an LLMClient-specific introspection method, not
+    # part of the minimal "has a .chat()" interface callers otherwise depend
+    # on (get_stage_client() always returns a real LLMClient in production,
+    # but test doubles that only fake .chat() are common and shouldn't need
+    # to grow this too) -- so it's queried defensively, defaulting to "cloud
+    # is available" (the safe assumption: don't degrade prompt quality unless
+    # we can actually confirm cloud is exhausted).
+    client_has_cloud_available = getattr(client, "has_cloud_available", lambda: True)
+    if is_local_configured() and not client_has_cloud_available():
+        from applypilot.scoring.local_tailor import _build_compact_local_prompt
+        log.warning(
+            "DEGRADED MODE: all cloud tailoring models are exhausted; falling back to "
+            "local full-resume generation for %s. Quality is lower than cloud "
+            "finalization -- this is an emergency fallback, not normal operation.",
+            job.get("title", "")[:40],
+        )
+        tailor_prompt_base = _build_compact_local_prompt(profile)
+    else:
+        tailor_prompt_base = _build_tailor_prompt(profile, standup_decision=standup_decision)
 
     for attempt in range(max_retries + 1):
         report["attempts"] = attempt + 1
@@ -703,7 +729,11 @@ def tailor_resume(
 
         messages = [
             {"role": "system", "content": prompt},
-            {"role": "user", "content": f"ORIGINAL RESUME:\n{resume_text}\n\n---\n\nTARGET JOB:\n{job_text}\n\nReturn the JSON:"},
+            {"role": "user", "content": (
+                (f"TAILORING GUIDANCE (from local pre-analysis):\n{local_plan}\n\n---\n\n"
+                 if local_plan else "")
+                + f"ORIGINAL RESUME:\n{resume_text}\n\n---\n\nTARGET JOB:\n{job_text}\n\nReturn the JSON:"
+            )},
         ]
 
         raw = client.chat(
@@ -910,7 +940,22 @@ def _tailor_one_job(job: dict, resume_text: str | None, profile: dict, doc_forma
     """Tailor resume for a single job. Safe to call from multiple threads."""
     if resume_text is None:
         resume_text, _ = load_resume_text_for_job(job)
-    tailored, report = tailor_resume(resume_text, job, profile)
+    # Optional local first-pass: ask the local model for a cheap, structured
+    # tailoring PLAN before the cloud model produces the final resume. The
+    # plan is grounding-checked (validate_local_plan) and rendered to compact
+    # text (format_local_plan_for_cloud) before being handed to the cloud
+    # model -- never the raw local-model output. Enabled via env var so the
+    # batch runner doesn't need a per-job flag.
+    local_plan_text: str | None = None
+    if os.environ.get("APPLYPILOT_LOCAL_PLAN", "").lower() in ("1", "true", "yes"):
+        from applypilot.scoring.local_tailor import format_local_plan_for_cloud, get_local_tailoring_plan
+        try:
+            plan = get_local_tailoring_plan(resume_text, job, profile)
+            local_plan_text = format_local_plan_for_cloud(plan) or None
+        except Exception:
+            log.debug("Local tailoring plan failed for %s",
+                      (job.get("title") or "")[:40], exc_info=True)
+    tailored, report = tailor_resume(resume_text, job, profile, local_plan=local_plan_text)
     approved_facts = set(report.get("approved_facts") or [])
     if report.get("status") == "approved" and approved_facts:
         source = f"{job.get('url', '')}:{job.get('title', '')}"
