@@ -8,7 +8,6 @@
 # are flagged as "manual" during apply — bot skips, user applies by hand.
 manual_ats:
   - "ibegin.tcsapps.com"       # TCS iBegin — unsolvable CAPTCHA every time
-  - "myworkdayjobs.com"        # Workday — requires account login, can't automate
 
 # ── Blocked sites — too problematic for automation ───────────────────────
 blocked:
@@ -37,7 +36,6 @@ no_signup_domains:
   - "dice.com"
   - "lever.co"
   - "greenhouse.io"
-  - "myworkdayjobs.com"
 
 # ── Blocked SSO domains — cannot authenticate through these ──────────────
 blocked_sso:

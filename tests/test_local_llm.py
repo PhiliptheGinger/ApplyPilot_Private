@@ -990,6 +990,150 @@ class TestEvidenceRetrieval(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+# 11b. Generic single-word categories excluded at the retrieval source
+#
+# Regression coverage for a precision bug traced to profile.json itself,
+# not to any matching heuristic: CompTIA A+ is tagged with the bare
+# relevance_category "IT" (2 characters -- literally the pronoun "it" once
+# normalized) and Python with the bare category "technical" (broad enough
+# to describe almost any domain's work, not just software). Both slipped
+# through because relevance_categories/factual_concepts were the one term
+# source _item_terms never filtered -- name-derived words already had a
+# length/stopword filter (_NAME_TOKEN_STOPWORDS), categories didn't. See
+# _GENERIC_EVIDENCE_TERMS / _is_generic_evidence_term, which now filters
+# every term source uniformly, at the single place they're all collected
+# -- not as a special case bolted onto _pair_candidate_evidence.
+# ---------------------------------------------------------------------------
+
+class TestGenericEvidenceTermFiltering(unittest.TestCase):
+    def test_bare_it_category_is_not_a_usable_term(self):
+        from applypilot.scoring.local_tailor import _item_terms
+        item = {"name": "CompTIA A+", "relevance_categories": ["IT", "help desk"]}
+        terms = _item_terms(item)
+        self.assertNotIn("it", terms)
+        self.assertIn("help desk", terms)
+
+    def test_bare_technical_category_is_not_a_usable_term(self):
+        from applypilot.scoring.local_tailor import _item_terms
+        item = {"name": "Python Tooling",
+                "relevance_categories": ["technical", "automation", "data", "OCR"]}
+        terms = _item_terms(item)
+        self.assertNotIn("technical", terms)
+        self.assertIn("automation", terms)
+        self.assertIn("data", terms)
+        self.assertIn("ocr", terms)
+
+    def test_multiword_technical_phrases_are_unaffected(self):
+        """Only the bare single-word term is excluded -- a category that
+        merely CONTAINS "technical" as part of a longer, specific phrase
+        is untouched."""
+        from applypilot.scoring.local_tailor import _item_terms
+        item = {
+            "name": "Field Support Tech",
+            "relevance_categories": [
+                "technical support", "customer-facing technical", "desktop support",
+            ],
+        }
+        terms = _item_terms(item)
+        self.assertIn("technical support", terms)
+        self.assertIn("customer-facing technical", terms)
+        self.assertIn("desktop support", terms)
+
+    def test_job_20171_technical_assistance_line_no_longer_retrieves_python(self):
+        """The exact reported failure: a job whose only mention of
+        'technical' is generic prose ('technical assistance... as it
+        relates to the selection, use, and installation of products') must
+        not retrieve a Python skill tagged only with the bare category
+        "technical" -- there is no OTHER literal overlap (no mention of
+        "python" anywhere), so with "technical" excluded there is nothing
+        left for it to match on."""
+        from applypilot.scoring.local_tailor import rank_profile_evidence
+        job = {
+            "title": "Hardware Sales Associate",
+            "full_description": (
+                "- Build customer confidence by supplying product knowledge "
+                "and technical assistance as it relates to the selection, "
+                "use, and installation of products sold by CNRG.\n"
+            ),
+        }
+        profile = {
+            "skills_inventory": [
+                {"name": "Python", "relevance_categories": ["technical"], "resume_allowed": True},
+            ],
+            "experience_inventory": [], "project_inventory": [],
+        }
+        ranked = rank_profile_evidence(job, profile, top_n=10)
+        self.assertEqual(ranked, [])
+
+    def test_standalone_it_pronoun_does_not_create_a_false_match(self):
+        """CompTIA A+'s "IT" category must not match ordinary prose that
+        happens to use the pronoun "it" -- the exact live-test failure
+        ("...as it relates to the selection...")."""
+        from applypilot.scoring.local_tailor import rank_profile_evidence
+        job = {
+            "title": "Retail Associate",
+            "full_description": (
+                "Build customer confidence as it relates to the selection "
+                "of products.\n"
+            ),
+        }
+        profile = {
+            "certifications": [
+                {"name": "CompTIA A+", "relevance_categories": ["IT"], "resume_allowed": True},
+            ],
+            "experience_inventory": [], "project_inventory": [], "skills_inventory": [],
+        }
+        ranked = rank_profile_evidence(job, profile, top_n=10)
+        self.assertEqual(ranked, [])
+
+    def test_specific_technical_requirement_still_matches_python(self):
+        """The fix must not blind the system to a GENUINELY technical/
+        software requirement -- Python is also tagged with the specific
+        category "python", so a real programming requirement still
+        matches it. Only the bare generic word is removed, not the item."""
+        from applypilot.scoring.local_tailor import rank_profile_evidence, _pair_candidate_evidence
+        job = {
+            "title": "Software Engineer",
+            "full_description": "- 3+ years of Python programming experience required\n",
+        }
+        profile = {
+            "skills_inventory": [
+                {"name": "Python", "relevance_categories": ["technical", "python", "automation"],
+                 "resume_allowed": True},
+            ],
+            "experience_inventory": [], "project_inventory": [],
+        }
+        ranked = rank_profile_evidence(job, profile, top_n=10)
+        names = [r["name"] for r in ranked]
+        self.assertIn("Python", names)
+        cands = _pair_candidate_evidence(
+            "3+ years of Python programming experience required", ranked,
+        )
+        self.assertEqual({names[i - 1] for i in cands}, {"Python"})
+
+    def test_existing_specific_categories_still_match(self):
+        """Existing legitimate categories -- automotive, sales, customer
+        service -- are multi-word or specific enough single words and must
+        be completely unaffected by the generic-term filter."""
+        from applypilot.scoring.local_tailor import rank_profile_evidence
+        job = {
+            "title": "Hardware Sales Associate",
+            "full_description": "We value sales, customer service, and automotive skills.\n",
+        }
+        profile = {
+            "experience_inventory": [
+                {"name": "National Tire and Battery / Mavis",
+                 "relevance_categories": ["automotive", "customer service"], "resume_allowed": True},
+                {"name": "AMP Smart", "relevance_categories": ["sales"], "resume_allowed": True},
+            ],
+            "skills_inventory": [], "project_inventory": [],
+        }
+        ranked = rank_profile_evidence(job, profile, top_n=10)
+        names = {r["name"] for r in ranked}
+        self.assertEqual(names, {"National Tire and Battery / Mavis", "AMP Smart"})
+
+
+# ---------------------------------------------------------------------------
 # 12. Cloud/local plan generation now uses retrieved evidence as grounding
 # ---------------------------------------------------------------------------
 
@@ -1161,11 +1305,19 @@ class TestPairScoringNarrowsCandidates(unittest.TestCase):
         cands = _pair_candidate_evidence("Lift up to 50 pounds of merchandise", ranked)
         self.assertEqual(cands, [])
 
-    def test_end_to_end_model_cannot_select_python_for_customer_service_requirement(self):
+    def test_end_to_end_model_cannot_select_comptia_for_customer_service_requirement(self):
         """Even if the local model ignores its candidate hint and cites
-        Python for a customer-service requirement, get_local_tailoring_plan
+        CompTIA A+ for a customer-service requirement, get_local_tailoring_plan
         must strip that pick -- enforcement happens in code (see
-        _merge_model_matches_with_resolved), not by trusting the prompt."""
+        _merge_model_matches_with_resolved), not by trusting the prompt.
+
+        Uses CompTIA A+ (matched via the specific multi-word category
+        "information technology") rather than Python here: Python's only
+        category in this fixture is the bare word "technical", which
+        _is_generic_evidence_term now excludes outright (see
+        _GENERIC_EVIDENCE_TERMS) -- Python is no longer even retrieved for
+        this job, so it can't demonstrate the out-of-candidate-tier
+        enforcement this test is about."""
         from applypilot.scoring import local_tailor
 
         job = {
@@ -1181,14 +1333,14 @@ class TestPairScoringNarrowsCandidates(unittest.TestCase):
         ranked = local_tailor.rank_profile_evidence(job, profile, top_n=10)
         names = [r["name"] for r in ranked]
         waffle_id = names.index("Waffle House") + 1
-        python_id = names.index("Python") + 1
+        comptia_id = names.index("CompTIA A+") + 1
 
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.raise_for_status.return_value = None
         mock_resp.json.return_value = {
             "message": {"content": (
-                f'{{"matches":[{{"r":1,"e":[{waffle_id},{python_id}]}}]}}'
+                f'{{"matches":[{{"r":1,"e":[{waffle_id},{comptia_id}]}}]}}'
             )}
         }
         env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
@@ -1198,9 +1350,141 @@ class TestPairScoringNarrowsCandidates(unittest.TestCase):
 
         self.assertIsNotNone(plan)
         self.assertEqual(plan["requirements"][0]["resume_evidence"], ["Waffle House"])
-        self.assertNotIn("Python", plan["skills_to_emphasize"])
+        self.assertNotIn("CompTIA A+", plan["matching_certifications"])
         joined = " ".join(plan["_warnings"])
         self.assertIn("not in its deterministic candidate tier", joined)
+
+
+# ---------------------------------------------------------------------------
+# 12a2. Controlled concept-synonym vocabulary closes obvious paraphrase gaps
+#
+# Follow-up to the pair-scoring pass above: _pair_candidate_evidence only
+# recognized a LITERAL shared term, so a genuinely obvious paraphrase like
+# "Accept and respond to telephone inquiries from customers..." (job
+# 20171's real false negative -- it never says "customer service") scored
+# zero candidates and came back unsupported even though a human reads it
+# instantly. _CONCEPT_SYNONYM_PATTERNS/_synonym_hit close that gap with a
+# small curated table, not general fuzzy matching -- these tests exercise
+# both the recall win and the guard against it becoming a new source of
+# false positives.
+# ---------------------------------------------------------------------------
+
+class TestConceptSynonymRecall(unittest.TestCase):
+    def _ranked(self):
+        from applypilot.scoring.local_tailor import rank_profile_evidence
+        return rank_profile_evidence(_job_domain_mix_job(), _job_domain_mix_profile(), top_n=10)
+
+    def test_telephone_inquiries_paraphrase_matches_customer_service_evidence(self):
+        """The exact live-test false negative from job 20171."""
+        from applypilot.scoring.local_tailor import _pair_candidate_evidence
+        ranked = self._ranked()
+        names = [r["name"] for r in ranked]
+        cands = _pair_candidate_evidence(
+            "Accept and respond to telephone inquiries from customers in a "
+            "polite manner that provides the information sought by the customer.",
+            ranked,
+        )
+        cand_names = {names[i - 1] for i in cands}
+        self.assertTrue(cand_names & {"National Tire and Battery / Mavis", "Waffle House"})
+        self.assertNotIn("Python", cand_names)
+        self.assertNotIn("AMP Smart", cand_names)
+
+    def test_customer_feedback_paraphrase_matches_customer_service_evidence(self):
+        """Another real line from job 20171: 'based on customer feedback'
+        never says 'customer service' either."""
+        from applypilot.scoring.local_tailor import _pair_candidate_evidence
+        ranked = self._ranked()
+        names = [r["name"] for r in ranked]
+        cands = _pair_candidate_evidence(
+            "Make new product recommendations to store management based on "
+            "customer feedback.",
+            ranked,
+        )
+        cand_names = {names[i - 1] for i in cands}
+        self.assertTrue(cand_names & {"National Tire and Battery / Mavis", "Waffle House"})
+        self.assertNotIn("Python", cand_names)
+
+    def test_lead_generation_paraphrase_matches_sales_evidence_without_literal_sales_word(self):
+        from applypilot.scoring.local_tailor import _pair_candidate_evidence
+        ranked = self._ranked()
+        names = [r["name"] for r in ranked]
+        cands = _pair_candidate_evidence(
+            "Drive membership growth through outreach and lead generation activities.",
+            ranked,
+        )
+        cand_names = {names[i - 1] for i in cands}
+        self.assertIn("AMP Smart", cand_names)
+        self.assertNotIn("Python", cand_names)
+        self.assertNotIn("National Tire and Battery / Mavis", cand_names)
+
+    def test_synonym_hit_requires_exact_table_key(self):
+        """_synonym_hit must never guess at a term outside the curated
+        table -- otherwise this stops being a bounded vocabulary and
+        becomes general fuzzy matching again."""
+        from applypilot.scoring.local_tailor import _synonym_hit
+        self.assertFalse(_synonym_hit("technical", "telephone inquiries from customers"))
+        self.assertFalse(_synonym_hit("some random project name", "customer feedback"))
+
+    def test_customer_service_synonyms_do_not_fire_on_generic_technical_language(self):
+        """Guard against scope creep: the curated customer-service
+        phrasings must not match generic 'technical assistance'/'product
+        knowledge' language that has no customer-facing framing at all --
+        that would reopen the exact false-positive failure mode (an
+        unrelated category matched via an over-broad pattern) this
+        closed-set design exists to prevent. This is also why 'technical'
+        has no synonym entry at all -- see the comment above
+        _CONCEPT_SYNONYM_PATTERNS."""
+        from applypilot.scoring.local_tailor import _synonym_hit
+        text = (
+            "provide technical assistance and product knowledge for "
+            "installation of parts."
+        ).lower()
+        self.assertFalse(_synonym_hit("customer service", text))
+        self.assertFalse(_synonym_hit("sales", text))
+
+    def test_customer_confidence_phrasing_correctly_favors_customer_service(self):
+        """The mirror case: a line that DOES explicitly frame the work as
+        building customer confidence (even alongside product/technical
+        language) is genuinely a customer-service signal, not a false
+        positive -- 'customer confidence' is squarely about the customer
+        relationship, unlike bare 'technical'/'product' language."""
+        from applypilot.scoring.local_tailor import _synonym_hit
+        text = (
+            "build customer confidence by supplying product knowledge and "
+            "technical assistance related to installation of products."
+        ).lower()
+        self.assertTrue(_synonym_hit("customer service", text))
+
+    def test_end_to_end_paraphrase_resolves_deterministically_without_llm(self):
+        """A single-candidate synonym match must auto-resolve exactly like
+        a literal one -- no LLM call needed."""
+        from applypilot.scoring import local_tailor
+
+        job = {
+            "title": "Hardware Sales Associate",
+            "full_description": (
+                "We provide excellent customer service to every guest.\n"
+                "\n"
+                "- Accept and respond to telephone inquiries from customers "
+                "in a polite manner.\n"
+            ),
+        }
+        profile = {
+            "experience_inventory": [
+                {"name": "Waffle House", "relevance_categories": ["customer service"],
+                 "resume_allowed": True},
+            ],
+            "skills_inventory": [], "project_inventory": [],
+        }
+        env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
+        with patch.dict("os.environ", env, clear=False), \
+             patch("httpx.post") as mock_post:
+            plan = local_tailor.get_local_tailoring_plan("resume", job, profile)
+
+        mock_post.assert_not_called()
+        self.assertIsNotNone(plan)
+        self.assertEqual(plan["requirements"][0]["resume_evidence"], ["Waffle House"])
+        self.assertTrue(plan["requirements"][0]["supported"])
 
 
 # ---------------------------------------------------------------------------

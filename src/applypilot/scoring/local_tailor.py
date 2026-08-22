@@ -403,25 +403,79 @@ def _normalize_term(term: str) -> str:
 ## Generic connector words pulled from multi-word item names (e.g. "National
 ## Tire and Battery") that would otherwise trivially match almost any job
 ## description via the word "and"/"the"/etc. Only filters the individual-
-## word split of `name` -- relevance_categories/factual_concepts are
-## already curated signal, not filtered.
+## word split of `name` -- relevance_categories/factual_concepts were
+## historically assumed to already be curated signal that needed no
+## filtering. That assumption is what let "it"/"technical" through (see
+## _GENERIC_EVIDENCE_TERMS below): profile.json data, not code, is where
+## these two originate, but nothing downstream ever questioned them.
 _NAME_TOKEN_STOPWORDS = frozenset({
     "and", "the", "for", "with", "from", "into", "onto", "your", "you",
     "our", "their", "his", "her", "its", "this", "that", "these", "those",
     "are", "was", "were", "has", "have", "had", "not", "but", "can",
 })
 
+# A term this generic carries no discriminating signal on its own, no
+# matter which source it came from (name, name-word-split,
+# relevance_categories, or factual_concepts) -- it's excluded once, here,
+# rather than re-litigated per source or (worse) papered over downstream
+# in _pair_candidate_evidence with special-case exceptions.
+#
+# Two independent, both DATA-observed (not hypothetical) failure shapes:
+#   - Too short to be anything but a function word. profile.json tags
+#     CompTIA A+ with the category "IT" -- at 2 characters it's
+#     indistinguishable from the pronoun "it" and matches almost any
+#     sentence in English ("...as IT relates to the selection...").
+#     Nothing upstream normalizes/expands "IT" to "information technology"
+#     first; _normalize_term just lowercases it, so it's literally the
+#     2-letter word "it" by the time it reaches _term_in_text.
+#   - A broad descriptor of ANY domain's work, not a specific skill/
+#     industry. profile.json tags the Python skill with the bare category
+#     "technical" (alongside "automation"/"data"/"OCR", which ARE
+#     specific). "Technical assistance" shows up in auto-parts retail,
+#     nursing, and IT support alike -- tagging Python with the single word
+#     "technical" makes it match every one of those, not just software
+#     ones. It's a different failure mode than "it" (not short, not a
+#     function word) but the same root cause: too generic to mean anything
+#     standalone.
+# Neither entry is dropped when it's part of a longer, more specific
+# phrase -- "technical support", "customer-facing technical", and
+# "desktop support" (also on CompTIA A+) are untouched; only the bare
+# single-word term is excluded. Add entries here ONLY when a real generic
+# false-positive is observed (as both of these were), not speculatively --
+# this is a short, explainable exception list, not a general stopword
+# dictionary standing in for real domain-specificity judgment.
+_GENERIC_EVIDENCE_TERMS = frozenset({"it", "technical"})
+
+
+def _is_generic_evidence_term(term: str) -> bool:
+    """True if `term` (an already-normalized name/category/concept term)
+    is too generic to serve as a standalone evidence-match signal -- see
+    _GENERIC_EVIDENCE_TERMS. Multi-word terms are never caught by this:
+    a category like "customer service" or "technical support" is always
+    well over the length floor and never equals one of the bare single
+    words in the exception set, so only a truly bare, truly generic term
+    is excluded."""
+    return len(term) < 3 or term in _GENERIC_EVIDENCE_TERMS
+
 
 def _item_terms(item: dict) -> set[str]:
     """Collect the matchable normalized terms already curated on one
-    experience_inventory / project_inventory / skills_inventory entry."""
+    experience_inventory / project_inventory / skills_inventory entry.
+
+    Every term -- from the item's name, the individual words split from
+    it, its relevance_categories, and its factual_concepts alike -- passes
+    through the SAME final _is_generic_evidence_term filter, so a term too
+    generic to be useful can't slip through just because it came from a
+    source that historically wasn't filtered (see _NAME_TOKEN_STOPWORDS'
+    comment above for how that happened before).
+    """
     terms: set[str] = set()
     name = item.get("name")
     if isinstance(name, str) and name.strip():
         terms.add(_normalize_term(name))
         for w in _TERM_WORD_RE.findall(name):
             wl = _normalize_term(w)
-            if len(wl) >= 3 and wl not in _NAME_TOKEN_STOPWORDS:
+            if wl not in _NAME_TOKEN_STOPWORDS:
                 terms.add(wl)
     for cat in item.get("relevance_categories") or []:
         if isinstance(cat, str) and cat.strip():
@@ -429,7 +483,7 @@ def _item_terms(item: dict) -> set[str]:
     for concept in item.get("factual_concepts") or []:
         if isinstance(concept, str) and concept.strip():
             terms.add(_normalize_term(concept))
-    return {t for t in terms if t}
+    return {t for t in terms if t and not _is_generic_evidence_term(t)}
 
 
 def _term_in_text(term: str, haystack_lower: str) -> bool:
@@ -560,21 +614,94 @@ def format_evidence_for_prompt(ranked: list[dict]) -> str:
 # is never called at all for this job.
 # ---------------------------------------------------------------------------
 
+# Controlled concept-synonym vocabulary.
+#
+# _pair_candidate_evidence (below) only recognizes a requirement/evidence
+# relationship when the requirement line LITERALLY contains one of the
+# evidence item's matched_terms (e.g. the exact phrase "customer service").
+# That is precise but misses obvious paraphrases a human reads instantly:
+# "Accept and respond to telephone inquiries from customers in a polite
+# manner..." is self-evidently a customer-service requirement, yet never
+# says the words "customer service" -- so it scored zero candidates and
+# came back unsupported even though Mavis/Waffle House plainly cover it.
+#
+# This closes that gap without reopening free-text/fuzzy matching: a small,
+# hand-curated table of alternate phrasings for a couple of the most common
+# relevance_categories values. Two things keep it bounded rather than a
+# general synonym-expansion engine:
+#   - It only widens which REQUIREMENT LINES an evidence item's
+#     already-established matched_term can apply to. It can never make an
+#     evidence item relevant to a job at all if rank_profile_evidence didn't
+#     already find literal category/name overlap with the job description
+#     as a whole -- synonym expansion never invents a new matched_term, it
+#     only rechecks existing ones against different phrasing.
+#   - A synonym hit scores identically to a literal hit, so the
+#     "top-scoring tier only" rule in _pair_candidate_evidence is untouched
+#     -- this only changes WHICH items can reach that tier for a given
+#     line, never how many survive once there.
+#
+# Deliberately small and specific: each entry is a handful of unambiguous
+# rephrasings for ONE category, not a broad thesaurus. A category like
+# "technical" is intentionally NOT here -- "technical assistance"/"product
+# knowledge" show up in plenty of non-software contexts (e.g. hardware
+# retail) and would reintroduce exactly the false-positive failure mode
+# (Python matched to an unrelated "technical" requirement) this whole
+# closed-set design exists to prevent. Add entries only when a real
+# false-negative is observed, narrowly enough that it can't bleed into an
+# unrelated domain.
+_CONCEPT_SYNONYM_PATTERNS: dict[str, re.Pattern] = {
+    term: re.compile(pattern, re.IGNORECASE) for term, pattern in {
+        "customer service": (
+            r"\btelephone\s+inquir\w*\b|"
+            r"\bcustomer\s+(?:inquir\w*|feedback|needs?|complaints?|requests?|confidence)\b|"
+            r"\brespond(?:ing|s)?\s+to\s+(?:customer|client)s?\b|"
+            r"\bassist(?:ing|s)?\s+(?:customer|client|guest)s?\b|"
+            r"\bserv(?:e|ing|es)\s+(?:customer|client|guest)s?\b|"
+            r"\b(?:customer|client|guest)s?\s+(?:in\s+a\s+)?(?:polite|friendly|courteous)\s+manner\b"
+        ),
+        "sales": (
+            r"\blead\s+generation\b|\bgenerate\s+leads?\b|\bclose\s+(?:a\s+)?sales?\b|"
+            r"\bupsell(?:ing)?\b|\boutreach\b|\bmembership\s+growth\b|"
+            r"\bnew\s+business\s+opportunit\w*\b|\bfollow-?ups?\b"
+        ),
+    }.items()
+}
+
+
+def _synonym_hit(term: str, text_lower: str) -> bool:
+    """True if `text_lower` contains a curated alternate phrasing of the
+    concept named by `term` (see _CONCEPT_SYNONYM_PATTERNS).
+
+    `term` must exactly match one of the table's keys -- this never guesses
+    at arbitrary terms, only the small curated set above. Most matched_terms
+    (project names, one-off skills) simply aren't in the table and always
+    return False here, falling back entirely to the literal _term_in_text
+    check in _pair_candidate_evidence.
+    """
+    pattern = _CONCEPT_SYNONYM_PATTERNS.get(term)
+    return bool(pattern and pattern.search(text_lower))
+
+
 def _pair_candidate_evidence(requirement_text: str, ranked_evidence: list[dict]) -> list[int]:
     """Return the 1-based evidence indices that are the STRONGEST
     deterministic match for one requirement line, by re-checking each
     evidence item's job-level `matched_terms` against just this line's
-    text (see the module comment above).
+    text -- either literally (_term_in_text) or via a curated paraphrase
+    (_synonym_hit) -- see the module comments above.
 
     Returns only the top-scoring tier -- ties for first place, never a
     runner-up -- so a caller can treat this list as "the evidence this
     requirement could plausibly cite" rather than "everything topically
-    nearby". Empty if no evidence item has any matched term in this line.
+    nearby". Empty if no evidence item has any matched term (literal or
+    synonym) in this line.
     """
     text_lower = requirement_text.lower()
     scored: list[tuple[int, int]] = []
     for idx, item in enumerate(ranked_evidence, start=1):
-        score = sum(1 for t in (item.get("matched_terms") or []) if _term_in_text(t, text_lower))
+        score = sum(
+            1 for t in (item.get("matched_terms") or [])
+            if _term_in_text(t, text_lower) or _synonym_hit(t, text_lower)
+        )
         if score > 0:
             scored.append((idx, score))
     if not scored:

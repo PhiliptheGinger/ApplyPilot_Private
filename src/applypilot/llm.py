@@ -133,6 +133,19 @@ def _build_fallback_chain(primary_model: str, quality: bool = False) -> list[Mod
 
     chain: list[ModelEntry] = []
 
+    # 2026-08-22 fix: `primary_model` not being one of the known gemini_models
+    # names used to be treated as "the user configured an unlisted/newer
+    # Gemini model" and injected as a Gemini entry unconditionally. That's
+    # correct when the caller actually intends Gemini (e.g. a genuinely new
+    # Gemini model id via LLM_MODEL) but wrong whenever `primary_model`
+    # happens to be the configured LOCAL model name instead (e.g. cli.py's
+    # `test-local` command constructs LLMClient(local_url, local_model, ...)
+    # directly) -- with GEMINI_API_KEY also set, that produced a bogus
+    # "qwen3:8b (gemini)" entry that 404s against the real Gemini API before
+    # ever reaching the correct "qwen3:8b (local)" entry below.
+    _local_model_name = os.environ.get("APPLYPILOT_LOCAL_LLM_MODEL", "").strip()
+    _primary_is_local_model = bool(_local_model_name) and primary_model == _local_model_name
+
     # Start from the primary model in the Gemini chain
     if gemini_key:
         started = False
@@ -141,9 +154,12 @@ def _build_fallback_chain(primary_model: str, quality: bool = False) -> list[Mod
                 started = True
             if started:
                 chain.append(ModelEntry(m, "gemini", gemini_url, gemini_key))
-        # If primary wasn't found in chain, add full chain
+        # If primary wasn't found in chain, add the full chain -- but never
+        # inject the primary itself as a Gemini entry when it's actually the
+        # configured local model (see note above).
         if not started:
-            chain.append(ModelEntry(primary_model, "gemini", gemini_url, gemini_key))
+            if not _primary_is_local_model:
+                chain.append(ModelEntry(primary_model, "gemini", gemini_url, gemini_key))
             for m in gemini_models:
                 if m != primary_model:
                     chain.append(ModelEntry(m, "gemini", gemini_url, gemini_key))
@@ -181,7 +197,18 @@ def _build_fallback_chain(primary_model: str, quality: bool = False) -> list[Mod
         for m in anthropic_models:
             chain.append(ModelEntry(m, "anthropic", anthropic_url, anthropic_key))
 
-    # If nothing was added (no keys), raise
+    # Local model fallback — appended last, after all cloud providers, but
+    # BEFORE the empty-chain check so a local-only setup (no cloud keys at
+    # all) is valid. Configured separately from LLM_URL (which sets the
+    # primary provider) so existing local-primary setups are unaffected.
+    # Presence of the URL implies enabled; no separate flag needed
+    # (consistent with how GEMINI_API_KEY works).
+    _local_url = os.environ.get("APPLYPILOT_LOCAL_LLM_URL", "").rstrip("/")
+    _local_model = os.environ.get("APPLYPILOT_LOCAL_LLM_MODEL", "llama3.2")
+    if _local_url:
+        chain.append(ModelEntry(_local_model, "local", _local_url, ""))
+
+    # If nothing was added (no keys, no local), raise
     if not chain:
         reserved_note = (
             " claude_cli is installed but reserved for auto-apply "
@@ -190,7 +217,8 @@ def _build_fallback_chain(primary_model: str, quality: bool = False) -> list[Mod
         )
         raise RuntimeError(
             "No LLM provider configured. "
-            "Set GEMINI_API_KEY, OPENAI_API_KEY, DEEPSEEK_API_KEY, or ANTHROPIC_API_KEY."
+            "Set GEMINI_API_KEY, OPENAI_API_KEY, DEEPSEEK_API_KEY, ANTHROPIC_API_KEY, "
+            "or APPLYPILOT_LOCAL_LLM_URL."
             + reserved_note
         )
 
@@ -313,8 +341,33 @@ class LLMClient:
 
         entries_to_try = [e for e in self._fallback_chain if not _is_exhausted(e.name)]
         if not entries_to_try:
-            self._exhausted.clear()
-            entries_to_try = list(self._fallback_chain)
+            # Don't blindly clear all exhaustion — only remove short-term rate-limit
+            # cooldowns (<= 5 min remaining). Long-term 24h daily-quota blocks must
+            # persist so repeated batch calls don't keep hammering the same provider.
+            _SHORT_COOLDOWN = 300
+            for _e in list(self._fallback_chain):
+                _v = self._exhausted.get(_e.name)
+                if _v is None:
+                    continue
+                _remaining = (_v - now) if _v > now else max(0.0, _SHORT_COOLDOWN - (now - _v))
+                if _remaining <= _SHORT_COOLDOWN:
+                    self._exhausted.pop(_e.name, None)
+            entries_to_try = [e for e in self._fallback_chain if not _is_exhausted(e.name)]
+            if not entries_to_try:
+                _waits = [
+                    (self._exhausted[_e.name] - now) / 3600
+                    for _e in self._fallback_chain
+                    if _e.name in self._exhausted and self._exhausted[_e.name] > now
+                ]
+                _min_h = min(_waits) if _waits else 0.0
+                _local_hint = (
+                    " Set APPLYPILOT_LOCAL_LLM_URL for a local fallback."
+                    if not any(e.provider == "local" for e in self._fallback_chain)
+                    else ""
+                )
+                raise RuntimeError(
+                    f"All LLM providers are on quota cooldown (min wait: {_min_h:.1f}h).{_local_hint}"
+                )
 
         for idx, entry in enumerate(entries_to_try):
             is_last = (idx == len(entries_to_try) - 1)
@@ -343,10 +396,10 @@ class LLMClient:
                            temperature: float, max_tokens: int,
                            is_last: bool = False) -> str | None:
         """Try an OpenAI-compatible endpoint (Gemini, OpenAI, local)."""
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {entry.api_key}",
-        }
+        headers: dict[str, str] = {"Content-Type": "application/json"}
+        # Local Ollama / llama.cpp may not require auth; omit Bearer when key is empty
+        if entry.api_key:
+            headers["Authorization"] = f"Bearer {entry.api_key}"
         # DeepSeek deepseek-chat has an 8192 max output token limit
         if entry.provider == "deepseek":
             max_tokens = min(max_tokens, 8192)
@@ -357,12 +410,19 @@ class LLMClient:
             "max_tokens": max_tokens,
         }
 
+        # Local models may be slower; allow a configurable per-request timeout
+        _req_timeout = (
+            int(os.environ.get("APPLYPILOT_LOCAL_LLM_TIMEOUT", "120"))
+            if entry.provider == "local" else None  # None = use httpx client default
+        )
         for attempt in range(_MAX_RETRIES):
             try:
+                post_kwargs: dict = {"json": payload, "headers": headers}
+                if _req_timeout is not None:
+                    post_kwargs["timeout"] = _req_timeout
                 resp = self._client.post(
                     f"{entry.base_url}/chat/completions",
-                    json=payload,
-                    headers=headers,
+                    **post_kwargs,
                 )
                 if resp.status_code == 402:
                     # Payment Required — mark as exhausted for a full day (free-tier)
@@ -706,6 +766,19 @@ class LLMClient:
         now = time.time()
         return any(self._exhausted.get(e.name, 0) <= now for e in self._fallback_chain)
 
+    def has_cloud_available(self) -> bool:
+        """True if at least one non-local, non-claude_cli entry is not exhausted.
+
+        Used by the tailor stage to select a shorter compact prompt when the
+        only available model is a local one (smaller context budget than cloud).
+        """
+        now = time.time()
+        return any(
+            e.provider not in ("local", "claude_cli")
+            and self._exhausted.get(e.name, 0) <= now
+            for e in self._fallback_chain
+        )
+
     def ask(self, prompt: str, **kwargs) -> str:
         """Convenience: single user prompt -> assistant response."""
         return self.chat([{"role": "user", "content": prompt}], **kwargs)
@@ -786,3 +859,27 @@ def get_client(quality: bool = False, model_override: str | None = None) -> LLMC
 def get_stage_client(stage: str, *, quality: bool) -> LLMClient:
     """Return a client for a pipeline stage, honoring per-stage model overrides."""
     return get_client(quality=quality, model_override=_stage_model_override(stage))
+
+
+def is_local_configured() -> bool:
+    """Return True if APPLYPILOT_LOCAL_LLM_URL is set (local fallback is enabled)."""
+    return bool(os.environ.get("APPLYPILOT_LOCAL_LLM_URL", "").strip())
+
+
+def local_available() -> bool:
+    """Probe whether the configured local LLM endpoint is reachable.
+
+    Tries the common Ollama / llama.cpp paths. Returns False immediately when
+    no URL is configured. Safe to call frequently: 4-second timeout, no retries.
+    """
+    url = os.environ.get("APPLYPILOT_LOCAL_LLM_URL", "").rstrip("/")
+    if not url:
+        return False
+    for path in ("/v1/models", "/api/tags", "/models"):
+        try:
+            resp = httpx.get(f"{url}{path}", timeout=4.0)
+            if resp.status_code < 500:
+                return True
+        except Exception:
+            continue
+    return False

@@ -196,10 +196,22 @@ def run(
             "file under ~/.applypilot/logs/ -- use that for after-the-fact review."
         ),
     ),
+    local_first: bool = typer.Option(
+        False, "--local-first",
+        help=(
+            "Before the cloud tailoring call, ask the local model "
+            "(APPLYPILOT_LOCAL_LLM_URL) for a cheap tailoring plan that guides "
+            "the cloud model's output.  Requires APPLYPILOT_LOCAL_LLM_URL to be set."
+        ),
+    ),
 ) -> None:
     """Run pipeline stages: discover, enrich, score, tailor, cover, pdf."""
     if quiet:
         _console_handler.setLevel(logging.WARNING)
+    if local_first:
+        # Signal to run_tailoring / _tailor_one_job via env var so the flag
+        # threads through the pipeline without changing any function signatures.
+        os.environ["APPLYPILOT_LOCAL_PLAN"] = "1"
     # Handle --list-sources before bootstrap (no DB/env needed)
     if list_sources:
         from applypilot.pipeline import _SOURCE_ALIASES, DISCOVERY_SOURCES
@@ -277,6 +289,203 @@ def run(
 
     if result.get("errors"):
         raise typer.Exit(code=1)
+
+
+@app.command("test-local")
+def test_local_cmd() -> None:
+    """Test connectivity to the configured local LLM (APPLYPILOT_LOCAL_LLM_URL).
+
+    Probes the endpoint and sends a minimal chat request.
+    Exit code 0 = working, 1 = not configured or unreachable.
+    """
+    _bootstrap()
+    from applypilot.llm import ModelEntry, is_local_configured, local_available, LLMClient
+
+    if not is_local_configured():
+        console.print(
+            "[yellow]No local LLM configured.[/yellow]  "
+            "Set [bold]APPLYPILOT_LOCAL_LLM_URL[/bold] in "
+            "[dim]~/.applypilot/.env[/dim] or the environment.\n"
+            "Example (Ollama default): APPLYPILOT_LOCAL_LLM_URL=http://localhost:11434/v1"
+        )
+        raise typer.Exit(code=1)
+
+    url = os.environ.get("APPLYPILOT_LOCAL_LLM_URL", "").rstrip("/")
+    model = os.environ.get("APPLYPILOT_LOCAL_LLM_MODEL", "llama3.2")
+    console.print(f"  URL:   [cyan]{url}[/cyan]")
+    console.print(f"  Model: [cyan]{model}[/cyan]")
+
+    if not local_available():
+        console.print(f"[red]Endpoint unreachable:[/red] {url}")
+        raise typer.Exit(code=1)
+
+    console.print("[green]Endpoint reachable.[/green]  Sending chat probe...")
+    try:
+        # Empty api_key is intentional — Ollama ignores auth
+        client = LLMClient(url, model, "", quality=False)
+        # This command's whole purpose is to test THIS local endpoint --
+        # pin the chat probe to only the local entry so a configured cloud
+        # key (e.g. GEMINI_API_KEY) can never mask a broken/unreachable
+        # local model behind a "working" cloud fallback response.
+        client._fallback_chain = [ModelEntry(model, "local", url, "")]
+        reply = client.chat(
+            [{"role": "user", "content": 'Reply with exactly: {"status":"ok"}'}],
+            max_tokens=30,
+        )
+        console.print(f"[dim]Response: {reply[:80]}[/dim]")
+        console.print("[green]Local LLM is working.[/green]")
+    except Exception as exc:
+        console.print(
+            f"[yellow]Chat probe failed (endpoint reachable but model may not be loaded): "
+            f"{exc}[/yellow]"
+        )
+        raise typer.Exit(code=1)
+
+
+@app.command("debug-local-plan")
+def debug_local_plan_cmd(
+    url: str | None = typer.Option(None, "--url", help="Job URL (or a partial match) to debug."),
+    job_id: int | None = typer.Option(
+        None, "--job-id",
+        help="Job's database row id (see the leftmost column in e.g. `applypilot status`-adjacent "
+             "SQL, or note it down as jobs are discovered) -- lets you debug a stored job without "
+             "retrieving its original URL.",
+    ),
+) -> None:
+    """Show the local model's tailoring plan for one job -- WITHOUT
+    generating or modifying any resume.
+
+    Displays the deterministic evidence-retrieval trace (which profile
+    items matched, why, and the auto-extracted requirement lines) alongside
+    the local model's structured plan, so you can judge whether the local
+    stage is useful before spending a cloud tailoring call on it.
+
+    Exactly one of --url or --job-id must be given. Requires
+    APPLYPILOT_LOCAL_LLM_URL to be set.
+    """
+    # Validate args before any bootstrap/IO so a bad invocation fails fast.
+    if (url is None) == (job_id is None):
+        console.print(
+            "[red]Provide exactly one of[/red] [bold]--url[/bold] [red]or[/red] "
+            "[bold]--job-id[/bold] [red](not both, not neither).[/red]"
+        )
+        raise typer.Exit(code=1)
+
+    _bootstrap()
+    from applypilot.config import load_profile
+    from applypilot.database import get_connection
+    from applypilot.llm import is_local_configured
+    from applypilot.scoring.local_tailor import debug_plan_for_job
+
+    if not is_local_configured():
+        console.print(
+            "[yellow]No local LLM configured.[/yellow]  "
+            "Set [bold]APPLYPILOT_LOCAL_LLM_URL[/bold] first (see [bold]applypilot test-local[/bold])."
+        )
+        raise typer.Exit(code=1)
+
+    conn = get_connection()
+    select_cols = "rowid, url, title, site, application_url, full_description, fit_score, company"
+    if job_id is not None:
+        row = conn.execute(
+            f"SELECT {select_cols} FROM jobs WHERE rowid = ?", (job_id,),
+        ).fetchone()
+        not_found_desc = f"--job-id {job_id}"
+    else:
+        like = f"%{url.split('?')[0].rstrip('/')}%"
+        row = conn.execute(
+            f"SELECT {select_cols} FROM jobs WHERE url = ? OR url LIKE ? "
+            "ORDER BY discovered_at DESC LIMIT 1",
+            (url, like),
+        ).fetchone()
+        not_found_desc = f"--url {url}"
+    if not row:
+        console.print(f"[red]No job found matching:[/red] {not_found_desc}")
+        raise typer.Exit(code=1)
+    job = dict(row)
+
+    profile = load_profile()
+    console.print(
+        f"\n[bold blue]Local plan debug:[/bold blue] {job.get('title')} @ {job.get('site')} "
+        f"[dim](--job-id {job.get('rowid')})[/dim]"
+    )
+    console.print(f"[dim]{job.get('url')}[/dim]\n")
+
+    result = debug_plan_for_job(job, profile)
+    if result is None:
+        console.print(
+            "[red]Local planning failed[/red] -- model unreachable, timed out, empty "
+            "response, or output wasn't parseable JSON (see the warning logged above "
+            "for the specific cause). Try [bold]applypilot test-local[/bold] to check "
+            "connectivity, or raise [bold]APPLYPILOT_LOCAL_LLM_TIMEOUT[/bold] if the "
+            "model is just slow."
+        )
+        raise typer.Exit(code=1)
+
+    plan = result["plan"]
+    evidence = result["evidence"]
+    req_lines = result["requirement_lines"]
+
+    if req_lines:
+        t = Table(title="Auto-extracted requirement lines (deterministic)", show_header=True, header_style="bold cyan")
+        t.add_column("Importance")
+        t.add_column("Text", overflow="fold")
+        for l in req_lines:
+            t.add_row(l["importance"], l["text"])
+        console.print(t)
+    else:
+        console.print("[dim]No bullet/numbered requirement lines detected in the description.[/dim]")
+
+    if evidence:
+        t = Table(title="Retrieved profile evidence (deterministic, no LLM)", show_header=True, header_style="bold cyan")
+        t.add_column("Type")
+        t.add_column("Item")
+        t.add_column("Score", justify="right")
+        t.add_column("Matched job terms/categories", overflow="fold")
+        for e in evidence:
+            t.add_row(e["type"], e["name"], str(e["score"]), ", ".join(e["matched_terms"]))
+        console.print(t)
+    else:
+        console.print("[dim]No profile evidence (experience/project/skill) matched this job.[/dim]")
+
+    if plan["requirements"]:
+        t = Table(title="Requirements (from local model)", show_header=True, header_style="bold cyan")
+        t.add_column("Importance")
+        t.add_column("Requirement", overflow="fold")
+        t.add_column("Supported")
+        t.add_column("Evidence", overflow="fold")
+        for r in plan["requirements"]:
+            t.add_row(
+                r["importance"], r["requirement"],
+                "yes" if r["supported"] else "no",
+                "; ".join(r["resume_evidence"]),
+            )
+        console.print(t)
+
+    if plan["unsupported_requirements"]:
+        console.print("\n[yellow]Unsupported requirements (no fabricated evidence):[/yellow]")
+        for u in plan["unsupported_requirements"]:
+            console.print(f"  - {u}")
+
+    if plan["bullets_to_prioritize"]:
+        console.print("\n[green]Bullets to prioritize:[/green]")
+        for b in plan["bullets_to_prioritize"]:
+            console.print(f"  - {b}")
+
+    if plan["bullets_to_deemphasize"]:
+        console.print("\n[dim]Bullets to de-emphasize:[/dim]")
+        for b in plan["bullets_to_deemphasize"]:
+            console.print(f"  - {b}")
+
+    if plan["safe_rewrites"]:
+        console.print("\n[cyan]Proposed safe rewrites:[/cyan]")
+        for rw in plan["safe_rewrites"]:
+            console.print(f'  - "{rw["original"]}" -> "{rw["suggested"]}"')
+
+    if plan["_warnings"]:
+        console.print("\n[dim]Dropped by grounding validation:[/dim]")
+        for w in plan["_warnings"]:
+            console.print(f"  [dim]- {w}[/dim]")
 
 
 @app.command()

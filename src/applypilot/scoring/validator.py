@@ -258,7 +258,52 @@ def validate_json_fields(data: dict, profile: dict, standup_decision: str | None
 
     _append_profile_integrity_errors(str(data), profile, errors)
 
+    # Factual anchor check: experience headers must use known employer names.
+    # Catches local-model hallucinations (inventing new employers) that the
+    # existing preserved-company warning above doesn't cover.
+    _anchor = validate_factual_anchors(data, profile)
+    errors.extend(_anchor["errors"])
+    warnings.extend(_anchor["warnings"])
+
     return {"passed": len(errors) == 0, "errors": errors, "warnings": warnings}
+
+
+# ── Factual Anchor Validation ────────────────────────────────────────────
+
+def validate_factual_anchors(tailored_data: dict, profile: dict) -> dict:
+    """Check experience headers for unrecognized employer names.
+
+    Guards against local models (and occasionally cloud models) inventing new
+    employers in experience section headers.  Only active when the profile has
+    a non-empty ``preserved_companies`` list; issues warnings rather than hard
+    errors so a single ambiguous header doesn't block an otherwise valid draft.
+
+    Returns {"errors": list, "warnings": list}.
+    """
+    warnings: list[str] = []
+    resume_facts = profile.get("resume_facts", {})
+    preserved = [
+        c.lower().strip()
+        for c in resume_facts.get("preserved_companies", [])
+        if c.strip()
+    ]
+    if not preserved:
+        return {"errors": [], "warnings": []}
+
+    for entry in (tailored_data.get("experience") or []):
+        header = (entry.get("header") or "").strip()
+        # Headers are typically "Role | Company | Dates"; split on pipe
+        parts = [p.strip() for p in header.split("|")]
+        if len(parts) >= 2:
+            company_part = parts[1].lower()
+            if company_part and not any(co in company_part for co in preserved):
+                warnings.append(
+                    f"Experience header may reference unrecognized employer: "
+                    f"'{parts[1].strip()}' "
+                    f"(known: {', '.join(c.title() for c in preserved[:3])})"
+                )
+
+    return {"errors": [], "warnings": warnings}
 
 
 # ── Full Resume Text Validation ───────────────────────────────────────────
