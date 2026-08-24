@@ -29,16 +29,15 @@ ATS, latest-wins (overwrite on each success). Format::
       ]
     }
 """
+
 from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from applypilot import config
-
-UTC = timezone.utc
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +58,9 @@ MAX_AGE_DAYS = 30
 PATHS_DIR = config.APP_DIR / "successful_paths"
 
 
-def save_path(ats_slug: str, steps: list[dict],
-              job_url: str | None = None,
-              duration_ms: int | None = None) -> Path | None:
+def save_path(
+    ats_slug: str, steps: list[dict], job_url: str | None = None, duration_ms: int | None = None
+) -> Path | None:
     """Persist a successful tool-call sequence for ``ats_slug``.
 
     Keep-fastest semantics: if a memo already exists for ``ats_slug``
@@ -86,25 +85,26 @@ def save_path(ats_slug: str, steps: list[dict],
             old_dur = existing.get("duration_ms")
             if isinstance(old_dur, int) and old_dur > 0 and duration_ms > old_dur:
                 logger.info(
-                    "Skipping memo update for %s — existing %.1fs is "
-                    "faster than new %.1fs",
-                    ats_slug, old_dur / 1000, duration_ms / 1000,
+                    "Skipping memo update for %s — existing %.1fs is faster than new %.1fs",
+                    ats_slug,
+                    old_dur / 1000,
+                    duration_ms / 1000,
                 )
                 return None
 
     try:
         PATHS_DIR.mkdir(parents=True, exist_ok=True)
         payload = {
-            "ats_slug":    ats_slug,
+            "ats_slug": ats_slug,
             "captured_at": datetime.now(UTC).isoformat(),
-            "job_url":     job_url,
+            "job_url": job_url,
             "duration_ms": duration_ms,
-            "steps":       steps[-MAX_STEPS:],
+            "steps": steps[-MAX_STEPS:],
         }
         out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-        logger.info("Saved successful path for %s (%d steps, %.1fs)",
-                    ats_slug, len(payload["steps"]),
-                    (duration_ms or 0) / 1000)
+        logger.info(
+            "Saved successful path for %s (%d steps, %.1fs)", ats_slug, len(payload["steps"]), (duration_ms or 0) / 1000
+        )
         return out_path
     except Exception:
         logger.debug("Could not save successful path", exc_info=True)
@@ -139,7 +139,9 @@ def load_path(ats_slug: str) -> dict | None:
             if age.total_seconds() > MAX_AGE_DAYS * 86400:
                 logger.info(
                     "Skipping stale memo for %s — age %.1f days exceeds %d-day cutoff",
-                    ats_slug, age.total_seconds() / 86400, MAX_AGE_DAYS,
+                    ats_slug,
+                    age.total_seconds() / 86400,
+                    MAX_AGE_DAYS,
                 )
                 return None
         except Exception:

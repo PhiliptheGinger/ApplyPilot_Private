@@ -66,8 +66,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 # reimplementation drifting back out of sync later.
 # ---------------------------------------------------------------------------
 
+
 def _wrapper_under_test(module_path: str):
     import importlib
+
     mod = importlib.import_module(module_path)
     fn_name = "strip_html" if module_path.endswith("workday") else "_strip_html"
     return mod, getattr(mod, fn_name)
@@ -76,13 +78,16 @@ def _wrapper_under_test(module_path: str):
 import pytest
 
 
-@pytest.mark.parametrize("module_path", [
-    "applypilot.discovery.greenhouse",
-    "applypilot.discovery.amazon",
-    "applypilot.discovery.builtin",
-    "applypilot.discovery.costco",
-    "applypilot.discovery.workday",
-])
+@pytest.mark.parametrize(
+    "module_path",
+    [
+        "applypilot.discovery.greenhouse",
+        "applypilot.discovery.amazon",
+        "applypilot.discovery.builtin",
+        "applypilot.discovery.costco",
+        "applypilot.discovery.workday",
+    ],
+)
 def test_scraper_wrapper_actually_calls_the_canonical_converter(module_path):
     """Patches each module's OWN bound reference to strip_html_to_text
     (not ats_common's, since `from x import y` binds a local name at
@@ -99,6 +104,7 @@ def test_lever_reuses_the_exact_same_function_object_as_greenhouse():
     _strip_html by name. Prove it's the SAME function object (so it picks
     up the canonical converter transitively), not a look-alike copy."""
     from applypilot.discovery import greenhouse, lever
+
     assert lever._strip_html is greenhouse._strip_html
 
 
@@ -106,6 +112,7 @@ def test_ats_common_is_the_single_shared_implementation():
     """All five scrapers' wrappers resolve to the same underlying function
     -- not five independently-behaving copies that happen to agree today."""
     from applypilot.discovery import amazon, builtin, costco, greenhouse, workday
+
     assert greenhouse.strip_html_to_text is amazon.strip_html_to_text
     assert greenhouse.strip_html_to_text is builtin.strip_html_to_text
     assert greenhouse.strip_html_to_text is costco.strip_html_to_text
@@ -143,18 +150,20 @@ def test_ashby_scrape_preserves_bullet_markers_with_zero_html_parsing():
     from applypilot.discovery import ashby
 
     fake_payload = {
-        "jobs": [{
-            "id": "abc123",
-            "title": "Software Engineer - Database",
-            "location": "Amsterdam",
-            "isListed": True,
-            "isRemote": False,
-            "workplaceType": "hybrid",
-            "jobUrl": "https://jobs.ashbyhq.com/motherduck/abc123",
-            "applyUrl": "https://jobs.ashbyhq.com/motherduck/abc123/apply",
-            "descriptionPlain": _ASHBY_STYLE_DESCRIPTION_PLAIN,
-            "publishedAt": "2026-08-01T00:00:00Z",
-        }]
+        "jobs": [
+            {
+                "id": "abc123",
+                "title": "Software Engineer - Database",
+                "location": "Amsterdam",
+                "isListed": True,
+                "isRemote": False,
+                "workplaceType": "hybrid",
+                "jobUrl": "https://jobs.ashbyhq.com/motherduck/abc123",
+                "applyUrl": "https://jobs.ashbyhq.com/motherduck/abc123/apply",
+                "descriptionPlain": _ASHBY_STYLE_DESCRIPTION_PLAIN,
+                "publishedAt": "2026-08-01T00:00:00Z",
+            }
+        ]
     }
     with patch.object(ashby, "fetch_with_retry", return_value=(fake_payload, None)):
         jobs, err = ashby.scrape_one_employer("motherduck", {"name": "MotherDuck"}, accept_locs=[])
@@ -177,23 +186,26 @@ def test_ashby_job_reaches_local_tailor_correctly(tmp_db):
 
     conn = tmp_db()
     fake_payload = {
-        "jobs": [{
-            "id": "abc123",
-            "title": "Software Engineer - Database",
-            "location": "Amsterdam",
-            "isListed": True,
-            "jobUrl": "https://jobs.ashbyhq.com/motherduck/abc123",
-            "applyUrl": "https://jobs.ashbyhq.com/motherduck/abc123/apply",
-            "descriptionPlain": _ASHBY_STYLE_DESCRIPTION_PLAIN,
-            "publishedAt": "2026-08-01T00:00:00Z",
-        }]
+        "jobs": [
+            {
+                "id": "abc123",
+                "title": "Software Engineer - Database",
+                "location": "Amsterdam",
+                "isListed": True,
+                "jobUrl": "https://jobs.ashbyhq.com/motherduck/abc123",
+                "applyUrl": "https://jobs.ashbyhq.com/motherduck/abc123/apply",
+                "descriptionPlain": _ASHBY_STYLE_DESCRIPTION_PLAIN,
+                "publishedAt": "2026-08-01T00:00:00Z",
+            }
+        ]
     }
     with patch.object(ashby, "fetch_with_retry", return_value=(fake_payload, None)):
         jobs, _ = ashby.scrape_one_employer("motherduck", {"name": "MotherDuck"}, accept_locs=[])
     ashby._insert_jobs(conn, jobs)
 
     row = conn.execute(
-        "SELECT full_description FROM jobs WHERE url = ?", (jobs[0]["url"],),
+        "SELECT full_description FROM jobs WHERE url = ?",
+        (jobs[0]["url"],),
     ).fetchone()
     req_lines = _extract_requirement_lines(row["full_description"])
     texts = [l["text"] for l in req_lines]
@@ -214,6 +226,7 @@ def test_ashby_job_reaches_local_tailor_correctly(tmp_db):
 # correctly, since none exists; the contract to verify is purely "is the
 # format html2text already produces one our extractor recognizes."
 # ---------------------------------------------------------------------------
+
 
 def test_jobspy_html2text_output_is_already_compatible_with_requirement_extraction():
     from applypilot.scoring.local_tailor import _extract_requirement_lines
@@ -244,6 +257,7 @@ def test_jobspy_html2text_output_is_already_compatible_with_requirement_extracti
 # ordinary sentences.
 # ---------------------------------------------------------------------------
 
+
 def test_hackernews_style_prose_summary_yields_no_fake_requirements():
     from applypilot.scoring.local_tailor import _extract_requirement_lines
 
@@ -261,13 +275,14 @@ def test_hackernews_style_prose_summary_yields_no_fake_requirements():
 # The three-state distinction, made explicit and testable.
 # ---------------------------------------------------------------------------
 
+
 def _old_broken_li_conversion(html: str) -> str:
     """Reproduces the PRE-FIX behavior verbatim (li treated as a bare
     block tag) -- used only here, to demonstrate the state-3 -> state-1/2
     transition side-by-side against the same real input. Not imported from
     production code; production code no longer has this bug anywhere."""
-    from html.parser import HTMLParser
     import re as _re
+    from html.parser import HTMLParser
 
     class _OldStripper(HTMLParser):
         def __init__(self):
@@ -305,12 +320,41 @@ def test_state_3_the_bug_is_no_longer_reachable_via_the_canonical_converter():
     """Side-by-side on the SAME real input: the old per-scraper
     implementation destroyed structure (state 3 -- zero requirement lines
     despite a genuine <ul><li> list existing in the source); the canonical
-    converter does not."""
-    from applypilot.scoring.local_tailor import _extract_requirement_lines
+    converter does not.
+
+    2026-08-25 update: state 3 is now doubly unreachable. The canonical
+    converter fix (below) is still the PRIMARY defense -- it preserves the
+    "- " marker so _extract_marker_lines finds the list directly, exactly
+    as before. But local_tailor.py also gained a markerless-paragraph
+    fallback (Direction 1 of the extraction audit) for ATS sources whose
+    HTML never used <li> at all (Workday's <p>-per-item postings, the
+    dominant real-world case). That fallback is format-agnostic -- it
+    doesn't know or care WHY a posting has no markers -- so it also
+    recovers the OLD stripper's flattened output as a second, independent
+    safety net. This is intentional defense-in-depth, not a coincidence:
+    a future ATS source with yet another bullet-flattening quirk is now
+    covered without needing its own per-source fix.
+    """
     from applypilot.discovery.ats_common import strip_html_to_text
+    from applypilot.scoring.local_tailor import _extract_marker_lines, _extract_requirement_lines
 
     old_text = _old_broken_li_conversion(_STRUCTURED_POSTING_HTML)
-    assert _extract_requirement_lines(old_text) == []  # the historical bug, reproduced
+    old_marker_lines, _ = _extract_marker_lines(old_text)
+    assert old_marker_lines == []  # the historical bug, reproduced: no marker survives
+    # But the markerless fallback now recovers it anyway -- state 3 (zero
+    # requirement lines despite real list content) is no longer reachable
+    # through _extract_requirement_lines at all, via either code path.
+    # 3, not 2: the fallback has no marker-equivalent signal to distinguish
+    # the flattened <h4> heading ("What You Bring") from the two genuine
+    # <li> items, so it comes along too -- an accepted, documented, low-
+    # severity cost (see local_tailor.py's _extract_paragraph_lines
+    # comments) rather than building header/label content classification.
+    old_lines = _extract_requirement_lines(old_text)
+    assert len(old_lines) == 3
+    assert {
+        "Bachelor's Degree in Computer Science, Engineering, or related field",
+        "Experience working with SQL or NoSQL data stores",
+    } <= {l["text"] for l in old_lines}
 
     new_text = strip_html_to_text(_STRUCTURED_POSTING_HTML)
     new_lines = _extract_requirement_lines(new_text)
@@ -331,13 +375,15 @@ def test_state_1_deterministic_unambiguous_requirements_skip_the_llm():
     }
     profile = {
         "skills_inventory": [
-            {"name": "SQL Database Administration", "relevance_categories": ["sql"],
-             "resume_allowed": True},
+            {"name": "SQL Database Administration", "relevance_categories": ["sql"], "resume_allowed": True},
         ],
-        "experience_inventory": [], "project_inventory": [],
+        "experience_inventory": [],
+        "project_inventory": [],
     }
-    with patch.dict("os.environ", {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}), \
-         patch("httpx.post") as mock_post:
+    with (
+        patch.dict("os.environ", {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}),
+        patch("httpx.post") as mock_post,
+    ):
         plan = get_local_tailoring_plan(job["full_description"], job, profile)
 
     mock_post.assert_not_called()
@@ -358,20 +404,21 @@ def test_state_2_genuine_ambiguity_reaches_the_local_model():
     }
     profile = {
         "experience_inventory": [
-            {"name": "API Gateway Service", "relevance_categories": ["backend"],
-             "resume_allowed": True},
-            {"name": "Order Processing Service", "relevance_categories": ["backend"],
-             "resume_allowed": True},
+            {"name": "API Gateway Service", "relevance_categories": ["backend"], "resume_allowed": True},
+            {"name": "Order Processing Service", "relevance_categories": ["backend"], "resume_allowed": True},
         ],
-        "skills_inventory": [], "project_inventory": [],
+        "skills_inventory": [],
+        "project_inventory": [],
     }
     mock_resp = MagicMock()
     mock_resp.status_code = 200
     mock_resp.raise_for_status.return_value = None
     mock_resp.json.return_value = {"message": {"content": '{"matches":[{"r":1,"e":[1]}]}'}}
 
-    with patch.dict("os.environ", {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}), \
-         patch("httpx.post", return_value=mock_resp) as mock_post:
+    with (
+        patch.dict("os.environ", {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}),
+        patch("httpx.post", return_value=mock_resp) as mock_post,
+    ):
         plan = get_local_tailoring_plan(job["full_description"], job, profile)
 
     mock_post.assert_called_once()  # the ambiguity genuinely reached the model

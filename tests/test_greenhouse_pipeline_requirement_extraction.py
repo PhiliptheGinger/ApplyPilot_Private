@@ -79,14 +79,11 @@ def _fake_greenhouse_payload():
 def _profile_with_deliberate_grounding_outcomes():
     return {
         "skills_inventory": [
-            {"name": "SQL Database Administration", "relevance_categories": ["sql"],
-             "resume_allowed": True},
+            {"name": "SQL Database Administration", "relevance_categories": ["sql"], "resume_allowed": True},
         ],
         "experience_inventory": [
-            {"name": "API Gateway Service", "relevance_categories": ["backend"],
-             "resume_allowed": True},
-            {"name": "Order Processing Service", "relevance_categories": ["backend"],
-             "resume_allowed": True},
+            {"name": "API Gateway Service", "relevance_categories": ["backend"], "resume_allowed": True},
+            {"name": "Order Processing Service", "relevance_categories": ["backend"], "resume_allowed": True},
         ],
         "project_inventory": [],
     }
@@ -96,6 +93,7 @@ def _profile_with_deliberate_grounding_outcomes():
 # A. Structural preservation, through the REAL discovery function
 # ---------------------------------------------------------------------------
 
+
 def test_scrape_one_employer_preserves_bulleted_requirements():
     """discovery/greenhouse.py's real scrape function, given a mocked API
     response shaped exactly like Greenhouse's actual payload, must produce
@@ -103,8 +101,7 @@ def test_scrape_one_employer_preserves_bulleted_requirements():
     HTML-stripper unit test's synthetic fixture, the actual scraper path."""
     from applypilot.discovery import greenhouse
 
-    with patch("applypilot.discovery.ats_common.fetch_with_retry",
-               return_value=(_fake_greenhouse_payload(), None)):
+    with patch("applypilot.discovery.ats_common.fetch_with_retry", return_value=(_fake_greenhouse_payload(), None)):
         jobs, err = greenhouse.scrape_one_employer("axon", {"name": "Axon"}, accept_locs=[])
 
     assert err is None
@@ -127,11 +124,10 @@ def test_bullets_survive_the_database_round_trip(tmp_db):
     from applypilot.discovery.ats_common import insert_normalized_jobs
 
     conn = tmp_db()
-    with patch("applypilot.discovery.ats_common.fetch_with_retry",
-               return_value=(_fake_greenhouse_payload(), None)):
+    with patch("applypilot.discovery.ats_common.fetch_with_retry", return_value=(_fake_greenhouse_payload(), None)):
         jobs, _ = greenhouse.scrape_one_employer("axon", {"name": "Axon"}, accept_locs=[])
 
-    new, existing = insert_normalized_jobs(conn, jobs, "Greenhouse", "greenhouse_api")
+    new, _existing = insert_normalized_jobs(conn, jobs, "Greenhouse", "greenhouse_api")
     assert new == 1
 
     row = conn.execute(
@@ -152,6 +148,7 @@ def test_bullets_survive_the_database_round_trip(tmp_db):
 # B. End-to-end tailoring behavior, fed by the freshly-scraped-and-stored row
 # ---------------------------------------------------------------------------
 
+
 def test_freshly_scraped_job_extracts_and_grounds_correctly(tmp_db):
     """The full boundary in one test: scrape -> insert -> read back ->
     local_tailor. Proves all three deliberately-designed outcomes land
@@ -164,17 +161,19 @@ def test_freshly_scraped_job_extracts_and_grounds_correctly(tmp_db):
     from applypilot.discovery import greenhouse
     from applypilot.discovery.ats_common import insert_normalized_jobs
     from applypilot.scoring.local_tailor import (
-        _extract_requirement_lines, get_local_tailoring_plan, rank_profile_evidence,
+        _extract_requirement_lines,
+        get_local_tailoring_plan,
+        rank_profile_evidence,
     )
 
     conn = tmp_db()
-    with patch("applypilot.discovery.ats_common.fetch_with_retry",
-               return_value=(_fake_greenhouse_payload(), None)):
+    with patch("applypilot.discovery.ats_common.fetch_with_retry", return_value=(_fake_greenhouse_payload(), None)):
         jobs, _ = greenhouse.scrape_one_employer("axon", {"name": "Axon"}, accept_locs=[])
     insert_normalized_jobs(conn, jobs, "Greenhouse", "greenhouse_api")
 
     row = conn.execute(
-        "SELECT title, full_description FROM jobs WHERE url = ?", (jobs[0]["url"],),
+        "SELECT title, full_description FROM jobs WHERE url = ?",
+        (jobs[0]["url"],),
     ).fetchone()
     job = {"title": row["title"], "full_description": row["full_description"]}
     profile = _profile_with_deliberate_grounding_outcomes()
@@ -191,7 +190,9 @@ def test_freshly_scraped_job_extracts_and_grounds_correctly(tmp_db):
 
     evidence = rank_profile_evidence(job, profile, top_n=6)
     assert {e["name"] for e in evidence} == {
-        "SQL Database Administration", "API Gateway Service", "Order Processing Service",
+        "SQL Database Administration",
+        "API Gateway Service",
+        "Order Processing Service",
     }
 
     # --- B: deterministic resolution + genuine ambiguity ----------------
@@ -202,8 +203,10 @@ def test_freshly_scraped_job_extracts_and_grounds_correctly(tmp_db):
     # the two tied evidence numbers it names, both are legitimate.
     mock_resp.json.return_value = {"message": {"content": '{"matches":[{"r":3,"e":[1]}]}'}}
 
-    with patch.dict("os.environ", {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}), \
-         patch("httpx.post", return_value=mock_resp) as mock_post:
+    with (
+        patch.dict("os.environ", {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}),
+        patch("httpx.post", return_value=mock_resp) as mock_post,
+    ):
         plan = get_local_tailoring_plan(job["full_description"], job, profile)
 
     assert plan is not None
@@ -242,13 +245,13 @@ def test_unambiguous_job_skips_the_llm_entirely(tmp_db):
     from applypilot.scoring.local_tailor import get_local_tailoring_plan
 
     conn = tmp_db()
-    with patch("applypilot.discovery.ats_common.fetch_with_retry",
-               return_value=(_fake_greenhouse_payload(), None)):
+    with patch("applypilot.discovery.ats_common.fetch_with_retry", return_value=(_fake_greenhouse_payload(), None)):
         jobs, _ = greenhouse.scrape_one_employer("axon", {"name": "Axon"}, accept_locs=[])
     insert_normalized_jobs(conn, jobs, "Greenhouse", "greenhouse_api")
 
     row = conn.execute(
-        "SELECT title, full_description FROM jobs WHERE url = ?", (jobs[0]["url"],),
+        "SELECT title, full_description FROM jobs WHERE url = ?",
+        (jobs[0]["url"],),
     ).fetchone()
     job = {"title": row["title"], "full_description": row["full_description"]}
 
@@ -256,14 +259,16 @@ def test_unambiguous_job_skips_the_llm_entirely(tmp_db):
     # so every requirement resolves to 0 or 1 candidates.
     profile = {
         "skills_inventory": [
-            {"name": "SQL Database Administration", "relevance_categories": ["sql"],
-             "resume_allowed": True},
+            {"name": "SQL Database Administration", "relevance_categories": ["sql"], "resume_allowed": True},
         ],
-        "experience_inventory": [], "project_inventory": [],
+        "experience_inventory": [],
+        "project_inventory": [],
     }
 
-    with patch.dict("os.environ", {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}), \
-         patch("httpx.post") as mock_post:
+    with (
+        patch.dict("os.environ", {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}),
+        patch("httpx.post") as mock_post,
+    ):
         plan = get_local_tailoring_plan(job["full_description"], job, profile)
 
     mock_post.assert_not_called()
@@ -277,14 +282,24 @@ def test_unambiguous_job_skips_the_llm_entirely(tmp_db):
 # Stale database rows: existing records are NOT retroactively reprocessed.
 # ---------------------------------------------------------------------------
 
+
 def test_stale_row_from_before_the_fix_is_not_retroactively_repaired(tmp_db):
     """Documents, as a test (not just prose), that a row inserted with the
     OLD unmarked-flat text stays exactly as stored -- there is no
-    background job that walks the database and re-derives
-    full_description after a parser change. A fresh scrape (the tests
-    above) is what's fixed; existing rows need an explicit re-scrape,
-    covered in the report's "how to verify/re-enrich" section rather than
-    an automatic mechanism."""
+    background job that walks the database and rewrites full_description
+    after a parser change. That part of the original test's claim still
+    holds.
+
+    2026-08-25 update: the SECOND half of the original claim -- "and so
+    _extract_requirement_lines still returns []" -- is no longer true, and
+    that's the point of Direction 1 (the markerless-paragraph fallback in
+    local_tailor.py). Extraction happens fresh every time tailoring reads
+    the stored text, not once at insert time, so a stale row is fully
+    recovered on its NEXT read even though nothing about the row itself
+    changed. Practically, this means the ~205 stale pre-fix Greenhouse rows
+    identified by the extraction audit need NO backfill script at all --
+    the next tailoring attempt against each one already sees the recovered
+    requirements."""
     from applypilot.discovery.ats_common import insert_normalized_jobs
     from applypilot.scoring.local_tailor import _extract_requirement_lines
 
@@ -294,18 +309,29 @@ def test_stale_row_from_before_the_fix_is_not_retroactively_repaired(tmp_db):
         "Bachelor's Degree in Computer Science, Engineering, or related field\n"
         "Experience working with SQL or NoSQL data stores\n"
     )
-    jobs = [{
-        "url": "https://job-boards.greenhouse.io/axon/jobs/stale-example",
-        "title": "Sr Software Engineer II",
-        "full_description": pre_fix_style_description,
-        "application_url": "https://job-boards.greenhouse.io/axon/jobs/stale-example",
-        "employer_name": "Axon",
-    }]
+    jobs = [
+        {
+            "url": "https://job-boards.greenhouse.io/axon/jobs/stale-example",
+            "title": "Sr Software Engineer II",
+            "full_description": pre_fix_style_description,
+            "application_url": "https://job-boards.greenhouse.io/axon/jobs/stale-example",
+            "employer_name": "Axon",
+        }
+    ]
     insert_normalized_jobs(conn, jobs, "Greenhouse", "greenhouse_api")
 
     row = conn.execute(
-        "SELECT full_description FROM jobs WHERE url = ?", (jobs[0]["url"],),
+        "SELECT full_description FROM jobs WHERE url = ?",
+        (jobs[0]["url"],),
     ).fetchone()
-    # Still flat, still zero requirement lines -- the fix only changes what
-    # NEW scrapes produce, not what's already stored.
-    assert _extract_requirement_lines(row["full_description"]) == []
+    # The stored text itself is untouched -- byte-identical to what was
+    # inserted. No insert-time or migration-time rewriting occurs.
+    assert row["full_description"] == pre_fix_style_description
+
+    # But reading it back through extraction (as tailoring does on every
+    # run) now recovers the requirements anyway, via the markerless
+    # fallback -- no backfill needed for rows already in this shape.
+    recovered = _extract_requirement_lines(row["full_description"])
+    assert len(recovered) == 3
+    texts = {l["text"] for l in recovered}
+    assert "Experience working with SQL or NoSQL data stores" in texts

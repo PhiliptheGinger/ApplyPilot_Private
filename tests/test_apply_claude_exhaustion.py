@@ -18,14 +18,14 @@ import subprocess
 import sys
 import threading
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from applypilot.apply.launcher import _classify_claude_apply_exhaustion
 from applypilot import claude_status
+from applypilot.apply.launcher import _classify_claude_apply_exhaustion
 
 
 @pytest.fixture(autouse=True)
@@ -38,6 +38,7 @@ def _isolate_claude_status_state():
 
 
 # ── _classify_claude_apply_exhaustion (pure) ─────────────────────────────
+
 
 class TestClassifyClaudeApplyExhaustion:
     def test_explicit_session_limit_text(self):
@@ -54,12 +55,10 @@ class TestClassifyClaudeApplyExhaustion:
         assert _classify_claude_apply_exhaustion("the model is overloaded", 1) == "session_limit"
 
     def test_billing_credit_balance_text(self):
-        assert _classify_claude_apply_exhaustion(
-            "Error: Your credit balance is too low", 1) == "billing"
+        assert _classify_claude_apply_exhaustion("Error: Your credit balance is too low", 1) == "billing"
 
     def test_billing_insufficient_credits_text(self):
-        assert _classify_claude_apply_exhaustion(
-            "insufficient credits to complete request", 1) == "billing"
+        assert _classify_claude_apply_exhaustion("insufficient credits to complete request", 1) == "billing"
 
     def test_empty_output_nonzero_exit(self):
         assert _classify_claude_apply_exhaustion("", 1) == "empty_output"
@@ -74,8 +73,7 @@ class TestClassifyClaudeApplyExhaustion:
         assert _classify_claude_apply_exhaustion("   \n\n  ", 1) == "empty_output"
 
     def test_genuine_error_text_is_not_exhaustion(self):
-        assert _classify_claude_apply_exhaustion(
-            "Error: could not find element on page", 1) is None
+        assert _classify_claude_apply_exhaustion("Error: could not find element on page", 1) is None
 
     def test_genuine_success_is_not_exhaustion(self):
         assert _classify_claude_apply_exhaustion("RESULT:APPLIED", 0) is None
@@ -93,6 +91,7 @@ class TestClassifyClaudeApplyExhaustion:
 
 
 # ── orchestrator dispatch: session exhaustion must not burn an attempt ────
+
 
 class _OneShotAcquire:
     """Returns `job` once, then None forever -- simulates queue exhaustion
@@ -140,24 +139,35 @@ class TestOrchestratorSessionExhaustionDispatch:
 
     def test_session_exhausted_releases_lock_without_permanent_failure(self, monkeypatch):
         import applypilot.apply.orchestrator as orch
-        import applypilot.apply.launcher as launcher
+        from applypilot.apply import launcher
 
         job = self._job()
         release_calls: list[str] = []
         mark_result_calls: list[tuple] = []
 
-        self._patch_common(monkeypatch, orch, launcher,
-                            run_job_result=("failed:claude_session_exhausted", 1234, []))
+        self._patch_common(monkeypatch, orch, launcher, run_job_result=("failed:claude_session_exhausted", 1234, []))
         monkeypatch.setattr(launcher, "acquire_job", _OneShotAcquire(job))
         monkeypatch.setattr(launcher, "release_lock", lambda url: release_calls.append(url))
-        monkeypatch.setattr(launcher, "mark_result",
-                             lambda *a, **k: mark_result_calls.append((a, k)))
+        monkeypatch.setattr(launcher, "mark_result", lambda *a, **k: mark_result_calls.append((a, k)))
 
         applied, failed = orch._worker_loop_body(
-            worker_id=0, limit=1, target_url=None, min_score=8, max_score=None,
-            max_age_days=14, headless=True, model="sonnet", dry_run=True,
-            apply_engine="claude", fresh_sessions=False, applied=0, failed=0,
-            continuous=False, jobs_done=0, empty_polls=0, port=9333,
+            worker_id=0,
+            limit=1,
+            target_url=None,
+            min_score=8,
+            max_score=None,
+            max_age_days=14,
+            headless=True,
+            model="sonnet",
+            dry_run=True,
+            apply_engine="claude",
+            fresh_sessions=False,
+            applied=0,
+            failed=0,
+            continuous=False,
+            jobs_done=0,
+            empty_polls=0,
+            port=9333,
         )
 
         assert release_calls == [job["url"]]
@@ -170,24 +180,35 @@ class TestOrchestratorSessionExhaustionDispatch:
         must still go through mark_result(permanent=True) exactly as before --
         the new branch must not have weakened this path."""
         import applypilot.apply.orchestrator as orch
-        import applypilot.apply.launcher as launcher
+        from applypilot.apply import launcher
 
         job = self._job()
         release_calls: list[str] = []
         mark_result_calls: list[tuple] = []
 
-        self._patch_common(monkeypatch, orch, launcher,
-                            run_job_result=("failed:not_a_job_application", 1234, []))
+        self._patch_common(monkeypatch, orch, launcher, run_job_result=("failed:not_a_job_application", 1234, []))
         monkeypatch.setattr(launcher, "acquire_job", _OneShotAcquire(job))
         monkeypatch.setattr(launcher, "release_lock", lambda url: release_calls.append(url))
-        monkeypatch.setattr(launcher, "mark_result",
-                             lambda *a, **k: mark_result_calls.append((a, k)))
+        monkeypatch.setattr(launcher, "mark_result", lambda *a, **k: mark_result_calls.append((a, k)))
 
-        applied, failed = orch._worker_loop_body(
-            worker_id=0, limit=1, target_url=None, min_score=8, max_score=None,
-            max_age_days=14, headless=True, model="sonnet", dry_run=True,
-            apply_engine="claude", fresh_sessions=False, applied=0, failed=0,
-            continuous=False, jobs_done=0, empty_polls=0, port=9333,
+        _applied, failed = orch._worker_loop_body(
+            worker_id=0,
+            limit=1,
+            target_url=None,
+            min_score=8,
+            max_score=None,
+            max_age_days=14,
+            headless=True,
+            model="sonnet",
+            dry_run=True,
+            apply_engine="claude",
+            fresh_sessions=False,
+            applied=0,
+            failed=0,
+            continuous=False,
+            jobs_done=0,
+            empty_polls=0,
+            port=9333,
         )
 
         assert len(mark_result_calls) == 1
@@ -201,23 +222,34 @@ class TestOrchestratorSessionExhaustionDispatch:
         """Control case: genuine billing exhaustion must still be permanent
         and still stop the whole worker (_stop_event.set()) -- unchanged."""
         import applypilot.apply.orchestrator as orch
-        import applypilot.apply.launcher as launcher
+        from applypilot.apply import launcher
 
         job = self._job()
         mark_result_calls: list[tuple] = []
 
-        self._patch_common(monkeypatch, orch, launcher,
-                            run_job_result=("failed:credits_exhausted", 1234, []))
+        self._patch_common(monkeypatch, orch, launcher, run_job_result=("failed:credits_exhausted", 1234, []))
         monkeypatch.setattr(launcher, "acquire_job", _OneShotAcquire(job))
         monkeypatch.setattr(launcher, "release_lock", lambda url: None)
-        monkeypatch.setattr(launcher, "mark_result",
-                             lambda *a, **k: mark_result_calls.append((a, k)))
+        monkeypatch.setattr(launcher, "mark_result", lambda *a, **k: mark_result_calls.append((a, k)))
 
-        applied, failed = orch._worker_loop_body(
-            worker_id=0, limit=1, target_url=None, min_score=8, max_score=None,
-            max_age_days=14, headless=True, model="sonnet", dry_run=True,
-            apply_engine="claude", fresh_sessions=False, applied=0, failed=0,
-            continuous=False, jobs_done=0, empty_polls=0, port=9333,
+        _applied, failed = orch._worker_loop_body(
+            worker_id=0,
+            limit=1,
+            target_url=None,
+            min_score=8,
+            max_score=None,
+            max_age_days=14,
+            headless=True,
+            model="sonnet",
+            dry_run=True,
+            apply_engine="claude",
+            fresh_sessions=False,
+            applied=0,
+            failed=0,
+            continuous=False,
+            jobs_done=0,
+            empty_polls=0,
+            port=9333,
         )
 
         assert len(mark_result_calls) == 1
@@ -227,6 +259,7 @@ class TestOrchestratorSessionExhaustionDispatch:
 
 
 # ── gate prevents acquisition ────────────────────────────────────────────
+
 
 class _StopAfterOneWait:
     """A fake stop_event: is_set() is False until wait() is called once,
@@ -250,13 +283,12 @@ class _StopAfterOneWait:
 class TestGatePreventsAcquisition:
     def test_paused_gate_never_calls_acquire_job(self, monkeypatch):
         import applypilot.apply.orchestrator as orch
-        import applypilot.apply.launcher as launcher
+        from applypilot.apply import launcher
 
         acquire_calls = {"n": 0}
 
         def fake_acquire_job(**kwargs):
             acquire_calls["n"] += 1
-            return None
 
         monkeypatch.setattr(orch, "_probe_for_reconnect", lambda *a, **k: (None, None))
         monkeypatch.setattr(orch, "add_event", lambda *a, **k: None)
@@ -265,17 +297,35 @@ class TestGatePreventsAcquisition:
         monkeypatch.setattr(launcher, "acquire_job", fake_acquire_job)
         monkeypatch.setattr(launcher, "_stop_event", _StopAfterOneWait())
 
-        claude_status.gate.set(claude_status.ClaudeAvailability(
-            state=claude_status.EXHAUSTED_UNKNOWN_RESET, reset_estimate=None,
-            reset_source=None, cache_age_seconds=None, binding_window=None,
-            detail="test",
-        ))
+        claude_status.gate.set(
+            claude_status.ClaudeAvailability(
+                state=claude_status.EXHAUSTED_UNKNOWN_RESET,
+                reset_estimate=None,
+                reset_source=None,
+                cache_age_seconds=None,
+                binding_window=None,
+                detail="test",
+            )
+        )
 
-        applied, failed = orch._worker_loop_body(
-            worker_id=0, limit=0, target_url=None, min_score=8, max_score=None,
-            max_age_days=14, headless=True, model="sonnet", dry_run=True,
-            apply_engine="claude", fresh_sessions=False, applied=0, failed=0,
-            continuous=True, jobs_done=0, empty_polls=0, port=9333,
+        _applied, _failed = orch._worker_loop_body(
+            worker_id=0,
+            limit=0,
+            target_url=None,
+            min_score=8,
+            max_score=None,
+            max_age_days=14,
+            headless=True,
+            model="sonnet",
+            dry_run=True,
+            apply_engine="claude",
+            fresh_sessions=False,
+            applied=0,
+            failed=0,
+            continuous=True,
+            jobs_done=0,
+            empty_polls=0,
+            port=9333,
         )
 
         assert acquire_calls["n"] == 0
@@ -285,13 +335,12 @@ class TestGatePreventsAcquisition:
         no scheduler running must behave exactly as before -- the gate
         defaults to never-paused, so acquire_job is called normally."""
         import applypilot.apply.orchestrator as orch
-        import applypilot.apply.launcher as launcher
+        from applypilot.apply import launcher
 
         acquire_calls = {"n": 0}
 
         def fake_acquire_job(**kwargs):
             acquire_calls["n"] += 1
-            return None  # queue empty
 
         monkeypatch.setattr(orch, "_probe_for_reconnect", lambda *a, **k: (None, None))
         monkeypatch.setattr(orch, "add_event", lambda *a, **k: None)
@@ -301,11 +350,24 @@ class TestGatePreventsAcquisition:
 
         assert claude_status.gate.is_paused() is False  # default state, no scheduler ever ran
 
-        applied, failed = orch._worker_loop_body(
-            worker_id=0, limit=1, target_url=None, min_score=8, max_score=None,
-            max_age_days=14, headless=True, model="sonnet", dry_run=True,
-            apply_engine="claude", fresh_sessions=False, applied=0, failed=0,
-            continuous=False, jobs_done=0, empty_polls=0, port=9333,
+        _applied, _failed = orch._worker_loop_body(
+            worker_id=0,
+            limit=1,
+            target_url=None,
+            min_score=8,
+            max_score=None,
+            max_age_days=14,
+            headless=True,
+            model="sonnet",
+            dry_run=True,
+            apply_engine="claude",
+            fresh_sessions=False,
+            applied=0,
+            failed=0,
+            continuous=False,
+            jobs_done=0,
+            empty_polls=0,
+            port=9333,
         )
 
         assert acquire_calls["n"] == 1
@@ -313,11 +375,11 @@ class TestGatePreventsAcquisition:
 
 # ── ClaudeGate.is_probe_attempt() ────────────────────────────────────────
 
+
 class TestClaudeGateIsProbeAttempt:
     def test_false_when_genuinely_available(self):
         g = claude_status.ClaudeGate()
-        g.set(claude_status.ClaudeAvailability(
-            claude_status.AVAILABLE, None, None, None, None, "ok"))
+        g.set(claude_status.ClaudeAvailability(claude_status.AVAILABLE, None, None, None, None, "ok"))
         assert g.is_probe_attempt() is False
 
     def test_false_when_paused_with_no_real_signal(self):
@@ -325,20 +387,19 @@ class TestClaudeGateIsProbeAttempt:
         apply-side signal recorded -- probe_due() is false, so this isn't
         a probe (nothing is being attempted at all; is_paused() is True)."""
         g = claude_status.ClaudeGate()
-        g.set(claude_status.ClaudeAvailability(
-            claude_status.EXHAUSTED_UNKNOWN_RESET, None, None, None, None, "x"))
+        g.set(claude_status.ClaudeAvailability(claude_status.EXHAUSTED_UNKNOWN_RESET, None, None, None, None, "x"))
         assert g.is_probe_attempt() is False
 
     def test_true_when_probe_due(self):
         claude_status.record_apply_exhaustion("session_limit", cooldown_seconds=-1)
         g = claude_status.ClaudeGate()
-        g.set(claude_status.ClaudeAvailability(
-            claude_status.EXHAUSTED_UNKNOWN_RESET, None, None, None, None, "x"))
+        g.set(claude_status.ClaudeAvailability(claude_status.EXHAUSTED_UNKNOWN_RESET, None, None, None, None, "x"))
         assert g.is_paused() is False
         assert g.is_probe_attempt() is True
 
 
 # ── run_job(): a failed probe must re-arm, not silently expire ──────────
+
 
 def _fake_timeout_proc(cmd):
     """subprocess.Popen replacement whose .wait() raises TimeoutExpired
@@ -374,8 +435,8 @@ class TestRunJobProbeRearm:
         }
 
     def _run_with_mocked_subprocess(self, monkeypatch, tmp_path, *, is_probe: bool):
-        import applypilot.apply.launcher as launcher
         from applypilot import config as cfg
+        from applypilot.apply import launcher
 
         monkeypatch.setattr(cfg, "APP_DIR", tmp_path)
         monkeypatch.setattr(cfg, "LOG_DIR", tmp_path / "logs")
@@ -396,8 +457,13 @@ class TestRunJobProbeRearm:
         monkeypatch.setattr(launcher.subprocess, "Popen", _fake_popen)
 
         return launcher.run_job(
-            self._job(), port=9333, worker_id=0, model="sonnet",
-            dry_run=True, apply_engine="claude", is_probe=is_probe,
+            self._job(),
+            port=9333,
+            worker_id=0,
+            model="sonnet",
+            dry_run=True,
+            apply_engine="claude",
+            is_probe=is_probe,
         )
 
     def test_full_probe_rearm_lifecycle(self, monkeypatch, tmp_path):
@@ -412,12 +478,11 @@ class TestRunJobProbeRearm:
 
         # 3: the probe attempt times out (generic-failure path, no
         # billing/session-limit text of its own).
-        result, duration_ms, screening_qs = self._run_with_mocked_subprocess(
-            monkeypatch, tmp_path, is_probe=True)
+        result, _duration_ms, _screening_qs = self._run_with_mocked_subprocess(monkeypatch, tmp_path, is_probe=True)
         assert result == "failed:timeout"
 
         # 4: durable exhaustion is untouched (still true).
-        exhausted, reason = claude_status._apply_signal()
+        exhausted, _reason = claude_status._apply_signal()
         assert exhausted is True
 
         # 5 + 6: the probe window was re-armed -- NOT left in the past --
@@ -425,8 +490,7 @@ class TestRunJobProbeRearm:
         assert claude_status.probe_due() is False
 
         # 7: never reported as AVAILABLE at any point in this lifecycle.
-        avail = claude_status.check_claude_availability(
-            cache_path=tmp_path / "no-cache.json", check_auth=False)
+        avail = claude_status.check_claude_availability(cache_path=tmp_path / "no-cache.json", check_auth=False)
         assert avail.state != claude_status.AVAILABLE
 
     def test_non_probe_timeout_does_not_touch_exhaustion_signal(self, monkeypatch, tmp_path):
@@ -435,8 +499,7 @@ class TestRunJobProbeRearm:
         at all, since Claude was never durably exhausted to begin with."""
         assert claude_status._apply_signal() == (False, None)
 
-        result, duration_ms, screening_qs = self._run_with_mocked_subprocess(
-            monkeypatch, tmp_path, is_probe=False)
+        result, _duration_ms, _screening_qs = self._run_with_mocked_subprocess(monkeypatch, tmp_path, is_probe=False)
         assert result == "failed:timeout"
 
         assert claude_status._apply_signal() == (False, None)
@@ -445,7 +508,7 @@ class TestRunJobProbeRearm:
     def test_probe_generic_exception_also_rearms(self, monkeypatch, tmp_path):
         """Same contract for the generic Exception path (not just
         TimeoutExpired) -- e.g. a broken pipe writing to stdin."""
-        import applypilot.apply.launcher as launcher
+        from applypilot.apply import launcher
 
         claude_status.record_apply_exhaustion("session_limit", cooldown_seconds=-1)
         assert claude_status.probe_due() is True
@@ -458,6 +521,7 @@ class TestRunJobProbeRearm:
 
         import applypilot.apply.launcher as launcher_mod
         from applypilot import config as cfg
+
         monkeypatch.setattr(cfg, "APP_DIR", tmp_path)
         monkeypatch.setattr(cfg, "LOG_DIR", tmp_path / "logs")
         monkeypatch.setattr(cfg, "APPLY_WORKER_DIR", tmp_path / "apply-workers")
@@ -470,9 +534,14 @@ class TestRunJobProbeRearm:
         monkeypatch.setattr(launcher_mod.prompt_mod, "build_prompt", lambda **k: "prompt text")
         monkeypatch.setattr(launcher_mod.subprocess, "Popen", _fake_popen)
 
-        result, duration_ms, screening_qs = launcher.run_job(
-            self._job(), port=9333, worker_id=0, model="sonnet",
-            dry_run=True, apply_engine="claude", is_probe=True,
+        result, _duration_ms, _screening_qs = launcher.run_job(
+            self._job(),
+            port=9333,
+            worker_id=0,
+            model="sonnet",
+            dry_run=True,
+            apply_engine="claude",
+            is_probe=True,
         )
 
         assert result.startswith("failed:")
@@ -489,10 +558,11 @@ class TestRunJobProbeRearm:
         record_apply_success() already ran by that point -- the crash must
         NOT re-arm exhaustion just because is_probe was True.
         """
-        import applypilot.apply.launcher as launcher_mod
-        import applypilot.database as database_mod
         import json as _json
         import sqlite3
+
+        import applypilot.apply.launcher as launcher_mod
+        import applypilot.database as database_mod
         from applypilot import config as cfg
 
         # 1: Claude starts durably exhausted.
@@ -522,10 +592,12 @@ class TestRunJobProbeRearm:
         def _fake_popen(cmd, **kwargs):
             proc = MagicMock()
             proc.stdin = MagicMock()
-            applied_line = _json.dumps({
-                "type": "assistant",
-                "message": {"content": [{"type": "text", "text": "RESULT:APPLIED"}]},
-            })
+            applied_line = _json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {"content": [{"type": "text", "text": "RESULT:APPLIED"}]},
+                }
+            )
             proc.stdout = iter([applied_line])
             proc.wait = MagicMock(return_value=None)
             proc.returncode = 0
@@ -538,13 +610,19 @@ class TestRunJobProbeRearm:
         # 5: realistic post-success bookkeeping (mark_qa_outcome, called
         # from the RESULT:APPLIED branch since the job has a url) raises.
         monkeypatch.setattr(
-            database_mod, "mark_qa_outcome",
+            database_mod,
+            "mark_qa_outcome",
             MagicMock(side_effect=sqlite3.OperationalError("database is locked")),
         )
 
-        result, duration_ms, screening_qs = launcher_mod.run_job(
-            self._job(), port=9333, worker_id=0, model="sonnet",
-            dry_run=True, apply_engine="claude", is_probe=True,
+        result, _duration_ms, _screening_qs = launcher_mod.run_job(
+            self._job(),
+            port=9333,
+            worker_id=0,
+            model="sonnet",
+            dry_run=True,
+            apply_engine="claude",
+            is_probe=True,
         )
 
         # 4 + 6: record_apply_success() was reached (verified below via the
@@ -560,6 +638,5 @@ class TestRunJobProbeRearm:
         assert exhausted_after is False
         assert reason_after is None
 
-        avail = claude_status.check_claude_availability(
-            cache_path=tmp_path / "no-cache.json", check_auth=False)
+        avail = claude_status.check_claude_availability(cache_path=tmp_path / "no-cache.json", check_auth=False)
         assert avail.state == claude_status.AVAILABLE

@@ -10,12 +10,10 @@ from __future__ import annotations
 import json
 import re
 import threading
-from datetime import datetime, timezone
-from pathlib import Path
+from datetime import UTC, datetime
 
 from applypilot.config import APP_DIR
 
-UTC = timezone.utc
 _FACT_LOCK = threading.Lock()
 _FACT_CACHE_PATH = APP_DIR / "approved_resume_facts.json"
 
@@ -55,7 +53,7 @@ def extract_facts_from_resume_json(data: dict, profile: dict) -> set[str]:
 
     skills = data.get("skills")
     if isinstance(skills, dict):
-        for _, raw in skills.items():
+        for raw in skills.values():
             for value in _split_values(str(raw)):
                 nv = _normalize(value)
                 if not nv:
@@ -108,7 +106,7 @@ def _read_cache() -> dict:
         return {"entries": []}
     try:
         return json.loads(_FACT_CACHE_PATH.read_text(encoding="utf-8"))
-    except Exception:
+    except Exception:  # noqa: BLE001 - a corrupt fact-approval cache degrades to an empty cache, not a crash
         return {"entries": []}
 
 

@@ -12,9 +12,7 @@ from applypilot.scoring.tailor import assemble_resume_text
 PROFILE = {
     "personal": {"full_name": "Jordan Lee", "email": "jordan@example.com", "phone": "555-0100"},
     "experience": {"education_level": "Some College"},
-    "resume_facts": {
-        "preserved_school": "Riverside Community College; Lakewood College; Central High School"
-    },
+    "resume_facts": {"preserved_school": "Riverside Community College; Lakewood College; Central High School"},
     "skills_boundary": {"languages": ["Python"]},
 }
 

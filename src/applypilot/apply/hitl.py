@@ -24,6 +24,7 @@ orchestrator all touch them. This module lazy-imports them from
 ``from applypilot.apply.launcher import run_job`` here would deadlock the
 import).
 """
+
 from __future__ import annotations
 
 import logging
@@ -32,7 +33,7 @@ import subprocess
 import sys
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from applypilot import config
@@ -48,7 +49,6 @@ from applypilot.database import (
 
 logger = logging.getLogger(__name__)
 
-UTC = timezone.utc
 
 
 # ---------------------------------------------------------------------------
@@ -85,9 +85,7 @@ _action_log_cache_lock = threading.Lock()
 
 # Errors that are "permanent" normally but transient after a HITL pause
 # (e.g. backend was down while user was completing the form; retry after 30s).
-_HITL_TRANSIENT_ERRORS: frozenset[str] = frozenset(
-    {"page_error", "stuck", "browser_unavailable"}
-)
+_HITL_TRANSIENT_ERRORS: frozenset[str] = frozenset({"page_error", "stuck", "browser_unavailable"})
 
 _HITL_INSTRUCTIONS: dict[str, str] = {
     "workday_signup": (
@@ -168,7 +166,7 @@ def _applicant_email() -> str:
     try:
         email = (config.load_profile().get("personal", {}) or {}).get("email", "")
         email = (email or "").strip()
-    except Exception:
+    except Exception:  # noqa: BLE001 - profile lookup for a display placeholder must degrade to a neutral default, not crash instruction-text generation
         email = ""
     return email or "your account email"
 
@@ -182,6 +180,7 @@ def get_hitl_instruction(reason: str) -> str:
 # ---------------------------------------------------------------------------
 # Waiting registry
 # ---------------------------------------------------------------------------
+
 
 def _register_waiting(worker_id: int, wait_type: str) -> None:
     """Register a worker as waiting for human input."""
@@ -205,8 +204,8 @@ def _get_waiting_count() -> int:
 # Per-worker HITL HTTP listener
 # ---------------------------------------------------------------------------
 
-def _start_hitl_listener(worker_id: int, done_event: threading.Event,
-                         job_hash: str) -> int:
+
+def _start_hitl_listener(worker_id: int, done_event: threading.Event, job_hash: str) -> int:
     """Register a HITL done event with the always-on worker listener.
 
     If the always-on worker listener is running (normal case), stores the
@@ -217,6 +216,7 @@ def _start_hitl_listener(worker_id: int, done_event: threading.Event,
         The port the HITL listener is on.
     """
     from applypilot.apply import launcher
+
     port = HITL_LISTEN_BASE_PORT + worker_id
     with launcher._worker_state_lock:
         state = launcher._worker_state.get(worker_id)
@@ -258,8 +258,7 @@ def _start_hitl_listener(worker_id: int, done_event: threading.Event,
     with _hitl_server_lock:
         _hitl_servers[worker_id] = server
 
-    thread = threading.Thread(target=server.serve_forever, daemon=True,
-                              name=f"hitl-http-w{worker_id}")
+    thread = threading.Thread(target=server.serve_forever, daemon=True, name=f"hitl-http-w{worker_id}")
     thread.start()
     logger.debug("HITL listener (fallback) for worker %d on port %d", worker_id, port)
     return port
@@ -268,6 +267,7 @@ def _start_hitl_listener(worker_id: int, done_event: threading.Event,
 def _stop_hitl_listener(worker_id: int) -> None:
     """Clear HITL event from worker state and kill the done watcher process."""
     from applypilot.apply import launcher
+
     with launcher._worker_state_lock:
         state = launcher._worker_state.get(worker_id)
     if state is not None:
@@ -277,7 +277,7 @@ def _stop_hitl_listener(worker_id: int) -> None:
         if watcher is not None and watcher.poll() is None:
             try:
                 watcher.kill()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110 - best-effort cleanup/probe, must not crash the caller
                 pass
     # Also shut down any legacy fallback server
     with _hitl_server_lock:
@@ -290,10 +290,16 @@ def _stop_hitl_listener(worker_id: int) -> None:
 # Banner injection
 # ---------------------------------------------------------------------------
 
-def _inject_banner_for_worker(worker_id: int, cdp_port: int, job: dict,
-                              reason: str, server_port: int,
-                              navigate_url: str | None = None,
-                              instructions: str | None = None) -> bool:
+
+def _inject_banner_for_worker(
+    worker_id: int,
+    cdp_port: int,
+    job: dict,
+    reason: str,
+    server_port: int,
+    navigate_url: str | None = None,
+    instructions: str | None = None,
+) -> bool:
     """Inject a HITL banner into the worker's Chrome via CDP.
 
     Navigates to navigate_url first (so the user sees the stuck page, not
@@ -324,13 +330,16 @@ def _inject_banner_for_worker(worker_id: int, cdp_port: int, job: dict,
 # DB row mutators
 # ---------------------------------------------------------------------------
 
-def mark_needs_human(url: str, reason: str, stuck_url: str,
-                     instructions: str, duration_ms: int | None = None) -> None:
+
+def mark_needs_human(url: str, reason: str, stuck_url: str, instructions: str, duration_ms: int | None = None) -> None:
     """Park a job for human review instead of marking it as failed."""
     from applypilot.apply.launcher import _db_retry_commit, _db_retry_execute
+
     conn = get_connection()
     now = datetime.now(UTC).isoformat()
-    _db_retry_execute(conn, """
+    _db_retry_execute(
+        conn,
+        """
         UPDATE jobs SET apply_status = 'needs_human',
                        needs_human_reason = ?,
                        needs_human_url = ?,
@@ -340,13 +349,18 @@ def mark_needs_human(url: str, reason: str, stuck_url: str,
                        last_attempted_at = ?,
                        apply_category = 'needs_human'
         WHERE url = ?
-    """, (reason, stuck_url, instructions, duration_ms, now, url))
+    """,
+        (reason, stuck_url, instructions, duration_ms, now, url),
+    )
 
-    transition_state(conn, url, "needs_human",
+    transition_state(
+        conn,
+        url,
+        "needs_human",
         reason=(reason or "marked needs_human"),
-        metadata={"hitl_url": stuck_url,
-                  "instructions": instructions[:200] if instructions else None},
-        force=True)
+        metadata={"hitl_url": stuck_url, "instructions": instructions[:200] if instructions else None},
+        force=True,
+    )
     _db_retry_commit(conn)
 
 
@@ -360,10 +374,13 @@ def reset_needs_human(url: str | None = None) -> int:
         Number of jobs reset.
     """
     from applypilot.apply.launcher import _db_retry_commit, _db_retry_execute
+
     conn = get_connection()
 
     if url:
-        cursor = _db_retry_execute(conn, """
+        cursor = _db_retry_execute(
+            conn,
+            """
             UPDATE jobs SET apply_status = NULL,
                            needs_human_reason = NULL,
                            needs_human_url = NULL,
@@ -371,19 +388,19 @@ def reset_needs_human(url: str | None = None) -> int:
                            agent_id = NULL,
                            apply_category = NULL
             WHERE url = ? AND apply_status = 'needs_human'
-        """, (url,))
+        """,
+            (url,),
+        )
         if cursor.rowcount:
-            transition_state(conn, url, "applying",
-                reason="needs_human resolved, re-acquired",
-                force=True)
+            transition_state(conn, url, "applying", reason="needs_human resolved, re-acquired", force=True)
     else:
         # Fetch URLs before updating so we can emit individual transitions.
         urls_to_reset = [
-            r[0] for r in conn.execute(
-                "SELECT url FROM jobs WHERE apply_status = 'needs_human'"
-            ).fetchall()
+            r[0] for r in conn.execute("SELECT url FROM jobs WHERE apply_status = 'needs_human'").fetchall()
         ]
-        cursor = _db_retry_execute(conn, """
+        cursor = _db_retry_execute(
+            conn,
+            """
             UPDATE jobs SET apply_status = NULL,
                            needs_human_reason = NULL,
                            needs_human_url = NULL,
@@ -391,11 +408,10 @@ def reset_needs_human(url: str | None = None) -> int:
                            agent_id = NULL,
                            apply_category = NULL
             WHERE apply_status = 'needs_human'
-        """)
+        """,
+        )
         for u in urls_to_reset:
-            transition_state(conn, u, "applying",
-                reason="needs_human resolved, re-acquired",
-                force=True)
+            transition_state(conn, u, "applying", reason="needs_human resolved, re-acquired", force=True)
     _db_retry_commit(conn)
     return cursor.rowcount
 
@@ -404,21 +420,25 @@ def reset_needs_human(url: str | None = None) -> int:
 # Notifications
 # ---------------------------------------------------------------------------
 
+
 def _send_desktop_notification(title: str, body: str) -> None:
     """Send a desktop notification. Silent on failure."""
     try:
         if platform.system() == "Darwin":
             subprocess.run(
-                ["osascript", "-e",
-                 f'display notification "{body}" with title "{title}"'],
-                timeout=5, capture_output=True,
+                ["osascript", "-e", f'display notification "{body}" with title "{title}"'],
+                timeout=5,
+                capture_output=True,
+                check=False,
             )
         else:
             subprocess.run(
                 ["notify-send", "--urgency=critical", title, body],
-                timeout=5, capture_output=True,
+                timeout=5,
+                capture_output=True,
+                check=False,
             )
-    except Exception:
+    except Exception:  # noqa: BLE001, S110 - best-effort cleanup/probe, must not crash the caller
         pass
 
 
@@ -437,7 +457,8 @@ def notify_human_needed(job: dict, reason: str, stuck_url: str) -> None:
         f"  Action: {instructions}\n"
         f"  Review: applypilot human-review\n"
         f"\a",
-        file=sys.stderr, flush=True,
+        file=sys.stderr,
+        flush=True,
     )
 
     _send_desktop_notification(
@@ -449,6 +470,7 @@ def notify_human_needed(job: dict, reason: str, stuck_url: str) -> None:
 # ---------------------------------------------------------------------------
 # Action-log formatting
 # ---------------------------------------------------------------------------
+
 
 def _format_action_log(payload: dict) -> str | None:
     """Render a USER ACTIONS DURING PAUSE prompt section from a content-script
@@ -518,6 +540,7 @@ def _format_action_log(payload: dict) -> str | None:
 # Main HITL pause/resume cycle
 # ---------------------------------------------------------------------------
 
+
 def _run_hitl(
     worker_id: int,
     port: int,
@@ -568,6 +591,7 @@ def _run_hitl(
     # can flip into park-and-move-on mode mid-run (and back) without
     # killing the pipeline.
     from applypilot.apply import launcher
+
     with launcher._worker_state_lock:
         _ws = launcher._worker_state.get(worker_id) or {}
         _live_no_hitl = _ws.get("no_hitl")
@@ -587,9 +611,11 @@ def _run_hitl(
     hitl_event = threading.Event()
     hitl_port = _start_hitl_listener(worker_id, hitl_event, job_hash)
 
-    _inject_banner_for_worker(worker_id, port, job, reason, hitl_port,
-                              navigate_url=navigate_url, instructions=instructions)
+    _inject_banner_for_worker(
+        worker_id, port, job, reason, hitl_port, navigate_url=navigate_url, instructions=instructions
+    )
     from applypilot.apply.human_review import _start_done_watcher
+
     _watcher = _start_done_watcher(port, hitl_port, job_hash)
 
     # 6. Desktop notify + 7. worker state.
@@ -597,23 +623,29 @@ def _run_hitl(
     if add_event:
         add_event(f"[W{worker_id}] WAITING for human: {reason[:20]}")
     if update_state:
-        update_state(worker_id, status="waiting_human",
-                     last_action=f"WAITING: {reason[:25]}")
+        update_state(worker_id, status="waiting_human", last_action=f"WAITING: {reason[:25]}")
     from applypilot.apply import launcher
+
     with launcher._worker_state_lock:
         ws = launcher._worker_state.get(worker_id)
     if ws is not None:
         _saved = None
         try:
             from applypilot.database import close_connection, get_qa
+
             _saved = get_qa(f"HITL:{job.get('site', '')}:{reason}")
             close_connection()
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 - best-effort cleanup/probe, must not crash the caller
             pass
-        ws.update({"status": "waiting_human", "reason": reason,
-                   "instructions": instructions,
-                   "saved_instruction": _saved,
-                   "hitl_watcher_proc": _watcher})
+        ws.update(
+            {
+                "status": "waiting_human",
+                "reason": reason,
+                "instructions": instructions,
+                "saved_instruction": _saved,
+                "hitl_watcher_proc": _watcher,
+            }
+        )
     _register_waiting(worker_id, "waiting_human")
 
     # 7b. Terminal-stdin Done fallback (audit #6).
@@ -623,6 +655,7 @@ def _run_hitl(
     # avoid input contention; the second paused worker falls back to
     # banner-only.
     if _stdin_fallback_lock.acquire(blocking=False):
+
         def _stdin_done_reader() -> None:
             try:
                 line = sys.stdin.readline().strip().lower()
@@ -634,13 +667,14 @@ def _run_hitl(
                 logger.debug("stdin fallback reader crashed", exc_info=True)
             finally:
                 _stdin_fallback_lock.release()
+
         try:
             print(
                 f"[hitl] worker {worker_id} paused on {navigate_url[:60]} — "
                 "type 'done' here to override the banner button",
                 flush=True,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 - best-effort cleanup/probe, must not crash the caller
             pass
         threading.Thread(target=_stdin_done_reader, daemon=True).start()
 
@@ -652,12 +686,12 @@ def _run_hitl(
             if add_event:
                 add_event(f"[W{worker_id}] Chrome crashed during HITL; relaunching...")
             try:
-                chrome_proc = launch_chrome(worker_id, port=port,
-                                            headless=headless, ats_slug=ats_slug,
-                                            total_workers=total_workers)
-                _inject_banner_for_worker(worker_id, port, job, reason,
-                                          hitl_port, navigate_url=navigate_url,
-                                          instructions=instructions)
+                chrome_proc = launch_chrome(
+                    worker_id, port=port, headless=headless, ats_slug=ats_slug, total_workers=total_workers
+                )
+                _inject_banner_for_worker(
+                    worker_id, port, job, reason, hitl_port, navigate_url=navigate_url, instructions=instructions
+                )
             except Exception:
                 logger.debug("Chrome relaunch during HITL failed", exc_info=True)
     _stop_hitl_listener(worker_id)
@@ -678,22 +712,31 @@ def _run_hitl(
 
     # 10. Re-launch agent with transient-error retry.
     from applypilot.apply.launcher import run_job
+
     last_result = None
     last_dur = 0
     last_qs: list[dict] = []
     for _attempt in range(3):
         if add_event:
-            add_event(f"[W{worker_id}] Human done, relaunching agent"
-                      f" (attempt {_attempt + 1}/3)...")
+            add_event(f"[W{worker_id}] Human done, relaunching agent (attempt {_attempt + 1}/3)...")
         if update_state:
-            update_state(worker_id, status="applying",
-                         last_action=f"relaunching after HITL (attempt {_attempt + 1})",
-                         start_time=time.time(), actions=0)
+            update_state(
+                worker_id,
+                status="applying",
+                last_action=f"relaunching after HITL (attempt {_attempt + 1})",
+                start_time=time.time(),
+                actions=0,
+            )
         last_result, last_dur, last_qs = run_job(
-            job, port=port, worker_id=worker_id,
-            model=model, dry_run=dry_run, skip_tab_reset=True,
+            job,
+            port=port,
+            worker_id=worker_id,
+            model=model,
+            dry_run=dry_run,
+            skip_tab_reset=True,
             apply_engine=apply_engine,
-            extra_context=action_log_section)
+            extra_context=action_log_section,
+        )
         _hitl_reason = last_result.split(":", 1)[-1] if ":" in last_result else last_result
         if _hitl_reason not in _HITL_TRANSIENT_ERRORS:
             break

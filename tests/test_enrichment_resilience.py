@@ -20,8 +20,6 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from applypilot.enrichment.detail import (
@@ -51,10 +49,12 @@ def _fake_sync_playwright():
 class TestScrapeSiteBatchSurvivesPerJobCrash:
     def test_one_job_timeout_does_not_abort_the_batch(self, tmp_db, seed_job):
         conn = tmp_db()
-        job1 = seed_job(conn, url_suffix="crashes", title="Job That Times Out",
-                        site="BuiltIn Remote", full_description=None)
-        job2 = seed_job(conn, url_suffix="succeeds", title="Job That Succeeds",
-                        site="BuiltIn Remote", full_description=None)
+        job1 = seed_job(
+            conn, url_suffix="crashes", title="Job That Times Out", site="BuiltIn Remote", full_description=None
+        )
+        job2 = seed_job(
+            conn, url_suffix="succeeds", title="Job That Succeeds", site="BuiltIn Remote", full_description=None
+        )
 
         def _side_effect(page, url):
             if url == job1["url"]:
@@ -67,12 +67,13 @@ class TestScrapeSiteBatchSurvivesPerJobCrash:
                 "elapsed": 0.5,
             }
 
-        with patch("applypilot.enrichment.detail.sync_playwright",
-                   return_value=_fake_sync_playwright()), \
-             patch("applypilot.enrichment.detail.scrape_detail_page",
-                   side_effect=_side_effect):
+        with (
+            patch("applypilot.enrichment.detail.sync_playwright", return_value=_fake_sync_playwright()),
+            patch("applypilot.enrichment.detail.scrape_detail_page", side_effect=_side_effect),
+        ):
             stats = scrape_site_batch(
-                conn, "BuiltIn Remote",
+                conn,
+                "BuiltIn Remote",
                 [(job1["url"], job1["title"]), (job2["url"], job2["title"])],
                 delay=0,
             )
@@ -83,16 +84,16 @@ class TestScrapeSiteBatchSurvivesPerJobCrash:
         assert stats["error"] == 1
 
         row1 = conn.execute(
-            "SELECT detail_error, detail_error_category, enrich_attempts, "
-            "full_description FROM jobs WHERE url = ?", (job1["url"],),
+            "SELECT detail_error, detail_error_category, enrich_attempts, full_description FROM jobs WHERE url = ?",
+            (job1["url"],),
         ).fetchone()
         assert row1["detail_error"] is not None
         assert "Timeout" in row1["detail_error"]
         assert row1["full_description"] is None
 
         row2 = conn.execute(
-            "SELECT full_description, detail_error, detail_scraped_at "
-            "FROM jobs WHERE url = ?", (job2["url"],),
+            "SELECT full_description, detail_error, detail_scraped_at FROM jobs WHERE url = ?",
+            (job2["url"],),
         ).fetchone()
         assert row2["full_description"] == "A real description."
         assert row2["detail_error"] is None
@@ -103,18 +104,19 @@ class TestScrapeSiteBatchSurvivesPerJobCrash:
         classification as any other enrichment error -- a transient
         timeout must not permanently give up after a single occurrence."""
         conn = tmp_db()
-        job = seed_job(conn, url_suffix="crashes2", title="Slow Page",
-                       site="BuiltIn Remote", full_description=None)
+        job = seed_job(conn, url_suffix="crashes2", title="Slow Page", site="BuiltIn Remote", full_description=None)
 
-        with patch("applypilot.enrichment.detail.sync_playwright",
-                   return_value=_fake_sync_playwright()), \
-             patch("applypilot.enrichment.detail.scrape_detail_page",
-                   side_effect=TimeoutError("Timeout 30000ms exceeded.")):
+        with (
+            patch("applypilot.enrichment.detail.sync_playwright", return_value=_fake_sync_playwright()),
+            patch(
+                "applypilot.enrichment.detail.scrape_detail_page", side_effect=TimeoutError("Timeout 30000ms exceeded.")
+            ),
+        ):
             scrape_site_batch(conn, "BuiltIn Remote", [(job["url"], job["title"])], delay=0)
 
         row = conn.execute(
-            "SELECT detail_error_category, enrich_attempts, enrich_next_retry_at, state "
-            "FROM jobs WHERE url = ?", (job["url"],),
+            "SELECT detail_error_category, enrich_attempts, enrich_next_retry_at, state FROM jobs WHERE url = ?",
+            (job["url"],),
         ).fetchone()
         assert row["detail_error_category"] == "retriable"
         assert row["enrich_attempts"] == 1
@@ -127,25 +129,27 @@ class TestScrapeSiteBatchSurvivesPerJobCrash:
         one gets its own recorded failure, not a single aborted batch."""
         conn = tmp_db()
         jobs = [
-            seed_job(conn, url_suffix=f"allcrash-{i}", title=f"Job {i}",
-                     site="BuiltIn Remote", full_description=None)
+            seed_job(conn, url_suffix=f"allcrash-{i}", title=f"Job {i}", site="BuiltIn Remote", full_description=None)
             for i in range(3)
         ]
 
-        with patch("applypilot.enrichment.detail.sync_playwright",
-                   return_value=_fake_sync_playwright()), \
-             patch("applypilot.enrichment.detail.scrape_detail_page",
-                   side_effect=RuntimeError("boom")):
+        with (
+            patch("applypilot.enrichment.detail.sync_playwright", return_value=_fake_sync_playwright()),
+            patch("applypilot.enrichment.detail.scrape_detail_page", side_effect=RuntimeError("boom")),
+        ):
             stats = scrape_site_batch(
-                conn, "BuiltIn Remote",
-                [(j["url"], j["title"]) for j in jobs], delay=0,
+                conn,
+                "BuiltIn Remote",
+                [(j["url"], j["title"]) for j in jobs],
+                delay=0,
             )
 
         assert stats["processed"] == 3
         assert stats["error"] == 3
         for j in jobs:
             row = conn.execute(
-                "SELECT detail_error FROM jobs WHERE url = ?", (j["url"],),
+                "SELECT detail_error FROM jobs WHERE url = ?",
+                (j["url"],),
             ).fetchone()
             assert row["detail_error"] is not None
 
@@ -155,14 +159,17 @@ class TestScrapeSiteBatchSurvivesPerJobCrash:
         IS NULL OR retriable-and-due) so it is never reprocessed. This
         exercises the existing, unmodified selection query directly."""
         conn = tmp_db()
-        job = seed_job(conn, url_suffix="already-done", title="Done Job",
-                       site="BuiltIn Remote", full_description=None)
+        job = seed_job(conn, url_suffix="already-done", title="Done Job", site="BuiltIn Remote", full_description=None)
 
         _mark_enrich_result(
-            conn, job["url"], status="ok",
+            conn,
+            job["url"],
+            status="ok",
             full_description="Already enriched.",
             application_url="https://example.com/apply",
-            error=None, tier=1, retry_count=0,
+            error=None,
+            tier=1,
+            retry_count=0,
         )
         conn.commit()
 
@@ -171,7 +178,8 @@ class TestScrapeSiteBatchSurvivesPerJobCrash:
             "  detail_scraped_at IS NULL "
             "  OR (detail_error_category = 'retriable' "
             "      AND (enrich_next_retry_at IS NULL OR datetime(enrich_next_retry_at) <= datetime('now')))"
-            ")", (job["url"],),
+            ")",
+            (job["url"],),
         ).fetchall()
         assert pending == []
 
@@ -181,21 +189,17 @@ class TestRunDetailScraperSurvivesSiteLevelCrash:
         """A whole-batch-level crash (e.g. browser launch failure) for one
         site must not prevent other queued sites from being processed."""
         conn = tmp_db()
-        seed_job(conn, url_suffix="crashy-site", title="Job A",
-                 site="CrashySite", full_description=None)
-        seed_job(conn, url_suffix="fine-site", title="Job B",
-                 site="FineSite", full_description=None)
+        seed_job(conn, url_suffix="crashy-site", title="Job A", site="CrashySite", full_description=None)
+        seed_job(conn, url_suffix="fine-site", title="Job B", site="FineSite", full_description=None)
 
-        fine_stats = {"processed": 1, "ok": 1, "partial": 0, "error": 0,
-                      "tiers": {1: 1, 2: 0, 3: 0}}
+        fine_stats = {"processed": 1, "ok": 1, "partial": 0, "error": 0, "tiers": {1: 1, 2: 0, 3: 0}}
 
         def _side_effect(conn_arg, site, jobs, delay=2.0, max_jobs=None):
             if site == "CrashySite":
                 raise RuntimeError("browser launch failed")
             return fine_stats
 
-        with patch("applypilot.enrichment.detail.scrape_site_batch",
-                   side_effect=_side_effect):
+        with patch("applypilot.enrichment.detail.scrape_site_batch", side_effect=_side_effect):
             total = _run_detail_scraper(conn)
 
         assert total["processed"] == 1
@@ -209,21 +213,17 @@ class TestRunDetailScraperSurvivesSiteLevelCrash:
         every other future's (possibly already-finished, successful)
         result too."""
         conn = tmp_db()
-        seed_job(conn, url_suffix="crashy-site-w2", title="Job A",
-                 site="CrashySite", full_description=None)
-        seed_job(conn, url_suffix="fine-site-w2", title="Job B",
-                 site="FineSite", full_description=None)
+        seed_job(conn, url_suffix="crashy-site-w2", title="Job A", site="CrashySite", full_description=None)
+        seed_job(conn, url_suffix="fine-site-w2", title="Job B", site="FineSite", full_description=None)
 
-        fine_stats = {"processed": 1, "ok": 1, "partial": 0, "error": 0,
-                      "tiers": {1: 1, 2: 0, 3: 0}}
+        fine_stats = {"processed": 1, "ok": 1, "partial": 0, "error": 0, "tiers": {1: 1, 2: 0, 3: 0}}
 
         def _side_effect(conn_arg, site, jobs, delay=2.0, max_jobs=None):
             if site == "CrashySite":
                 raise RuntimeError("browser launch failed")
             return fine_stats
 
-        with patch("applypilot.enrichment.detail.scrape_site_batch",
-                   side_effect=_side_effect):
+        with patch("applypilot.enrichment.detail.scrape_site_batch", side_effect=_side_effect):
             total = _run_detail_scraper(conn, workers=2)
 
         # The crashed site contributed nothing; the successful site's
@@ -236,8 +236,7 @@ class TestRunDetailScraperSurvivesSiteLevelCrash:
 
 class TestClassifyDetailErrorCaseInsensitive:
     def test_capitalized_timeout_error_classified_retriable(self):
-        category, next_retry = _classify_detail_error(
-            "TimeoutError: Timeout 30000ms exceeded.", current_retry_count=0)
+        category, next_retry = _classify_detail_error("TimeoutError: Timeout 30000ms exceeded.", current_retry_count=0)
         assert category == "retriable"
         assert next_retry is not None
 

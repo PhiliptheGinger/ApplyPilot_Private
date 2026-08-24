@@ -10,7 +10,7 @@ import logging
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from applypilot.config import COVER_LETTER_DIR, load_profile
 from applypilot.llm import get_stage_client, get_token_limit
@@ -35,6 +35,7 @@ def get_client(quality: bool = True):
     """
     return get_stage_client("cover", quality=quality)
 
+
 DEFAULT_COMMUNICATION_DIFFERENTIATOR = (
     "Not something I normally put on my resume, but I believe this is a "
     "legitimate differentiator for roles that require clear communication, "
@@ -43,6 +44,7 @@ DEFAULT_COMMUNICATION_DIFFERENTIATOR = (
 
 
 # ── Prompt Builder (profile-driven) ──────────────────────────────────────
+
 
 def _build_cover_letter_prompt(profile: dict, job: dict | None = None) -> str:
     """Build the cover letter system prompt from the user's profile.
@@ -78,10 +80,7 @@ def _build_cover_letter_prompt(profile: dict, job: dict | None = None) -> str:
 
     communication_mode = bool(job and is_communication_role(job))
     cl_cfg = profile.get("cover_letter", {}) if isinstance(profile, dict) else {}
-    differentiator = (
-        cl_cfg.get("communication_differentiator_note")
-        or DEFAULT_COMMUNICATION_DIFFERENTIATOR
-    )
+    differentiator = cl_cfg.get("communication_differentiator_note") or DEFAULT_COMMUNICATION_DIFFERENTIATOR
 
     communication_block = ""
     if communication_mode:
@@ -89,13 +88,13 @@ def _build_cover_letter_prompt(profile: dict, job: dict | None = None) -> str:
             "\nCOMMUNICATION-ROLE REQUIREMENT:\n"
             "Include one concise sentence (your own wording; close paraphrase allowed) "
             "that conveys this idea:\n"
-            f"\"{differentiator}\"\n"
+            f'"{differentiator}"\n'
             "Keep it sincere and concrete, not performative."
         )
 
     # For communication-heavy roles, allow "I believe" because the
     # differentiator sentence may legitimately use it.
-    banned_i_believe = "\"I believe\", " if not communication_mode else ""
+    banned_i_believe = '"I believe", ' if not communication_mode else ""
 
     return f"""Write a cover letter for {sign_off_name}. The goal is to get an interview.
 
@@ -142,6 +141,8 @@ ADDITIONAL BANNED PHRASES:
 FABRICATION = INSTANT REJECTION:
 The candidate's real tools are ONLY: {skills_str}.
 Do NOT mention ANY tool not in this list. If the job asks for tools not listed, talk about the work you did, not the tools.
+Never mention ApplyPilot or any private/internal project by name.
+Never describe the candidate as an engineer, architect, developer, or other professional technical role unless their actual employment history supports that title.
 
 Sign off: just "{sign_off_name}"
 
@@ -150,9 +151,8 @@ Output ONLY the letter. Start with "Dear Hiring Manager," end with the name."""
 
 # ── Core Generation ──────────────────────────────────────────────────────
 
-def generate_cover_letter(
-    resume_text: str, job: dict, profile: dict, max_retries: int = 3
-) -> tuple[str, dict]:
+
+def generate_cover_letter(resume_text: str, job: dict, profile: dict, max_retries: int = 3) -> tuple[str, dict]:
     """Generate a cover letter with fresh context on each retry + auto-sanitize.
 
     Same design as tailor_resume: fresh conversation per attempt, issues noted
@@ -178,6 +178,22 @@ def generate_cover_letter(
         f"DESCRIPTION:\n{(job.get('full_description') or '')[:6000]}"
     )
 
+    # Same deterministic, LLM-free per-job schema representation tailor.py
+    # uses -- cached per job (scoring/schemas.py), so if this job was already
+    # tailored in this run, this reuses that computation instead of
+    # redoing it. Cover letters previously got zero structured evidence
+    # grounding at all (just the raw description dump above); this gives the
+    # cover-letter model the same requirement/evidence/schema mapping.
+    # Failure here must never block cover-letter generation -- it's guidance.
+    schema_guidance = ""
+    try:
+        from applypilot.scoring.schemas import format_schema_guidance, get_or_build_job_schema
+
+        job_schema = get_or_build_job_schema(job, profile)
+        schema_guidance = format_schema_guidance(job_schema)
+    except Exception:
+        log.debug("Job schema computation failed for %s", job.get("title", "")[:40], exc_info=True)
+
     avoid_notes: list[str] = []
     letter = ""
     validation: dict = {"passed": False, "errors": ["no attempts"], "warnings": []}
@@ -188,17 +204,18 @@ def generate_cover_letter(
         # Fresh conversation every attempt
         prompt = cl_prompt_base
         if avoid_notes:
-            prompt += "\n\n## AVOID THESE ISSUES:\n" + "\n".join(
-                f"- {n}" for n in avoid_notes[-5:]
-            )
+            prompt += "\n\n## AVOID THESE ISSUES:\n" + "\n".join(f"- {n}" for n in avoid_notes[-5:])
 
         messages = [
             {"role": "system", "content": prompt},
-            {"role": "user", "content": (
-                f"RESUME:\n{resume_text}\n\n---\n\n"
-                f"TARGET JOB:\n{job_text}\n\n"
-                "Write the cover letter:"
-            )},
+            {
+                "role": "user",
+                "content": (
+                    (f"{schema_guidance}\n\n---\n\n" if schema_guidance else "") + f"RESUME:\n{resume_text}\n\n---\n\n"
+                    f"TARGET JOB:\n{job_text}\n\n"
+                    "Write the cover letter:"
+                ),
+            },
         ]
 
         # Higher ceiling helps thinking-models avoid truncation while
@@ -210,7 +227,7 @@ def generate_cover_letter(
         )
         letter = sanitize_text(letter)  # auto-fix em dashes, smart quotes
 
-        validation = validate_cover_letter(letter)
+        validation = validate_cover_letter(letter, profile)
         if validation["passed"]:
             return letter, validation
 
@@ -227,7 +244,9 @@ def generate_cover_letter(
             )
         log.debug(
             "Cover letter attempt %d/%d failed: %s",
-            attempt + 1, max_retries + 1, validation["errors"],
+            attempt + 1,
+            max_retries + 1,
+            validation["errors"],
         )
 
     return letter, validation  # last attempt, validation["passed"] is False
@@ -235,9 +254,11 @@ def generate_cover_letter(
 
 # ── Batch Entry Point ────────────────────────────────────────────────────
 
+
 def _cover_one_job(job: dict, resume_text: str | None, profile: dict, doc_format: str = "docx") -> dict:
     """Generate cover letter for a single job. Safe to call from multiple threads."""
     from applypilot.scoring.tailor import _extract_keywords, _name_parts
+
     if resume_text is None:
         resume_text, _ = load_resume_text_for_job(job)
     letter, validation = generate_cover_letter(resume_text, job, profile)
@@ -277,6 +298,7 @@ def _cover_one_job(job: dict, resume_text: str | None, profile: dict, doc_format
     doc_path = None
     try:
         from applypilot.scoring.pdf import convert_to_pdf
+
         personal = profile.get("personal", {})
         full_name = personal.get("full_name") or personal.get("preferred_name") or ""
         job_title = (job.get("title") or "").strip()[:150]
@@ -288,9 +310,7 @@ def _cover_one_job(job: dict, resume_text: str | None, profile: dict, doc_format
             "category": "Cover Letter",
             "keywords": _extract_keywords(job, profile),
             "comments": (
-                f"Cover letter for: {job_title}\n"
-                f"Source: {site}\n"
-                f"Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
+                f"Cover letter for: {job_title}\nSource: {site}\nDate: {datetime.now(UTC).strftime('%Y-%m-%d')}"
             ),
         }
         doc_path = str(convert_to_pdf(cl_path, doc_format=doc_format, metadata=cl_metadata))
@@ -320,7 +340,7 @@ def _mark_cover_result(
     Transitions to ``ready_to_apply`` on success, ``cover_failed`` on failure.
     """
     if now is None:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
     from applypilot.database import transition_state
 
@@ -331,7 +351,9 @@ def _mark_cover_result(
             (path, now, url),
         )
         transition_state(
-            conn, url, "ready_to_apply",
+            conn,
+            url,
+            "ready_to_apply",
             reason="cover letter done",
             metadata={"path": path},
             force=True,
@@ -342,29 +364,52 @@ def _mark_cover_result(
             (url,),
         )
         transition_state(
-            conn, url, "cover_failed",
+            conn,
+            url,
+            "cover_failed",
             reason="cover generation failed",
             metadata={"error": error},
             force=True,
         )
 
 
-def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: int = 1,
-                      doc_format: str = "docx", max_age_days: int | None = None) -> dict:
+def run_cover_letters(
+    min_score: int | None = None,
+    limit: int = 20,
+    workers: int = 1,
+    doc_format: str = "docx",
+    max_age_days: int | None = None,
+    job_ids: list[str] | None = None,
+) -> dict:
     """Generate cover letters for high-scoring jobs that have tailored resumes.
 
     Args:
         min_score: Minimum fit_score threshold (default from config).
-        limit: Maximum jobs to process.
+        limit: Maximum jobs to process. Ignored when job_ids is given -- see below.
         workers: Parallel LLM threads (default 1 = sequential).
         doc_format: Output document format — "docx" (default) or "pdf".
         max_age_days: Skip jobs older than this (default from config).
+        job_ids: If given (e.g. by a sequential pipeline run carrying
+            forward the exact batch a preceding `tailor` stage produced --
+            see run_tailoring's job_urls / pipeline._run_sequential),
+            restrict candidates to exactly this set of job URLs instead of
+            independently querying for any eligible job. Still subject to
+            the normal pending_cover eligibility conditions (min_score,
+            has a tailored resume, no cover letter yet, attempts < 5,
+            eligibility) and the per-company cap below, so only the
+            eligible subset of this batch is actually processed -- an
+            ineligible job in the batch is just skipped, never backfilled
+            with an unrelated already-eligible job from an earlier run to
+            make up the count. An empty list restricts to nothing. None
+            (the default) preserves the original standalone behavior:
+            select up to `limit` eligible jobs with no batch restriction.
 
     Returns:
         {"generated": int, "errors": int, "elapsed": float}
     """
     from applypilot.config import DEFAULTS
     from applypilot.database import get_jobs_by_stage
+
     if min_score is None:
         min_score = DEFAULTS["min_score"]
 
@@ -375,17 +420,27 @@ def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: in
 
     # Note: get_jobs_by_stage applies a 14-day discovered_at filter by default
     # (config.DEFAULTS["max_job_age_days"]). Pass max_age_days=0 to disable.
-    jobs = get_jobs_by_stage(conn=conn, stage="pending_cover",
-                             min_score=min_score, max_age_days=max_age_days,
-                             limit=limit)
+    jobs = get_jobs_by_stage(
+        conn=conn, stage="pending_cover", min_score=min_score, max_age_days=max_age_days, limit=limit, urls=job_ids
+    )
+
+    if job_ids is not None:
+        log.info(
+            "Cover letters restricted to a carried batch of %d job(s) from the preceding "
+            "tailor stage (%d eligible after the pending_cover filter).",
+            len(job_ids),
+            len(jobs),
+        )
 
     # Per-company cover-letter cap (mirrors tailor cap in tailor.py).
     # Keys resolved from `company`, with `site` fallback for direct-employer
     # scrapers. Aggregator sites (LinkedIn, Indeed, etc.) are exempt.
     from applypilot.scoring.tailor import resolve_company_key
+
     cap = DEFAULTS["max_tailored_per_company"]
 
-    existing_rows = conn.execute("""
+    existing_rows = conn.execute(
+        """
         SELECT LOWER(company) AS key, COUNT(*) AS n
         FROM jobs
         WHERE cover_letter_path IS NOT NULL
@@ -403,8 +458,12 @@ def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: in
           AND site IS NOT NULL AND TRIM(site) != ''
           AND discovered_at > datetime('now', ?)
         GROUP BY key
-    """, (f"-{max_age_days or DEFAULTS['max_job_age_days']} days",
-          f"-{max_age_days or DEFAULTS['max_job_age_days']} days")).fetchall()
+    """,
+        (
+            f"-{max_age_days or DEFAULTS['max_job_age_days']} days",
+            f"-{max_age_days or DEFAULTS['max_job_age_days']} days",
+        ),
+    ).fetchall()
     existing: dict[str, int] = {}
     for r in existing_rows:
         existing[r["key"]] = existing.get(r["key"], 0) + r["n"]
@@ -424,8 +483,7 @@ def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: in
         capped_jobs.append(job)
         added_per_company[key] = added_per_company.get(key, 0) + 1
     if skipped_by_cap:
-        log.info("Cover cap: skipped %d job(s) where company is at/over %d covers.",
-                 skipped_by_cap, cap)
+        log.info("Cover cap: skipped %d job(s) where company is at/over %d covers.", skipped_by_cap, cap)
     jobs = capped_jobs
 
     conn.commit()  # Close read transaction before long LLM phase
@@ -437,7 +495,9 @@ def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: in
     COVER_LETTER_DIR.mkdir(parents=True, exist_ok=True)
     log.info(
         "Generating cover letters for %d jobs (score >= %d, workers=%d)...",
-        len(jobs), min_score, workers,
+        len(jobs),
+        min_score,
+        workers,
     )
     t0 = time.time()
     completed = 0
@@ -454,8 +514,12 @@ def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: in
                     result = future.result()
                 except Exception as exc:
                     result = {
-                        "url": job["url"], "title": job.get("title") or "", "site": job["site"],
-                        "path": None, "pdf_path": None, "error": str(exc),
+                        "url": job["url"],
+                        "title": job.get("title") or "",
+                        "site": job["site"],
+                        "path": None,
+                        "pdf_path": None,
+                        "error": str(exc),
                     }
                     error_count += 1
                     log.exception("[ERROR] %s -- exception during future.result()", (job.get("title") or "")[:40])
@@ -464,8 +528,14 @@ def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: in
                 elapsed = time.time() - t0
                 rate = completed / elapsed if elapsed > 0 else 0
                 status = "OK" if result.get("path") else "ERR"
-                log.info("%d/%d [%s] | %.1f jobs/min | %s", completed, len(jobs), status, rate * 60,
-                         (result.get("title") or "")[:40])
+                log.info(
+                    "%d/%d [%s] | %.1f jobs/min | %s",
+                    completed,
+                    len(jobs),
+                    status,
+                    rate * 60,
+                    (result.get("title") or "")[:40],
+                )
     else:
         for job in jobs:
             completed += 1
@@ -474,19 +544,34 @@ def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: in
                 elapsed = time.time() - t0
                 rate = completed / elapsed if elapsed > 0 else 0
                 status = "OK" if result.get("path") else "REJ"
-                log.info("%d/%d [%s] | %.1f jobs/min | %s", completed, len(jobs), status, rate * 60,
-                         (result.get("title") or "")[:40])
+                log.info(
+                    "%d/%d [%s] | %.1f jobs/min | %s",
+                    completed,
+                    len(jobs),
+                    status,
+                    rate * 60,
+                    (result.get("title") or "")[:40],
+                )
             except Exception as exc:
                 result = {
-                    "url": job["url"], "title": job.get("title") or "", "site": job["site"],
-                    "path": None, "pdf_path": None, "error": str(exc),
+                    "url": job["url"],
+                    "title": job.get("title") or "",
+                    "site": job["site"],
+                    "path": None,
+                    "pdf_path": None,
+                    "error": str(exc),
                 }
                 error_count += 1
-                log.exception("%d/%d [ERROR] %s -- exception generating cover", completed, len(jobs), (job.get("title") or "")[:40])
+                log.exception(
+                    "%d/%d [ERROR] %s -- exception generating cover",
+                    completed,
+                    len(jobs),
+                    (job.get("title") or "")[:40],
+                )
             results.append(result)
 
     # Persist to DB: increment attempt counter for ALL, save path only for successes
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     saved = sum(1 for r in results if r.get("path"))
 
     def _flush_cover_results(conn, results, now):
@@ -495,8 +580,11 @@ def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: in
             # if conversion failed (apply layer will flag as invalid).
             stored_path = r.get("pdf_path") or r.get("path")
             _mark_cover_result(
-                conn, r["url"], stored_path,
-                error=r.get("error"), now=now,
+                conn,
+                r["url"],
+                stored_path,
+                error=r.get("error"),
+                now=now,
             )
 
     try:
@@ -505,12 +593,14 @@ def run_cover_letters(min_score: int | None = None, limit: int = 20, workers: in
         log.exception("DB flush failed for cover letter batch")
 
     elapsed = time.time() - t0
-    rejected = sum(
-        1 for r in results
-        if not r.get("path") and str(r.get("error", "")).startswith("validation failed")
+    rejected = sum(1 for r in results if not r.get("path") and str(r.get("error", "")).startswith("validation failed"))
+    log.info(
+        "Cover letters done in %.1fs: %d generated, %d rejected by validation, %d errors",
+        elapsed,
+        saved,
+        rejected,
+        error_count,
     )
-    log.info("Cover letters done in %.1fs: %d generated, %d rejected by validation, %d errors",
-             elapsed, saved, rejected, error_count)
 
     return {
         "generated": saved,

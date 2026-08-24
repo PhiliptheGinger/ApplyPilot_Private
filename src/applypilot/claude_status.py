@@ -25,10 +25,9 @@ import subprocess
 import threading
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
-UTC = timezone.utc
 log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -48,15 +47,16 @@ _USAGE_WINDOWS = ("five_hour", "seven_day")
 class ClaudeAvailability:
     state: str
     reset_estimate: datetime | None
-    reset_source: str | None       # "cached_usage_state" or None
+    reset_source: str | None  # "cached_usage_state" or None
     cache_age_seconds: float | None
-    binding_window: str | None     # "five_hour" | "seven_day" | None
+    binding_window: str | None  # "five_hour" | "seven_day" | None
     detail: str
 
 
 # ---------------------------------------------------------------------------
 # ~/.claude.json best-effort cache reading (never authoritative)
 # ---------------------------------------------------------------------------
+
 
 def _default_cache_path() -> Path:
     return Path.home() / ".claude.json"
@@ -185,8 +185,7 @@ def record_apply_exhaustion(reason: str, cooldown_seconds: float = 1800) -> None
         _apply_exhausted = True
         _apply_exhaustion_reason = reason
         _apply_probe_after = time.time() + cooldown_seconds
-    log.info("Apply-side Claude signal: exhausted (reason=%s, next probe eligible in %ss)",
-             reason, cooldown_seconds)
+    log.info("Apply-side Claude signal: exhausted (reason=%s, next probe eligible in %ss)", reason, cooldown_seconds)
 
 
 def record_apply_success() -> None:
@@ -251,9 +250,12 @@ def _run_claude_auth_status() -> bool | None:
     try:
         proc = subprocess.run(
             ["claude", "auth", "status", "--output-format", "json"],
-            capture_output=True, text=True, timeout=15,
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
         )
-    except Exception:
+    except Exception:  # noqa: BLE001 - claude CLI subprocess probe is inherently unreliable; degrade to "unknown" (None), not a crash
         return None
     if proc.returncode != 0 or not proc.stdout.strip():
         return None
@@ -315,36 +317,46 @@ def check_claude_availability(
     `record_apply_exhaustion`/`record_apply_success` is used.
     """
     now = now or datetime.now(UTC)
-    observed_exhausted, observed_reason = (
-        observed if observed is not None else _apply_signal()
-    )
+    observed_exhausted, observed_reason = observed if observed is not None else _apply_signal()
 
     if check_auth:
         logged_in = _get_auth_status(auth_min_interval_seconds, runner=auth_runner)
         if logged_in is False:
             return ClaudeAvailability(
-                state=AUTH_FAILURE, reset_estimate=None, reset_source=None,
-                cache_age_seconds=None, binding_window=None,
+                state=AUTH_FAILURE,
+                reset_estimate=None,
+                reset_source=None,
+                cache_age_seconds=None,
+                binding_window=None,
                 detail="claude auth status reports loggedIn=false",
             )
 
     if not observed_exhausted:
         return ClaudeAvailability(
-            state=AVAILABLE, reset_estimate=None, reset_source=None,
-            cache_age_seconds=None, binding_window=None,
+            state=AVAILABLE,
+            reset_estimate=None,
+            reset_source=None,
+            cache_age_seconds=None,
+            binding_window=None,
             detail="no observed exhaustion",
         )
 
     if observed_reason in _AUTH_REASON_TAGS:
         return ClaudeAvailability(
-            state=AUTH_FAILURE, reset_estimate=None, reset_source=None,
-            cache_age_seconds=None, binding_window=None,
+            state=AUTH_FAILURE,
+            reset_estimate=None,
+            reset_source=None,
+            cache_age_seconds=None,
+            binding_window=None,
             detail=f"observed auth failure: {observed_reason}",
         )
     if observed_reason in _TRANSIENT_REASON_TAGS:
         return ClaudeAvailability(
-            state=TRANSIENT_ERROR, reset_estimate=None, reset_source=None,
-            cache_age_seconds=None, binding_window=None,
+            state=TRANSIENT_ERROR,
+            reset_estimate=None,
+            reset_source=None,
+            cache_age_seconds=None,
+            binding_window=None,
             detail=f"observed transient error: {observed_reason}",
         )
 
@@ -359,8 +371,10 @@ def check_claude_availability(
     if binding is not None:
         window_name, resets_at = binding
         return ClaudeAvailability(
-            state=EXHAUSTED_KNOWN_RESET, reset_estimate=resets_at,
-            reset_source="cached_usage_state", cache_age_seconds=cache_age,
+            state=EXHAUSTED_KNOWN_RESET,
+            reset_estimate=resets_at,
+            reset_source="cached_usage_state",
+            cache_age_seconds=cache_age,
             binding_window=window_name,
             detail=f"exhausted ({observed_reason}); reset estimated from {window_name} cache",
         )
@@ -371,8 +385,11 @@ def check_claude_availability(
     elif cached is None:
         stale_note = "; no cache available"
     return ClaudeAvailability(
-        state=EXHAUSTED_UNKNOWN_RESET, reset_estimate=None, reset_source=None,
-        cache_age_seconds=cache_age, binding_window=None,
+        state=EXHAUSTED_UNKNOWN_RESET,
+        reset_estimate=None,
+        reset_source=None,
+        cache_age_seconds=cache_age,
+        binding_window=None,
         detail=f"exhausted ({observed_reason}), no usable reset estimate{stale_note}",
     )
 
@@ -380,6 +397,7 @@ def check_claude_availability(
 # ---------------------------------------------------------------------------
 # In-process gate consulted by apply/orchestrator.py's continuous worker loop
 # ---------------------------------------------------------------------------
+
 
 class ClaudeGate:
     """Defaults to never-paused, so standalone `applypilot apply --continuous`

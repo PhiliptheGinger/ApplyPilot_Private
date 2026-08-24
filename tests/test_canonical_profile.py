@@ -4,13 +4,15 @@ from applypilot.scoring.tailor import _build_canonical_inventory_block, _build_t
 
 def _profile():
     return {
-        "education": [{
-            "institution": "University of North Carolina at Greensboro",
-            "official_degree": "Bachelor of Arts in Media Studies",
-            "field_of_study": "Media Studies",
-            "start_year": 2019,
-            "end_year": 2022,
-        }],
+        "education": [
+            {
+                "institution": "University of North Carolina at Greensboro",
+                "official_degree": "Bachelor of Arts in Media Studies",
+                "field_of_study": "Media Studies",
+                "start_year": 2019,
+                "end_year": 2022,
+            }
+        ],
         "experience_inventory": [{"name": "AMP Smart", "responsibilities": ["In-person consultations"]}],
         "project_inventory": [
             {"name": "Standup-OCR", "status": "completed_or_active", "resume_allowed": True},
@@ -18,8 +20,18 @@ def _profile():
             {"name": "Sunburn", "status": "unfinished_experimental", "resume_allowed": True},
         ],
         "skills_inventory": [
-            {"name": "Python", "evidence_level": "demonstrated_project_use", "proficiency": "learning_developing", "resume_allowed": True},
-            {"name": "Docker", "evidence_level": "learning_or_exposure", "proficiency": "learning", "resume_allowed": False},
+            {
+                "name": "Python",
+                "evidence_level": "demonstrated_project_use",
+                "proficiency": "learning_developing",
+                "resume_allowed": True,
+            },
+            {
+                "name": "Docker",
+                "evidence_level": "learning_or_exposure",
+                "proficiency": "learning",
+                "resume_allowed": False,
+            },
         ],
         "skills_boundary": {"demonstrated_projects": ["Python"], "learning_or_exposure_not_expertise": ["Docker"]},
     }

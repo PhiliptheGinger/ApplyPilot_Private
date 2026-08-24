@@ -15,7 +15,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from applypilot import config
 from applypilot.database import get_connection, init_db, write_with_retry
@@ -23,7 +23,6 @@ from applypilot.discovery.ats_common import strip_html_to_text
 
 log = logging.getLogger(__name__)
 
-UTC = timezone.utc
 
 
 SEARCH_URL = "https://careers.costco.com/api/jobs"
@@ -37,6 +36,7 @@ _HEADERS = {
 # HTML-to-text converter shared by every direct-API ATS scraper. See
 # ats_common.py's module comment for why this used to be a separate
 # copy-pasted implementation per scraper (and the bug that cost).
+
 
 def _strip_html(html: str) -> str:
     return strip_html_to_text(html)
@@ -74,7 +74,7 @@ def search_costco_jobs(
         except urllib.error.HTTPError as e:
             log.warning("costco.com HTTP %d for %r: %s", e.code, query, e.reason)
             break
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - costco.com pagination fetch is unreliable; stop paginating this query, other queries still run
             log.warning("costco.com fetch error for %r: %s", query, e)
             break
 
@@ -89,8 +89,7 @@ def search_costco_jobs(
             if not isinstance(job, dict):
                 continue
 
-            apply_url = (job.get("apply_url") or job.get("applyUrl")
-                         or job.get("url") or "")
+            apply_url = job.get("apply_url") or job.get("applyUrl") or job.get("url") or ""
             if not apply_url:
                 req_id = job.get("req_id") or job.get("requisition_id") or ""
                 if req_id:
@@ -106,15 +105,17 @@ def search_costco_jobs(
             description = job.get("description") or job.get("job_description") or ""
             description = _strip_html(description) if description else ""
 
-            jobs.append({
-                "url": apply_url,
-                "title": job.get("title") or job.get("job_title") or "",
-                "location": location_str,
-                "description": description[:500] if description else None,
-                "full_description": description if len(description) > 200 else None,
-                "application_url": apply_url,
-                "req_id": job.get("req_id") or job.get("requisition_id") or "",
-            })
+            jobs.append(
+                {
+                    "url": apply_url,
+                    "title": job.get("title") or job.get("job_title") or "",
+                    "location": location_str,
+                    "description": description[:500] if description else None,
+                    "full_description": description if len(description) > 200 else None,
+                    "application_url": apply_url,
+                    "req_id": job.get("req_id") or job.get("requisition_id") or "",
+                }
+            )
 
         pages_fetched += 1
         offset += page_size
@@ -146,9 +147,21 @@ def _insert_jobs(conn: sqlite3.Connection, jobs: list[dict]) -> tuple[int, int]:
                     "INSERT INTO jobs (url, title, salary, description, location, site, strategy, "
                     "discovered_at, full_description, application_url, detail_scraped_at, posted_at, state) "
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (url, job.get("title"), None, job.get("description"), job.get("location"),
-                     "Costco", "costco_careers", now, full_description, job.get("application_url"),
-                     detail_scraped_at, posted_at, initial_state),
+                    (
+                        url,
+                        job.get("title"),
+                        None,
+                        job.get("description"),
+                        job.get("location"),
+                        "Costco",
+                        "costco_careers",
+                        now,
+                        full_description,
+                        job.get("application_url"),
+                        detail_scraped_at,
+                        posted_at,
+                        initial_state,
+                    ),
                 )
                 conn.execute(
                     "INSERT INTO job_state_transitions "
@@ -187,7 +200,7 @@ def run_costco_discovery(workers: int = 1, queries: list[str] | None = None) -> 
     for i, q in enumerate(queries, 1):
         try:
             jobs = search_costco_jobs(q, location="Seattle, WA")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - processing independent search queries; one query's failure must not abort the rest
             log.warning("Costco query %r failed: %s", q, e)
             continue
 
@@ -195,11 +208,9 @@ def run_costco_discovery(workers: int = 1, queries: list[str] | None = None) -> 
         grand_new += new
         grand_existing += existing
         grand_found += len(jobs)
-        log.info("  [%d/%d] %r: %d found (%d new, %d existing)",
-                 i, len(queries), q, len(jobs), new, existing)
+        log.info("  [%d/%d] %r: %d found (%d new, %d existing)", i, len(queries), q, len(jobs), new, existing)
 
-    log.info("Costco discovery done: %d found (%d new, %d existing)",
-             grand_found, grand_new, grand_existing)
+    log.info("Costco discovery done: %d found (%d new, %d existing)", grand_found, grand_new, grand_existing)
 
     return {
         "found": grand_found,

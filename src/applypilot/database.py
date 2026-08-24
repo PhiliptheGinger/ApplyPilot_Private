@@ -12,10 +12,8 @@ import re as _re
 import sqlite3
 import threading
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-
-UTC = timezone.utc
 from urllib.parse import urljoin
 
 from applypilot.config import DB_PATH
@@ -51,13 +49,15 @@ def write_with_retry(
                 raise
             try:
                 conn.rollback()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110 - already inside a lock-retry error path; a rollback failure here must not mask the original error or crash the retry loop
                 pass
             if attempt < max_retries - 1:
-                delay = base_delay * (2 ** attempt)
+                delay = base_delay * (2**attempt)
                 _log.warning(
                     "DB locked on write batch (attempt %d/%d), retry in %.2fs",
-                    attempt + 1, max_retries, delay,
+                    attempt + 1,
+                    max_retries,
+                    delay,
                 )
                 time.sleep(delay)
             else:
@@ -80,9 +80,8 @@ def commit_with_retry(conn: sqlite3.Connection, max_retries: int = 8, base_delay
             if "database is locked" not in str(e):
                 raise
             if attempt < max_retries - 1:
-                delay = base_delay * (2 ** attempt)
-                _log.warning("DB locked on commit (attempt %d/%d), retry in %.2fs",
-                             attempt + 1, max_retries, delay)
+                delay = base_delay * (2**attempt)
+                _log.warning("DB locked on commit (attempt %d/%d), retry in %.2fs", attempt + 1, max_retries, delay)
                 time.sleep(delay)
             else:
                 raise
@@ -102,7 +101,7 @@ def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
     """
     path = str(db_path or DB_PATH)
 
-    if not hasattr(_local, 'connections'):
+    if not hasattr(_local, "connections"):
         _local.connections = {}
 
     conn = _local.connections.get(path)
@@ -124,7 +123,7 @@ def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
 def close_connection(db_path: Path | str | None = None) -> None:
     """Close the cached connection for the current thread."""
     path = str(db_path or DB_PATH)
-    if hasattr(_local, 'connections'):
+    if hasattr(_local, "connections"):
         conn = _local.connections.pop(path, None)
         if conn is not None:
             conn.close()
@@ -263,9 +262,7 @@ def init_db(db_path: Path | str | None = None) -> sqlite3.Connection:
             UNIQUE(question_key, answer_text)
         )
     """)
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_qa_key ON qa_knowledge(question_key)"
-    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_qa_key ON qa_knowledge(question_key)")
     commit_with_retry(conn)
 
     # Run migrations for any columns added after initial schema
@@ -293,7 +290,7 @@ _ALL_COLUMNS: dict[str, str] = {
     "site": "TEXT",
     "strategy": "TEXT",
     "discovered_at": "TEXT",
-    "posted_at": "TEXT",                     # original posting date from the employer/board
+    "posted_at": "TEXT",  # original posting date from the employer/board
     # Canonical pipeline state. Enum enforced in Python (see VALID_STATES)
     # rather than a SQL CHECK — SQLite can't easily add CHECKs post-hoc.
     "state": "TEXT DEFAULT 'discovered'",
@@ -304,14 +301,14 @@ _ALL_COLUMNS: dict[str, str] = {
     "application_url": "TEXT",
     "detail_scraped_at": "TEXT",
     "detail_error": "TEXT",
-    "detail_error_category": "TEXT",       # 'expired' | 'retriable' | 'permanent'
+    "detail_error_category": "TEXT",  # 'expired' | 'retriable' | 'permanent'
     # (detail_retry_count → enrich_attempts, enrich_next_retry_at →
     #  enrich_next_retry_at via _COLUMN_RENAMES below)
     # Scoring
     "fit_score": "INTEGER",
     "score_reasoning": "TEXT",
     "scored_at": "TEXT",
-    "score_error": "TEXT",                 # set when all LLM providers failed; fit_score stays NULL
+    "score_error": "TEXT",  # set when all LLM providers failed; fit_score stays NULL
     # 2026-04-30: terminal eligibility tag set by scorer.
     # Values: NULL (not yet evaluated) | 'eligible' | 'non_us_only'.
     # Tailor/cover/apply gate on eligibility = 'eligible' OR IS NULL.
@@ -397,10 +394,7 @@ def ensure_columns(conn: sqlite3.Connection | None = None) -> list[str]:
             existing.add(new_name)
         elif old_name in existing and new_name in existing:
             # Both present — move data from old to new then drop old.
-            conn.execute(
-                f"UPDATE jobs SET {new_name} = COALESCE({new_name}, {old_name}) "
-                f"WHERE {old_name} IS NOT NULL"
-            )
+            conn.execute(f"UPDATE jobs SET {new_name} = COALESCE({new_name}, {old_name}) WHERE {old_name} IS NOT NULL")
             conn.execute(f"ALTER TABLE jobs DROP COLUMN {old_name}")
             changed.append(f"{old_name}→{new_name} (merged)")
             existing.discard(old_name)
@@ -481,48 +475,69 @@ _COLUMN_RENAMES: dict[str, str] = {
 #   ghosted          → no response after follow-ups
 #   archived         → opted out / manually closed
 
-VALID_STATES: frozenset[str] = frozenset({
-    "discovered", "enriched", "enrich_failed",
-    "scored", "score_failed", "low_score",
-    "tailoring", "tailored", "tailor_failed",
-    "cover_writing", "cover_failed",
-    "ready_to_apply", "applying", "applied",
-    "apply_failed", "needs_human", "manual_only",
-    "responded", "interview", "offer",
-    "rejected", "ghosted", "archived",
-})
+VALID_STATES: frozenset[str] = frozenset(
+    {
+        "discovered",
+        "enriched",
+        "enrich_failed",
+        "scored",
+        "score_failed",
+        "low_score",
+        "tailoring",
+        "tailored",
+        "tailor_failed",
+        "cover_writing",
+        "cover_failed",
+        "ready_to_apply",
+        "applying",
+        "applied",
+        "apply_failed",
+        "needs_human",
+        "manual_only",
+        "responded",
+        "interview",
+        "offer",
+        "rejected",
+        "ghosted",
+        "archived",
+    }
+)
 
 VALID_TRANSITIONS: dict[str, frozenset[str]] = {
-    "discovered":     frozenset({"enriched", "enrich_failed", "archived"}),
-    "enriched":       frozenset({"scored", "low_score", "score_failed", "archived"}),
-    "enrich_failed":  frozenset({"enriched", "archived"}),  # retriable
-    "scored":         frozenset({"low_score", "tailoring", "tailored", "tailor_failed", "archived"}),
-    "score_failed":   frozenset({"scored", "archived"}),
-    "low_score":      frozenset({"archived", "tailoring"}),  # manual override
-    "tailoring":      frozenset({"tailored", "tailor_failed"}),
-    "tailor_failed":  frozenset({"tailoring", "tailored", "archived"}),
-    "tailored":       frozenset({"cover_writing", "ready_to_apply", "archived"}),
-    "cover_writing":  frozenset({"ready_to_apply", "cover_failed"}),
-    "cover_failed":   frozenset({"cover_writing", "ready_to_apply", "archived"}),
+    "discovered": frozenset({"enriched", "enrich_failed", "archived"}),
+    "enriched": frozenset({"scored", "low_score", "score_failed", "archived"}),
+    "enrich_failed": frozenset({"enriched", "archived"}),  # retriable
+    "scored": frozenset({"low_score", "tailoring", "tailored", "tailor_failed", "archived"}),
+    "score_failed": frozenset({"scored", "archived"}),
+    "low_score": frozenset({"archived", "tailoring"}),  # manual override
+    "tailoring": frozenset({"tailored", "tailor_failed"}),
+    "tailor_failed": frozenset({"tailoring", "tailored", "archived"}),
+    "tailored": frozenset({"cover_writing", "ready_to_apply", "archived"}),
+    "cover_writing": frozenset({"ready_to_apply", "cover_failed"}),
+    "cover_failed": frozenset({"cover_writing", "ready_to_apply", "archived"}),
     "ready_to_apply": frozenset({"applying", "manual_only", "archived"}),
-    "applying":       frozenset({"applied", "apply_failed", "needs_human", "ready_to_apply"}),
-    "apply_failed":   frozenset({"applying", "manual_only", "archived"}),
-    "needs_human":    frozenset({"applying", "applied", "manual_only", "archived"}),
-    "manual_only":    frozenset({"applied", "archived"}),
-    "applied":        frozenset({"responded", "ghosted", "rejected", "archived"}),
-    "responded":      frozenset({"interview", "rejected", "ghosted"}),
-    "interview":      frozenset({"offer", "rejected", "ghosted"}),
-    "offer":          frozenset({"archived"}),  # accept or decline → archived
-    "rejected":       frozenset({"archived"}),
-    "ghosted":        frozenset({"archived", "responded"}),  # reopen possible
-    "archived":       frozenset(),
+    "applying": frozenset({"applied", "apply_failed", "needs_human", "ready_to_apply"}),
+    "apply_failed": frozenset({"applying", "manual_only", "archived"}),
+    "needs_human": frozenset({"applying", "applied", "manual_only", "archived"}),
+    "manual_only": frozenset({"applied", "archived"}),
+    "applied": frozenset({"responded", "ghosted", "rejected", "archived"}),
+    "responded": frozenset({"interview", "rejected", "ghosted"}),
+    "interview": frozenset({"offer", "rejected", "ghosted"}),
+    "offer": frozenset({"archived"}),  # accept or decline → archived
+    "rejected": frozenset({"archived"}),
+    "ghosted": frozenset({"archived", "responded"}),  # reopen possible
+    "archived": frozenset(),
 }
 
 
-def transition_state(conn: sqlite3.Connection, job_url: str, to_state: str,
-                     reason: str | None = None,
-                     metadata: dict | None = None,
-                     force: bool = False) -> bool:
+def transition_state(
+    conn: sqlite3.Connection,
+    job_url: str,
+    to_state: str,
+    reason: str | None = None,
+    metadata: dict | None = None,
+    force: bool = False,
+) -> bool:
     """Atomically transition a job to a new state and write an audit row.
 
     Validates the transition against VALID_TRANSITIONS unless force=True.
@@ -542,14 +557,16 @@ def transition_state(conn: sqlite3.Connection, job_url: str, to_state: str,
     if not force:
         allowed = VALID_TRANSITIONS.get(from_state, frozenset())
         if to_state not in allowed and to_state != from_state:
-            _log.debug("Rejected transition %s → %s for %s (allowed: %s)",
-                       from_state, to_state, job_url[:60], sorted(allowed))
+            _log.debug(
+                "Rejected transition %s → %s for %s (allowed: %s)", from_state, to_state, job_url[:60], sorted(allowed)
+            )
             return False
 
     now = datetime.now(UTC).isoformat()
     meta_json = None
     if metadata:
         import json as _json
+
         meta_json = _json.dumps(metadata, default=str)
 
     conn.execute("UPDATE jobs SET state = ? WHERE url = ?", (to_state, job_url))
@@ -576,10 +593,12 @@ def state_history(conn: sqlite3.Connection, job_url: str) -> list[dict]:
         "FROM job_state_transitions WHERE job_url = ? ORDER BY id DESC",
         (job_url,),
     ).fetchall()
-    return [dict(r) if isinstance(r, sqlite3.Row) else
-            {"from_state": r[0], "to_state": r[1], "at": r[2],
-             "reason": r[3], "metadata": r[4]}
-            for r in rows]
+    return [
+        dict(r)
+        if isinstance(r, sqlite3.Row)
+        else {"from_state": r[0], "to_state": r[1], "at": r[2], "reason": r[3], "metadata": r[4]}
+        for r in rows
+    ]
 
 
 # Stage completion transitions, keyed for get_recent_stage_throughput().
@@ -587,14 +606,13 @@ def state_history(conn: sqlite3.Connection, job_url: str) -> list[dict]:
 # ready_to_apply -- tailored -> ready_to_apply (no cover step) must not be
 # counted as cover throughput, so it's matched on from_state as well.
 _STAGE_THROUGHPUT_FILTERS: dict[str, tuple[str, tuple]] = {
-    "score":  ("to_state = 'scored'", ()),
+    "score": ("to_state = 'scored'", ()),
     "tailor": ("to_state = 'tailored'", ()),
-    "cover":  ("from_state = 'cover_writing' AND to_state = 'ready_to_apply'", ()),
+    "cover": ("from_state = 'cover_writing' AND to_state = 'ready_to_apply'", ()),
 }
 
 
-def get_recent_stage_throughput(stage: str, window_minutes: int = 60,
-                                conn: sqlite3.Connection | None = None) -> dict:
+def get_recent_stage_throughput(stage: str, window_minutes: int = 60, conn: sqlite3.Connection | None = None) -> dict:
     """Read-only: count job_state_transitions completions for `stage` within
     the last `window_minutes`. No schema changes -- reuses the existing
     audit table.
@@ -739,22 +757,33 @@ def backfill_states(conn: sqlite3.Connection | None = None) -> dict[str, int]:
 
 # Error → category mapping. Errors not in any set default to "blocked_technical".
 _AUTH_ERRORS = {
-    "workday_login_required", "login_issue", "login_required",
-    "email_verification", "account_required", "sso_required",
+    "workday_login_required",
+    "login_issue",
+    "login_required",
+    "email_verification",
+    "account_required",
+    "sso_required",
     "account_creation_broken",
 }
 
 _INELIGIBLE_ERRORS = {
-    "not_eligible_location", "not_eligible_salary", "contract_only",
+    "not_eligible_location",
+    "not_eligible_salary",
+    "contract_only",
 }
 
 _EXPIRED_ERRORS = {
-    "expired", "already_applied",
+    "expired",
+    "already_applied",
 }
 
 _PLATFORM_ERRORS = {
-    "not_a_job_application", "unsafe_permissions", "unsafe_verification",
-    "site_blocked", "cloudflare_blocked", "blocked_by_cloudflare",
+    "not_a_job_application",
+    "unsafe_permissions",
+    "unsafe_verification",
+    "site_blocked",
+    "cloudflare_blocked",
+    "blocked_by_cloudflare",
 }
 
 _NO_URL_ERRORS = {
@@ -762,8 +791,7 @@ _NO_URL_ERRORS = {
 }
 
 
-def categorize_apply_result(apply_status: str | None,
-                            apply_error: str | None) -> str:
+def categorize_apply_result(apply_status: str | None, apply_error: str | None) -> str:
     """Derive a semantic apply category from status + error.
 
     Returns one of: pending, in_progress, applied, needs_human, manual_only,
@@ -837,9 +865,7 @@ def backfill_categories(conn: sqlite3.Connection | None = None) -> int:
     return updated
 
 
-def get_jobs_by_category(category: str,
-                         conn: sqlite3.Connection | None = None,
-                         limit: int = 100) -> list[dict]:
+def get_jobs_by_category(category: str, conn: sqlite3.Connection | None = None, limit: int = 100) -> list[dict]:
     """Fetch jobs filtered by apply category.
 
     Args:
@@ -866,8 +892,7 @@ def get_jobs_by_category(category: str,
     return []
 
 
-def reset_by_category(category: str,
-                      conn: sqlite3.Connection | None = None) -> int:
+def reset_by_category(category: str, conn: sqlite3.Connection | None = None) -> int:
     """Reset all jobs in a given category so they can be retried.
 
     Clears apply_status, apply_error, apply_attempts, apply_category,
@@ -881,7 +906,8 @@ def reset_by_category(category: str,
     """
     if conn is None:
         conn = get_connection()
-    cursor = conn.execute("""
+    cursor = conn.execute(
+        """
         UPDATE jobs SET apply_status = NULL, apply_error = NULL,
                        apply_attempts = 0, agent_id = NULL,
                        apply_category = NULL,
@@ -889,7 +915,9 @@ def reset_by_category(category: str,
                        needs_human_url = NULL,
                        needs_human_instructions = NULL
         WHERE apply_category = ?
-    """, (category,))
+    """,
+        (category,),
+    )
     commit_with_retry(conn)
     return cursor.rowcount
 
@@ -932,17 +960,27 @@ def reject_jobs_by_title_patterns(
     if not compiled:
         return {"matched": 0, "updated": 0, "sample": []}
 
-    protected_states = {
-        "applied",
-        "applying",
-        "cover_writing",
-        "cover_failed",
-        "manual_only",
-        "archived",
-        "ready_to_apply",
-        "tailored",
-    }
-
+    # 2026-08-25: investigated whether "tailor_failed" belongs here too,
+    # while fixing the pending_tailor archived/tailor_failed oscillation
+    # bug this function was one half of (see get_jobs_by_stage's
+    # "pending_tailor" condition). Decided NOT to add it: (1) that fix
+    # already closes the harmful oscillation on its own -- pending_tailor
+    # no longer re-selects archived jobs, so a title-reject pass touching
+    # a tailor_failed row is no longer able to create a re-select loop;
+    # (2) "tailor_failed" -> "archived" is an explicitly LEGAL transition
+    # in VALID_TRANSITIONS, i.e. the state machine already sanctions a
+    # tailor_failed job being archived -- this isn't an illegal or
+    # accidental state reachability, it's a real, intended path (e.g. "give
+    # up on this one"); (3) for the specific case this function targets --
+    # a title that independently disqualifies the job -- archiving it
+    # immediately is arguably MORE correct than letting it silently burn
+    # through its full tailor_attempts budget on doomed retries. Revisit
+    # only if a genuine need to preserve a tailor_failed job's retry
+    # window across an --auto-reject-titles pass shows up in practice.
+    #
+    # protected_states (enforced directly in the SQL below, not as a
+    # separate Python set): applied, applying, cover_writing, cover_failed,
+    # manual_only, archived, ready_to_apply, tailored.
     rows = conn.execute(
         """
         SELECT url, title
@@ -964,10 +1002,7 @@ def reject_jobs_by_title_patterns(
                 break
 
     if dry_run:
-        sample = [
-            {"url": url, "title": title, "pattern": pattern}
-            for url, title, pattern in matches[:sample_limit]
-        ]
+        sample = [{"url": url, "title": title, "pattern": pattern} for url, title, pattern in matches[:sample_limit]]
         return {"matched": len(matches), "updated": 0, "sample": sample}
 
     updated = 0
@@ -994,10 +1029,7 @@ def reject_jobs_by_title_patterns(
         updated += 1
 
     commit_with_retry(conn)
-    sample = [
-        {"url": url, "title": title, "pattern": pattern}
-        for url, title, pattern in matches[:sample_limit]
-    ]
+    sample = [{"url": url, "title": title, "pattern": pattern} for url, title, pattern in matches[:sample_limit]]
     return {"matched": len(matches), "updated": updated, "sample": sample}
 
 
@@ -1025,32 +1057,23 @@ def get_stats(conn: sqlite3.Connection | None = None) -> dict:
     stats["total"] = conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
 
     # By site breakdown
-    rows = conn.execute(
-        "SELECT site, COUNT(*) as cnt FROM jobs GROUP BY site ORDER BY cnt DESC"
-    ).fetchall()
+    rows = conn.execute("SELECT site, COUNT(*) as cnt FROM jobs GROUP BY site ORDER BY cnt DESC").fetchall()
     stats["by_site"] = [(row[0], row[1]) for row in rows]
 
     # Enrichment stage
-    stats["pending_detail"] = conn.execute(
-        "SELECT COUNT(*) FROM jobs WHERE detail_scraped_at IS NULL"
-    ).fetchone()[0]
+    stats["pending_detail"] = conn.execute("SELECT COUNT(*) FROM jobs WHERE detail_scraped_at IS NULL").fetchone()[0]
 
-    stats["with_description"] = conn.execute(
-        "SELECT COUNT(*) FROM jobs WHERE full_description IS NOT NULL"
-    ).fetchone()[0]
+    stats["with_description"] = conn.execute("SELECT COUNT(*) FROM jobs WHERE full_description IS NOT NULL").fetchone()[
+        0
+    ]
 
-    stats["detail_errors"] = conn.execute(
-        "SELECT COUNT(*) FROM jobs WHERE detail_error IS NOT NULL"
-    ).fetchone()[0]
+    stats["detail_errors"] = conn.execute("SELECT COUNT(*) FROM jobs WHERE detail_error IS NOT NULL").fetchone()[0]
 
     # Scoring stage
-    stats["scored"] = conn.execute(
-        "SELECT COUNT(*) FROM jobs WHERE fit_score IS NOT NULL"
-    ).fetchone()[0]
+    stats["scored"] = conn.execute("SELECT COUNT(*) FROM jobs WHERE fit_score IS NOT NULL").fetchone()[0]
 
     stats["unscored"] = conn.execute(
-        "SELECT COUNT(*) FROM jobs "
-        "WHERE full_description IS NOT NULL AND fit_score IS NULL"
+        "SELECT COUNT(*) FROM jobs WHERE full_description IS NOT NULL AND fit_score IS NULL"
     ).fetchone()[0]
 
     # Score distribution
@@ -1062,15 +1085,14 @@ def get_stats(conn: sqlite3.Connection | None = None) -> dict:
     stats["score_distribution"] = [(row[0], row[1]) for row in dist_rows]
 
     # Tailoring stage
-    stats["tailored"] = conn.execute(
-        "SELECT COUNT(*) FROM jobs WHERE tailored_resume_path IS NOT NULL"
-    ).fetchone()[0]
+    stats["tailored"] = conn.execute("SELECT COUNT(*) FROM jobs WHERE tailored_resume_path IS NOT NULL").fetchone()[0]
 
     stats["tailor_auto_approved"] = conn.execute(
         "SELECT COUNT(*) FROM jobs WHERE COALESCE(tailor_auto_approved, 0) = 1"
     ).fetchone()[0]
 
     from applypilot.config import DEFAULTS as _DEFAULTS
+
     stats["untailored_eligible"] = conn.execute(
         "SELECT COUNT(*) FROM jobs "
         "WHERE fit_score >= ? AND full_description IS NOT NULL "
@@ -1080,9 +1102,7 @@ def get_stats(conn: sqlite3.Connection | None = None) -> dict:
     ).fetchone()[0]
 
     stats["tailor_exhausted"] = conn.execute(
-        "SELECT COUNT(*) FROM jobs "
-        "WHERE COALESCE(tailor_attempts, 0) >= 5 "
-        "AND tailored_resume_path IS NULL"
+        "SELECT COUNT(*) FROM jobs WHERE COALESCE(tailor_attempts, 0) >= 5 AND tailored_resume_path IS NULL"
     ).fetchone()[0]
 
     # Cover letter stage
@@ -1097,25 +1117,17 @@ def get_stats(conn: sqlite3.Connection | None = None) -> dict:
     ).fetchone()[0]
 
     # Application stage
-    stats["applied"] = conn.execute(
-        "SELECT COUNT(*) FROM jobs WHERE applied_at IS NOT NULL"
-    ).fetchone()[0]
+    stats["applied"] = conn.execute("SELECT COUNT(*) FROM jobs WHERE applied_at IS NOT NULL").fetchone()[0]
 
-    stats["apply_errors"] = conn.execute(
-        "SELECT COUNT(*) FROM jobs WHERE apply_error IS NOT NULL"
-    ).fetchone()[0]
+    stats["apply_errors"] = conn.execute("SELECT COUNT(*) FROM jobs WHERE apply_error IS NOT NULL").fetchone()[0]
 
     stats["title_rejected"] = conn.execute(
         "SELECT COUNT(*) FROM jobs WHERE apply_error LIKE 'title_pattern_reject:%'"
     ).fetchone()[0]
 
-    stats["ready_to_apply"] = conn.execute(
-        "SELECT COUNT(*) FROM jobs WHERE state = 'ready_to_apply'"
-    ).fetchone()[0]
+    stats["ready_to_apply"] = conn.execute("SELECT COUNT(*) FROM jobs WHERE state = 'ready_to_apply'").fetchone()[0]
 
-    stats["needs_human"] = conn.execute(
-        "SELECT COUNT(*) FROM jobs WHERE apply_status = 'needs_human'"
-    ).fetchone()[0]
+    stats["needs_human"] = conn.execute("SELECT COUNT(*) FROM jobs WHERE apply_status = 'needs_human'").fetchone()[0]
 
     # Apply category breakdown with per-score counts
     cat_rows = conn.execute("""
@@ -1135,8 +1147,12 @@ def get_stats(conn: sqlite3.Connection | None = None) -> dict:
     stats["by_category"] = {
         row[0]: {
             "total": row[1],
-            "10": row[2], "9": row[3], "8": row[4],
-            "7": row[5], "6": row[6], "<6": row[7],
+            "10": row[2],
+            "9": row[3],
+            "8": row[4],
+            "7": row[5],
+            "6": row[6],
+            "<6": row[7],
         }
         for row in cat_rows
     }
@@ -1167,13 +1183,20 @@ def get_stats(conn: sqlite3.Connection | None = None) -> dict:
         ORDER BY fit_score DESC
     """).fetchall()
     stats["score_funnel"] = [
-        {"score": row[0], "applied": row[1], "cover_ready": row[2],
-         "tailored": row[3], "needs_tailor": row[4], "errors": row[5]}
+        {
+            "score": row[0],
+            "applied": row[1],
+            "cover_ready": row[2],
+            "tailored": row[3],
+            "needs_tailor": row[4],
+            "errors": row[5],
+        }
         for row in funnel_rows
     ]
 
     # Funnel diagnostics (2026-04-23 funnel spec)
     from applypilot.config import DEFAULTS, get_company_limit
+
     max_age = DEFAULTS["max_job_age_days"]
 
     # Ready-to-apply jobs that would be skipped by the age cutoff
@@ -1223,6 +1246,7 @@ def extract_company(application_url: str | None) -> str | None:
         return None
     try:
         from urllib.parse import urlparse
+
         parsed = urlparse(application_url)
         host = parsed.hostname or ""
         path = parsed.path or ""
@@ -1236,6 +1260,7 @@ def extract_company(application_url: str | None) -> str | None:
         if "greenhouse.io" in host:
             from urllib.parse import parse_qs
             from urllib.parse import urlparse as _urlparse
+
             qs = parse_qs(_urlparse(application_url).query)
             if "for" in qs:
                 return qs["for"][0].lower()
@@ -1265,6 +1290,7 @@ def extract_company(application_url: str | None) -> str | None:
         # Ashby: jobs.ashbyhq.com/{company-slug}/... → company-slug
         if "ashbyhq.com" in host:
             from urllib.parse import unquote
+
             parts = [p for p in path.split("/") if p]
             if parts:
                 return unquote(parts[0]).lower()
@@ -1307,9 +1333,17 @@ def extract_company(application_url: str | None) -> str | None:
         # www.kentik.com/careers → kentik
         # Skip major job boards / ATS platforms
         skip_domains = {
-            "linkedin.com", "indeed.com", "glassdoor.com", "ziprecruiter.com",
-            "dice.com", "simplyhired.com", "monster.com", "careerjet.ca",
-            "talent.com", "jobbank.gc.ca", "wellfound.com",
+            "linkedin.com",
+            "indeed.com",
+            "glassdoor.com",
+            "ziprecruiter.com",
+            "dice.com",
+            "simplyhired.com",
+            "monster.com",
+            "careerjet.ca",
+            "talent.com",
+            "jobbank.gc.ca",
+            "wellfound.com",
         }
         if any(host.endswith(d) for d in skip_domains):
             return None
@@ -1328,7 +1362,7 @@ def extract_company(application_url: str | None) -> str | None:
                 return company.lower()
 
         return None
-    except Exception:
+    except Exception:  # noqa: BLE001 - company-name-from-URL heuristic; an unexpected URL shape degrades to None, doesn't crash job storage
         return None
 
 
@@ -1360,19 +1394,19 @@ def _resolve_url(url: str, site: str) -> str | None:
     """
     if not url:
         return None
-    if url.startswith("http://") or url.startswith("https://"):
+    if url.startswith(("http://", "https://")):
         return url
 
     # Lazy-load base URLs to avoid circular imports
     from applypilot.config import load_base_urls
+
     base = load_base_urls().get(site)
     if base:
         return urljoin(base, url)
     return None
 
 
-def store_jobs(conn: sqlite3.Connection, jobs: list[dict],
-               site: str, strategy: str) -> tuple[int, int]:
+def store_jobs(conn: sqlite3.Connection, jobs: list[dict], site: str, strategy: str) -> tuple[int, int]:
     """Store discovered jobs, skipping duplicates by URL.
 
     Relative URLs are resolved to absolute using base_urls from sites.yaml.
@@ -1413,8 +1447,16 @@ def store_jobs(conn: sqlite3.Connection, jobs: list[dict],
                 conn.execute(
                     "INSERT INTO jobs (url, title, salary, description, location, site, strategy, discovered_at) "
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    (url, job.get("title"), job.get("salary"), job.get("description"),
-                     job.get("location"), site, strategy, now),
+                    (
+                        url,
+                        job.get("title"),
+                        job.get("salary"),
+                        job.get("description"),
+                        job.get("location"),
+                        site,
+                        strategy,
+                        now,
+                    ),
                 )
                 counts["new"] += 1
             except sqlite3.IntegrityError:
@@ -1424,8 +1466,7 @@ def store_jobs(conn: sqlite3.Connection, jobs: list[dict],
     return counts["new"], counts["existing"]
 
 
-def store_account(conn: sqlite3.Connection, account: dict,
-                  job_url: str | None = None) -> None:
+def store_account(conn: sqlite3.Connection, account: dict, job_url: str | None = None) -> None:
     """Store a newly created account in the accounts table.
 
     Args:
@@ -1438,8 +1479,7 @@ def store_account(conn: sqlite3.Connection, account: dict,
     # login_method is stored in notes so it shows up in the CLI and prompt
     notes = account.get("notes") or account.get("login_method")
     conn.execute(
-        "INSERT INTO accounts (site, domain, email, password, created_at, job_url, notes) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO accounts (site, domain, email, password, created_at, job_url, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
         (
             account.get("site", "unknown"),
             account.get("domain", "unknown"),
@@ -1466,9 +1506,7 @@ def get_accounts_for_prompt(conn: sqlite3.Connection | None = None) -> dict[str,
     """
     if conn is None:
         conn = get_connection()
-    rows = conn.execute(
-        "SELECT domain, email, password, notes FROM accounts ORDER BY created_at DESC"
-    ).fetchall()
+    rows = conn.execute("SELECT domain, email, password, notes FROM accounts ORDER BY created_at DESC").fetchall()
     # Most recent account per exact domain wins
     accounts: dict[str, dict] = {}
     for row in rows:
@@ -1487,7 +1525,7 @@ def get_accounts_for_prompt(conn: sqlite3.Connection | None = None) -> dict[str,
     for domain, creds in accounts.items():
         parts = domain.split(".")
         if len(parts) > 2:
-            base = ".".join(parts[-2:])          # e.g. "myworkdayjobs.com" or "icims.com"
+            base = ".".join(parts[-2:])  # e.g. "myworkdayjobs.com" or "icims.com"
             if base not in accounts and base not in extras:
                 extras[base] = creds
     accounts.update(extras)
@@ -1499,8 +1537,7 @@ def get_all_accounts(conn: sqlite3.Connection | None = None) -> list[dict]:
     if conn is None:
         conn = get_connection()
     rows = conn.execute(
-        "SELECT id, site, domain, email, password, notes, created_at, job_url "
-        "FROM accounts ORDER BY created_at DESC"
+        "SELECT id, site, domain, email, password, notes, created_at, job_url FROM accounts ORDER BY created_at DESC"
     ).fetchall()
     return [dict(r) for r in rows]
 
@@ -1524,16 +1561,16 @@ def mine_accounts_from_logs(log_dir: str) -> list[dict]:
         return []
 
     # Regex patterns
-    account_created_re = re.compile(r'ACCOUNT_CREATED:\s*(\{.*\})')
+    account_created_re = re.compile(r"ACCOUNT_CREATED:\s*(\{.*\})")
     password_re = re.compile(
-        r'(?:^|[-*\s])Password[:\s]+([A-Za-z0-9!@#$%^&*()\-_=+]{8,32})\s*$',
+        r"(?:^|[-*\s])Password[:\s]+([A-Za-z0-9!@#$%^&*()\-_=+]{8,32})\s*$",
         re.IGNORECASE | re.MULTILINE,
     )
     # ATS subdomain patterns worth capturing
     domain_re = re.compile(
-        r'https?://([a-z0-9][\w.-]+\.'
-        r'(?:myworkdayjobs\.com|icims\.com|taleo\.net|successfactors\.com|'
-        r'greenhouse\.io|lever\.co|ashbyhq\.com|jobvite\.com))',
+        r"https?://([a-z0-9][\w.-]+\."
+        r"(?:myworkdayjobs\.com|icims\.com|taleo\.net|successfactors\.com|"
+        r"greenhouse\.io|lever\.co|ashbyhq\.com|jobvite\.com))",
         re.IGNORECASE,
     )
 
@@ -1555,14 +1592,17 @@ def mine_accounts_from_logs(log_dir: str) -> list[dict]:
             try:
                 entry = json.loads(m.group(1))
                 domain = entry.get("domain", "").strip()
-                email  = entry.get("email", "").strip()
-                pwd    = entry.get("password", "").strip()
-                site   = entry.get("site", "").strip()
+                email = entry.get("email", "").strip()
+                pwd = entry.get("password", "").strip()
+                site = entry.get("site", "").strip()
                 if domain and email and domain not in results:
                     results[domain] = {
-                        "domain": domain, "email": email,
-                        "password": pwd, "site": site,
-                        "source": "structured", "source_file": log_file.name,
+                        "domain": domain,
+                        "email": email,
+                        "password": pwd,
+                        "site": site,
+                        "source": "structured",
+                        "source_file": log_file.name,
                     }
             except (json.JSONDecodeError, AttributeError):
                 continue
@@ -1584,7 +1624,7 @@ def mine_accounts_from_logs(log_dir: str) -> list[dict]:
             # Ignore template-like passwords from the prompt injection
             if pwd in ("{personal", "personal.get", "password", "PASSWORD"):
                 continue
-            pwd_lineno = text[:pm.start()].count("\n")
+            pwd_lineno = text[: pm.start()].count("\n")
 
             # Find the nearest domain within a 60-line window
             nearest = min(
@@ -1599,22 +1639,30 @@ def mine_accounts_from_logs(log_dir: str) -> list[dict]:
                 continue  # structured entry takes priority
 
             # Try to find the email on nearby lines
-            window = "\n".join(lines[max(0, pwd_lineno - 10): pwd_lineno + 10])
-            email_m = re.search(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', window)
+            window = "\n".join(lines[max(0, pwd_lineno - 10) : pwd_lineno + 10])
+            email_m = re.search(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", window)
             email = email_m.group(0) if email_m else ""
 
             results[domain] = {
-                "domain": domain, "email": email,
-                "password": pwd, "site": "",
-                "source": "free-form", "source_file": log_file.name,
+                "domain": domain,
+                "email": email,
+                "password": pwd,
+                "site": "",
+                "source": "free-form",
+                "source_file": log_file.name,
             }
 
     return list(results.values())
 
 
-def upsert_account(domain: str, email: str, password: str | None,
-                   site: str | None = None, notes: str | None = None,
-                   conn: sqlite3.Connection | None = None) -> str:
+def upsert_account(
+    domain: str,
+    email: str,
+    password: str | None,
+    site: str | None = None,
+    notes: str | None = None,
+    conn: sqlite3.Connection | None = None,
+) -> str:
     """Insert or update a credential row for a domain.
 
     If a row already exists for the domain, updates email/password/notes.
@@ -1623,8 +1671,7 @@ def upsert_account(domain: str, email: str, password: str | None,
     if conn is None:
         conn = get_connection()
     existing = conn.execute(
-        "SELECT id FROM accounts WHERE domain = ? ORDER BY created_at DESC LIMIT 1",
-        (domain,)
+        "SELECT id FROM accounts WHERE domain = ? ORDER BY created_at DESC LIMIT 1", (domain,)
     ).fetchone()
     now = datetime.now(UTC).isoformat()
     if existing:
@@ -1637,23 +1684,19 @@ def upsert_account(domain: str, email: str, password: str | None,
             updates.append("site = ?")
             params.append(site)
         params.append(existing["id"])
-        conn.execute(
-            f"UPDATE accounts SET {', '.join(updates)} WHERE id = ?", params
-        )
+        conn.execute(f"UPDATE accounts SET {', '.join(updates)} WHERE id = ?", params)
         commit_with_retry(conn)
         return "updated"
     else:
         conn.execute(
-            "INSERT INTO accounts (site, domain, email, password, notes, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO accounts (site, domain, email, password, notes, created_at) VALUES (?, ?, ?, ?, ?, ?)",
             (site or domain.split(".")[0], domain, email, password, notes, now),
         )
         commit_with_retry(conn)
         return "created"
 
 
-def delete_account(domain: str,
-                   conn: sqlite3.Connection | None = None) -> int:
+def delete_account(domain: str, conn: sqlite3.Connection | None = None) -> int:
     """Delete all credential rows for a domain. Returns number of rows deleted."""
     if conn is None:
         conn = get_connection()
@@ -1662,12 +1705,14 @@ def delete_account(domain: str,
     return cursor.rowcount
 
 
-def get_jobs_by_stage(conn: sqlite3.Connection | None = None,
-                      stage: str = "discovered",
-                      min_score: int | None = None,
-                      max_age_days: int | None = None,
-                      limit: int = 100,
-                      urls: list[str] | None = None) -> list[dict]:
+def get_jobs_by_stage(
+    conn: sqlite3.Connection | None = None,
+    stage: str = "discovered",
+    min_score: int | None = None,
+    max_age_days: int | None = None,
+    limit: int = 100,
+    urls: list[str] | None = None,
+) -> list[dict]:
     """Fetch jobs filtered by pipeline stage.
 
     Args:
@@ -1722,8 +1767,27 @@ def get_jobs_by_stage(conn: sqlite3.Connection | None = None,
             "    AND (enrich_next_retry_at IS NULL OR datetime(enrich_next_retry_at) <= datetime('now')))"
         ),
         "enriched": "full_description IS NOT NULL",
+        # 2026-08-25 fix (same class of bug as "pending_tailor" below, found
+        # by the LLM-architecture audit): this condition previously had NO
+        # `state` check at all -- an archived job (title-reject, non_us_only,
+        # any other exclusion reason) with fit_score still NULL stayed
+        # selectable forever, since archiving doesn't set fit_score/
+        # score_error. Live-measured impact before this fix: 2,080 archived
+        # rows were wrongly re-selectable, 46 of which would have reached a
+        # real (wasted) cloud LLM call, and ALL 2,080 would have had their
+        # archived fit_score/score_reasoning/eligibility silently overwritten
+        # by _flush_score_batch's unconditional UPDATE (see that function's
+        # 2026-08-25 comment for the paired fix). Positive-selects the two
+        # states VALID_TRANSITIONS actually permits progression from:
+        # "enriched" -> "scored"/"low_score" is the primary path; "score_
+        # failed" -> "scored" is the existing give-up-after-5-attempts state,
+        # which VALID_TRANSITIONS legally allows to be re-scored (e.g. after
+        # a schema/config fix) but no query previously re-selected. Confirmed
+        # empirically zero current rows have fit_score IS NULL with a NULL
+        # state, so no legacy-NULL carve-out is needed (same precedent as
+        # "pending_tailor").
         "pending_score": (
-            "full_description IS NOT NULL AND ("
+            "full_description IS NOT NULL AND COALESCE(state, '') IN ('enriched', 'score_failed') AND ("
             "  (fit_score IS NULL AND score_error IS NULL) "
             "  OR (score_error IS NOT NULL AND score_attempts < 5 "
             "      AND (score_next_retry_at IS NULL OR datetime(score_next_retry_at) <= datetime('now')))"
@@ -1735,9 +1799,31 @@ def get_jobs_by_stage(conn: sqlite3.Connection | None = None,
         # never enter tailor/cover/apply. `eligibility IS NULL` covers
         # legacy rows scored before the column existed (they pre-date the
         # filter and pass through unchanged).
+        #
+        # 2026-08-25 fix: this condition previously had NO `state` check at
+        # all -- any archived job (title-reject, revalidate-seniority,
+        # non_us_only, or any other exclusion reason) stayed selectable
+        # forever as long as fit_score/attempts/eligibility still matched,
+        # since none of those columns change when a job is archived. Traced
+        # via VALID_TRANSITIONS (database.py's own state machine):
+        # `"archived": frozenset()` -- archived is the one true terminal
+        # state with ZERO legal outgoing transitions, so it must never be
+        # reachable from this query. `"tailor_failed"` legally transitions
+        # back to `"tailoring"` (`tailor_failed: frozenset({"tailoring",
+        # "tailored", "archived"})`), matching the existing
+        # `tailor_attempts < 5` bounded-retry design -- so unlike archived,
+        # a tailor_failed job MUST remain selectable (this is how a
+        # validation/judge/transient failure gets a second attempt on a
+        # later run). Positive-selects the two states genuinely eligible
+        # for autonomous progression to tailoring, mirroring the same
+        # `COALESCE(state, '') IN (...)` idiom `pending_cover` already uses
+        # below -- confirmed empirically zero current rows have fit_score
+        # set with a NULL state, so no legacy-NULL carve-out is needed to
+        # match that precedent exactly.
         "pending_tailor": (
             "fit_score >= ? AND full_description IS NOT NULL "
             "AND tailored_resume_path IS NULL AND COALESCE(tailor_attempts, 0) < 5 "
+            "AND COALESCE(state, '') IN ('scored', 'tailor_failed') "
             "AND (eligibility IS NULL OR eligibility = 'eligible')"
         ),
         "pending_cover": (
@@ -1745,7 +1831,7 @@ def get_jobs_by_stage(conn: sqlite3.Connection | None = None,
             "AND full_description IS NOT NULL "
             "AND COALESCE(state, '') IN ('tailored', 'cover_failed') "
             "AND (cover_letter_path IS NULL OR cover_letter_path = '') "
-            "AND COALESCE(cover_attempts, 0) < 5 "   # keep in sync with cover_letter.MAX_ATTEMPTS
+            "AND COALESCE(cover_attempts, 0) < 5 "  # keep in sync with cover_letter.MAX_ATTEMPTS
             "AND (eligibility IS NULL OR eligibility = 'eligible')"
         ),
         "tailored": "tailored_resume_path IS NOT NULL",
@@ -1837,8 +1923,9 @@ def get_applied_jobs(conn: sqlite3.Connection | None = None) -> list[dict]:
     return []
 
 
-def get_in_flight_by_company(conn: sqlite3.Connection | None = None,
-                             max_window_days: int = 365) -> dict[str, list[str]]:
+def get_in_flight_by_company(
+    conn: sqlite3.Connection | None = None, max_window_days: int = 365
+) -> dict[str, list[str]]:
     """Return ``{company_key: [timestamp_iso, ...]}`` for in-flight jobs.
 
     "In-flight" = ``apply_status IN ('applied', 'in_progress', 'needs_human')``.
@@ -1863,16 +1950,20 @@ def get_in_flight_by_company(conn: sqlite3.Connection | None = None,
     # Lazy import to avoid a circular cycle (tailor → database).
     from applypilot.scoring.tailor import resolve_company_key
 
-    rows = conn.execute("""
+    rows = conn.execute(
+        """
         SELECT company, site, strategy, application_url, url,
                COALESCE(applied_at, last_attempted_at) AS ts
         FROM jobs
         WHERE apply_status IN ('applied', 'in_progress', 'needs_human')
           AND COALESCE(applied_at, last_attempted_at) IS NOT NULL
           AND COALESCE(applied_at, last_attempted_at) > datetime('now', ?)
-    """, (f"-{max_window_days} days",)).fetchall()
+    """,
+        (f"-{max_window_days} days",),
+    ).fetchall()
 
     from collections import defaultdict
+
     out: dict[str, list[str]] = defaultdict(list)
     for r in rows:
         key = resolve_company_key(dict(r))
@@ -1881,8 +1972,7 @@ def get_in_flight_by_company(conn: sqlite3.Connection | None = None,
     return dict(out)
 
 
-def create_stub_job(email: dict, classification: str,
-                    conn: sqlite3.Connection | None = None) -> str:
+def create_stub_job(email: dict, classification: str, conn: sqlite3.Connection | None = None) -> str:
     """Create a minimal job entry from an unmatched application email.
 
     Used for manually applied jobs that aren't in the pipeline DB.
@@ -1922,10 +2012,7 @@ def create_stub_job(email: dict, classification: str,
     snippet = email.get("snippet", "")
 
     # Try to extract a real company name from subject then snippet
-    extracted_company = (
-        extract_company_from_subject(subject)
-        or _extract_company_from_snippet(snippet)
-    )
+    extracted_company = extract_company_from_subject(subject) or _extract_company_from_snippet(snippet)
 
     if extracted_company:
         # Key on (domain_root, company_normalized) — all emails for the same
@@ -1947,14 +2034,16 @@ def create_stub_job(email: dict, classification: str,
 
     # Infer a title from the subject line
     title = subject
-    for prefix in ("Thank you for your application to ",
-                   "Thank you for applying to ",
-                   "Thank you for your interest in ",
-                   "Your application to ",
-                   "Application received: ",
-                   "Re: "):
+    for prefix in (
+        "Thank you for your application to ",
+        "Thank you for applying to ",
+        "Thank you for your interest in ",
+        "Your application to ",
+        "Application received: ",
+        "Re: ",
+    ):
         if title.lower().startswith(prefix.lower()):
-            title = title[len(prefix):]
+            title = title[len(prefix) :]
             break
 
     now = datetime.now(UTC).isoformat()
@@ -1966,8 +2055,7 @@ def create_stub_job(email: dict, classification: str,
         "                  detail_error, detail_error_category) "
         "VALUES (?, ?, ?, 'manual', ?, 'applied', ?, ?, ?, "
         "        'manual:// stub — not a real job listing', 'permanent')",
-        (url, title.strip() or extracted_company or "Unknown Position",
-         company, email_date, now, classification, now),
+        (url, title.strip() or extracted_company or "Unknown Position", company, email_date, now, classification, now),
     )
     commit_with_retry(conn)
     return url
@@ -1977,9 +2065,7 @@ def email_already_tracked(email_id: str, conn: sqlite3.Connection | None = None)
     """Check if a Gmail message ID already exists in tracking_emails."""
     if conn is None:
         conn = get_connection()
-    row = conn.execute(
-        "SELECT 1 FROM tracking_emails WHERE email_id = ?", (email_id,)
-    ).fetchone()
+    row = conn.execute("SELECT 1 FROM tracking_emails WHERE email_id = ?", (email_id,)).fetchone()
     return row is not None
 
 
@@ -1997,11 +2083,17 @@ def store_tracking_email(email: dict, conn: sqlite3.Connection | None = None) ->
         " received_at, snippet, body_text, classification, extracted_data, classified_at) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
-            email["email_id"], email.get("thread_id"), email["job_url"],
-            email.get("sender"), email.get("sender_name"), email.get("subject"),
-            email.get("received_at"), email.get("snippet"),
+            email["email_id"],
+            email.get("thread_id"),
+            email["job_url"],
+            email.get("sender"),
+            email.get("sender_name"),
+            email.get("subject"),
+            email.get("received_at"),
+            email.get("snippet"),
             email.get("body_text", "")[:10000],
-            email.get("classification"), email.get("extracted_data"),
+            email.get("classification"),
+            email.get("extracted_data"),
             email.get("classified_at"),
         ),
     )
@@ -2017,8 +2109,11 @@ def store_tracking_person(person: dict, conn: sqlite3.Connection | None = None) 
         "(job_url, name, title, email, source_email_id, first_seen_at) "
         "VALUES (?, ?, ?, ?, ?, ?)",
         (
-            person["job_url"], person.get("name"), person.get("title"),
-            person.get("email"), person.get("source_email_id"),
+            person["job_url"],
+            person.get("name"),
+            person.get("title"),
+            person.get("email"),
+            person.get("source_email_id"),
             person.get("first_seen_at"),
         ),
     )
@@ -2026,8 +2121,12 @@ def store_tracking_person(person: dict, conn: sqlite3.Connection | None = None) 
 
 
 _TRACKING_PRIORITY = {
-    "ghosted": 1, "rejection": 2, "confirmation": 3,
-    "follow_up": 4, "interview": 5, "offer": 6,
+    "ghosted": 1,
+    "rejection": 2,
+    "confirmation": 3,
+    "follow_up": 4,
+    "interview": 5,
+    "offer": 6,
 }
 
 # Maps tracking_status (the email-derived classification) to the canonical
@@ -2035,17 +2134,16 @@ _TRACKING_PRIORITY = {
 # update_tracking_status to keep `state` in sync with `tracking_status`
 # (decision #31 P0.5 leak (a) — was bypassing transition_state).
 _TRACKING_TO_STATE = {
-    "ghosted":      "ghosted",
-    "rejection":    "rejected",
+    "ghosted": "ghosted",
+    "rejection": "rejected",
     "confirmation": "responded",
-    "follow_up":    "responded",
-    "interview":    "interview",
-    "offer":        "offer",
+    "follow_up": "responded",
+    "interview": "interview",
+    "offer": "offer",
 }
 
 
-def update_tracking_status(job_url: str, new_status: str,
-                           conn: sqlite3.Connection | None = None) -> bool:
+def update_tracking_status(job_url: str, new_status: str, conn: sqlite3.Connection | None = None) -> bool:
     """Update a job's tracking_status if the new status has higher priority.
 
     Returns True if the status was updated. Also threads the change through
@@ -2054,9 +2152,7 @@ def update_tracking_status(job_url: str, new_status: str,
     """
     if conn is None:
         conn = get_connection()
-    row = conn.execute(
-        "SELECT tracking_status FROM jobs WHERE url = ?", (job_url,)
-    ).fetchone()
+    row = conn.execute("SELECT tracking_status FROM jobs WHERE url = ?", (job_url,)).fetchone()
     if row is None:
         return False
 
@@ -2081,7 +2177,9 @@ def update_tracking_status(job_url: str, new_status: str,
         if target_state:
             try:
                 transition_state(
-                    conn, job_url, target_state,
+                    conn,
+                    job_url,
+                    target_state,
                     reason=f"tracking:{new_status}",
                 )
             except (ValueError, sqlite3.OperationalError):
@@ -2090,8 +2188,7 @@ def update_tracking_status(job_url: str, new_status: str,
     return False
 
 
-def update_job_tracking_fields(job_url: str, fields: dict,
-                               conn: sqlite3.Connection | None = None) -> None:
+def update_job_tracking_fields(job_url: str, fields: dict, conn: sqlite3.Connection | None = None) -> None:
     """Update arbitrary tracking fields on a job row."""
     if conn is None:
         conn = get_connection()
@@ -2169,8 +2266,8 @@ def normalize_question(text: str) -> str:
     Strips whitespace, punctuation, lowercases, collapses whitespace.
     """
     text = text.lower().strip()
-    text = _re.sub(r'[^\w\s]', '', text)
-    text = _re.sub(r'\s+', ' ', text)
+    text = _re.sub(r"[^\w\s]", "", text)
+    text = _re.sub(r"\s+", " ", text)
     return text
 
 
@@ -2180,12 +2277,16 @@ def question_key(text: str) -> str:
     return hashlib.md5(normalized.encode()).hexdigest()
 
 
-def store_qa(question: str, answer: str, source: str = "agent",
-             field_type: str | None = None,
-             options_json: str | None = None,
-             ats_slug: str | None = None,
-             job_url: str | None = None,
-             conn: sqlite3.Connection | None = None) -> int | None:
+def store_qa(
+    question: str,
+    answer: str,
+    source: str = "agent",
+    field_type: str | None = None,
+    options_json: str | None = None,
+    ats_slug: str | None = None,
+    job_url: str | None = None,
+    conn: sqlite3.Connection | None = None,
+) -> int | None:
     """Store a Q&A pair in the knowledge base (upsert by question_key + answer).
 
     Returns:
@@ -2203,9 +2304,7 @@ def store_qa(question: str, answer: str, source: str = "agent",
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "
             "ON CONFLICT(question_key, answer_text) DO UPDATE SET "
             "  updated_at = ?, ats_slug = COALESCE(excluded.ats_slug, ats_slug)",
-            (question, key, answer, source,
-             field_type, options_json, ats_slug, job_url, now,
-             now),
+            (question, key, answer, source, field_type, options_json, ats_slug, job_url, now, now),
         )
         commit_with_retry(conn)
         row = conn.execute(
@@ -2213,12 +2312,11 @@ def store_qa(question: str, answer: str, source: str = "agent",
             (key, answer),
         ).fetchone()
         return row[0] if row else None
-    except Exception:
+    except Exception:  # noqa: BLE001 - best-effort Q&A-knowledge cache write; a failure here must not crash the apply flow over a cache write
         return None
 
 
-def lookup_qa(question: str,
-              conn: sqlite3.Connection | None = None) -> list[dict]:
+def lookup_qa(question: str, conn: sqlite3.Connection | None = None) -> list[dict]:
     """Find known answers for a screening question.
 
     Returns answers sorted by outcome preference: accepted > unknown > rejected.
@@ -2264,13 +2362,13 @@ def _answer_mentions_suffix(answer: str, suffix: str) -> bool:
     fragment like 'mydocx' wouldn't match '.docx').
     """
     import re
+
     # \.pdf\b / \.docx\b — requires literal dot and word boundary after.
     pattern = re.escape(suffix) + r"\b"
     return re.search(pattern, answer, re.IGNORECASE) is not None
 
 
-def get_qa(question: str, conn: sqlite3.Connection | None = None,
-           doc_format: str | None = None) -> str | None:
+def get_qa(question: str, conn: sqlite3.Connection | None = None, doc_format: str | None = None) -> str | None:
     """Return the best known answer for a question, or None if not found.
 
     Looks up by normalized question key and returns the answer with the
@@ -2303,8 +2401,7 @@ def get_qa(question: str, conn: sqlite3.Connection | None = None,
     return None
 
 
-def get_all_qa(conn: sqlite3.Connection | None = None,
-               doc_format: str | None = None) -> list[dict]:
+def get_all_qa(conn: sqlite3.Connection | None = None, doc_format: str | None = None) -> list[dict]:
     """Return all Q&A pairs, grouped by question, best answer first.
 
     See ``get_qa`` for ``doc_format`` semantics — the same filter applies
@@ -2327,15 +2424,11 @@ def get_all_qa(conn: sqlite3.Connection | None = None,
     results = [dict(zip(columns, row)) for row in rows]
     opposite = _opposite_format_suffix(doc_format)
     if opposite:
-        results = [
-            r for r in results
-            if not _answer_mentions_suffix(r["answer_text"], opposite)
-        ]
+        results = [r for r in results if not _answer_mentions_suffix(r["answer_text"], opposite)]
     return results
 
 
-def mark_qa_outcome(job_url: str, outcome: str,
-                    conn: sqlite3.Connection | None = None) -> int:
+def mark_qa_outcome(job_url: str, outcome: str, conn: sqlite3.Connection | None = None) -> int:
     """Bulk update outcome for all Q&A from a specific job.
 
     Args:
@@ -2362,20 +2455,14 @@ def get_qa_stats(conn: sqlite3.Connection | None = None) -> dict:
         conn = get_connection()
     stats: dict = {}
     stats["total"] = conn.execute("SELECT COUNT(*) FROM qa_knowledge").fetchone()[0]
-    stats["unique_questions"] = conn.execute(
-        "SELECT COUNT(DISTINCT question_key) FROM qa_knowledge"
-    ).fetchone()[0]
+    stats["unique_questions"] = conn.execute("SELECT COUNT(DISTINCT question_key) FROM qa_knowledge").fetchone()[0]
 
     # By outcome
-    rows = conn.execute(
-        "SELECT outcome, COUNT(*) FROM qa_knowledge GROUP BY outcome"
-    ).fetchall()
+    rows = conn.execute("SELECT outcome, COUNT(*) FROM qa_knowledge GROUP BY outcome").fetchall()
     stats["by_outcome"] = {row[0]: row[1] for row in rows}
 
     # By source
-    rows = conn.execute(
-        "SELECT answer_source, COUNT(*) FROM qa_knowledge GROUP BY answer_source"
-    ).fetchall()
+    rows = conn.execute("SELECT answer_source, COUNT(*) FROM qa_knowledge GROUP BY answer_source").fetchall()
     stats["by_source"] = {row[0]: row[1] for row in rows}
 
     return stats
@@ -2391,18 +2478,22 @@ def export_qa_yaml(conn: sqlite3.Connection | None = None) -> str:
     if not qa_list:
         return "# No Q&A pairs yet.\n"
 
-    lines = ["# ApplyPilot Q&A Knowledge Base", "# Edit answers below, then import with: applypilot qa import <file>", ""]
+    lines = [
+        "# ApplyPilot Q&A Knowledge Base",
+        "# Edit answers below, then import with: applypilot qa import <file>",
+        "",
+    ]
     current_key = None
     for qa in qa_list:
         if qa["question_key"] != current_key:
             current_key = qa["question_key"]
-            lines.append(f"- question: \"{qa['question_text']}\"")
+            lines.append(f'- question: "{qa["question_text"]}"')
             if qa.get("field_type"):
                 lines.append(f"  field_type: {qa['field_type']}")
             if qa.get("options_json"):
                 lines.append(f"  options: {qa['options_json']}")
             lines.append("  answers:")
         outcome_tag = f" [{qa['outcome']}]" if qa["outcome"] != "unknown" else ""
-        lines.append(f"    - text: \"{qa['answer_text']}\"{outcome_tag}")
+        lines.append(f'    - text: "{qa["answer_text"]}"{outcome_tag}')
     lines.append("")
     return "\n".join(lines)

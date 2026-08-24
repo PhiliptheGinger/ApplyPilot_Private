@@ -11,13 +11,12 @@ import logging
 import re
 import sqlite3
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from jobspy import scrape_jobs
 
 log = logging.getLogger(__name__)
 
-UTC = timezone.utc
 
 # Patch TLSRotating to always specify a client_identifier.
 # Without one, the tls-client Go binary receives a nil JA3 string and panics
@@ -62,6 +61,7 @@ log = logging.getLogger(__name__)
 
 # -- Proxy parsing -----------------------------------------------------------
 
+
 def parse_proxy(proxy_str: str) -> dict:
     """Parse host:port:user:pass into components."""
     parts = proxy_str.split(":")
@@ -90,13 +90,11 @@ def parse_proxy(proxy_str: str) -> dict:
             "playwright": {"server": f"http://{host}:{port}"},
         }
     else:
-        raise ValueError(
-            f"Proxy format not recognized: {proxy_str}. "
-            f"Expected: host:port:user:pass or host:port"
-        )
+        raise ValueError(f"Proxy format not recognized: {proxy_str}. Expected: host:port:user:pass or host:port")
 
 
 # -- Retry wrapper -----------------------------------------------------------
+
 
 def _scrape_with_retry(kwargs: dict, max_retries: int = 2, backoff: float = 5.0):
     """Call scrape_jobs with retry on transient failures."""
@@ -115,6 +113,7 @@ def _scrape_with_retry(kwargs: dict, max_retries: int = 2, backoff: float = 5.0)
 
 
 # -- Location filtering ------------------------------------------------------
+
 
 def _load_location_config(search_cfg: dict) -> tuple[list[str], list[str]]:
     """Extract accept/reject location lists from search config.
@@ -159,6 +158,7 @@ def _location_ok(location: str | None, accept: list[str], reject: list[str]) -> 
 
 
 # -- DB storage (JobSpy DataFrame -> SQLite) ---------------------------------
+
 
 def store_jobspy_results(conn: sqlite3.Connection, df, source_label: str) -> tuple[int, int]:
     """Store JobSpy DataFrame results into the DB. Returns (new, existing)."""
@@ -233,8 +233,21 @@ def store_jobspy_results(conn: sqlite3.Connection, df, source_label: str) -> tup
                     "INSERT INTO jobs (url, title, salary, description, location, site, strategy, discovered_at, "
                     "full_description, application_url, detail_scraped_at, posted_at, state) "
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (url, title, salary, description, location_str, site_label, strategy, now,
-                     full_description, apply_url, detail_scraped_at, posted_at, initial_state),
+                    (
+                        url,
+                        title,
+                        salary,
+                        description,
+                        location_str,
+                        site_label,
+                        strategy,
+                        now,
+                        full_description,
+                        apply_url,
+                        detail_scraped_at,
+                        posted_at,
+                        initial_state,
+                    ),
                 )
                 conn.execute(
                     "INSERT INTO job_state_transitions "
@@ -252,6 +265,7 @@ def store_jobspy_results(conn: sqlite3.Connection, df, source_label: str) -> tup
 
 # -- Single search execution -------------------------------------------------
 
+
 def _run_one_search(
     search: dict,
     sites: list[str],
@@ -266,7 +280,7 @@ def _run_one_search(
 ) -> dict:
     """Run a single search query and store results in DB."""
     s = search
-    label = f"\"{s['query']}\" in {s['location']} {'(remote)' if s.get('remote') else ''}"
+    label = f'"{s["query"]}" in {s["location"]} {"(remote)" if s.get("remote") else ""}'
     if "tier" in s:
         label += f" [tier {s['tier']}]"
 
@@ -317,8 +331,11 @@ def _run_one_search(
             # not just LinkedIn's. Retry once without LinkedIn to recover
             # the other sites' data instead of losing the entire query.
             if "linkedin" in other_sites and "invalid country string" in str(e).lower():
-                log.warning("[%s] LinkedIn location-parsing error (%s); retrying without LinkedIn",
-                            label, str(e).split("\n")[0][:100])
+                log.warning(
+                    "[%s] LinkedIn location-parsing error (%s); retrying without LinkedIn",
+                    label,
+                    str(e).split("\n")[0][:100],
+                )
                 retry_sites = [site for site in other_sites if site != "linkedin"]
                 if retry_sites:
                     retry_kwargs = {**kwargs, "site_name": retry_sites}
@@ -359,6 +376,7 @@ def _run_one_search(
     import warnings
 
     import pandas as pd
+
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", FutureWarning)
         df = pd.concat(all_dfs, ignore_index=True) if len(all_dfs) > 1 else all_dfs[0]
@@ -369,10 +387,16 @@ def _run_one_search(
 
     # Filter by location before storing
     before = len(df)
-    df = df[df.apply(lambda row: _location_ok(
-        str(row.get("location", "")) if str(row.get("location", "")) != "nan" else None,
-        accept_locs, reject_locs,
-    ), axis=1)]
+    df = df[
+        df.apply(
+            lambda row: _location_ok(
+                str(row.get("location", "")) if str(row.get("location", "")) != "nan" else None,
+                accept_locs,
+                reject_locs,
+            ),
+            axis=1,
+        )
+    ]
     filtered = before - len(df)
 
     conn = get_connection()
@@ -387,6 +411,7 @@ def _run_one_search(
 
 
 # -- Single query search -----------------------------------------------------
+
 
 def search_jobs(
     query: str,
@@ -407,7 +432,7 @@ def search_jobs(
 
     proxy_config = parse_proxy(proxy) if proxy else None
 
-    log.info("Search: \"%s\" in %s | sites=%s | remote=%s", query, location, sites, remote_only)
+    log.info('Search: "%s" in %s | sites=%s | remote=%s', query, location, sites, remote_only)
 
     kwargs = {
         "site_name": sites,
@@ -459,6 +484,7 @@ def search_jobs(
 
 # -- Full crawl (all queries x all locations) --------------------------------
 
+
 def _full_crawl(
     search_cfg: dict,
     tiers: list[int] | None = None,
@@ -491,18 +517,19 @@ def _full_crawl(
     searches = []
     for q in queries:
         for loc in locs:
-            searches.append({
-                "query": q["query"],
-                "location": loc["location"],
-                "remote": loc.get("remote", False),
-                "tier": q.get("tier", 0),
-            })
+            searches.append(
+                {
+                    "query": q["query"],
+                    "location": loc["location"],
+                    "remote": loc.get("remote", False),
+                    "tier": q.get("tier", 0),
+                }
+            )
 
     proxy_config = parse_proxy(proxy) if proxy else None
 
     log.info("Full crawl: %d search combinations", len(searches))
-    log.info("Sites: %s | Results/site: %d | Hours old: %d",
-             ", ".join(sites), results_per_site, hours_old)
+    log.info("Sites: %s | Results/site: %d | Hours old: %d", ", ".join(sites), results_per_site, hours_old)
 
     # Ensure DB schema is ready
     init_db()
@@ -514,9 +541,16 @@ def _full_crawl(
 
     for completed, s in enumerate(searches, start=1):
         result = _run_one_search(
-            s, sites, results_per_site, hours_old,
-            proxy_config, defaults, max_retries,
-            accept_locs, reject_locs, glassdoor_map,
+            s,
+            sites,
+            results_per_site,
+            hours_old,
+            proxy_config,
+            defaults,
+            max_retries,
+            accept_locs,
+            reject_locs,
+            glassdoor_map,
         )
         total_new += result["new"]
         total_existing += result["existing"]
@@ -536,8 +570,13 @@ def _full_crawl(
     conn = get_connection()
     db_total = conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
 
-    log.info("Full crawl complete: %d new | %d dupes | %d errors | %d total in DB",
-             total_new, total_existing, total_errors, db_total)
+    log.info(
+        "Full crawl complete: %d new | %d dupes | %d errors | %d total in DB",
+        total_new,
+        total_existing,
+        total_errors,
+        db_total,
+    )
 
     return {
         "new": total_new,
@@ -562,6 +601,7 @@ def _filter_supported_sites(sites: list[str] | None) -> list[str] | None:
     if not sites:
         return sites
     from jobspy import Site
+
     supported = {s.name.lower() for s in Site}
     kept = [s for s in sites if s.lower() in supported]
     dropped = [s for s in sites if s.lower() not in supported]
@@ -575,6 +615,7 @@ def _filter_supported_sites(sites: list[str] | None) -> list[str] | None:
 
 
 # -- Public entry point ------------------------------------------------------
+
 
 def run_discovery(cfg: dict | None = None, sites_override: list[str] | None = None) -> dict:
     """Main entry point for JobSpy-based job discovery.

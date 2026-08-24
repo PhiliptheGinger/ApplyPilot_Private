@@ -20,7 +20,7 @@ import logging
 import re
 import sqlite3
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 
@@ -30,7 +30,6 @@ from applypilot.llm import get_client
 
 log = logging.getLogger(__name__)
 
-UTC = timezone.utc
 
 # HN API endpoints
 _ALGOLIA_SEARCH = "https://hn.algolia.com/api/v1/search_by_date"
@@ -38,7 +37,11 @@ _HN_ITEM = "https://hacker-news.firebaseio.com/v0/item/{id}.json"
 
 # Location keywords to keep before sending to LLM (coarse pre-filter)
 _ACCEPT_KEYWORDS = [
-    "remote", "anywhere", "distributed", "wfh", "work from home",
+    "remote",
+    "anywhere",
+    "distributed",
+    "wfh",
+    "work from home",
 ]
 
 # LLM prompt for extracting structured data from a raw HN comment
@@ -86,19 +89,19 @@ def _find_latest_thread() -> dict | None:
         resp.raise_for_status()
         hits = resp.json().get("hits", [])
         # Filter to only the canonical monthly threads by `whoishiring` bot
-        hits = [
-            h for h in hits
-            if h.get("author") == "whoishiring"
-            and "Who is hiring?" in (h.get("title") or "")
-        ]
+        hits = [h for h in hits if h.get("author") == "whoishiring" and "Who is hiring?" in (h.get("title") or "")]
         if not hits:
             log.error("No 'Who is Hiring?' thread found via Algolia")
             return None
         thread = hits[0]
-        log.info("Found thread: '%s' (id=%s, created=%s)",
-                 thread.get("title"), thread.get("objectID"), thread.get("created_at", "")[:10])
+        log.info(
+            "Found thread: '%s' (id=%s, created=%s)",
+            thread.get("title"),
+            thread.get("objectID"),
+            thread.get("created_at", "")[:10],
+        )
         return thread
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - Algolia HTTP lookup for the hiring thread is unreliable; degrade to None, caller reports no thread found
         log.error("Failed to find HN thread: %s", e)
         return None
 
@@ -112,7 +115,7 @@ def _fetch_item(item_id: int) -> dict | None:
         )
         resp.raise_for_status()
         return resp.json()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - HN Firebase API is unreliable per-item; degrade to None so one bad item doesn't abort the batch
         log.warning("Failed to fetch HN item %d: %s", item_id, e)
         return None
 
@@ -143,7 +146,7 @@ def _extract_job(text: str) -> dict | None:
 
         data = json.loads(raw.strip())
         return data
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - LLM extraction/JSON parsing is unreliable; degrade to None, caller skips this comment
         log.warning("LLM extraction failed: %s", e)
         return None
 
@@ -151,17 +154,17 @@ def _extract_job(text: str) -> dict | None:
 def _deobfuscate_email(text: str) -> str:
     """Deobfuscate common HN email patterns like [at], [dot], (at), etc."""
     result = text.strip()
-    result = re.sub(r'\s*[\[\(]\s*at\s*[\]\)]\s*', '@', result, flags=re.IGNORECASE)
-    result = re.sub(r'\s*[\[\(]\s*dot\s*[\]\)]\s*', '.', result, flags=re.IGNORECASE)
-    result = re.sub(r'\s+at\s+', '@', result)  # "foo at bar.com"
-    result = re.sub(r'\s+dot\s+', '.', result)  # "bar dot com"
+    result = re.sub(r"\s*[\[\(]\s*at\s*[\]\)]\s*", "@", result, flags=re.IGNORECASE)
+    result = re.sub(r"\s*[\[\(]\s*dot\s*[\]\)]\s*", ".", result, flags=re.IGNORECASE)
+    result = re.sub(r"\s+at\s+", "@", result)  # "foo at bar.com"
+    result = re.sub(r"\s+dot\s+", ".", result)  # "bar dot com"
     return result
 
 
 def _is_email(text: str) -> bool:
     """Check if a string looks like an email address (possibly obfuscated)."""
     deobfuscated = _deobfuscate_email(text)
-    return bool(re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', deobfuscated))
+    return bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", deobfuscated))
 
 
 def _store_hn_job(
@@ -196,7 +199,7 @@ def _store_hn_job(
         # Generate a stable ID from company + title
         company = job.get("company") or "unknown"
         title = job.get("title") or "unknown"
-        slug = re.sub(r'[^a-z0-9]+', '-', f"{company}-{title}".lower()).strip('-')
+        slug = re.sub(r"[^a-z0-9]+", "-", f"{company}-{title}".lower()).strip("-")
         url = f"https://news.ycombinator.com/item?id={slug}"
 
     title = job.get("title") or "Unknown Role"
@@ -222,8 +225,20 @@ def _store_hn_job(
                 "INSERT INTO jobs (url, title, salary, description, location, site, strategy, "
                 "discovered_at, posted_at, full_description, detail_scraped_at, state) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (url, title, salary, description, location,
-                 f"HN: {company}", "hackernews", now, posted_at, description, now, initial_state),
+                (
+                    url,
+                    title,
+                    salary,
+                    description,
+                    location,
+                    f"HN: {company}",
+                    "hackernews",
+                    now,
+                    posted_at,
+                    description,
+                    now,
+                    initial_state,
+                ),
             )
             conn.execute(
                 "INSERT INTO job_state_transitions "
@@ -296,8 +311,7 @@ def run_hn_discovery(
 
     for i, kid_id in enumerate(kids):
         if i % 50 == 0 and i > 0:
-            log.info("Progress: %d/%d comments | %d new, %d filtered, %d skipped",
-                     i, len(kids), new, filtered, skipped)
+            log.info("Progress: %d/%d comments | %d new, %d filtered, %d skipped", i, len(kids), new, filtered, skipped)
 
         try:
             comment = _fetch_item(kid_id)
@@ -340,23 +354,29 @@ def run_hn_discovery(
                 # `or "?"` not a .get() default: the LLM emits explicit JSON
                 # nulls, and dict.get(key, default) returns None for those —
                 # subscripting it crashed the loop after the job was stored.
-                log.info("  + %s @ %s (%s)",
-                         (job.get("title") or "?")[:50],
-                         (job.get("company") or "?")[:30],
-                         (job.get("location") or "?")[:25])
+                log.info(
+                    "  + %s @ %s (%s)",
+                    (job.get("title") or "?")[:50],
+                    (job.get("company") or "?")[:30],
+                    (job.get("location") or "?")[:25],
+                )
             else:
                 skipped += 1
 
             # Polite delay between HN API calls
             if delay > 0:
                 time.sleep(delay)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - processing independent HN comments in a loop; one comment's failure must not abort the rest of the batch
             log.warning("Error processing HN comment %d: %s", kid_id, e)
             errors += 1
 
     log.info(
         "HN discovery complete: %d new | %d filtered | %d skipped | %d errors | %d LLM calls",
-        new, filtered, skipped, errors, llm_calls,
+        new,
+        filtered,
+        skipped,
+        errors,
+        llm_calls,
     )
     return {
         "new": new,

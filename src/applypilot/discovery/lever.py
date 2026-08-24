@@ -8,10 +8,11 @@ Slugs in ``config/lever_employers.yaml``. The fetch + DB plumbing lives
 in :mod:`applypilot.discovery.ats_common` — this module only owns the
 Lever-specific URL template and per-posting normalizer.
 """
+
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from applypilot.discovery.ats_common import (
     fetch_with_retry,
@@ -23,7 +24,6 @@ from applypilot.discovery.greenhouse import _location_ok, _strip_html
 
 log = logging.getLogger(__name__)
 
-UTC = timezone.utc
 
 LEVER_API = "https://api.lever.co/v0/postings/{slug}?mode=json"
 _DEFAULT_SITE = "Lever"
@@ -32,11 +32,13 @@ _STRATEGY = "lever_api"
 
 # ── Employer registry (kept for backwards compat with imports) ──────
 
+
 def load_employers() -> dict:
     return load_employers_yaml("lever_employers.yaml")
 
 
 # ── Lever-specific normalization ────────────────────────────────────
+
 
 def _location_string(posting: dict) -> str:
     """Compose location from categories.location + workplaceType + allLocations.
@@ -108,20 +110,23 @@ def scrape_one_employer(
         posted_at: str | None = None
         if isinstance(created, (int, float)) and created > 0:
             posted_at = datetime.fromtimestamp(
-                created / 1000, tz=UTC,
+                created / 1000,
+                tz=UTC,
             ).isoformat()
 
-        out.append({
-            "url": hosted_url,
-            "title": posting.get("text") or "",
-            "location": location or None,
-            "description": (description[:500] if description else None),
-            "full_description": description if len(description) > 200 else None,
-            "application_url": apply_url,
-            "employer_name": name,
-            "employer_slug": slug,
-            "posted_at": posted_at,
-        })
+        out.append(
+            {
+                "url": hosted_url,
+                "title": posting.get("text") or "",
+                "location": location or None,
+                "description": (description[:500] if description else None),
+                "full_description": description if len(description) > 200 else None,
+                "application_url": apply_url,
+                "employer_name": name,
+                "employer_slug": slug,
+                "posted_at": posted_at,
+            }
+        )
     return out, None
 
 
@@ -132,15 +137,16 @@ def _insert_jobs(conn, jobs):
 
 # ── Public entry point ─────────────────────────────────────────────
 
+
 def run_lever_discovery(employers: dict | None = None, workers: int = 1) -> dict:
     """Discover jobs from Lever-powered career sites."""
     if employers is None:
         employers = load_employers()
-    return run_ats_crawl("Lever", _DEFAULT_SITE, _STRATEGY,
-                         employers, scrape_one_employer)
+    return run_ats_crawl("Lever", _DEFAULT_SITE, _STRATEGY, employers, scrape_one_employer)
 
 
 # Kept for backwards compat (was imported by tests before the refactor).
 def _fetch_json(url, timeout=20.0):  # pragma: no cover
     from applypilot.discovery.ats_common import _fetch_json as _f
+
     return _f(url, timeout)

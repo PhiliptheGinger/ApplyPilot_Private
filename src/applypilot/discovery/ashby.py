@@ -9,6 +9,7 @@ Slugs in ``config/ashby_employers.yaml``. The fetch + DB plumbing lives
 in :mod:`applypilot.discovery.ats_common` — this module only owns the
 Ashby-specific URL template and per-posting normalizer.
 """
+
 from __future__ import annotations
 
 import logging
@@ -83,17 +84,19 @@ def scrape_one_employer(
             continue
         apply_url = posting.get("applyUrl") or job_url
         description = posting.get("descriptionPlain") or ""
-        out.append({
-            "url": job_url,
-            "title": posting.get("title") or "",
-            "location": location or None,
-            "description": (description[:500] if description else None),
-            "full_description": description if len(description) > 200 else None,
-            "application_url": apply_url,
-            "employer_name": name,
-            "employer_slug": slug,
-            "posted_at": posting.get("publishedAt") or None,
-        })
+        out.append(
+            {
+                "url": job_url,
+                "title": posting.get("title") or "",
+                "location": location or None,
+                "description": (description[:500] if description else None),
+                "full_description": description if len(description) > 200 else None,
+                "application_url": apply_url,
+                "employer_name": name,
+                "employer_slug": slug,
+                "posted_at": posting.get("publishedAt") or None,
+            }
+        )
     return out, None
 
 
@@ -105,10 +108,10 @@ def run_ashby_discovery(employers: dict | None = None, workers: int = 1) -> dict
     """Discover jobs from Ashby-powered career sites."""
     if employers is None:
         employers = load_employers()
-    return run_ats_crawl("Ashby", _DEFAULT_SITE, _STRATEGY,
-                         employers, scrape_one_employer)
+    return run_ats_crawl("Ashby", _DEFAULT_SITE, _STRATEGY, employers, scrape_one_employer)
 
 
 def _fetch_json(url, timeout=20.0):  # pragma: no cover
     from applypilot.discovery.ats_common import _fetch_json as _f
+
     return _f(url, timeout)

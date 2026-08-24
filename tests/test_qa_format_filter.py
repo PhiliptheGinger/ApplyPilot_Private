@@ -8,19 +8,19 @@ referencing the OTHER format's file extension.
 
 import sqlite3
 import sys
+from datetime import UTC
 from pathlib import Path
-
-import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
-def _seed_qa(conn: sqlite3.Connection, question: str, answer: str,
-             outcome: str = "accepted") -> None:
+def _seed_qa(conn: sqlite3.Connection, question: str, answer: str, outcome: str = "accepted") -> None:
     """Insert a qa_knowledge row directly."""
+    from datetime import datetime
+
     from applypilot.database import question_key
-    from datetime import datetime, timezone
-    now = datetime.now(timezone.utc).isoformat()
+
+    now = datetime.now(UTC).isoformat()
     conn.execute(
         "INSERT INTO qa_knowledge "
         "(question_text, question_key, answer_text, answer_source, "
@@ -39,6 +39,7 @@ class TestGetQaFormatFilter:
         _seed_qa(conn, "Resume", "Resume.pdf")
 
         from applypilot.database import get_qa
+
         # No doc_format -> any match is fine
         assert get_qa("Resume", conn=conn) == "Resume.pdf"
 
@@ -48,6 +49,7 @@ class TestGetQaFormatFilter:
         _seed_qa(conn, "Resume", "Resume.pdf")
 
         from applypilot.database import get_qa
+
         assert get_qa("Resume", doc_format="docx", conn=conn) is None
 
     def test_docx_mode_returns_docx_answer(self, tmp_db):
@@ -57,6 +59,7 @@ class TestGetQaFormatFilter:
         _seed_qa(conn, "Resume", "Resume.docx", outcome="accepted")
 
         from applypilot.database import get_qa
+
         assert get_qa("Resume", doc_format="docx", conn=conn) == "Resume.docx"
 
     def test_pdf_mode_skips_docx_answer(self, tmp_db):
@@ -64,6 +67,7 @@ class TestGetQaFormatFilter:
         _seed_qa(conn, "Resume", "Resume.docx")
 
         from applypilot.database import get_qa
+
         assert get_qa("Resume", doc_format="pdf", conn=conn) is None
 
     def test_pdf_mode_returns_pdf_answer(self, tmp_db):
@@ -72,6 +76,7 @@ class TestGetQaFormatFilter:
         _seed_qa(conn, "Resume", "Resume.docx", outcome="unknown")
 
         from applypilot.database import get_qa
+
         assert get_qa("Resume", doc_format="pdf", conn=conn) == "Resume.pdf"
 
     def test_no_filter_returns_both_via_get_all_qa(self, tmp_db):
@@ -82,6 +87,7 @@ class TestGetQaFormatFilter:
         _seed_qa(conn, "Resume", "Resume.docx")
 
         from applypilot.database import get_all_qa
+
         results = get_all_qa(conn=conn)
         answers = {r["answer_text"] for r in results}
         assert "Resume.pdf" in answers
@@ -94,6 +100,7 @@ class TestGetQaFormatFilter:
         _seed_qa(conn, "How many years?", "10")  # unrelated answer, no file ref
 
         from applypilot.database import get_all_qa
+
         results = get_all_qa(doc_format="docx", conn=conn)
         answers = {r["answer_text"] for r in results}
         assert "Resume.pdf" not in answers
@@ -106,6 +113,7 @@ class TestGetQaFormatFilter:
         _seed_qa(conn, "Resume", "Resume.docx")
 
         from applypilot.database import get_all_qa
+
         results = get_all_qa(doc_format="pdf", conn=conn)
         answers = {r["answer_text"] for r in results}
         assert "Resume.docx" not in answers

@@ -39,10 +39,7 @@ def check_gmail_setup() -> tuple[bool, str]:
             "  5. Run: python3 scripts/gmail_oauth.py"
         )
     if not creds_path.exists():
-        return False, (
-            f"OAuth token not found at {creds_path}\n"
-            "Run: python3 scripts/gmail_oauth.py"
-        )
+        return False, (f"OAuth token not found at {creds_path}\nRun: python3 scripts/gmail_oauth.py")
     return True, "Gmail MCP credentials found."
 
 
@@ -100,7 +97,7 @@ async def verify_connection() -> bool:
             tool_names = [t.name for t in tools.tools]
             log.info("Gmail MCP tools: %s", tool_names)
             return bool(tool_names)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - Gmail MCP connectivity probe must degrade to False on any failure (network, auth, protocol), not crash
         log.error("Gmail MCP connection failed: %s", e)
         return False
 
@@ -123,7 +120,7 @@ def _parse_search_results(text: str) -> list[dict]:
 
     emails = []
     # Split on blank lines followed by "ID:"
-    blocks = re.split(r'\n\n(?=ID:\s)', text.strip())
+    blocks = re.split(r"\n\n(?=ID:\s)", text.strip())
 
     for block in blocks:
         block = block.strip()
@@ -239,7 +236,7 @@ async def search_application_emails(days: int = 14, limit: int = 100) -> list[di
         # Known ATS platforms
         f"{base} {{from:greenhouse.io OR from:lever.co OR from:icims.com OR from:myworkdayjobs.com OR from:jobvite.com OR from:smartrecruiters.com}}",
         # Subject-line keywords
-        f"{base} {{subject:application OR subject:interview OR subject:candidate OR subject:\"next steps\" OR subject:\"your application\"}}",
+        f'{base} {{subject:application OR subject:interview OR subject:candidate OR subject:"next steps" OR subject:"your application"}}',
         # Spam folder — job emails sometimes land here
         f"in:spam {base} {{subject:application OR subject:interview OR subject:offer OR subject:candidate}}",
     ]
@@ -253,13 +250,14 @@ async def search_application_emails(days: int = 14, limit: int = 100) -> list[di
             for query in search_queries:
                 try:
                     raw_text = await _call_tool_raw(
-                        session, "search_emails",
+                        session,
+                        "search_emails",
                         {"query": query, "maxResults": limit},
                     )
                 except TimeoutError:
                     log.warning("Gmail search timed out: %s", query[:60])
                     continue
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 - one Gmail search query failing must not abort the remaining queries in the batch
                     log.warning("Gmail search failed: %s", e)
                     continue
 
@@ -309,12 +307,13 @@ async def read_email_bodies(email_ids: list[str]) -> dict[str, dict]:
             for msg_id in email_ids:
                 try:
                     full_text = await _call_tool_raw(
-                        session, "read_email",
+                        session,
+                        "read_email",
                         {"messageId": msg_id},
                     )
                     full = _parse_read_result(full_text, msg_id)
                     results[msg_id] = _normalize_email(full)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 - one email body read failing must not abort the rest of the batch
                     log.debug("Could not read email %s: %s", msg_id, e)
 
     except Exception as e:
@@ -341,7 +340,7 @@ async def _get_or_create_label(session, label_name: str) -> str | None:
             return m.group(0)
         log.warning("Could not parse label ID from response: %s", raw[:100])
         return None
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - Gmail label operation is inherently unreliable (MCP/network); degrade to None, caller handles the missing label
         log.warning("Gmail label operation failed: %s", e)
         return None
 
@@ -375,11 +374,15 @@ async def apply_label_to_emails(email_ids: list[str], label: str = "ap-track") -
             CHUNK = 50
             total_labeled = 0
             for i in range(0, len(email_ids), CHUNK):
-                chunk = email_ids[i:i + CHUNK]
-                raw = await _call_tool_raw(session, "batch_modify_emails", {
-                    "messageIds": chunk,
-                    "addLabelIds": [label_id],
-                })
+                chunk = email_ids[i : i + CHUNK]
+                raw = await _call_tool_raw(
+                    session,
+                    "batch_modify_emails",
+                    {
+                        "messageIds": chunk,
+                        "addLabelIds": [label_id],
+                    },
+                )
                 if raw.startswith("Error:"):
                     log.warning("batch_modify_emails failed (chunk %d): %s", i // CHUNK, raw[:100])
                     continue
@@ -388,7 +391,7 @@ async def apply_label_to_emails(email_ids: list[str], label: str = "ap-track") -
             log.info("Applied '%s' label to %d emails", label, total_labeled)
             return total_labeled
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - Gmail MCP session for label application is inherently unreliable; degrade to 0 labeled, not a crash
         log.warning("Gmail label session failed: %s", e)
         return 0
 

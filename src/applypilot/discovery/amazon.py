@@ -16,9 +16,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
-
-UTC = timezone.utc
+from datetime import UTC, datetime
 
 from applypilot.database import get_connection, init_db, write_with_retry
 from applypilot.discovery.ats_common import strip_html_to_text
@@ -32,9 +30,19 @@ SEARCH_URL = "https://www.amazon.jobs/en/search.json"
 # we enforce Seattle-area locations client-side. WA state is automatic;
 # additional WA cities covered below.
 _SEATTLE_AREA_CITIES = {
-    "seattle", "bellevue", "redmond", "kirkland", "issaquah", "renton",
-    "bothell", "sammamish", "mercer island", "newcastle", "woodinville",
-    "bellevue/seattle", "greater seattle area",
+    "seattle",
+    "bellevue",
+    "redmond",
+    "kirkland",
+    "issaquah",
+    "renton",
+    "bothell",
+    "sammamish",
+    "mercer island",
+    "newcastle",
+    "woodinville",
+    "bellevue/seattle",
+    "greater seattle area",
 }
 
 
@@ -45,6 +53,8 @@ def _in_seattle_area(city: str, state: str) -> bool:
         return True
     city_norm = (city or "").strip().lower()
     return city_norm in _SEATTLE_AREA_CITIES
+
+
 _HEADERS = {
     "User-Agent": "ApplyPilot/1.0 (job-discovery)",
     "Accept": "application/json",
@@ -58,11 +68,13 @@ _HEADERS = {
 # See ats_common.py's module comment for why this used to be a separate
 # copy-pasted implementation per scraper (and the bug that cost).
 
+
 def _strip_html(html: str) -> str:
     return strip_html_to_text(html)
 
 
 # ── HTTP fetch with pagination ────────────────────────────────────────
+
 
 def _fetch_page(params: dict, timeout: float = 20.0) -> dict:
     query = urllib.parse.urlencode(params, doseq=True)
@@ -104,7 +116,7 @@ def search_amazon_jobs(
         except urllib.error.HTTPError as e:
             log.warning("amazon.jobs HTTP %d for %r: %s", e.code, base_query, e.reason)
             break
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - amazon.jobs pagination fetch is unreliable; stop paginating this query, other queries still run
             log.warning("amazon.jobs fetch error for %r: %s", base_query, e)
             break
 
@@ -139,15 +151,17 @@ def search_amazon_jobs(
 
             location_str = ", ".join(p for p in (city, state) if p) or location
 
-            jobs.append({
-                "url": url,
-                "title": job.get("title") or "",
-                "location": location_str,
-                "description": description[:500] if description else None,
-                "full_description": description if len(description) > 200 else None,
-                "application_url": url,
-                "posted_date": job.get("posted_date") or "",
-            })
+            jobs.append(
+                {
+                    "url": url,
+                    "title": job.get("title") or "",
+                    "location": location_str,
+                    "description": description[:500] if description else None,
+                    "full_description": description if len(description) > 200 else None,
+                    "application_url": url,
+                    "posted_date": job.get("posted_date") or "",
+                }
+            )
 
         pages_fetched += 1
         offset += page_size
@@ -161,6 +175,7 @@ def search_amazon_jobs(
 
 
 # ── DB insert ─────────────────────────────────────────────────────────
+
 
 def _insert_jobs(conn: sqlite3.Connection, jobs: list[dict]) -> tuple[int, int]:
     counts = {"new": 0, "existing": 0}
@@ -183,9 +198,21 @@ def _insert_jobs(conn: sqlite3.Connection, jobs: list[dict]) -> tuple[int, int]:
                     "discovered_at, posted_at, full_description, application_url, "
                     "detail_scraped_at, state) "
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (url, job.get("title"), None, job.get("description"), job.get("location"),
-                     "Amazon", "amazon_jobs", now, posted_at, full_description,
-                     job.get("application_url"), detail_scraped_at, initial_state),
+                    (
+                        url,
+                        job.get("title"),
+                        None,
+                        job.get("description"),
+                        job.get("location"),
+                        "Amazon",
+                        "amazon_jobs",
+                        now,
+                        posted_at,
+                        full_description,
+                        job.get("application_url"),
+                        detail_scraped_at,
+                        initial_state,
+                    ),
                 )
                 conn.execute(
                     "INSERT INTO job_state_transitions "
@@ -202,6 +229,7 @@ def _insert_jobs(conn: sqlite3.Connection, jobs: list[dict]) -> tuple[int, int]:
 
 
 # ── Public entry point ────────────────────────────────────────────────
+
 
 def run_amazon_discovery(workers: int = 1, queries: list[str] | None = None) -> dict:
     """Discover jobs on amazon.jobs for the configured queries + Seattle area.
@@ -252,7 +280,7 @@ def run_amazon_discovery(workers: int = 1, queries: list[str] | None = None) -> 
     for i, q in enumerate(queries, 1):
         try:
             jobs = search_amazon_jobs(q, location="Seattle, Washington")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - processing independent search queries; one query's failure must not abort the rest
             log.warning("Amazon query %r failed: %s", q, e)
             continue
 
@@ -260,11 +288,15 @@ def run_amazon_discovery(workers: int = 1, queries: list[str] | None = None) -> 
         grand_new += new
         grand_existing += existing
         grand_found += len(jobs)
-        log.info("  [%d/%d] %r: %d found (%d new, %d existing)",
-                 i, len(queries), q, len(jobs), new, existing)
+        log.info("  [%d/%d] %r: %d found (%d new, %d existing)", i, len(queries), q, len(jobs), new, existing)
 
-    log.info("Amazon discovery done: %d found (%d new, %d existing) across %d queries",
-             grand_found, grand_new, grand_existing, len(queries))
+    log.info(
+        "Amazon discovery done: %d found (%d new, %d existing) across %d queries",
+        grand_found,
+        grand_new,
+        grand_existing,
+        len(queries),
+    )
 
     return {
         "found": grand_found,

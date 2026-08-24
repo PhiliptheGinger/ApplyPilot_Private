@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from applypilot.scoring import fact_approval
 
 

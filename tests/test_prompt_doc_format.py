@@ -14,8 +14,6 @@ import json
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
@@ -79,6 +77,7 @@ def _setup_paths(tmp_path, monkeypatch):
 
     search_path = app_dir / "searches.yaml"
     import yaml
+
     search_path.write_text(yaml.safe_dump(_MINIMAL_SEARCH), encoding="utf-8")
 
     monkeypatch.setattr(config, "APP_DIR", app_dir)
@@ -122,7 +121,8 @@ def _mock_db_calls(monkeypatch):
     # get_accounts_for_prompt is imported lazily inside build_prompt; stub the
     # module-level symbol so both pre- and post-import lookups succeed.
     from applypilot import database
-    monkeypatch.setattr(database, "get_accounts_for_prompt", lambda: {})
+
+    monkeypatch.setattr(database, "get_accounts_for_prompt", dict)
 
 
 class TestPromptDocFormat:
@@ -132,6 +132,7 @@ class TestPromptDocFormat:
         _mock_db_calls(monkeypatch)
 
         from applypilot.apply.prompt import build_prompt
+
         job = _build_job(resume_txt)
         result = build_prompt(job, tailored_resume="Resume text", doc_format="docx")
 
@@ -149,6 +150,7 @@ class TestPromptDocFormat:
         _mock_db_calls(monkeypatch)
 
         from applypilot.apply.prompt import build_prompt
+
         job = _build_job(resume_txt)
         result = build_prompt(job, tailored_resume="Resume text", doc_format="pdf")
 
@@ -162,17 +164,17 @@ class TestPromptDocFormat:
         of the dynamic {doc_format.upper()} interpolations. Guards against
         someone re-introducing the hard-code."""
         import re
+
         src = Path(__file__).parent.parent / "src" / "applypilot" / "apply" / "prompt.py"
         text = src.read_text(encoding="utf-8")
         # Strip out all lines that contain `doc_format.upper()` — those are
         # the intentional dynamic references.
         lines = [ln for ln in text.splitlines() if "doc_format.upper()" not in ln]
-        joined = "\n".join(lines)
         # A bare \bPDF\b token now should be a bug. Allow PDF in comments
         # like 'PDF rendering' only if they don't appear in f-string instructions.
         hits = [
-            ln for ln in lines
-            if re.search(r"\bPDF\b", ln)
-            and "path above" in ln.lower() or "cover letter pdf" in ln.lower()
+            ln
+            for ln in lines
+            if re.search(r"\bPDF\b", ln) and "path above" in ln.lower() or "cover letter pdf" in ln.lower()
         ]
         assert not hits, f"Hard-coded PDF instructions resurfaced: {hits}"

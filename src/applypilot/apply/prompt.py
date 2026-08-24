@@ -38,10 +38,12 @@ def _build_profile_summary(profile: dict) -> str:
     ]
     if personal.get("title"):
         lines.append(f"Title/Prefix: {personal['title']}")
-    lines.extend([
-        f"Email: {personal['email']}",
-        f"Phone: {personal['phone']}",
-    ])
+    lines.extend(
+        [
+            f"Email: {personal['email']}",
+            f"Phone: {personal['phone']}",
+        ]
+    )
 
     # Address -- structured for form fields (do not emit application-only location fields here)
     lines.append(f"Street Address: {personal.get('address', '')}")
@@ -63,29 +65,31 @@ def _build_profile_summary(profile: dict) -> str:
     # automatically inject them into resumes; these lines are for autofill prompts
     online = app_prof.get("online_profiles", {})
     if not online:
-      online = {
-        "website": personal.get("website_url") or personal.get("portfolio_url"),
-        "github": personal.get("github_url"),
-        "linkedin": personal.get("linkedin_url"),
-      }
+        online = {
+            "website": personal.get("website_url") or personal.get("portfolio_url"),
+            "github": personal.get("github_url"),
+            "linkedin": personal.get("linkedin_url"),
+        }
     if online.get("linkedin"):
-      lines.append(f"LinkedIn: {online['linkedin']}")
+        lines.append(f"LinkedIn: {online['linkedin']}")
     if online.get("github"):
-      lines.append(f"GitHub: {online['github']}")
+        lines.append(f"GitHub: {online['github']}")
     if online.get("website"):
-      lines.append(f"Website: {online['website']}")
+        lines.append(f"Website: {online['website']}")
 
     # Work authorization (application/profile-only fields)
     lines.append(f"Work Auth: {work_auth.get('legally_authorized_to_work', 'See profile')}")
     lines.append(f"Sponsorship Needed: {work_auth.get('require_sponsorship', 'See profile')}")
     if work_auth.get("work_permit_type"):
-      lines.append(f"Work Permit: {work_auth['work_permit_type']}")
+        lines.append(f"Work Permit: {work_auth['work_permit_type']}")
 
     # Compensation (application/profile-only guidance)
     currency = comp.get("salary_currency", "USD")
     if comp:
-      # show only if set; leave blank otherwise so agent asks human when ambiguous
-      lines.append(f"Salary Expectation: {comp.get('desired_salary') or comp.get('salary_expectation') or 'Not specified'} {currency}")
+        # show only if set; leave blank otherwise so agent asks human when ambiguous
+        lines.append(
+            f"Salary Expectation: {comp.get('desired_salary') or comp.get('salary_expectation') or 'Not specified'} {currency}"
+        )
 
     # Experience
     if exp.get("years_of_experience_total"):
@@ -121,48 +125,52 @@ def _build_profile_summary(profile: dict) -> str:
     # Normalize languages: accept either list or mapping
     normalized_languages = []
     if isinstance(languages, dict):
-      for name, meta in languages.items():
-        prof = meta.get("cefr") if isinstance(meta, dict) else str(meta)
-        normalized_languages.append({"language": name.title(), "proficiency": prof})
+        for name, meta in languages.items():
+            prof = meta.get("cefr") if isinstance(meta, dict) else str(meta)
+            normalized_languages.append({"language": name.title(), "proficiency": prof})
     elif isinstance(languages, list):
-      normalized_languages = languages
+        normalized_languages = languages
 
     if normalized_languages:
-      if isinstance(normalized_languages[0], dict):
-        lang_parts = [f"{lang['language']} ({lang.get('proficiency','')})" for lang in normalized_languages]
-        lines.append(f"Languages: {', '.join(lang_parts)}")
-        # Also list just the language names for simple yes/no questions
-        lines.append(f"Languages spoken: {', '.join(lang['language'] for lang in normalized_languages)}")
-        lines.append("IMPORTANT: Do NOT claim proficiency in any language not listed above. If asked about a language not listed, answer NO / Not proficient.")
-      else:
-        lines.append(f"Languages: {', '.join(normalized_languages)}")
+        if isinstance(normalized_languages[0], dict):
+            lang_parts = [f"{lang['language']} ({lang.get('proficiency', '')})" for lang in normalized_languages]
+            lines.append(f"Languages: {', '.join(lang_parts)}")
+            # Also list just the language names for simple yes/no questions
+            lines.append(f"Languages spoken: {', '.join(lang['language'] for lang in normalized_languages)}")
+            lines.append(
+                "IMPORTANT: Do NOT claim proficiency in any language not listed above. If asked about a language not listed, answer NO / Not proficient."
+            )
+        else:
+            lines.append(f"Languages: {', '.join(normalized_languages)}")
 
     # Availability
     lines.append(f"Available: {avail.get('earliest_start_date', 'Immediately')}")
 
     # Standard responses
-    lines.extend([
-        "Age 18+: Yes",
-        "Background Check: Yes",
-        "Felony: No",
-        "Previously Worked Here: No",
-        "How Heard: Online Job Board",
-    ])
+    lines.extend(
+        [
+            "Age 18+: Yes",
+            "Background Check: Yes",
+            "Felony: No",
+            "Previously Worked Here: No",
+            "How Heard: Online Job Board",
+        ]
+    )
 
     # EEO
     lines.append(f"Gender: {eeo.get('gender', 'Decline to self-identify')}")
     lines.append(f"Sexual Orientation: {eeo.get('sexual_orientation', 'I do not wish to answer')}")
     lines.append(f"Transgender: {eeo.get('transgender', 'I do not wish to answer')}")
-    dob = eeo.get('date_of_birth', '')
+    dob = eeo.get("date_of_birth", "")
     if dob:
         lines.append(f"Date of Birth: {dob}")
     lines.append(f"Race/Ethnicity: {eeo.get('race_ethnicity', 'Decline to self-identify')}")
-    hispanic = eeo.get('hispanic_latino', '')
+    hispanic = eeo.get("hispanic_latino", "")
     if hispanic:
         lines.append(f"Hispanic or Latino: {hispanic}")
     lines.append(f"Veteran: {eeo.get('veteran_status', 'I am not a protected veteran')}")
-    disability = eeo.get('disability_status', 'No, I do not have a disability')
-    disability_pressed = eeo.get('disability_if_pressed', '')
+    disability = eeo.get("disability_status", "No, I do not have a disability")
+    disability_pressed = eeo.get("disability_if_pressed", "")
     if disability_pressed:
         lines.append(f"Disability: {disability} (if required to answer: {disability_pressed})")
     else:
@@ -211,11 +219,7 @@ def _build_salary_section(profile: dict) -> str:
     comp = app_prof.get("compensation", profile.get("compensation", {})) or {}
 
     currency = comp.get("salary_currency", "USD")
-    floor = str(
-        comp.get("salary_expectation")
-        or comp.get("desired_salary")
-        or "Not specified"
-    )
+    floor = str(comp.get("salary_expectation") or comp.get("desired_salary") or "Not specified")
     range_min = str(comp.get("salary_range_min", floor))
     range_max = str(
         comp.get(
@@ -268,7 +272,7 @@ def _build_screening_section(profile: dict) -> str:
     return f"""== SCREENING QUESTIONS (be strategic) ==
 Hard facts -> answer truthfully from the profile. No guessing. This includes:
   - Location/relocation: lives in {city}, cannot relocate
-  - Work authorization: {work_auth.get('legally_authorized_to_work', 'see profile')}
+  - Work authorization: {work_auth.get("legally_authorized_to_work", "see profile")}
   - Citizenship, clearance, licenses, certifications: answer from profile only
   - Criminal/background: answer from profile only
   - Languages: ONLY claim proficiency in languages listed in the APPLICANT PROFILE above. If asked about ANY other language (German, Mandarin, Japanese, etc.), answer NO / Not proficient. Never fabricate language skills.
@@ -299,9 +303,11 @@ def _build_hard_rules(profile: dict) -> str:
     if permit_type:
         work_auth_rule = f"Work auth: {permit_type}. Sponsorship needed: {sponsorship}."
 
-    name_rule = f'Name: Legal name = {full_name}.'
+    name_rule = f"Name: Legal name = {full_name}."
     if preferred_name and preferred_name != full_name.split()[0]:
-        name_rule += f' Preferred name = {preferred_name}. Use "{display_name}" unless a field specifically says "legal name".'
+        name_rule += (
+            f' Preferred name = {preferred_name}. Use "{display_name}" unless a field specifically says "legal name".'
+        )
 
     return f"""== HARD RULES (never break these) ==
 1. Never lie about: citizenship, work authorization, criminal history, education credentials, security clearance, licenses.
@@ -342,7 +348,7 @@ def _build_captcha_section() -> str:
 
     return f"""== CAPTCHA ==
 You solve CAPTCHAs via the CapSolver REST API. No browser extension. You control the entire flow.
-API key: {capsolver_key or 'NOT CONFIGURED — skip to MANUAL FALLBACK for all CAPTCHAs'}
+API key: {capsolver_key or "NOT CONFIGURED — skip to MANUAL FALLBACK for all CAPTCHAs"}
 API base: https://api.capsolver.com
 
 CRITICAL RULE: When ANY CAPTCHA appears (hCaptcha, reCAPTCHA, Turnstile -- regardless of what it looks like visually), you MUST:
@@ -571,7 +577,11 @@ def _build_qa_section(doc_format: str | None = None) -> str:
 
     lines = ["== KNOWN SCREENING ANSWERS (use these when you encounter matching questions) =="]
     for qa in best.values():
-        outcome_tag = f" [{qa['outcome']}, source: {qa['answer_source']}]" if qa["outcome"] != "unknown" else f" [source: {qa['answer_source']}]"
+        outcome_tag = (
+            f" [{qa['outcome']}, source: {qa['answer_source']}]"
+            if qa["outcome"] != "unknown"
+            else f" [source: {qa['answer_source']}]"
+        )
         lines.append(f'Q: "{qa["question_text"]}" → A: "{qa["answer_text"]}"{outcome_tag}')
 
     lines.append("")
@@ -579,11 +589,14 @@ def _build_qa_section(doc_format: str | None = None) -> str:
     return "\n".join(lines)
 
 
-def build_prompt(job: dict, tailored_resume: str,
-                 cover_letter: str | None = None,
-                 dry_run: bool = False,
-                 worker_id: int = 0,
-                 doc_format: str = "pdf") -> str:
+def build_prompt(
+    job: dict,
+    tailored_resume: str,
+    cover_letter: str | None = None,
+    dry_run: bool = False,
+    worker_id: int = 0,
+    doc_format: str = "pdf",
+) -> str:
     """Build the full instruction prompt for the apply agent.
 
     Loads the user profile and search config internally. All personal data
@@ -663,6 +676,7 @@ def build_prompt(job: dict, tailored_resume: str,
 
     # Per-worker server port (homepage URL baked into prompt)
     from applypilot.apply.chrome import HITL_LISTEN_BASE_PORT
+
     server_port = HITL_LISTEN_BASE_PORT + worker_id
 
     # Phone digits only (for fields with country prefix)
@@ -683,20 +697,20 @@ def build_prompt(job: dict, tailored_resume: str,
     _linkedin_type_chars = int(location_cfg.get("linkedin_type_chars", 3))
     _location_type_prefix = location_primary[:_linkedin_type_chars]
     # Build the step-by-step typing sequence for the prompt (e.g. "S" → "e" → "a")
-    _linkedin_type_steps = " → ".join(
-        f'browser_type "{c}", wait 0.5s' for c in _location_type_prefix
-    )
+    _linkedin_type_steps = " → ".join(f'browser_type "{c}", wait 0.5s' for c in _location_type_prefix)
     # Apply email shown in LinkedIn's email dropdown (may differ from LinkedIn login email)
     linkedin_apply_email = personal.get("email", "")
 
     # SSO domains the agent cannot sign into (loaded from config/sites.yaml)
     from applypilot.config import load_blocked_sso, load_no_signup_domains
+
     blocked_sso = load_blocked_sso()
     no_signup_domains = load_no_signup_domains()
 
     # Site-specific credentials (e.g. LinkedIn uses a different email than apply email)
     # DB accounts as base, profile.json overrides
     from applypilot.database import get_accounts_for_prompt
+
     site_credentials = get_accounts_for_prompt()
     site_credentials.update(profile.get("site_credentials", {}))
 
@@ -733,6 +747,7 @@ def build_prompt(job: dict, tailored_resume: str,
     # script. See apply/successful_paths.py.
     from applypilot.apply.chrome import detect_ats
     from applypilot.apply.successful_paths import format_path_for_prompt, load_path
+
     _job_url_for_ats = job.get("application_url") or job.get("url") or ""
     _ats_slug = detect_ats(_job_url_for_ats)
     prior_path_block = format_path_for_prompt(load_path(_ats_slug)) if _ats_slug else None
@@ -743,10 +758,10 @@ def build_prompt(job: dict, tailored_resume: str,
 IMPORTANT: You are running on a REAL computer with FULL filesystem access. You are NOT in a sandbox. You CAN read/write files, upload documents, and access the local filesystem. The resume and cover letter paths below are real files on disk — use them directly.
 
 == JOB ==
-URL: {job.get('application_url') or job['url']}
-Title: {job['title']}
-Company: {job.get('site', 'Unknown')}
-Fit Score: {job.get('fit_score', 'N/A')}/10
+URL: {job.get("application_url") or job["url"]}
+Title: {job["title"]}
+Company: {job.get("site", "Unknown")}
+Fit Score: {job.get("fit_score", "N/A")}/10
 
 == FILES ==
 Resume {doc_format.upper()} (upload this): {resume_doc_path}
@@ -904,11 +919,11 @@ in the KNOWN SCREENING ANSWERS section. The form will still be open in the brows
 2. browser_snapshot to read the page. Then run CAPTCHA DETECT (see CAPTCHA section). If a CAPTCHA is found, solve it before continuing.
 3. LOCATION CHECK. Read the page for location info. If not eligible, output RESULT and stop.
 4. Find and click the Apply button. If email-only (page says "email resume to X"):
-   - send_email with subject "Application for {job['title']} -- {display_name}", body = 2-3 sentence pitch + contact info, attach resume: ["{resume_doc_path}"]
+   - send_email with subject "Application for {job["title"]} -- {display_name}", body = 2-3 sentence pitch + contact info, attach resume: ["{resume_doc_path}"]
    - Output RESULT:APPLIED. Done.
    After clicking Apply: browser_snapshot. Run CAPTCHA DETECT -- many sites trigger CAPTCHAs right after the Apply click. If found, solve before continuing.
 5. Login wall?
-   5a. FIRST: check the URL. If you landed on {', '.join(blocked_sso)}, or any SSO/OAuth page -> STOP. Output RESULT:FAILED:sso_required. Do NOT try to sign in to Google/Microsoft/SSO.
+   5a. FIRST: check the URL. If you landed on {", ".join(blocked_sso)}, or any SSO/OAuth page -> STOP. Output RESULT:FAILED:sso_required. Do NOT try to sign in to Google/Microsoft/SSO.
    5b. SOCIAL LOGIN SHORTCUT: Before using email/password, look for a "Sign in with LinkedIn", "Apply with LinkedIn", or LinkedIn logo button on the login page. If present:
      - Follow the full APPLY WITH LINKEDIN flow in FORM TRICKS (OAuth popup → authorize → verify fields).
      - LinkedIn login often pre-fills the entire application form — verify the pre-filled data against the APPLICANT PROFILE and fix mismatches.
@@ -916,7 +931,7 @@ in the KNOWN SCREENING ANSWERS section. The form will still be open in the brows
      - Do NOT use this on LinkedIn.com itself — it's a no-signup domain.
      - Do NOT confuse this with Google/Microsoft SSO — those are still blocked per 5a.
    5c. Check for popups. Run browser_tabs action "list". If a new tab/window appeared (login popup), switch to it with browser_tabs action "select". Check the URL there too -- if it's SSO -> RESULT:FAILED:sso_required.
-   5d. Check if the site matches a KNOWN CREDENTIAL below. If yes, use those credentials. Otherwise use default: {personal['email']} / {personal.get('password', '')}
+   5d. Check if the site matches a KNOWN CREDENTIAL below. If yes, use those credentials. Otherwise use default: {personal["email"]} / {personal.get("password", "")}
 {_build_site_credentials_section(site_credentials)}
    5d-WORKDAY. SPECIAL RULE — Workday (*.myworkdayjobs.com):
      Workday uses per-employer subdomains. Follow this exact flow:
@@ -924,14 +939,14 @@ in the KNOWN SCREENING ANSWERS section. The form will still be open in the brows
      (ii) Check KNOWN CREDENTIALS for the exact subdomain (e.g. blueorigin.wd5.myworkdayjobs.com).
           If found: sign in with those credentials. Done.
      (iii) If no saved credentials OR sign-in fails (wrong password / account not found):
-          - Try signing in with the DEFAULT credentials: {personal['email']} / {personal.get('password', '')}
+          - Try signing in with the DEFAULT credentials: {personal["email"]} / {personal.get("password", "")}
      (iv) If DEFAULT sign-in also fails (account does not exist on this subdomain):
           - Click "Create Account" / "Sign Up".
-          - Email: {personal['email']}
-          - Password: {personal.get('password', '')}  ← USE THIS EXACT PASSWORD (do NOT generate random)
+          - Email: {personal["email"]}
+          - Password: {personal.get("password", "")}  ← USE THIS EXACT PASSWORD (do NOT generate random)
           - Complete email verification via Gmail MCP (step 5h).
           - After successful account creation, output:
-            ACCOUNT_CREATED:{{"site":"<employer name>","email":"{personal['email']}","password":"{personal.get('password', '')}","domain":"<exact subdomain e.g. blueorigin.wd5.myworkdayjobs.com>","login_method":"email"}}
+            ACCOUNT_CREATED:{{"site":"<employer name>","email":"{personal["email"]}","password":"{personal.get("password", "")}","domain":"<exact subdomain e.g. blueorigin.wd5.myworkdayjobs.com>","login_method":"email"}}
           - Then continue the application from the top.
      (v)  Only escalate to RESULT:NEEDS_HUMAN:login_required if email verification fails
           after 3 Gmail MCP attempts AND there is no SMS fallback.
@@ -941,19 +956,19 @@ in the KNOWN SCREENING ANSWERS section. The form will still be open in the brows
      (i)  SOCIAL LOGIN FIRST: Look for a "Sign in with LinkedIn" button on the login/apply page.
           If present: follow the APPLY WITH LINKEDIN flow (FORM TRICKS → APPLY WITH LINKEDIN).
           After successful LinkedIn login, output:
-            ACCOUNT_CREATED:{{"site":"<employer name>","email":"{personal['email']}","domain":"<exact subdomain e.g. careers-healthedge.icims.com>","login_method":"linkedin","password":""}}
+            ACCOUNT_CREATED:{{"site":"<employer name>","email":"{personal["email"]}","domain":"<exact subdomain e.g. careers-healthedge.icims.com>","login_method":"linkedin","password":""}}
           Then continue the application — LinkedIn will have pre-filled the form.
      (ii) If no LinkedIn button OR OAuth fails: check KNOWN CREDENTIALS for the exact subdomain.
           If found AND login_method is "email": sign in with those credentials. Done.
      (iii) If no saved credentials OR sign-in fails:
-          - Try DEFAULT credentials: {personal['email']} / {personal.get('password', '')}
+          - Try DEFAULT credentials: {personal["email"]} / {personal.get("password", "")}
      (iv) If DEFAULT sign-in also fails (no account on this subdomain):
           - Click "Create Account" / "Register" / "Join".
-          - Email: {personal['email']}
-          - Password: {personal.get('password', '')}  ← USE THIS EXACT PASSWORD (do NOT generate random)
+          - Email: {personal["email"]}
+          - Password: {personal.get("password", "")}  ← USE THIS EXACT PASSWORD (do NOT generate random)
           - Complete email verification via Gmail MCP (step 5h).
           - After successful account creation, output:
-            ACCOUNT_CREATED:{{"site":"<employer name>","email":"{personal['email']}","password":"{personal.get('password', '')}","domain":"<exact subdomain e.g. careers-healthedge.icims.com>","login_method":"email"}}
+            ACCOUNT_CREATED:{{"site":"<employer name>","email":"{personal["email"]}","password":"{personal.get("password", "")}","domain":"<exact subdomain e.g. careers-healthedge.icims.com>","login_method":"email"}}
           - Then continue the application from the top.
      (v)  Only escalate to RESULT:NEEDS_HUMAN:login_required if BOTH LinkedIn AND email/password
           fail after 2 attempts each.
@@ -967,15 +982,15 @@ in the KNOWN SCREENING ANSWERS section. The form will still be open in the brows
      SimplyHired uses Indeed accounts for login. Follow this exact flow:
      (i)  Look for a "Sign in" or "Login" button on the page — click it.
      (ii) On the login screen, select the "Sign in with Indeed" / "via Indeed" option.
-     (iii) You will be redirected to Indeed's login. Use email {personal['email']}.
+     (iii) You will be redirected to Indeed's login. Use email {personal["email"]}.
      (iv) Indeed sends a one-time passcode (OTP) to the email. Retrieve it via Gmail MCP (step 5h).
           Type the OTP into the field and submit.
      (v)  After login completes, you will be returned to SimplyHired — continue with the application.
      (vi) If Indeed login or OTP fails after 3 Gmail attempts → RESULT:NEEDS_HUMAN:login_required:{{url}}
    5e. After clicking Login/Sign-in: run CAPTCHA DETECT. Login pages frequently have invisible CAPTCHAs that silently block form submissions. If found, solve it then retry login.
-   5f. Sign in failed? Check if the current site's domain matches ANY of these NO-SIGNUP domains: {', '.join(no_signup_domains)}. If YES -> NEVER create an account. Output RESULT:FAILED:login_required immediately. The user will log in manually in the Chrome worker window, then retry.
-   5g. NOT a no-signup domain (i.e. it's an employer/ATS site like Workday, iCIMS, etc.)? Sign up IS allowed. Use email {personal['email']} and password {personal.get('password', '')} (use this EXACT password — do NOT generate a random one). After successful signup, output this line EXACTLY (JSON format):
-       ACCOUNT_CREATED:{{"site":"<company name>","email":"{personal['email']}","password":"{personal.get('password', '')}","domain":"<site domain>","login_method":"email"}}
+   5f. Sign in failed? Check if the current site's domain matches ANY of these NO-SIGNUP domains: {", ".join(no_signup_domains)}. If YES -> NEVER create an account. Output RESULT:FAILED:login_required immediately. The user will log in manually in the Chrome worker window, then retry.
+   5g. NOT a no-signup domain (i.e. it's an employer/ATS site like Workday, iCIMS, etc.)? Sign up IS allowed. Use email {personal["email"]} and password {personal.get("password", "")} (use this EXACT password — do NOT generate a random one). After successful signup, output this line EXACTLY (JSON format):
+       ACCOUNT_CREATED:{{"site":"<company name>","email":"{personal["email"]}","password":"{personal.get("password", "")}","domain":"<site domain>","login_method":"email"}}
        If you signed in via LinkedIn OAuth instead of email/password, set "login_method":"linkedin" and "password":"" in the JSON.
    5h. Need email verification (code or link)?
        CRITICAL: You MUST attempt Gmail MCP search_emails at least 3 times before giving up.
@@ -983,11 +998,11 @@ in the KNOWN SCREENING ANSWERS section. The form will still be open in the brows
        anything about an email/code being sent — this IS email verification. Use Gmail MCP. NOW.
        DO NOT output RESULT:NEEDS_HUMAN until you have exhausted ALL Gmail MCP attempts below.
        - Wait 5 seconds for the email to arrive.
-       - Attempt 1: search_emails with query "to:{personal['email']} subject:(verification OR verify OR confirm OR code OR activate) newer_than:2m". ALWAYS include to:{personal['email']} to filter out personal mail.
+       - Attempt 1: search_emails with query "to:{personal["email"]} subject:(verification OR verify OR confirm OR code OR activate) newer_than:2m". ALWAYS include to:{personal["email"]} to filter out personal mail.
        - If no results, wait 10 more seconds.
-       - Attempt 2: search_emails with a broader query, e.g. "to:{personal['email']} newer_than:2m" (or add the site domain, e.g. "to:{personal['email']} from:greenhouse.io newer_than:2m").
+       - Attempt 2: search_emails with a broader query, e.g. "to:{personal["email"]} newer_than:2m" (or add the site domain, e.g. "to:{personal["email"]} from:greenhouse.io newer_than:2m").
        - If still no results, wait 10 more seconds.
-       - Attempt 3: search_emails with "to:{personal['email']} in:spam newer_than:5m" (check spam/junk).
+       - Attempt 3: search_emails with "to:{personal["email"]} in:spam newer_than:5m" (check spam/junk).
        - read_email to get the full message body. Extract the 4-8 digit code or the verification link.
        - If it's a code: type it into the verification field and submit.
        - If it's a link: browser_navigate to the link, then switch back to the application tab.
@@ -1065,9 +1080,9 @@ RESULT:FAILED:reason -- any other failure (brief reason)
   look for an "Autofill with MyGreenhouse" button or link near the top of the application.
   If present, USE IT — it pre-fills the entire form and saves significant time:
   (1) Click "Autofill with MyGreenhouse".
-  (2) A sign-in modal appears. Enter email: {personal['email']}. Click Send / Continue.
+  (2) A sign-in modal appears. Enter email: {personal["email"]}. Click Send / Continue.
   (3) Greenhouse emails a one-time login code. Use Gmail MCP to retrieve it:
-      search_emails "to:{personal['email']} from:greenhouse.io newer_than:3m"
+      search_emails "to:{personal["email"]} from:greenhouse.io newer_than:3m"
       Wait 5s if no result, try again. Read the email body and extract the 6-digit code.
   (4) Enter the code in the modal and confirm.
   (5) Greenhouse autofills the form. CRITICAL: verify EVERY pre-filled field against
@@ -1117,7 +1132,7 @@ RESULT:FAILED:reason -- any other failure (brief reason)
 
   If "Apply with LinkedIn" is absent, or the OAuth flow errors after 2 attempts, fill the form manually.
 - Phone field with country prefix: just type digits {phone_digits}
-- Date fields: {datetime.now().strftime('%m/%d/%Y')}
+- Date fields: {datetime.now().strftime("%m/%d/%Y")}
 - Validation errors after submit? Take BOTH snapshot AND screenshot. Snapshot shows text errors, screenshot shows red-highlighted fields. Fix all, retry.
 - Honeypot fields (hidden, "leave blank"): skip them.
 - Format-sensitive fields: read the placeholder text, match it exactly.

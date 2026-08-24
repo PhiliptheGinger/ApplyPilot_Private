@@ -74,11 +74,10 @@ class TestEnsureColumns(unittest.TestCase):
         conn.commit()
 
         from applypilot.database import ensure_columns
+
         ensure_columns(conn)
 
-        row = conn.execute(
-            "SELECT title FROM jobs WHERE url = ?", ("https://example.com/job/1",)
-        ).fetchone()
+        row = conn.execute("SELECT title FROM jobs WHERE url = ?", ("https://example.com/job/1",)).fetchone()
         self.assertIsNotNone(row)
         self.assertEqual(row[0], "Engineer")
 
@@ -98,21 +97,25 @@ class TestResolveUrl(unittest.TestCase):
 
     def test_absolute_url_unchanged(self):
         from applypilot.database import _resolve_url
+
         url = "https://jobs.example.com/position/123"
         self.assertEqual(_resolve_url(url, "anySite"), url)
 
     def test_relative_url_resolved(self):
         from applypilot.database import _resolve_url
+
         result = _resolve_url("/jobs/swe-123", "remoteok")
         self.assertEqual(result, "https://remoteok.com/jobs/swe-123")
 
     def test_relative_url_no_base_returns_none(self):
         from applypilot.database import _resolve_url
+
         result = _resolve_url("/jobs/swe-123", "unknownsite")
         self.assertIsNone(result)
 
     def test_empty_url_returns_none(self):
         from applypilot.database import _resolve_url
+
         self.assertIsNone(_resolve_url("", "remoteok"))
         self.assertIsNone(_resolve_url(None, "remoteok"))
 
@@ -128,6 +131,7 @@ class TestStoreJobs(unittest.TestCase):
         self._patcher.start()
         self.conn = _make_db()
         from applypilot.database import ensure_columns
+
         ensure_columns(self.conn)
 
     def tearDown(self):
@@ -135,6 +139,7 @@ class TestStoreJobs(unittest.TestCase):
 
     def test_new_job_stored(self):
         from applypilot.database import store_jobs
+
         jobs = [{"url": "https://testsite.example.com/job/1", "title": "SWE"}]
         new, dupes = store_jobs(self.conn, jobs, "testsite", "api")
         self.assertEqual(new, 1)
@@ -142,6 +147,7 @@ class TestStoreJobs(unittest.TestCase):
 
     def test_duplicate_url_skipped(self):
         from applypilot.database import store_jobs
+
         jobs = [{"url": "https://testsite.example.com/job/1", "title": "SWE"}]
         store_jobs(self.conn, jobs, "testsite", "api")
         new, dupes = store_jobs(self.conn, jobs, "testsite", "api")
@@ -150,18 +156,18 @@ class TestStoreJobs(unittest.TestCase):
 
     def test_relative_url_resolved_before_store(self):
         from applypilot.database import store_jobs
+
         jobs = [{"url": "/job/99", "title": "Platform Eng"}]
         new, _ = store_jobs(self.conn, jobs, "testsite", "css")
         self.assertEqual(new, 1)
 
-        row = self.conn.execute(
-            "SELECT url FROM jobs WHERE title = ?", ("Platform Eng",)
-        ).fetchone()
+        row = self.conn.execute("SELECT url FROM jobs WHERE title = ?", ("Platform Eng",)).fetchone()
         self.assertIsNotNone(row)
         self.assertTrue(row[0].startswith("https://"), f"Expected absolute URL, got: {row[0]}")
 
     def test_unresolvable_relative_url_skipped(self):
         from applypilot.database import store_jobs
+
         jobs = [{"url": "/job/orphan", "title": "Orphan Job"}]
         new, dupes = store_jobs(self.conn, jobs, "unknownsite", "css")
         self.assertEqual(new, 0)
@@ -173,27 +179,28 @@ class TestCategorizeApplyResult(unittest.TestCase):
 
     def test_none_status_is_pending(self):
         from applypilot.database import categorize_apply_result
+
         self.assertEqual(categorize_apply_result(None, None), "pending")
 
     def test_applied_status(self):
         from applypilot.database import categorize_apply_result
+
         self.assertEqual(categorize_apply_result("applied", None), "applied")
 
     def test_needs_human_status(self):
         from applypilot.database import categorize_apply_result
+
         self.assertEqual(categorize_apply_result("needs_human", None), "needs_human")
 
     def test_auth_error_is_blocked_auth(self):
         from applypilot.database import categorize_apply_result
-        self.assertEqual(
-            categorize_apply_result("failed", "login_required"), "blocked_auth"
-        )
-        self.assertEqual(
-            categorize_apply_result("failed", "sso_required"), "blocked_auth"
-        )
+
+        self.assertEqual(categorize_apply_result("failed", "login_required"), "blocked_auth")
+        self.assertEqual(categorize_apply_result("failed", "sso_required"), "blocked_auth")
 
     def test_ineligible_error_is_archived(self):
         from applypilot.database import categorize_apply_result
+
         self.assertEqual(
             categorize_apply_result("failed", "not_eligible_location"),
             "archived_ineligible",
@@ -201,6 +208,7 @@ class TestCategorizeApplyResult(unittest.TestCase):
 
     def test_unknown_error_is_blocked_technical(self):
         from applypilot.database import categorize_apply_result
+
         self.assertEqual(
             categorize_apply_result("failed", "some_new_error_code"),
             "blocked_technical",
@@ -213,6 +221,7 @@ class TestWriteWithRetry(unittest.TestCase):
     def test_successful_write(self):
         conn = _make_db()
         from applypilot.database import ensure_columns, write_with_retry
+
         ensure_columns(conn)
 
         def do_insert():

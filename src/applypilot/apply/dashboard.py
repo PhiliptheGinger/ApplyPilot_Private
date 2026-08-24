@@ -51,6 +51,7 @@ MAX_EVENTS = 8
 # State mutation helpers
 # ---------------------------------------------------------------------------
 
+
 def init_worker(worker_id: int = 0) -> None:
     """Register the worker in the dashboard state."""
     with _lock:
@@ -112,7 +113,7 @@ def _check_chrome_health(worker_id: int) -> bool:
             timeout=_HEALTH_CHECK_TIMEOUT,
         ) as resp:
             return resp.status == 200
-    except Exception:
+    except Exception:  # noqa: BLE001 - CDP port health probe must degrade to "not reachable", not crash the dashboard
         return False
 
 
@@ -144,9 +145,7 @@ def start_health_checks() -> None:
     if _health_thread is not None and _health_thread.is_alive():
         return
     _health_stop.clear()
-    _health_thread = threading.Thread(
-        target=_health_check_loop, daemon=True, name="chrome-health"
-    )
+    _health_thread = threading.Thread(target=_health_check_loop, daemon=True, name="chrome-health")
     _health_thread.start()
 
 
@@ -235,8 +234,15 @@ def render_dashboard() -> Table:
     # Totals row
     table.add_section()
     table.add_row(
-        "", "", "", "", "", "TOTAL",
-        str(total_applied), str(total_failed), f"${total_cost:.3f}",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "TOTAL",
+        str(total_applied),
+        str(total_failed),
+        f"${total_cost:.3f}",
         style="bold",
     )
 

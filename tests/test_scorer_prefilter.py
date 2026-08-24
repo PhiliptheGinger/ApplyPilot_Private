@@ -18,6 +18,7 @@ def _job(title="Senior Software Engineer", location="Remote", description="US-re
 
 # ── Seniority: junior/entry-level titles are ELIGIBLE (candidate's real level) ──
 
+
 def test_junior_title_not_rejected():
     assert _check_ineligible(_job(title="Junior Software Engineer")) is None
 
@@ -52,6 +53,7 @@ def test_apprentice_title_not_rejected():
 
 # ── Sales-adjacency rejects ─────────────────────────────────────────
 
+
 def test_sales_engineer_rejected():
     assert _check_ineligible(_job(title="Senior Sales Engineer")) is not None
 
@@ -69,6 +71,7 @@ def test_customer_success_engineer_rejected():
 
 
 # ── Additional safe patterns (validated 2026-04-23 round 2) ─────────
+
 
 def test_graduate_title_not_rejected():
     assert _check_ineligible(_job(title="Graduate Developer")) is None
@@ -113,6 +116,7 @@ def test_senior_backend_python_rejected():
 
 # ── Regional sales tags ─────────────────────────────────────────────
 
+
 def test_latam_in_title_rejected():
     assert _check_ineligible(_job(title="Account Manager, LATAM")) is not None
 
@@ -135,40 +139,45 @@ def test_only_hiring_in_title_rejected():
 
 # ── New non-US countries in location ────────────────────────────────
 
-@pytest.mark.parametrize("loc", [
-    "Brazil Remote Work",
-    "Remote — São Paulo, Brazil",
-    "Mexico City, Mexico",
-    "Buenos Aires, Argentina",
-    "Vietnam",
-    "Remote - Japan",
-    "Thailand",
-    "Philippines",
-    "Jakarta, Indonesia",
-    "Seoul, Korea",
-    "Taipei, Taiwan",
-    "Cairo, Egypt",
-    "Nairobi, Kenya",
-    "Johannesburg, South Africa",
-    "Tel Aviv, Israel",
-    "Istanbul, Turkey",
-    "Lisbon, Portugal",
-    "Dublin, Ireland",
-    "Copenhagen, Denmark",
-    "Stockholm, Sweden",
-    "Oslo, Norway",
-    "Helsinki, Finland",
-    "Brussels, Belgium",
-    "Zurich, Switzerland",
-    "Vienna, Austria",
-    "Bucharest, Romania",
-    "Budapest, Hungary",
-])
+
+@pytest.mark.parametrize(
+    "loc",
+    [
+        "Brazil Remote Work",
+        "Remote — São Paulo, Brazil",
+        "Mexico City, Mexico",
+        "Buenos Aires, Argentina",
+        "Vietnam",
+        "Remote - Japan",
+        "Thailand",
+        "Philippines",
+        "Jakarta, Indonesia",
+        "Seoul, Korea",
+        "Taipei, Taiwan",
+        "Cairo, Egypt",
+        "Nairobi, Kenya",
+        "Johannesburg, South Africa",
+        "Tel Aviv, Israel",
+        "Istanbul, Turkey",
+        "Lisbon, Portugal",
+        "Dublin, Ireland",
+        "Copenhagen, Denmark",
+        "Stockholm, Sweden",
+        "Oslo, Norway",
+        "Helsinki, Finland",
+        "Brussels, Belgium",
+        "Zurich, Switzerland",
+        "Vienna, Austria",
+        "Bucharest, Romania",
+        "Budapest, Hungary",
+    ],
+)
 def test_non_us_country_in_location_rejected(loc):
     assert _check_ineligible(_job(location=loc)) is not None
 
 
 # ── Must NOT reject legit US roles ──────────────────────────────────
+
 
 def test_senior_us_remote_rejected():
     assert _check_ineligible(_job(title="Senior Software Engineer", location="Remote (US)")) is not None
@@ -207,19 +216,23 @@ def test_associate_director_rejected():
 # The prior 800-char head-only scan missed those. Bumped to 6000 + new
 # patterns. Each test below corresponds to a real failed-apply URL.
 
+
 def test_twilio_uk_remote_buried_in_description_rejected():
     """Twilio jobs/7662058 — Senior SWE with UK location buried in desc."""
     desc = (
         "About Twilio: We are looking for an exceptional Senior Software "
-        "Engineer to join our team. " * 30  # pushes the restriction past 800 chars
+        "Engineer to join our team. "
+        * 30  # pushes the restriction past 800 chars
         + " The mission of this team is to build the foundational platform. "
         + "This role will be remote and based in the UK."
     )
-    result = _check_ineligible(_job(
-        title="Senior Software Engineer",
-        location="Remote",
-        description=desc,
-    ))
+    result = _check_ineligible(
+        _job(
+            title="Senior Software Engineer",
+            location="Remote",
+            description=desc,
+        )
+    )
     assert result is not None
     assert "non-US geography in description" in result
 
@@ -227,14 +240,17 @@ def test_twilio_uk_remote_buried_in_description_rejected():
 def test_twilio_canada_provinces_rejected():
     """Twilio jobs/7767260 — L3 SWE with Canada-province restriction."""
     desc = (
-        "About Twilio: " + "blah " * 200
+        "About Twilio: "
+        + "blah " * 200
         + " This role will be remote and based in Ontario, British Columbia or Alberta, Canada."
     )
-    result = _check_ineligible(_job(
-        title="Software Engineer (L3) Infrastructure",
-        location="Remote",
-        description=desc,
-    ))
+    result = _check_ineligible(
+        _job(
+            title="Software Engineer (L3) Infrastructure",
+            location="Remote",
+            description=desc,
+        )
+    )
     assert result is not None
 
 
@@ -258,8 +274,10 @@ def test_ist_timezone_rejected():
 
 # ── _parse_score_response: ELIGIBILITY field extraction ─────────────
 
+
 def test_parser_extracts_eligibility_eligible():
     from applypilot.scoring.scorer import _parse_score_response
+
     response = """ELIGIBILITY: eligible
 SCORE: 9
 KEYWORDS: Python, Go, Kubernetes
@@ -271,6 +289,7 @@ REASONING: Strong stack match, US remote role."""
 
 def test_parser_extracts_eligibility_non_us_only():
     from applypilot.scoring.scorer import _parse_score_response
+
     response = """ELIGIBILITY: non_us_only
 SCORE: 8
 KEYWORDS: backend
@@ -283,6 +302,7 @@ def test_parser_eligibility_with_brackets():
     """The prompt template shows [eligible|non_us_only] — make sure
     ``ELIGIBILITY: [non_us_only]`` (the LLM keeping the brackets) parses."""
     from applypilot.scoring.scorer import _parse_score_response
+
     response = "ELIGIBILITY: [non_us_only]\nSCORE: 7\nKEYWORDS: foo\nREASONING: bar"
     parsed = _parse_score_response(response)
     assert parsed["eligibility"] == "non_us_only"
@@ -291,6 +311,7 @@ def test_parser_eligibility_with_brackets():
 def test_parser_missing_eligibility_defaults_to_eligible():
     """Older models that omit the field — default to eligible (no false bans)."""
     from applypilot.scoring.scorer import _parse_score_response
+
     response = "SCORE: 8\nKEYWORDS: foo\nREASONING: bar"
     parsed = _parse_score_response(response)
     assert parsed["eligibility"] == "eligible"
@@ -304,6 +325,7 @@ def test_parser_handles_markdown_bold_fields():
     a markdown preamble before the four required fields, which claude_cli
     produces despite being told not to."""
     from applypilot.scoring.scorer import _parse_score_response
+
     response = (
         "I'll evaluate this job against the candidate's profile.\n\n"
         "## GEOGRAPHY CHECK\n\nNo restriction found.\n\n"
@@ -319,17 +341,99 @@ def test_parser_handles_markdown_bold_fields():
     assert parsed["reasoning"] == "Strong match on certification and hands-on background."
 
 
+# ── _parse_score_response: unparseable responses must yield score=None, ────
+# ── never a fake 0 ───────────────────────────────────────────────────────
+#
+# 2026-08-25 fix: score used to default to 0 whenever no "SCORE: <digits>"
+# line could be found -- indistinguishable from a real parsed score, since
+# nothing downstream could tell "the LLM said 0" apart from "nothing was
+# parseable". score_job()/_flush_score_batch's success/failure branching is
+# keyed on `score is not None`, so a fake 0 was silently written to the DB
+# as a successful fit_score=0 with score_error cleared. None now signals
+# "could not parse" so the existing failure path (retry/backoff, eventually
+# score_failed) handles it instead of a redesign.
+
+
+def test_parser_empty_response_returns_none_score():
+    from applypilot.scoring.scorer import _parse_score_response
+
+    parsed = _parse_score_response("")
+    assert parsed["score"] is None
+
+
+def test_parser_whitespace_only_response_returns_none_score():
+    from applypilot.scoring.scorer import _parse_score_response
+
+    parsed = _parse_score_response("   \n\t  ")
+    assert parsed["score"] is None
+
+
+def test_parser_refusal_prose_returns_none_score():
+    """A conversational refusal/non-conforming answer with no SCORE: line
+    at all -- the model ignored the output-format instruction entirely."""
+    from applypilot.scoring.scorer import _parse_score_response
+
+    parsed = _parse_score_response("I cannot assist with evaluating this job posting.")
+    assert parsed["score"] is None
+
+
+def test_parser_malformed_score_value_returns_none_score():
+    """SCORE: present but its value isn't digits -- the regex requires
+    \\d+, so this must not match and fall through to None, not silently
+    coerce/crash."""
+    from applypilot.scoring.scorer import _parse_score_response
+
+    parsed = _parse_score_response("SCORE: not_a_number\nREASONING: unclear")
+    assert parsed["score"] is None
+
+
+def test_parser_truncated_response_before_score_line_returns_none_score():
+    """A response cut off mid-generation before ever reaching the SCORE:
+    line (e.g. token budget exhausted) -- must not silently default."""
+    from applypilot.scoring.scorer import _parse_score_response
+
+    parsed = _parse_score_response(
+        "Let me evaluate this candidate against the job requirements in detail. "
+        "First, looking at the technical stack overlap between the resume and "
+        "the posting, I notice several relevant"  # cut off, no SCORE: line ever appears
+    )
+    assert parsed["score"] is None
+
+
+def test_parser_legitimate_score_zero_is_impossible_by_contract():
+    """Documents an important invariant relied on by the None-means-
+    unparseable fix: the prompt's own contract is "SCORE: [1-10]", and the
+    parser clamps any matched digit into that range (max(1, min(10, ...))),
+    so a literal "SCORE: 0" in the raw text is clamped UP to 1, never left
+    as 0. Under the current contract, 0 can never be a legitimately parsed
+    score -- confirming the None sentinel doesn't collide with any real
+    value this parser can produce."""
+    from applypilot.scoring.scorer import _parse_score_response
+
+    parsed = _parse_score_response("SCORE: 0\nREASONING: literal zero in the text")
+    assert parsed["score"] == 1
+
+
+def test_parser_legitimate_nonzero_score_is_unaffected():
+    from applypilot.scoring.scorer import _parse_score_response
+
+    parsed = _parse_score_response("ELIGIBILITY: eligible\nSCORE: 3\nKEYWORDS: none\nREASONING: weak fit.")
+    assert parsed["score"] == 3
+
+
 # ── Ethical exclusions (defense/weapons/surveillance/policing) ──────────
 # Regression test for the 2026-08-18 bug: detail.py's ethical-keyword loader
 # called a config function that didn't exist and was never even called, so
 # exclude_description_keywords (military/defense contractor/weapons/etc.) was
 # silently a no-op end to end. Enforcement now lives in _check_ineligible.
 
+
 def test_defense_contractor_description_rejected(monkeypatch):
     import applypilot.scoring.scorer as scorer_mod
 
     monkeypatch.setattr(
-        scorer_mod, "load_search_config",
+        scorer_mod,
+        "load_search_config",
         lambda: {"exclude_description_keywords": ["defense contractor", "autonomous weapons"]},
     )
     job = _job(
@@ -343,7 +447,8 @@ def test_non_defense_description_not_rejected_by_ethical_filter(monkeypatch):
     import applypilot.scoring.scorer as scorer_mod
 
     monkeypatch.setattr(
-        scorer_mod, "load_search_config",
+        scorer_mod,
+        "load_search_config",
         lambda: {"exclude_description_keywords": ["defense contractor", "autonomous weapons"]},
     )
     job = _job(title="Software Engineer", description="We build SaaS billing software.")
@@ -370,7 +475,7 @@ def test_masters_required_curly_apostrophe_rejected():
     job = _job(
         title="Software Engineer",
         description="Minimum Requirements: Master’s degree, or foreign equivalent, "
-                     "in Computer Science, Engineering, or a closely related field.",
+        "in Computer Science, Engineering, or a closely related field.",
     )
     assert _check_ineligible(job, _NO_ADVANCED_DEGREE_PROFILE) is not None
 

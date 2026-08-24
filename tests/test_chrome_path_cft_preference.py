@@ -6,6 +6,7 @@ the supported automation Chrome that still accepts it. The fix in
 config.get_chrome_path puts CfT at the head of the candidate list on
 Linux so that any installed CfT wins over a system google-chrome.
 """
+
 from __future__ import annotations
 
 import platform
@@ -43,11 +44,11 @@ class TestChromePathCftPreference:
         import importlib
 
         import applypilot.config as config_module
+
         importlib.reload(config_module)
 
         result = config_module.get_chrome_path()
-        assert result == str(cft_bin), \
-            f"Expected CfT at {cft_bin}, got {result}"
+        assert result == str(cft_bin), f"Expected CfT at {cft_bin}, got {result}"
 
     def test_falls_back_to_system_chrome_when_cft_missing(self, tmp_path, monkeypatch):
         """If CfT is NOT installed, the system google-chrome (or chromium) wins."""
@@ -65,11 +66,11 @@ class TestChromePathCftPreference:
         import importlib
 
         import applypilot.config as config_module
+
         importlib.reload(config_module)
 
         result = config_module.get_chrome_path()
-        assert result == str(sys_chrome), \
-            f"Expected system chrome at {sys_chrome}, got {result}"
+        assert result == str(sys_chrome), f"Expected system chrome at {sys_chrome}, got {result}"
 
     def test_chrome_path_env_overrides_cft(self, tmp_path, monkeypatch):
         """CHROME_PATH env var overrides everything, including CfT."""
@@ -89,6 +90,7 @@ class TestChromePathCftPreference:
         import importlib
 
         import applypilot.config as config_module
+
         importlib.reload(config_module)
 
         result = config_module.get_chrome_path()

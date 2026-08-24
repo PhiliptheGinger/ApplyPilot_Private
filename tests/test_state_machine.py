@@ -15,8 +15,8 @@ from applypilot.database import (
     transition_state,
 )
 
-
 # ── VALID_TRANSITIONS graph invariants ────────────────────────────
+
 
 def test_all_states_have_transition_entry():
     """Every state in VALID_STATES must appear as a key in VALID_TRANSITIONS."""
@@ -42,6 +42,7 @@ def test_offer_only_transitions_to_archived():
 
 
 # ── transition_state() behavior ───────────────────────────────────
+
 
 def test_legal_transition_succeeds(tmp_db, seed_job):
     conn = tmp_db()
@@ -89,8 +90,10 @@ def test_same_state_transition_is_allowed(tmp_db, seed_job):
 def test_transition_writes_audit_row(tmp_db, seed_job):
     conn = tmp_db()
     url = seed_job(conn, url_suffix="t6")["url"]
-    assert transition_state(conn, url, "enriched", reason="loaded 3k chars",
-                            metadata={"chars": 3012, "tier": "T1"}) is True
+    assert (
+        transition_state(conn, url, "enriched", reason="loaded 3k chars", metadata={"chars": 3012, "tier": "T1"})
+        is True
+    )
 
     history = state_history(conn, url)
     assert len(history) == 1
@@ -99,6 +102,7 @@ def test_transition_writes_audit_row(tmp_db, seed_job):
     assert history[0]["reason"] == "loaded 3k chars"
     # metadata is JSON-serialized
     import json
+
     md = json.loads(history[0]["metadata"])
     assert md["chars"] == 3012
     assert md["tier"] == "T1"
@@ -118,11 +122,10 @@ def test_state_history_ordering(tmp_db, seed_job):
 
 # ── backfill_states() derivation ──────────────────────────────────
 
+
 def test_backfill_derives_applied(tmp_db, seed_job):
     conn = tmp_db()
-    url = seed_job(conn, url_suffix="b1",
-                   apply_status="applied",
-                   applied_at="2026-04-01T00:00:00+00:00")["url"]
+    url = seed_job(conn, url_suffix="b1", apply_status="applied", applied_at="2026-04-01T00:00:00+00:00")["url"]
     counts = backfill_states(conn)
     assert counts.get("applied") == 1
     assert current_state(conn, url) == "applied"
@@ -131,9 +134,7 @@ def test_backfill_derives_applied(tmp_db, seed_job):
 def test_backfill_derives_interview_from_tracking(tmp_db, seed_job):
     """tracking_status beats apply_status in precedence."""
     conn = tmp_db()
-    url = seed_job(conn, url_suffix="b2",
-                   apply_status="applied",
-                   tracking_status="interview")["url"]
+    url = seed_job(conn, url_suffix="b2", apply_status="applied", tracking_status="interview")["url"]
     counts = backfill_states(conn)
     assert counts.get("interview") == 1
     assert current_state(conn, url) == "interview"
@@ -141,19 +142,21 @@ def test_backfill_derives_interview_from_tracking(tmp_db, seed_job):
 
 def test_backfill_derives_low_score(tmp_db, seed_job):
     conn = tmp_db()
-    url = seed_job(conn, url_suffix="b3",
-                   fit_score=3)["url"]
+    url = seed_job(conn, url_suffix="b3", fit_score=3)["url"]
     backfill_states(conn)
     assert current_state(conn, url) == "low_score"
 
 
 def test_backfill_derives_ready_to_apply(tmp_db, seed_job):
     conn = tmp_db()
-    url = seed_job(conn, url_suffix="b4",
-                   fit_score=9,
-                   tailored_resume_path="/tmp/r.docx",
-                   cover_letter_path="/tmp/c.docx",
-                   application_url="https://ex.com/apply")["url"]
+    url = seed_job(
+        conn,
+        url_suffix="b4",
+        fit_score=9,
+        tailored_resume_path="/tmp/r.docx",
+        cover_letter_path="/tmp/c.docx",
+        application_url="https://ex.com/apply",
+    )["url"]
     backfill_states(conn)
     assert current_state(conn, url) == "ready_to_apply"
 
@@ -161,10 +164,14 @@ def test_backfill_derives_ready_to_apply(tmp_db, seed_job):
 def test_backfill_is_idempotent(tmp_db, seed_job):
     """Running backfill twice shouldn't re-process any job."""
     conn = tmp_db()
-    seed_job(conn, url_suffix="i1", fit_score=9,
-             tailored_resume_path="/tmp/r.docx",
-             cover_letter_path="/tmp/c.docx",
-             application_url="https://ex.com/apply")
+    seed_job(
+        conn,
+        url_suffix="i1",
+        fit_score=9,
+        tailored_resume_path="/tmp/r.docx",
+        cover_letter_path="/tmp/c.docx",
+        application_url="https://ex.com/apply",
+    )
     first = backfill_states(conn)
     assert sum(first.values()) == 1
     second = backfill_states(conn)

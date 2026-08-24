@@ -38,7 +38,15 @@ import re
 # already-vetted list rather than inventing a new one.
 SENIORITY_TITLE_PATTERN = re.compile(
     r"\b(?:senior|sr\.?|staff|principal|lead|architect|director|"
-    r"manager|head|vp|vice president|chief|distinguished|fellow)\b",
+    r"manager|head|vp|vice president|chief|distinguished|fellow|"
+    # 2026-08-25: "cto" added -- a bare acronym found NOT to match any
+    # existing alternative (discovered while consolidating tailor.py's
+    # seniority gate onto this predicate; the removed duplicate had its own
+    # "cto" case this canonical version lacked). Unlike director/chief/
+    # manager/head, "CTO" has essentially no legitimate non-technical
+    # meaning in a job title, so this is a narrow, low-risk addition rather
+    # than the kind of breadth tradeoff those other words represent.
+    r"cto)\b",
     re.IGNORECASE,
 )
 

@@ -5,7 +5,7 @@ and maintains per-job tracking documents with timelines and action items.
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from rich.console import Console
 from rich.table import Table
@@ -21,7 +21,6 @@ from applypilot.database import (
 log = logging.getLogger(__name__)
 console = Console()
 
-UTC = timezone.utc
 
 
 def show_action_items() -> None:
@@ -82,8 +81,7 @@ def _process_classified_email(
     if match:
         job_url = match["job_url"]
         counters["matched"] += 1
-        log.info("Matched email '%s' -> %s (score: %d)",
-                 email.get("subject", "")[:50], job_url[:60], match["score"])
+        log.info("Matched email '%s' -> %s (score: %d)", email.get("subject", "")[:50], job_url[:60], match["score"])
     else:
         if dry_run:
             console.print(
@@ -93,61 +91,75 @@ def _process_classified_email(
             return
         job_url = create_stub_job(email, classification, conn)
         counters["stubs"] += 1
-        log.info("Created stub job for '%s' -> %s",
-                 email.get("subject", "")[:50], job_url[:60])
+        log.info("Created stub job for '%s' -> %s", email.get("subject", "")[:50], job_url[:60])
 
     now = datetime.now(UTC).isoformat()
 
     if dry_run:
         console.print(
-            f"  [dim]DRY RUN:[/dim] {email.get('subject', '')[:60]} "
-            f"-> [bold]{classification}[/bold] -> {job_url[:50]}"
+            f"  [dim]DRY RUN:[/dim] {email.get('subject', '')[:60]} -> [bold]{classification}[/bold] -> {job_url[:50]}"
         )
         return
 
-    store_tracking_email({
-        "email_id": email["id"],
-        "thread_id": email.get("thread_id"),
-        "job_url": job_url,
-        "sender": email.get("sender"),
-        "sender_name": email.get("sender_name"),
-        "subject": email.get("subject"),
-        "received_at": email.get("date"),
-        "snippet": email.get("snippet"),
-        "body_text": email.get("body", ""),
-        "classification": classification,
-        "extracted_data": json.dumps({
-            "people": result.get("people", []),
-            "dates": result.get("dates", []),
-            "action_items": result.get("action_items", []),
-            "summary": result.get("summary", ""),
-        }),
-        "classified_at": now,
-    }, conn)
+    store_tracking_email(
+        {
+            "email_id": email["id"],
+            "thread_id": email.get("thread_id"),
+            "job_url": job_url,
+            "sender": email.get("sender"),
+            "sender_name": email.get("sender_name"),
+            "subject": email.get("subject"),
+            "received_at": email.get("date"),
+            "snippet": email.get("snippet"),
+            "body_text": email.get("body", ""),
+            "classification": classification,
+            "extracted_data": json.dumps(
+                {
+                    "people": result.get("people", []),
+                    "dates": result.get("dates", []),
+                    "action_items": result.get("action_items", []),
+                    "summary": result.get("summary", ""),
+                }
+            ),
+            "classified_at": now,
+        },
+        conn,
+    )
 
     update_tracking_status(job_url, classification, conn)
-    update_job_tracking_fields(job_url, {
-        "last_email_at": email.get("date", now),
-    }, conn)
+    update_job_tracking_fields(
+        job_url,
+        {
+            "last_email_at": email.get("date", now),
+        },
+        conn,
+    )
 
     action_items = result.get("action_items", [])
     if action_items:
         first = action_items[0]
-        update_job_tracking_fields(job_url, {
-            "next_action": first.get("task", ""),
-            "next_action_due": first.get("deadline"),
-        }, conn)
+        update_job_tracking_fields(
+            job_url,
+            {
+                "next_action": first.get("task", ""),
+                "next_action_due": first.get("deadline"),
+            },
+            conn,
+        )
 
     for person in result.get("people", []):
         if person.get("email") or person.get("name"):
-            store_tracking_person({
-                "job_url": job_url,
-                "name": person.get("name"),
-                "title": person.get("title"),
-                "email": person.get("email"),
-                "source_email_id": email["id"],
-                "first_seen_at": now,
-            }, conn)
+            store_tracking_person(
+                {
+                    "job_url": job_url,
+                    "name": person.get("name"),
+                    "title": person.get("title"),
+                    "email": person.get("email"),
+                    "source_email_id": email["id"],
+                    "first_seen_at": now,
+                },
+                conn,
+            )
 
 
 def remap_stubs(conn=None) -> dict:
@@ -199,11 +211,14 @@ def remap_stubs(conn=None) -> dict:
         stub_url = stub_row["job_url"]
 
         # Fetch all emails under this stub
-        emails = conn.execute("""
+        emails = conn.execute(
+            """
             SELECT email_id, sender, sender_name, subject, snippet,
                    received_at, classification, body_text
             FROM tracking_emails WHERE job_url = ?
-        """, (stub_url,)).fetchall()
+        """,
+            (stub_url,),
+        ).fetchall()
 
         # Check how many distinct companies are mentioned across subjects
         companies = set()
@@ -216,8 +231,10 @@ def remap_stubs(conn=None) -> dict:
             # All emails plausibly about the same company — leave as-is
             continue
 
-        console.print(f"  Remapping stub {stub_url[:60]} ({len(emails)} emails, "
-                      f"{len(companies)} companies: {', '.join(sorted(companies)[:5])})")
+        console.print(
+            f"  Remapping stub {stub_url[:60]} ({len(emails)} emails, "
+            f"{len(companies)} companies: {', '.join(sorted(companies)[:5])})"
+        )
 
         # Exclude the current stub so emails can't just re-match back to it
         jobs_without_stub = [j for j in applied_jobs if j["url"] != stub_url]
@@ -238,15 +255,15 @@ def remap_stubs(conn=None) -> dict:
             match = match_email_to_job(email_dict, jobs_without_stub)
             if match:
                 new_url = match["job_url"]
-                log.info("  remap: %s -> pipeline job %s (score=%d)",
-                         email_row["email_id"], new_url[:50], match["score"])
+                log.info(
+                    "  remap: %s -> pipeline job %s (score=%d)", email_row["email_id"], new_url[:50], match["score"]
+                )
             else:
                 # Create a proper per-company stub
                 new_url = create_stub_job(email_dict, classification, conn)
                 if new_url != stub_url:
                     new_stubs += 1
-                    log.info("  remap: %s -> new stub %s",
-                             email_row["email_id"], new_url[:50])
+                    log.info("  remap: %s -> new stub %s", email_row["email_id"], new_url[:50])
 
             if new_url != stub_url:
                 conn.execute(
@@ -261,8 +278,7 @@ def remap_stubs(conn=None) -> dict:
     # Re-compute tracking_status for all affected jobs
     for job_url in affected_job_urls:
         rows = conn.execute(
-            "SELECT classification FROM tracking_emails WHERE job_url = ? "
-            "ORDER BY received_at DESC",
+            "SELECT classification FROM tracking_emails WHERE job_url = ? ORDER BY received_at DESC",
             (job_url,),
         ).fetchall()
         for row in rows:
@@ -363,7 +379,7 @@ def run_tracking(
     # 1. Search emails (metadata only — no body reads)
     try:
         emails = asyncio.run(search_application_emails(days=days, limit=limit))
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - top-level Gmail fetch is unreliable (network/auth/MCP); degrade to a clean CLI error report, not a crash
         console.print(f"[red]Gmail fetch failed:[/red] {e}")
         console.print("[dim]Run `applypilot track --setup` to verify Gmail connectivity.[/dim]")
         return {"fetched": 0, "matched": 0, "classified": 0, "ghosted": 0, "errors": 1}
@@ -379,9 +395,15 @@ def run_tracking(
         ghosted_count = 0
         if not dry_run:
             ghosted_count = detect_ghosted(applied_jobs, ghosted_days=ghosted_days, conn=conn)
-        return {"fetched": len(emails), "matched": 0, "stubs": 0,
-                "classified": 0, "ghosted": ghosted_count, "errors": 0,
-                "triage_savings_pct": 0.0}
+        return {
+            "fetched": len(emails),
+            "matched": 0,
+            "stubs": 0,
+            "classified": 0,
+            "ghosted": ghosted_count,
+            "errors": 0,
+            "triage_savings_pct": 0.0,
+        }
 
     # 3. Triage with pure Python
     triage_results, triage_stats = triage_batch(new_emails)
@@ -407,7 +429,7 @@ def run_tracking(
         console.print(f"  Reading {len(llm_emails)} email bodies for LLM classification...")
         try:
             bodies = asyncio.run(read_email_bodies([e["id"] for e in llm_emails]))
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - Gmail body-read batch is unreliable; degrade to no bodies, downstream classification still runs on metadata
             log.warning("Body read failed: %s", e)
             bodies = {}
 
@@ -423,7 +445,7 @@ def run_tracking(
             try:
                 result = classify_email(email)
                 classified_count += 1
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - processing independent emails; one email's classification failure must not abort the batch, it's marked noise and the loop continues
                 log.warning("Classification failed for email %s: %s", email["id"], e)
                 result = {
                     "classification": "noise",
@@ -440,10 +462,8 @@ def run_tracking(
     # 7. Apply 'ap-track' Gmail label to non-noise emails
     if not dry_run:
         from applypilot.tracking.gmail_client import apply_label_to_emails
-        labeled_ids = [
-            email["id"] for email, triage in triage_results
-            if triage.classification != "noise"
-        ]
+
+        labeled_ids = [email["id"] for email, triage in triage_results if triage.classification != "noise"]
         if labeled_ids:
             labeled_count = asyncio.run(apply_label_to_emails(labeled_ids))
             if labeled_count:

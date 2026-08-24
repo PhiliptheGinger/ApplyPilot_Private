@@ -9,7 +9,7 @@ Supported formats: "pdf" (default), "docx".
 
 import logging
 import re
-from datetime import timezone
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
@@ -20,7 +20,6 @@ VALID_DOC_FORMATS = ("pdf", "docx")
 
 log = logging.getLogger(__name__)
 
-UTC = timezone.utc
 
 
 # ── URL / email auto-linking ─────────────────────────────────────────────
@@ -70,7 +69,7 @@ def _split_text_with_links(text: str) -> list[tuple[str, str | None]]:
     pos = 0
     for m in _URL_RE.finditer(text):
         if m.start() > pos:
-            parts.append((text[pos:m.start()], None))
+            parts.append((text[pos : m.start()], None))
         token = m.group(0)
         # Trim trailing punctuation that the regex may have grabbed.
         trailing = ""
@@ -89,6 +88,7 @@ def _split_text_with_links(text: str) -> list[tuple[str, str | None]]:
 
 
 # ── Resume Parser ────────────────────────────────────────────────────────
+
 
 def parse_resume(text: str) -> dict:
     """Parse a structured text resume into sections.
@@ -244,7 +244,7 @@ def _strip_bullet(stripped: str) -> str:
     """Drop the leading bullet marker from a known-bullet line."""
     for prefix in _BULLET_PREFIXES:
         if stripped.startswith(prefix):
-            return stripped[len(prefix):].strip()
+            return stripped[len(prefix) :].strip()
     return stripped
 
 
@@ -422,6 +422,7 @@ def parse_education_entries(text: str) -> list[dict]:
 
 # ── HTML Template ────────────────────────────────────────────────────────
 
+
 def build_html(resume: dict) -> str:
     """Build professional resume HTML from parsed data.
 
@@ -460,20 +461,14 @@ def build_html(resume: dict) -> str:
         for e in parse_entries(section_text):
             title, team_subtitle, date_meta = _resolve_entry_lines(e)
             bullets = "".join(f"<li>{_linkify(b)}</li>" for b in e["bullets"])
-            subtitle_html = (
-                f'<div class="entry-subtitle">{_linkify(team_subtitle)}</div>'
-                if team_subtitle else ""
-            )
-            meta_html = (
-                f'<div class="entry-meta">{_linkify(date_meta)}</div>'
-                if date_meta else ""
-            )
+            subtitle_html = f'<div class="entry-subtitle">{_linkify(team_subtitle)}</div>' if team_subtitle else ""
+            meta_html = f'<div class="entry-meta">{_linkify(date_meta)}</div>' if date_meta else ""
             items += (
                 f'<div class="entry">'
                 f'<div class="entry-title">{_linkify(title)}</div>'
-                f'{subtitle_html}{meta_html}'
-                f'<ul>{bullets}</ul>'
-                f'</div>'
+                f"{subtitle_html}{meta_html}"
+                f"<ul>{bullets}</ul>"
+                f"</div>"
             )
         return items
 
@@ -483,19 +478,13 @@ def build_html(resume: dict) -> str:
     exp_section = sections.get("PROFESSIONAL EXPERIENCE") or sections.get("EXPERIENCE")
     if exp_section:
         items = _render_entries_html(exp_section)
-        exp_html = (
-            f'<div class="section">'
-            f'<div class="section-title">Professional Experience</div>{items}</div>'
-        )
+        exp_html = f'<div class="section"><div class="section-title">Professional Experience</div>{items}</div>'
 
     # Earlier Experience
     earlier_html = ""
     if "EARLIER EXPERIENCE" in sections:
         items = _render_entries_html(sections["EARLIER EXPERIENCE"])
-        earlier_html = (
-            f'<div class="section">'
-            f'<div class="section-title">Earlier Experience</div>{items}</div>'
-        )
+        earlier_html = f'<div class="section"><div class="section-title">Earlier Experience</div>{items}</div>'
 
     # Projects
     proj_html = ""
@@ -524,7 +513,7 @@ def build_html(resume: dict) -> str:
                 rows += f'<div class="edu-degree">{_linkify(degree_line)}</div>'
             if dates:
                 rows += f'<div class="edu-dates">{dates}</div>'
-            rows += '</div>'
+            rows += "</div>"
         return rows
 
     # Certifications / Languages — flat per-line sections.
@@ -538,7 +527,8 @@ def build_html(resume: dict) -> str:
 
     edu_html = (
         f'<div class="section"><div class="section-title">Education</div>{_education_html(sections["EDUCATION"])}</div>'
-        if "EDUCATION" in sections else ""
+        if "EDUCATION" in sections
+        else ""
     )
     cert_html = _list_section_html("Certifications", sections["CERTIFICATIONS"]) if "CERTIFICATIONS" in sections else ""
     lang_html = _list_section_html("Languages", sections["LANGUAGES"]) if "LANGUAGES" in sections else ""
@@ -697,8 +687,8 @@ li {{
 </head>
 <body>
 <div class="header">
-    <div class="name">{_esc(resume['name'])}</div>
-    <div class="title">{_esc(resume['title'])}</div>
+    <div class="name">{_esc(resume["name"])}</div>
+    <div class="title">{_esc(resume["title"])}</div>
     {location_html}
     <div class="contact">{contact_html}</div>
 </div>
@@ -715,6 +705,7 @@ li {{
 
 
 # ── PDF Renderer ─────────────────────────────────────────────────────────
+
 
 def render_pdf(html: str, output_path: str, metadata: dict | None = None) -> None:
     """Render HTML to PDF using Playwright's headless Chromium.
@@ -772,14 +763,14 @@ def _set_pdf_metadata(path: str, metadata: dict) -> None:
     pdf_date = now.strftime("D:%Y%m%d%H%M%S+00'00'")
 
     info = {
-        "/Title":        str(metadata.get("title", ""))[:512],
-        "/Author":       str(metadata.get("author", "")),
-        "/Subject":      str(metadata.get("subject", ""))[:512],
-        "/Keywords":     str(kw or ""),
-        "/Creator":      "Microsoft Word",
-        "/Producer":     "Microsoft Word",
+        "/Title": str(metadata.get("title", ""))[:512],
+        "/Author": str(metadata.get("author", "")),
+        "/Subject": str(metadata.get("subject", ""))[:512],
+        "/Keywords": str(kw or ""),
+        "/Creator": "Microsoft Word",
+        "/Producer": "Microsoft Word",
         "/CreationDate": pdf_date,
-        "/ModDate":      pdf_date,
+        "/ModDate": pdf_date,
     }
     # Drop empties so we don't write zero-length fields.
     info = {k: v for k, v in info.items() if v}
@@ -790,6 +781,7 @@ def _set_pdf_metadata(path: str, metadata: dict) -> None:
 
 
 # ── DOCX Renderer ────────────────────────────────────────────────────
+
 
 def render_docx(resume: dict, output_path: str, metadata: dict | None = None) -> None:
     """Render parsed resume data to a DOCX file using python-docx.
@@ -810,9 +802,9 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
     # Brand link color (matches the section-heading bottom-border).
     LINK_COLOR_HEX = "2A7AB5"
 
-    def _add_hyperlink_run(paragraph, display: str, href: str,
-                           font_size: Pt | None = None,
-                           bold: bool = False, italic: bool = False) -> None:
+    def _add_hyperlink_run(
+        paragraph, display: str, href: str, font_size: Pt | None = None, bold: bool = False, italic: bool = False
+    ) -> None:
         """Append a clickable hyperlink run to ``paragraph``.
 
         Renders without an underline (Jobscan-friendly + matches the user's
@@ -869,10 +861,15 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
         hyperlink.append(new_run)
         paragraph._p.append(hyperlink)
 
-    def _add_runs_with_links(paragraph, text: str, *,
-                             font_size: Pt | None = None,
-                             color: RGBColor | None = None,
-                             bold: bool = False, italic: bool = False) -> None:
+    def _add_runs_with_links(
+        paragraph,
+        text: str,
+        *,
+        font_size: Pt | None = None,
+        color: RGBColor | None = None,
+        bold: bool = False,
+        italic: bool = False,
+    ) -> None:
         """Add ``text`` to ``paragraph`` with auto-detected URLs as hyperlinks.
 
         Plain segments inherit the supplied font_size/color/bold/italic.
@@ -880,8 +877,7 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
         """
         for segment, href in _split_text_with_links(text):
             if href:
-                _add_hyperlink_run(paragraph, segment, href,
-                                   font_size=font_size, bold=bold, italic=italic)
+                _add_hyperlink_run(paragraph, segment, href, font_size=font_size, bold=bold, italic=italic)
             else:
                 r = paragraph.add_run(segment)
                 if font_size is not None:
@@ -908,11 +904,18 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
     # Subtitle / Heading 1 / Heading 2 styles and re-skin them to match
     # the visual design — same look, but now there's a structural map.
 
-    def _restyle(name: str, *, size: float, bold: bool = False,
-                 italic: bool = False, color: tuple[int, int, int] = (0x1A, 0x1A, 0x1A),
-                 caps: bool = False,
-                 space_before: float = 0, space_after: float = 0,
-                 line_spacing: float = 1.35) -> Any:
+    def _restyle(
+        name: str,
+        *,
+        size: float,
+        bold: bool = False,
+        italic: bool = False,
+        color: tuple[int, int, int] = (0x1A, 0x1A, 0x1A),
+        caps: bool = False,
+        space_before: float = 0,
+        space_after: float = 0,
+        line_spacing: float = 1.35,
+    ) -> Any:
         s = doc.styles[name]
         f = s.font
         f.name = "Calibri"
@@ -932,23 +935,42 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
     _restyle("Normal", size=10, color=(0x1A, 0x1A, 0x1A))
 
     _restyle(
-        "Title", size=18, bold=True, color=(0x1A, 0x3A, 0x5C),
-        space_after=1, line_spacing=1.1,
+        "Title",
+        size=18,
+        bold=True,
+        color=(0x1A, 0x3A, 0x5C),
+        space_after=1,
+        line_spacing=1.1,
     )
     _restyle(
-        "Subtitle", size=10.5, color=(0x3A, 0x6B, 0x8C),
-        space_after=0, line_spacing=1.2,
+        "Subtitle",
+        size=10.5,
+        color=(0x3A, 0x6B, 0x8C),
+        space_after=0,
+        line_spacing=1.2,
     )
     _restyle(
-        "Heading 1", size=10, bold=True, color=(0x1A, 0x3A, 0x5C), caps=True,
-        space_before=6, space_after=2,
+        "Heading 1",
+        size=10,
+        bold=True,
+        color=(0x1A, 0x3A, 0x5C),
+        caps=True,
+        space_before=6,
+        space_after=2,
     )
     _restyle(
-        "Heading 2", size=10, bold=True, color=(0x1A, 0x3A, 0x5C),
-        space_before=4, space_after=0,
+        "Heading 2",
+        size=10,
+        bold=True,
+        color=(0x1A, 0x3A, 0x5C),
+        space_before=4,
+        space_after=0,
     )
     _restyle(
-        "Heading 3", size=9, italic=True, color=(0x4A, 0x7A, 0x9B),
+        "Heading 3",
+        size=9,
+        italic=True,
+        color=(0x4A, 0x7A, 0x9B),
         space_after=0,
     )
 
@@ -973,8 +995,10 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
         contact_para = doc.add_paragraph()
         contact_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
         _add_runs_with_links(
-            contact_para, resume["contact"],
-            font_size=Pt(9), color=RGBColor(0x44, 0x44, 0x44),
+            contact_para,
+            resume["contact"],
+            font_size=Pt(9),
+            color=RGBColor(0x44, 0x44, 0x44),
         )
 
     sections = resume["sections"]
@@ -986,12 +1010,15 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
         # Bottom border via XML (matches the PDF blue underline).
         pPr = para._p.get_or_add_pPr()
         pBdr = pPr.makeelement(qn("w:pBdr"), {})
-        bottom = pBdr.makeelement(qn("w:bottom"), {
-            qn("w:val"): "single",
-            qn("w:sz"): "6",
-            qn("w:space"): "1",
-            qn("w:color"): "2A7AB5",
-        })
+        bottom = pBdr.makeelement(
+            qn("w:bottom"),
+            {
+                qn("w:val"): "single",
+                qn("w:sz"): "6",
+                qn("w:space"): "1",
+                qn("w:color"): "2A7AB5",
+            },
+        )
         pBdr.append(bottom)
         pPr.append(pBdr)
 
@@ -1009,15 +1036,20 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
             if team_subtitle:
                 sp = doc.add_paragraph(style="Heading 3")
                 _add_runs_with_links(
-                    sp, team_subtitle,
-                    font_size=Pt(9), color=RGBColor(0x4A, 0x7A, 0x9B), italic=True,
+                    sp,
+                    team_subtitle,
+                    font_size=Pt(9),
+                    color=RGBColor(0x4A, 0x7A, 0x9B),
+                    italic=True,
                 )
 
             if date_meta:
                 dp = doc.add_paragraph()
                 _add_runs_with_links(
-                    dp, date_meta,
-                    font_size=Pt(9), color=RGBColor(0x55, 0x55, 0x55),
+                    dp,
+                    date_meta,
+                    font_size=Pt(9),
+                    color=RGBColor(0x55, 0x55, 0x55),
                 )
 
             for bullet in entry["bullets"]:
@@ -1029,8 +1061,10 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
         _add_section_heading("Summary")
         p = doc.add_paragraph()
         _add_runs_with_links(
-            p, sections["SUMMARY"].strip(),
-            font_size=Pt(9.5), color=RGBColor(0x33, 0x33, 0x33),
+            p,
+            sections["SUMMARY"].strip(),
+            font_size=Pt(9.5),
+            color=RGBColor(0x33, 0x33, 0x33),
         )
 
     # ── Technical Skills ───────────────────────────────────────────────
@@ -1076,8 +1110,11 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
                 p = doc.add_paragraph()
                 p.paragraph_format.space_before = Pt(2)
                 _add_runs_with_links(
-                    p, entry["institution"],
-                    font_size=Pt(10), color=RGBColor(0x1A, 0x3A, 0x5C), bold=True,
+                    p,
+                    entry["institution"],
+                    font_size=Pt(10),
+                    color=RGBColor(0x1A, 0x3A, 0x5C),
+                    bold=True,
                 )
 
             # Degree + field on one line.
@@ -1091,8 +1128,10 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
                 end = entry.get("endDate") or "Present"
                 p = doc.add_paragraph()
                 _add_runs_with_links(
-                    p, f"{entry['startDate']} - {end}",
-                    font_size=Pt(9), color=RGBColor(0x55, 0x55, 0x55),
+                    p,
+                    f"{entry['startDate']} - {end}",
+                    font_size=Pt(9),
+                    color=RGBColor(0x55, 0x55, 0x55),
                 )
 
     # ── Certifications ─────────────────────────────────────────────────
@@ -1121,13 +1160,14 @@ def render_docx(resume: dict, output_path: str, metadata: dict | None = None) ->
     # tooling fingerprints.
     cp = doc.core_properties
     from datetime import datetime
+
     now = datetime.now(UTC).replace(microsecond=0)
 
     metadata = metadata or {}
-    cp.title    = str(metadata.get("title", ""))[:256]
-    cp.subject  = str(metadata.get("subject", ""))[:256]
-    cp.author   = str(metadata.get("author", "")) or ""
-    cp.company  = str(metadata.get("company", "")) or ""
+    cp.title = str(metadata.get("title", ""))[:256]
+    cp.subject = str(metadata.get("subject", ""))[:256]
+    cp.author = str(metadata.get("author", "")) or ""
+    cp.company = str(metadata.get("company", "")) or ""
     cp.category = str(metadata.get("category", "")) or ""
     cp.last_modified_by = str(metadata.get("last_modified_by", metadata.get("author", "")))[:256]
     # `comments` literally inherits "generated by python-docx" from the
@@ -1170,6 +1210,7 @@ def _scrub_docx_app_xml(path: str) -> None:
     import shutil
     import tempfile
     import zipfile
+
     src = str(path)
     fd, tmp = tempfile.mkstemp(suffix=".docx", dir=os.path.dirname(src) or None)
     os.close(fd)
@@ -1191,6 +1232,7 @@ def _scrub_docx_app_xml(path: str) -> None:
 
 
 # ── Public API ───────────────────────────────────────────────────────────
+
 
 def convert_to_pdf(
     text_path: Path,
@@ -1270,10 +1312,7 @@ def batch_convert(limit: int = 50, doc_format: str = "docx") -> int:
     txt_files = sorted(TAILORED_DIR.glob("*.txt"))
     # Exclude _JOB.txt files from resume conversion
     # (they get their own conversion calls)
-    candidates = [
-        f for f in txt_files
-        if not f.name.endswith("_JOB.txt")
-    ]
+    candidates = [f for f in txt_files if not f.name.endswith("_JOB.txt")]
 
     # Filter to those without a corresponding output file
     to_convert: list[Path] = []

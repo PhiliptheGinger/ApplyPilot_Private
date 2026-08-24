@@ -20,8 +20,6 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from applypilot.scoring.scorer import _check_ineligible
@@ -32,10 +30,26 @@ def _job(title, location="Remote (US)", description="A full-time US-remote posit
 
 
 _LIVE_EXCLUDE_TITLES = [
-    "senior", "sr.", "staff", "principal", "lead", "manager", "head",
-    "senior director", "director", "VP ", "vice president", "chief",
-    "architect", "distinguished", "fellow", "intern", "internship",
-    "co-op", "clearance required", "TS/SCI",
+    "senior",
+    "sr.",
+    "staff",
+    "principal",
+    "lead",
+    "manager",
+    "head",
+    "senior director",
+    "director",
+    "VP ",
+    "vice president",
+    "chief",
+    "architect",
+    "distinguished",
+    "fellow",
+    "intern",
+    "internship",
+    "co-op",
+    "clearance required",
+    "TS/SCI",
 ]
 
 
@@ -44,6 +58,7 @@ def _cfg(exclude_titles=None):
 
 
 # ── scorer.py exclude_titles: word-boundary fix ──────────────────────────
+
 
 class TestExcludeTitlesWordBoundary:
     @patch("applypilot.scoring.scorer.load_search_config")
@@ -125,6 +140,7 @@ class TestExcludeTitlesWordBoundary:
 
 # ── discovery _location_ok: word-boundary fix on reject lists ────────────
 
+
 class TestLocationRejectWordBoundary:
     """accept always includes a pattern that matches the test location, so
     the accept-list's own (unmodified, out-of-scope) substring semantics
@@ -133,34 +149,42 @@ class TestLocationRejectWordBoundary:
 
     def test_jobspy_indianapolis_not_rejected_by_india_pattern(self):
         from applypilot.discovery.jobspy import _location_ok
+
         assert _location_ok("Indianapolis, IN", accept=["IN"], reject=["india"]) is True
 
     def test_jobspy_mumbai_india_still_rejected(self):
         from applypilot.discovery.jobspy import _location_ok
+
         assert _location_ok("Mumbai, India", accept=["india"], reject=["india"]) is False
 
     def test_workday_indianapolis_not_rejected_by_india_pattern(self):
         from applypilot.discovery.workday import _location_ok
+
         assert _location_ok("Indianapolis, IN", accept=["IN"], reject=["india"]) is True
 
     def test_workday_mumbai_india_still_rejected(self):
         from applypilot.discovery.workday import _location_ok
+
         assert _location_ok("Mumbai, India", accept=["india"], reject=["india"]) is False
 
     def test_smartextract_indianapolis_not_rejected_by_india_pattern(self):
         from applypilot.discovery.smartextract import _location_ok
+
         assert _location_ok("Indianapolis, IN", accept=["IN"], reject=["india"]) is True
 
     def test_smartextract_mumbai_india_still_rejected(self):
         from applypilot.discovery.smartextract import _location_ok
+
         assert _location_ok("Mumbai, India", accept=["india"], reject=["india"]) is False
 
     def test_jobspy_france_not_rejected_by_nc_pattern(self):
         """'NC' as a reject pattern must not match the substring inside
         'France'."""
         from applypilot.discovery.jobspy import _location_ok
+
         assert _location_ok("Paris, France", accept=["france"], reject=["nc"]) is True
 
     def test_jobspy_north_carolina_still_rejected_by_nc_pattern(self):
         from applypilot.discovery.jobspy import _location_ok
+
         assert _location_ok("Charlotte, NC", accept=["nc"], reject=["nc"]) is False

@@ -9,7 +9,7 @@ subprocess.
 from __future__ import annotations
 
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -18,15 +18,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from applypilot import scheduler as sched
 from applypilot.claude_status import (
-    AUTH_FAILURE,
     AVAILABLE,
     EXHAUSTED_KNOWN_RESET,
     EXHAUSTED_UNKNOWN_RESET,
-    TRANSIENT_ERROR,
     ClaudeAvailability,
 )
-
-UTC = timezone.utc
 
 
 @pytest.fixture(autouse=True)
@@ -45,18 +41,27 @@ def _throughput(count: int, rate: float) -> dict:
 
 def _avail(state: str, reset_estimate=None, binding_window=None) -> ClaudeAvailability:
     return ClaudeAvailability(
-        state=state, reset_estimate=reset_estimate, reset_source=None,
-        cache_age_seconds=None, binding_window=binding_window, detail="test",
+        state=state,
+        reset_estimate=reset_estimate,
+        reset_source=None,
+        cache_age_seconds=None,
+        binding_window=binding_window,
+        detail="test",
     )
 
 
 # ── plan_upstream_work ───────────────────────────────────────────────────
 
+
 class TestPlanUpstreamWork:
     def test_ready_below_target_produces_need(self):
         plan = sched.plan_upstream_work(
-            ready=1, target=5, minutes_available=None, max_batch=20,
-            safety_margin=0.5, tailor_throughput=_throughput(5, 1.0),
+            ready=1,
+            target=5,
+            minutes_available=None,
+            max_batch=20,
+            safety_margin=0.5,
+            tailor_throughput=_throughput(5, 1.0),
             cover_throughput=_throughput(5, 1.0),
         )
         assert plan["need"] == 4
@@ -65,16 +70,24 @@ class TestPlanUpstreamWork:
 
     def test_ready_at_target_produces_nothing(self):
         plan = sched.plan_upstream_work(
-            ready=5, target=5, minutes_available=None, max_batch=20,
-            safety_margin=0.5, tailor_throughput=_throughput(5, 1.0),
+            ready=5,
+            target=5,
+            minutes_available=None,
+            max_batch=20,
+            safety_margin=0.5,
+            tailor_throughput=_throughput(5, 1.0),
             cover_throughput=_throughput(5, 1.0),
         )
         assert plan == {"tailor": 0, "cover": 0, "need": 0}
 
     def test_ready_above_target_produces_nothing(self):
         plan = sched.plan_upstream_work(
-            ready=9, target=5, minutes_available=None, max_batch=20,
-            safety_margin=0.5, tailor_throughput=_throughput(5, 1.0),
+            ready=9,
+            target=5,
+            minutes_available=None,
+            max_batch=20,
+            safety_margin=0.5,
+            tailor_throughput=_throughput(5, 1.0),
             cover_throughput=_throughput(5, 1.0),
         )
         assert plan["tailor"] == 0 and plan["cover"] == 0
@@ -84,8 +97,12 @@ class TestPlanUpstreamWork:
         # tailor_capacity = int(40*0.81*0.5) = 16, cover_capacity = int(40*4.1*0.5) = 82
         # bottlenecked by tailor(16), but need=4 wins.
         plan = sched.plan_upstream_work(
-            ready=1, target=5, minutes_available=40, max_batch=20,
-            safety_margin=0.5, tailor_throughput=_throughput(5, 0.81),
+            ready=1,
+            target=5,
+            minutes_available=40,
+            max_batch=20,
+            safety_margin=0.5,
+            tailor_throughput=_throughput(5, 0.81),
             cover_throughput=_throughput(5, 4.1),
         )
         assert plan["need"] == 4
@@ -95,8 +112,12 @@ class TestPlanUpstreamWork:
     def test_known_reset_capacity_bottlenecks_below_need(self):
         # Only 5 minutes left, low throughput -- capacity below need.
         plan = sched.plan_upstream_work(
-            ready=0, target=5, minutes_available=5, max_batch=20,
-            safety_margin=0.5, tailor_throughput=_throughput(5, 0.2),
+            ready=0,
+            target=5,
+            minutes_available=5,
+            max_batch=20,
+            safety_margin=0.5,
+            tailor_throughput=_throughput(5, 0.2),
             cover_throughput=_throughput(5, 4.0),
         )
         # tailor_capacity = int(5*0.2*0.5) = 0
@@ -105,8 +126,12 @@ class TestPlanUpstreamWork:
 
     def test_huge_minutes_left_still_obeys_max_batch(self):
         plan = sched.plan_upstream_work(
-            ready=0, target=1000, minutes_available=100000, max_batch=20,
-            safety_margin=0.5, tailor_throughput=_throughput(5, 10.0),
+            ready=0,
+            target=1000,
+            minutes_available=100000,
+            max_batch=20,
+            safety_margin=0.5,
+            tailor_throughput=_throughput(5, 10.0),
             cover_throughput=_throughput(5, 10.0),
         )
         assert plan["tailor"] == 20
@@ -114,8 +139,12 @@ class TestPlanUpstreamWork:
 
     def test_unbounded_available_state_still_obeys_max_batch(self):
         plan = sched.plan_upstream_work(
-            ready=0, target=1000, minutes_available=None, max_batch=20,
-            safety_margin=0.5, tailor_throughput=_throughput(5, 10.0),
+            ready=0,
+            target=1000,
+            minutes_available=None,
+            max_batch=20,
+            safety_margin=0.5,
+            tailor_throughput=_throughput(5, 10.0),
             cover_throughput=_throughput(5, 10.0),
         )
         assert plan["tailor"] == 20
@@ -125,8 +154,12 @@ class TestPlanUpstreamWork:
         # count < MIN_OBSERVATIONS_FOR_MEASURED_RATE=3 -> ignore the
         # (absurdly high) measured rate, use the conservative fallback.
         plan = sched.plan_upstream_work(
-            ready=0, target=5, minutes_available=10, max_batch=20,
-            safety_margin=1.0, tailor_throughput=_throughput(1, 999.0),
+            ready=0,
+            target=5,
+            minutes_available=10,
+            max_batch=20,
+            safety_margin=1.0,
+            tailor_throughput=_throughput(1, 999.0),
             cover_throughput=_throughput(1, 999.0),
         )
         expected = int(10 * sched.CONSERVATIVE_FALLBACK_RATES["tailor"] * 1.0)
@@ -134,8 +167,12 @@ class TestPlanUpstreamWork:
 
     def test_exactly_three_observations_is_meaningful(self):
         plan = sched.plan_upstream_work(
-            ready=0, target=100, minutes_available=10, max_batch=20,
-            safety_margin=1.0, tailor_throughput=_throughput(3, 5.0),
+            ready=0,
+            target=100,
+            minutes_available=10,
+            max_batch=20,
+            safety_margin=1.0,
+            tailor_throughput=_throughput(3, 5.0),
             cover_throughput=_throughput(3, 5.0),
         )
         # measured rate used: int(10*5.0*1.0) = 50, capped by max_batch=20
@@ -143,21 +180,33 @@ class TestPlanUpstreamWork:
 
     def test_safety_margin_scales_capacity(self):
         plan_full = sched.plan_upstream_work(
-            ready=0, target=100, minutes_available=10, max_batch=100,
-            safety_margin=1.0, tailor_throughput=_throughput(5, 1.0),
+            ready=0,
+            target=100,
+            minutes_available=10,
+            max_batch=100,
+            safety_margin=1.0,
+            tailor_throughput=_throughput(5, 1.0),
             cover_throughput=_throughput(5, 1.0),
         )
         plan_half = sched.plan_upstream_work(
-            ready=0, target=100, minutes_available=10, max_batch=100,
-            safety_margin=0.5, tailor_throughput=_throughput(5, 1.0),
+            ready=0,
+            target=100,
+            minutes_available=10,
+            max_batch=100,
+            safety_margin=0.5,
+            tailor_throughput=_throughput(5, 1.0),
             cover_throughput=_throughput(5, 1.0),
         )
         assert plan_half["tailor"] < plan_full["tailor"]
 
     def test_zero_minutes_available_produces_no_work(self):
         plan = sched.plan_upstream_work(
-            ready=0, target=5, minutes_available=0, max_batch=20,
-            safety_margin=1.0, tailor_throughput=_throughput(5, 5.0),
+            ready=0,
+            target=5,
+            minutes_available=0,
+            max_batch=20,
+            safety_margin=1.0,
+            tailor_throughput=_throughput(5, 5.0),
             cover_throughput=_throughput(5, 5.0),
         )
         assert plan["tailor"] == 0
@@ -165,8 +214,12 @@ class TestPlanUpstreamWork:
 
     def test_negative_minutes_available_clamped_to_zero(self):
         plan = sched.plan_upstream_work(
-            ready=0, target=5, minutes_available=-10, max_batch=20,
-            safety_margin=1.0, tailor_throughput=_throughput(5, 5.0),
+            ready=0,
+            target=5,
+            minutes_available=-10,
+            max_batch=20,
+            safety_margin=1.0,
+            tailor_throughput=_throughput(5, 5.0),
             cover_throughput=_throughput(5, 5.0),
         )
         assert plan["tailor"] == 0
@@ -174,6 +227,7 @@ class TestPlanUpstreamWork:
 
 
 # ── run_once ──────────────────────────────────────────────────────────────
+
 
 class _RecordingPipeline:
     def __init__(self):
@@ -186,8 +240,10 @@ class _RecordingPipeline:
 
 class TestRunOnce:
     def _cfg(self, **overrides) -> sched.SchedulerConfig:
-        base = dict(ready_buffer=5, ready_buffer_unknown=2, poll_interval=60,
-                    cache_max_age=600, max_batch=20, safety_margin=0.5)
+        base = {
+            "ready_buffer": 5, "ready_buffer_unknown": 2, "poll_interval": 60,
+            "cache_max_age": 600, "max_batch": 20, "safety_margin": 0.5,
+        }
         base.update(overrides)
         return sched.SchedulerConfig(**base)
 
@@ -202,7 +258,9 @@ class TestRunOnce:
         cfg = self._cfg()
 
         sched.run_once(
-            cfg, conn=conn, run_pipeline_fn=pipeline_fn,
+            cfg,
+            conn=conn,
+            run_pipeline_fn=pipeline_fn,
             availability_fn=lambda **k: _avail(AVAILABLE),
             api_capacity_fn=lambda: True,
         )
@@ -218,7 +276,9 @@ class TestRunOnce:
         cfg = self._cfg(ready_buffer=5, ready_buffer_unknown=2)
 
         result = sched.run_once(
-            cfg, conn=conn, run_pipeline_fn=pipeline_fn,
+            cfg,
+            conn=conn,
+            run_pipeline_fn=pipeline_fn,
             availability_fn=lambda **k: _avail(AVAILABLE),
             api_capacity_fn=lambda: True,
         )
@@ -230,7 +290,9 @@ class TestRunOnce:
         cfg = self._cfg(ready_buffer=5, ready_buffer_unknown=2)
 
         result = sched.run_once(
-            cfg, conn=conn, run_pipeline_fn=pipeline_fn,
+            cfg,
+            conn=conn,
+            run_pipeline_fn=pipeline_fn,
             availability_fn=lambda **k: _avail(EXHAUSTED_UNKNOWN_RESET),
             api_capacity_fn=lambda: True,
         )
@@ -242,7 +304,9 @@ class TestRunOnce:
         cfg = self._cfg()
 
         result = sched.run_once(
-            cfg, conn=conn, run_pipeline_fn=pipeline_fn,
+            cfg,
+            conn=conn,
+            run_pipeline_fn=pipeline_fn,
             availability_fn=lambda **k: _avail(EXHAUSTED_UNKNOWN_RESET),
             api_capacity_fn=lambda: False,
         )
@@ -260,7 +324,9 @@ class TestRunOnce:
         cfg = self._cfg()
 
         result = sched.run_once(
-            cfg, conn=conn, run_pipeline_fn=pipeline_fn,
+            cfg,
+            conn=conn,
+            run_pipeline_fn=pipeline_fn,
             availability_fn=lambda **k: _avail(EXHAUSTED_UNKNOWN_RESET),
             api_capacity_fn=lambda: True,
         )
@@ -278,8 +344,12 @@ class TestRunOnce:
         past_estimate = datetime.now(UTC) - timedelta(minutes=5)
         # Simulate: first cycle thought it knew the reset time...
         result1 = sched.run_once(
-            cfg, conn=conn, run_pipeline_fn=pipeline_fn,
-            availability_fn=lambda **k: _avail(EXHAUSTED_KNOWN_RESET, reset_estimate=past_estimate + timedelta(minutes=5)),
+            cfg,
+            conn=conn,
+            run_pipeline_fn=pipeline_fn,
+            availability_fn=lambda **k: _avail(
+                EXHAUSTED_KNOWN_RESET, reset_estimate=past_estimate + timedelta(minutes=5)
+            ),
             api_capacity_fn=lambda: True,
         )
         assert result1["availability"].state == EXHAUSTED_KNOWN_RESET
@@ -289,7 +359,9 @@ class TestRunOnce:
         # AVAILABLE, and run_once must respect that rather than assume
         # recovery from elapsed time alone.
         result2 = sched.run_once(
-            cfg, conn=conn, run_pipeline_fn=pipeline_fn,
+            cfg,
+            conn=conn,
+            run_pipeline_fn=pipeline_fn,
             availability_fn=lambda **k: _avail(EXHAUSTED_UNKNOWN_RESET),
             api_capacity_fn=lambda: True,
         )
@@ -304,7 +376,9 @@ class TestRunOnce:
         reset_at = now + timedelta(minutes=42)
 
         result = sched.run_once(
-            cfg, conn=conn, run_pipeline_fn=pipeline_fn,
+            cfg,
+            conn=conn,
+            run_pipeline_fn=pipeline_fn,
             availability_fn=lambda **k: _avail(EXHAUSTED_KNOWN_RESET, reset_estimate=reset_at),
             api_capacity_fn=lambda: True,
             now=now,
@@ -317,7 +391,9 @@ class TestRunOnce:
         cfg = self._cfg()
 
         sched.run_once(
-            cfg, conn=conn, run_pipeline_fn=pipeline_fn,
+            cfg,
+            conn=conn,
+            run_pipeline_fn=pipeline_fn,
             availability_fn=lambda **k: _avail(EXHAUSTED_UNKNOWN_RESET),
             api_capacity_fn=lambda: True,
         )
@@ -325,7 +401,9 @@ class TestRunOnce:
         assert sched.gate.state == EXHAUSTED_UNKNOWN_RESET
 
         sched.run_once(
-            cfg, conn=conn, run_pipeline_fn=pipeline_fn,
+            cfg,
+            conn=conn,
+            run_pipeline_fn=pipeline_fn,
             availability_fn=lambda **k: _avail(AVAILABLE),
             api_capacity_fn=lambda: True,
         )
@@ -334,6 +412,7 @@ class TestRunOnce:
 
 
 # ── single-instance protection ───────────────────────────────────────────
+
 
 class TestSchedulerLock:
     def test_second_instance_rejected(self, tmp_path, monkeypatch):
@@ -368,6 +447,7 @@ class TestSchedulerLock:
 
 
 # ── sleep-interval selection ──────────────────────────────────────────────
+
 
 class TestNextSleepSeconds:
     def _cfg(self) -> sched.SchedulerConfig:
@@ -415,6 +495,5 @@ class TestNextSleepSeconds:
         sched._next_sleep_seconds({"availability": _avail(EXHAUSTED_UNKNOWN_RESET)}, cfg, backoff)
         sched._next_sleep_seconds({"availability": _avail(EXHAUSTED_UNKNOWN_RESET)}, cfg, backoff)
         sched._next_sleep_seconds({"availability": _avail(AVAILABLE)}, cfg, backoff)
-        first_after_reset = sched._next_sleep_seconds(
-            {"availability": _avail(EXHAUSTED_UNKNOWN_RESET)}, cfg, backoff)
+        first_after_reset = sched._next_sleep_seconds({"availability": _avail(EXHAUSTED_UNKNOWN_RESET)}, cfg, backoff)
         assert first_after_reset == 300

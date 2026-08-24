@@ -4,6 +4,7 @@ Exercises the full network path that content.js uses — start the worker
 listener (real HTTPServer in a daemon thread), POST a payload, verify
 the launcher's _action_log_cache holds it.
 """
+
 from __future__ import annotations
 
 import json

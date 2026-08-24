@@ -9,7 +9,7 @@ import logging
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from applypilot.config import RESUME_PATH, load_profile, load_search_config
 from applypilot.database import get_connection, get_jobs_by_stage, write_with_retry
@@ -108,43 +108,43 @@ REASONING: [2-3 sentences explaining the score, what matched well, and any gaps.
 # false positives from US companies mentioning global offices).
 _INELIGIBLE_TITLE_PATTERNS = re.compile(
     # Explicit non-US regions in title
-    r'\bEMEA\b'
-    r'|\bAPAC\b'
-    r'|\bLATAM\b'
-    r'|\bMENA\b'
-    r'|\bTOLA\b'                    # sales region: Texas/Oklahoma/Louisiana/Arkansas
-    r'|\bANZ\b'                     # Australia/New Zealand
-    r'|\bNordics\b'
-    r'|\bEU[- ]only\b'
-    r'|\bUK[- ]only\b'
-    r'|\bEurope[- ]only\b'
-    r'|\(m/[fw]/d\)'                # German job title suffix (m/f/d) or (m/w/d)
-    r'|\bm/[fw]/d\b'
-    r'|\bOnly hiring in\b'
+    r"\bEMEA\b"
+    r"|\bAPAC\b"
+    r"|\bLATAM\b"
+    r"|\bMENA\b"
+    r"|\bTOLA\b"  # sales region: Texas/Oklahoma/Louisiana/Arkansas
+    r"|\bANZ\b"  # Australia/New Zealand
+    r"|\bNordics\b"
+    r"|\bEU[- ]only\b"
+    r"|\bUK[- ]only\b"
+    r"|\bEurope[- ]only\b"
+    r"|\(m/[fw]/d\)"  # German job title suffix (m/f/d) or (m/w/d)
+    r"|\bm/[fw]/d\b"
+    r"|\bOnly hiring in\b"
     # NOTE: Junior/Intern/Entry-Level/New-Grad/Trainee/Apprentice/Graduate titles are
     # intentionally NOT excluded here — this candidate has no professional software
     # engineering experience, so those levels are the actual target, not noise.
     # Internships/co-ops are still excluded via searches.yaml exclude_titles below.
     # Sales-adjacency (not IC engineering)
-    r'|\bSales Engineer\b'
-    r'|\bSolutions Engineer\b'
-    r'|\bPre[- ]?[Ss]ales\b'
-    r'|\bCustomer Success Engineer\b'
+    r"|\bSales Engineer\b"
+    r"|\bSolutions Engineer\b"
+    r"|\bPre[- ]?[Ss]ales\b"
+    r"|\bCustomer Success Engineer\b"
     # Retail / warehouse / service roles (filter out Costco + similar noise)
-    r'|\bCashier\b|\bBaker\b|\bCake Decorator\b|\bButcher\b|\bMeat Cutter\b'
-    r'|\bGas Station Attendant\b|\bPharmacy Technician\b|\bHearing Aid Dispenser\b'
-    r'|\bStocker\b|\bForklift\b|\bWarehouse Associate\b|\bTruck Driver\b'
-    r'|\bBakery Clerk\b|\bDeli Clerk\b|\bProduce Clerk\b|\bMember Service\b'
-    r'|\bOptician\b|\bOptical\b'
+    r"|\bCashier\b|\bBaker\b|\bCake Decorator\b|\bButcher\b|\bMeat Cutter\b"
+    r"|\bGas Station Attendant\b|\bPharmacy Technician\b|\bHearing Aid Dispenser\b"
+    r"|\bStocker\b|\bForklift\b|\bWarehouse Associate\b|\bTruck Driver\b"
+    r"|\bBakery Clerk\b|\bDeli Clerk\b|\bProduce Clerk\b|\bMember Service\b"
+    r"|\bOptician\b|\bOptical\b"
     # Non-engineering roles
-    r'|\bRecruiter\b'
-    r'|\bTalent Acquisition\b|\bTalent Scout\b|\bTalent Sourcer\b'
-    r'|\bAccount Manager\b|\bAccount Executive\b'
-    r'|\bUX Designer\b|\bUI Designer\b|\bProduct Designer\b|\bGraphic Designer\b'
+    r"|\bRecruiter\b"
+    r"|\bTalent Acquisition\b|\bTalent Scout\b|\bTalent Sourcer\b"
+    r"|\bAccount Manager\b|\bAccount Executive\b"
+    r"|\bUX Designer\b|\bUI Designer\b|\bProduct Designer\b|\bGraphic Designer\b"
     # Specialist IC roles outside the target stack (mobile, legacy enterprise)
-    r'|\bAndroid Engineer\b|\biOS Engineer\b|\bMobile Engineer\b'
-    r'|\bSalesforce Developer\b|\bApex Developer\b'
-    r'|\bMainframe Engineer\b|\bCOBOL Developer\b|\bTIBCO\b',
+    r"|\bAndroid Engineer\b|\biOS Engineer\b|\bMobile Engineer\b"
+    r"|\bSalesforce Developer\b|\bApex Developer\b"
+    r"|\bMainframe Engineer\b|\bCOBOL Developer\b|\bTIBCO\b",
     re.IGNORECASE,
 )
 
@@ -152,28 +152,28 @@ _INELIGIBLE_TITLE_PATTERNS = re.compile(
 # Location field explicitly lists a non-US country name → ineligible.
 _INELIGIBLE_LOCATION_PATTERNS = re.compile(
     # Regions
-    r'\bEMEA\b'
-    r'|\bAPAC\b'
-    r'|\bEurope\b'
+    r"\bEMEA\b"
+    r"|\bAPAC\b"
+    r"|\bEurope\b"
     # Europe
-    r'|\bGermany\b|\bNetherlands\b|\bFrance\b|\bSpain\b|\bItaly\b'
-    r'|\bPoland\b|\bUkraine\b|\bCzech\b|\bPortugal\b|\bIreland\b'
-    r'|\bDenmark\b|\bSweden\b|\bNorway\b|\bFinland\b|\bBelgium\b'
-    r'|\bSwitzerland\b|\bAustria\b|\bRomania\b|\bHungary\b|\bCroatia\b'
-    r'|\bGreece\b|\bBulgaria\b|\bSerbia\b|\bSlovakia\b|\bSlovenia\b'
-    r'|\bEstonia\b|\bLatvia\b|\bLithuania\b'
+    r"|\bGermany\b|\bNetherlands\b|\bFrance\b|\bSpain\b|\bItaly\b"
+    r"|\bPoland\b|\bUkraine\b|\bCzech\b|\bPortugal\b|\bIreland\b"
+    r"|\bDenmark\b|\bSweden\b|\bNorway\b|\bFinland\b|\bBelgium\b"
+    r"|\bSwitzerland\b|\bAustria\b|\bRomania\b|\bHungary\b|\bCroatia\b"
+    r"|\bGreece\b|\bBulgaria\b|\bSerbia\b|\bSlovakia\b|\bSlovenia\b"
+    r"|\bEstonia\b|\bLatvia\b|\bLithuania\b"
     # Asia
-    r'|\bIndia\b|\bSingapore\b|\bJapan\b|\bVietnam\b|\bThailand\b'
-    r'|\bPhilippines\b|\bIndonesia\b|\bKorea\b|\bTaiwan\b|\bHong Kong\b'
-    r'|\bChina\b|\bPakistan\b|\bBangladesh\b|\bMalaysia\b'
+    r"|\bIndia\b|\bSingapore\b|\bJapan\b|\bVietnam\b|\bThailand\b"
+    r"|\bPhilippines\b|\bIndonesia\b|\bKorea\b|\bTaiwan\b|\bHong Kong\b"
+    r"|\bChina\b|\bPakistan\b|\bBangladesh\b|\bMalaysia\b"
     # Latin America
-    r'|\bBrazil\b|\bBrasil\b|\bMexico\b|\bMéxico\b|\bArgentina\b'
-    r'|\bChile\b|\bColombia\b|\bPeru\b|\bUruguay\b'
+    r"|\bBrazil\b|\bBrasil\b|\bMexico\b|\bMéxico\b|\bArgentina\b"
+    r"|\bChile\b|\bColombia\b|\bPeru\b|\bUruguay\b"
     # Middle East / Africa
-    r'|\bEgypt\b|\bNigeria\b|\bKenya\b|\bSouth Africa\b|\bIsrael\b'
-    r'|\bTurkey\b|\bTürkiye\b|\bUAE\b|\bSaudi Arabia\b'
+    r"|\bEgypt\b|\bNigeria\b|\bKenya\b|\bSouth Africa\b|\bIsrael\b"
+    r"|\bTurkey\b|\bTürkiye\b|\bUAE\b|\bSaudi Arabia\b"
     # Oceania
-    r'|\bAustralia\b|\bNew Zealand\b',
+    r"|\bAustralia\b|\bNew Zealand\b",
     re.IGNORECASE,
 )
 
@@ -191,7 +191,9 @@ _INELIGIBLE_LOCATION_PATTERNS = re.compile(
 _APOS = "['‘’]?"
 
 _ADVANCED_DEGREE_REQUIRED_PATTERN = re.compile(
-    r"(?:master" + _APOS + r"s|ph\.?d\.?|doctoral|doctorate)\s+degree,?\s+(?:or\s+(?:foreign\s+)?equivalent\s+)?(?:is\s+)?required"
+    r"(?:master"
+    + _APOS
+    + r"s|ph\.?d\.?|doctoral|doctorate)\s+degree,?\s+(?:or\s+(?:foreign\s+)?equivalent\s+)?(?:is\s+)?required"
     r"|(?:minimum\s+requirements?|required\s+qualifications?|basic\s+qualifications?)\s*:?\s*(?:[^.\n]{0,40})?"
     r"(?:master" + _APOS + r"s|ph\.?d\.?|doctoral|doctorate)\s+degree"
     r"|master" + _APOS + r"s\s+degree,?\s+or\s+foreign\s+equivalent",
@@ -207,27 +209,28 @@ def _candidate_has_advanced_degree(profile: dict) -> bool:
             return True
     return False
 
+
 # Description-level non-US patterns. Scans the full description (capped at
 # 6000 chars by the caller). Patterns intentionally narrow — must explicitly
 # RESTRICT to a non-US country, not merely mention global offices.
 # Tightened 2026-04-30 after Twilio UK/Canada slipped through the 800-char head.
 _INELIGIBLE_DESC_PATTERNS = re.compile(
-    r'Remote\s*[\(\-—–]\s*(EMEA|Europe|EU|UK|United\s+Kingdom|Germany|India|Canada|Ireland|Netherlands|Brazil|Mexico|Argentina|Colombia|Australia|New\s+Zealand)'
-    r'|EMEA\s*(only|region|remote|based)'
-    r'|(Europe|European)\s*(only|Time\s*Zone|timezone|based|remote)'
+    r"Remote\s*[\(\-—–]\s*(EMEA|Europe|EU|UK|United\s+Kingdom|Germany|India|Canada|Ireland|Netherlands|Brazil|Mexico|Argentina|Colombia|Australia|New\s+Zealand)"
+    r"|EMEA\s*(only|region|remote|based)"
+    r"|(Europe|European)\s*(only|Time\s*Zone|timezone|based|remote)"
     # Belt-and-suspenders: catches "based in (the) UK", "based in Europe", etc.
-    r'|based\s+in\s+(the\s+)?(Europe|EU|UK|United\s+Kingdom|Germany|India|Netherlands|Canada|Ireland|France|Spain|Italy|Brazil|Mexico|Australia|New\s+Zealand|Singapore|Japan|Israel|South\s+Africa|Portugal|Poland|Romania)'
-    r'|will\s+be\s+remote\s+and\s+based\s+in\s+(the\s+)?(UK|United\s+Kingdom|Canada|Ireland|Germany|Europe|EMEA|India)'
+    r"|based\s+in\s+(the\s+)?(Europe|EU|UK|United\s+Kingdom|Germany|India|Netherlands|Canada|Ireland|France|Spain|Italy|Brazil|Mexico|Australia|New\s+Zealand|Singapore|Japan|Israel|South\s+Africa|Portugal|Poland|Romania)"
+    r"|will\s+be\s+remote\s+and\s+based\s+in\s+(the\s+)?(UK|United\s+Kingdom|Canada|Ireland|Germany|Europe|EMEA|India)"
     # Canadian-province patterns (Twilio L3 example)
-    r'|Remote\s+(in|from|—|-)\s*(Ontario|British\s+Columbia|Alberta|Quebec|Manitoba|Nova\s+Scotia|Saskatchewan)'
-    r'|Ontario,\s*British\s+Columbia'
+    r"|Remote\s+(in|from|—|-)\s*(Ontario|British\s+Columbia|Alberta|Quebec|Manitoba|Nova\s+Scotia|Saskatchewan)"
+    r"|Ontario,\s*British\s+Columbia"
     # UK/Canada right-to-work questions on the form (often mirrored in JD)
     r"|right\s+to\s+work\s+in\s+(the\s+)?(UK|United\s+Kingdom|Canada|Ireland|EU|European\s+Union)"
     r"|requires?\s+(the\s+)?right\s+to\s+work\s+in\s+(the\s+)?(UK|United\s+Kingdom|Canada|Ireland|EU)"
     # Timezone restrictions
-    r'|CET\s+timezone'
-    r'|GMT[+\-]\d+\s+timezone'
-    r'|IST\s+timezone',
+    r"|CET\s+timezone"
+    r"|GMT[+\-]\d+\s+timezone"
+    r"|IST\s+timezone",
     re.IGNORECASE,
 )
 
@@ -303,9 +306,7 @@ def _check_ineligible(job: dict, profile: dict | None = None) -> str | None:
     # description head, not just the location field, since these are about the
     # employer's line of business, not geography.
     ethical_keywords = [
-        str(k).strip().lower()
-        for k in (search_cfg.get("exclude_description_keywords") or [])
-        if str(k).strip()
+        str(k).strip().lower() for k in (search_cfg.get("exclude_description_keywords") or []) if str(k).strip()
     ]
     if ethical_keywords:
         haystack = f"{title}\n{desc_head}".lower()
@@ -323,18 +324,29 @@ def _parse_score_response(response: str) -> dict:
         response: Raw LLM response text.
 
     Returns:
-        {"score": int, "keywords": str, "reasoning": str, "eligibility": str}
+        {"score": int | None, "keywords": str, "reasoning": str, "eligibility": str}
         eligibility is one of: 'eligible' | 'non_us_only'.
         Older models that omit ELIGIBILITY default to 'eligible' (preserves
         prior behavior; new prompt requires the line so absence is rare).
 
+        score is None when no "SCORE: <digits>" line could be found at all
+        (empty/blank response, a refusal, a truncated/non-conforming
+        response, ...) -- distinct from a real parsed score, which is always
+        clamped to 1-10 (never 0: the prompt's own contract is "SCORE:
+        [1-10]"). 2026-08-25 fix: this used to default to 0 on a parse
+        failure, indistinguishable from a legitimate low score, so
+        score_job()/_flush_score_batch's `score is not None` success check
+        treated an unparseable response as a successful fit_score=0. See
+        score_job()'s docstring for how the None case is surfaced as an
+        error to callers.
+
     Uses regex search (not line.startswith()) because the claude_cli fallback
     tier answers in markdown -- "**SCORE: 1**" -- which a plain startswith()
-    check misses entirely, silently defaulting every field (score=0). The
-    \\**\\[? padding here absorbs bold markers and/or brackets around each
-    label so both plain-text and markdown-formatted responses parse the same.
+    check misses entirely, silently defaulting every field. The \\**\\[?
+    padding here absorbs bold markers and/or brackets around each label so
+    both plain-text and markdown-formatted responses parse the same.
     """
-    score = 0
+    score = None
     keywords = ""
     reasoning = response
     eligibility = "eligible"
@@ -358,8 +370,7 @@ def _parse_score_response(response: str) -> dict:
     if reasoning_match:
         reasoning = reasoning_match.group(1).strip().rstrip("*").strip()
 
-    return {"score": score, "keywords": keywords, "reasoning": reasoning,
-            "eligibility": eligibility}
+    return {"score": score, "keywords": keywords, "reasoning": reasoning, "eligibility": eligibility}
 
 
 def _build_candidate_summary(profile: dict) -> str:
@@ -397,8 +408,10 @@ def _build_candidate_summary(profile: dict) -> str:
         parts.append(f"Work history (non-software roles): {', '.join(work_roles)}.")
 
     demonstrated = [
-        s.get("name") for s in skills
-        if isinstance(s, dict) and s.get("resume_allowed")
+        s.get("name")
+        for s in skills
+        if isinstance(s, dict)
+        and s.get("resume_allowed")
         and str(s.get("proficiency", "")).lower() not in ("", "learning")
     ]
     if demonstrated:
@@ -406,7 +419,9 @@ def _build_candidate_summary(profile: dict) -> str:
 
     current_title = exp.get("current_job_title") or "none"
     years = exp.get("years_of_experience_total") or "0 / not documented"
-    parts.append(f"Current job title: {current_title}. Documented years of professional software engineering experience: {years}.")
+    parts.append(
+        f"Current job title: {current_title}. Documented years of professional software engineering experience: {years}."
+    )
 
     parts.append(
         "CRITICAL: this candidate has NO professional software engineering employment history. "
@@ -468,7 +483,8 @@ def score_job(resume_text: str, job: dict, profile: dict | None = None) -> dict:
         candidate_summary = _build_candidate_summary(profile)
         location_context = _build_location_context(profile)
         score_prompt = SCORE_PROMPT_TEMPLATE.format(
-            candidate_summary=candidate_summary, location_context=location_context,
+            candidate_summary=candidate_summary,
+            location_context=location_context,
         )
 
         job_text = (
@@ -490,11 +506,21 @@ def score_job(resume_text: str, job: dict, profile: dict | None = None) -> dict:
             temperature=0.2,
         )
         result = _parse_score_response(response)
+        if result["score"] is None:
+            # 2026-08-25 fix: _parse_score_response returns score=None when
+            # no "SCORE: <digits>" line could be found (empty/blank/refusal/
+            # truncated/non-conforming response) -- this is a parse FAILURE,
+            # not a low-confidence low score, and must be routed through the
+            # same failure path as an exception below (_flush_score_batch's
+            # `if r["score"] is not None` branch reads r["error"], which only
+            # the except branch used to populate).
+            result["error"] = (
+                f"LLM error: response did not contain a parseable SCORE line (first 200 chars: {response[:200]!r})"
+            )
         return result
     except Exception as exc:
         log.exception("LLM error scoring job '%s'", (job or {}).get("title") or "?")
-        return {"score": None, "keywords": "", "reasoning": "", "eligibility": None,
-                "error": f"LLM error: {exc}"}
+        return {"score": None, "keywords": "", "reasoning": "", "eligibility": None, "error": f"LLM error: {exc}"}
 
 
 MAX_SCORE_RETRIES = 5
@@ -502,7 +528,7 @@ MAX_SCORE_RETRIES = 5
 
 def _score_backoff_minutes(retry_count: int) -> int:
     """Exponential backoff for scoring retries: 5, 20, 80, ~5h, ~21h."""
-    return min(5 * (4 ** retry_count), 24 * 60)
+    return min(5 * (4**retry_count), 24 * 60)
 
 
 def _flush_score_batch(conn, batch: list[dict], now: str) -> None:
@@ -514,9 +540,35 @@ def _flush_score_batch(conn, batch: list[dict], now: str) -> None:
     """
     from applypilot.config import DEFAULTS as _cfg_DEFAULTS
     from applypilot.database import transition_state
+
     _min_score = _cfg_DEFAULTS["min_score"]
 
     for r in batch:
+        # 2026-08-25 fix: a job that reached this batch despite already being
+        # archived (e.g. via `--rescore`, which selects on full_description
+        # alone with no state filter, or a race with a concurrent archival)
+        # must never have its fit_score/score_reasoning/eligibility
+        # overwritten -- see "pending_score"'s 2026-08-25 comment in
+        # database.py for the paired query-side fix and the audit finding
+        # (2,080 archived rows were wrongly reachable before that fix, all of
+        # which would have had their archived fit_score/reasoning silently
+        # clobbered here). Checking transition_state's return value alone
+        # isn't enough: the non_us_only branch below calls it with
+        # force=True (bypasses validation), and an archived->archived
+        # self-transition is ALSO trivially "allowed" (to_state ==
+        # from_state) -- neither would reject an already-archived row. Look
+        # up the real current state first and skip entirely when it's the
+        # state machine's one true terminal state (VALID_TRANSITIONS
+        # ["archived"] == frozenset()).
+        current_row = conn.execute("SELECT state FROM jobs WHERE url = ?", (r["url"],)).fetchone()
+        if current_row and current_row[0] == "archived":
+            log.warning(
+                "Skipping score write for already-archived job (preserving "
+                "its archived fit_score/reasoning for audit): %s",
+                r["url"][:80],
+            )
+            continue
+
         if r["score"] is not None:
             eligibility = r.get("eligibility") or "eligible"
             conn.execute(
@@ -524,29 +576,32 @@ def _flush_score_batch(conn, batch: list[dict], now: str) -> None:
                 "eligibility = ?, "
                 "score_error = NULL, score_attempts = 0, score_next_retry_at = NULL "
                 "WHERE url = ?",
-                (r["score"], f"{r['keywords']}\n{r['reasoning']}", now, eligibility,
-                 r["url"]),
+                (r["score"], f"{r['keywords']}\n{r['reasoning']}", now, eligibility, r["url"]),
             )
             # Eligibility-driven state transition. Non-US roles go straight to
             # `archived` (terminal) so tailor/cover/apply never pick them up,
             # bypassing the scored→tailored→ready_to_apply chain entirely.
             if eligibility == "non_us_only":
-                transition_state(conn, r["url"], "archived",
-                                 reason="non_us_only employer/role",
-                                 metadata={"score": r["score"],
-                                           "eligibility": eligibility},
-                                 force=True)
+                transition_state(
+                    conn,
+                    r["url"],
+                    "archived",
+                    reason="non_us_only employer/role",
+                    metadata={"score": r["score"], "eligibility": eligibility},
+                    force=True,
+                )
             else:
                 to_state = "scored" if r["score"] >= _min_score else "low_score"
-                transition_state(conn, r["url"], to_state,
-                                 reason=f"scored {r['score']}/10",
-                                 metadata={"score": r["score"],
-                                           "eligibility": eligibility})
+                transition_state(
+                    conn,
+                    r["url"],
+                    to_state,
+                    reason=f"scored {r['score']}/10",
+                    metadata={"score": r["score"], "eligibility": eligibility},
+                )
         else:
             # LLM failure — keep fit_score NULL so it stays in pending_score
-            row = conn.execute(
-                "SELECT COALESCE(score_attempts, 0) FROM jobs WHERE url = ?", (r["url"],)
-            ).fetchone()
+            row = conn.execute("SELECT COALESCE(score_attempts, 0) FROM jobs WHERE url = ?", (r["url"],)).fetchone()
             retry_count = row[0] if row else 0
             if retry_count >= MAX_SCORE_RETRIES:
                 # Give up — write score_error but don't schedule another retry
@@ -555,25 +610,31 @@ def _flush_score_batch(conn, batch: list[dict], now: str) -> None:
                     "score_next_retry_at = NULL, scored_at = ? WHERE url = ?",
                     (r["error"], retry_count + 1, now, r["url"]),
                 )
-                transition_state(conn, r["url"], "score_failed",
-                                 reason=f"LLM failed after {retry_count+1} attempts",
-                                 metadata={"error": r["error"]})
+                transition_state(
+                    conn,
+                    r["url"],
+                    "score_failed",
+                    reason=f"LLM failed after {retry_count + 1} attempts",
+                    metadata={"error": r["error"]},
+                )
             else:
                 delay = _score_backoff_minutes(retry_count)
-                next_retry = (
-                    datetime.now(timezone.utc) + timedelta(minutes=delay)
-                ).isoformat()
+                next_retry = (datetime.now(UTC) + timedelta(minutes=delay)).isoformat()
                 conn.execute(
                     "UPDATE jobs SET score_error = ?, score_attempts = ?, "
                     "score_next_retry_at = ?, scored_at = ? WHERE url = ?",
                     (r["error"], retry_count + 1, next_retry, now, r["url"]),
                 )
-                log.info("  score retry %d/%d scheduled in %d min for %s",
-                         retry_count + 1, MAX_SCORE_RETRIES, delay, r["url"][:60])
+                log.info(
+                    "  score retry %d/%d scheduled in %d min for %s",
+                    retry_count + 1,
+                    MAX_SCORE_RETRIES,
+                    delay,
+                    r["url"][:60],
+                )
 
 
-def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1,
-                max_age_days: int | None = None) -> dict:
+def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1, max_age_days: int | None = None) -> dict:
     """Score unscored jobs that have full descriptions.
 
     Args:
@@ -602,8 +663,7 @@ def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1,
         # Note: get_jobs_by_stage now applies a 14-day discovered_at filter by
         # default (config.DEFAULTS["max_job_age_days"]). Pass max_age_days=0
         # to disable.
-        jobs = get_jobs_by_stage(conn=conn, stage="pending_score",
-                                 max_age_days=max_age_days, limit=limit)
+        jobs = get_jobs_by_stage(conn=conn, stage="pending_score", max_age_days=max_age_days, limit=limit)
 
     if not jobs:
         log.info("No unscored jobs with descriptions found.")
@@ -633,13 +693,16 @@ def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1,
         except Exception as exc:
             log.exception("Unexpected error scoring '%s'", (job or {}).get("title") or "?")
             result = {
-                "score": None, "keywords": "", "reasoning": "",
-                "error": f"Unexpected: {exc}", "url": (job or {}).get("url", ""),
+                "score": None,
+                "keywords": "",
+                "reasoning": "",
+                "error": f"Unexpected: {exc}",
+                "url": (job or {}).get("url", ""),
             }
         return result
 
     def _flush_and_log(batch: list[dict], completed: int) -> list[dict]:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         try:
             write_with_retry(conn, _flush_score_batch, conn, batch, now)
         except Exception:
@@ -659,7 +722,8 @@ def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1,
                 batch.append(result)
                 log.info(
                     "[%d/%d] score=%s  %s",
-                    completed, len(jobs),
+                    completed,
+                    len(jobs),
                     result["score"] if result["score"] is not None else "ERR",
                     (job.get("title") or "")[:60],
                 )
@@ -674,7 +738,8 @@ def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1,
             batch.append(result)
             log.info(
                 "[%d/%d] score=%s  %s",
-                completed, len(jobs),
+                completed,
+                len(jobs),
                 result["score"] if result["score"] is not None else "ERR",
                 (job.get("title") or "")[:60],
             )
@@ -683,7 +748,7 @@ def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1,
 
     # Flush remaining
     if batch:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         try:
             write_with_retry(conn, _flush_score_batch, conn, batch, now)
         except Exception:

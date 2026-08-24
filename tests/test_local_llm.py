@@ -51,33 +51,49 @@ def _matchable_job_and_profile():
 # 1. Local provider configuration
 # ---------------------------------------------------------------------------
 
+
 class TestLocalProviderConfig(unittest.TestCase):
     def test_is_local_configured_false_by_default(self):
         from applypilot import llm as llm_mod
+
         with patch.dict("os.environ", {}, clear=False):
             import os
+
             os.environ.pop("APPLYPILOT_LOCAL_LLM_URL", None)
             self.assertFalse(llm_mod.is_local_configured())
 
     def test_is_local_configured_true_when_url_set(self):
         from applypilot import llm as llm_mod
+
         with patch.dict("os.environ", {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}):
             self.assertTrue(llm_mod.is_local_configured())
 
     def test_fallback_chain_appends_local_entry_when_configured(self):
+        """include_local=True is explicit here: this test is about the
+        append-local mechanism itself (used by the quality tier -- tailor/
+        cover -- as a last-resort fallback), not the fast/quality routing
+        split. See TestLocalExcludedFromFastTier for that."""
         from applypilot.llm import _build_fallback_chain
+
         env = {
-            k: v for k, v in __import__("os").environ.items()
-            if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-                         "DEEPSEEK_API_KEY", "LLM_URL",
-                         "APPLYPILOT_LOCAL_LLM_URL", "APPLYPILOT_LOCAL_LLM_MODEL")
+            k: v
+            for k, v in __import__("os").environ.items()
+            if k
+            not in (
+                "GEMINI_API_KEY",
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "DEEPSEEK_API_KEY",
+                "LLM_URL",
+                "APPLYPILOT_LOCAL_LLM_URL",
+                "APPLYPILOT_LOCAL_LLM_MODEL",
+            )
         }
         env["GEMINI_API_KEY"] = "fake-gemini-key"
         env["APPLYPILOT_LOCAL_LLM_URL"] = "http://localhost:11434/v1"
         env["APPLYPILOT_LOCAL_LLM_MODEL"] = "llama3.2"
-        with patch.dict("os.environ", env, clear=True), \
-             patch("applypilot.llm._find_claude_cli", return_value=None):
-            chain = _build_fallback_chain("gemini-3.6-flash", quality=False)
+        with patch.dict("os.environ", env, clear=True), patch("applypilot.llm._find_claude_cli", return_value=None):
+            chain = _build_fallback_chain("gemini-3.6-flash", quality=False, include_local=True)
         local_entries = [e for e in chain if e.provider == "local"]
         self.assertEqual(len(local_entries), 1)
         self.assertEqual(local_entries[0].name, "llama3.2")
@@ -87,29 +103,48 @@ class TestLocalProviderConfig(unittest.TestCase):
 
     def test_fallback_chain_no_local_entry_when_not_configured(self):
         from applypilot.llm import _build_fallback_chain
+
         env = {
-            k: v for k, v in __import__("os").environ.items()
-            if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-                         "DEEPSEEK_API_KEY", "LLM_URL", "APPLYPILOT_LOCAL_LLM_URL")
+            k: v
+            for k, v in __import__("os").environ.items()
+            if k
+            not in (
+                "GEMINI_API_KEY",
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "DEEPSEEK_API_KEY",
+                "LLM_URL",
+                "APPLYPILOT_LOCAL_LLM_URL",
+            )
         }
         env["GEMINI_API_KEY"] = "fake-gemini-key"
-        with patch.dict("os.environ", env, clear=True), \
-             patch("applypilot.llm._find_claude_cli", return_value=None):
+        with patch.dict("os.environ", env, clear=True), patch("applypilot.llm._find_claude_cli", return_value=None):
             chain = _build_fallback_chain("gemini-3.6-flash", quality=False)
         self.assertFalse(any(e.provider == "local" for e in chain))
 
     def test_local_only_chain_when_no_cloud_keys(self):
-        """Local can be the ONLY provider (no cloud keys at all) -- doesn't raise."""
+        """Local can be the ONLY provider (no cloud keys at all) -- doesn't
+        raise, when the caller explicitly opts into local (include_local=True;
+        the fast tier's implicit default is now False -- see
+        TestLocalExcludedFromFastTier)."""
         from applypilot.llm import _build_fallback_chain
+
         env = {
-            k: v for k, v in __import__("os").environ.items()
-            if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-                         "DEEPSEEK_API_KEY", "LLM_URL", "APPLYPILOT_LOCAL_LLM_URL")
+            k: v
+            for k, v in __import__("os").environ.items()
+            if k
+            not in (
+                "GEMINI_API_KEY",
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "DEEPSEEK_API_KEY",
+                "LLM_URL",
+                "APPLYPILOT_LOCAL_LLM_URL",
+            )
         }
         env["APPLYPILOT_LOCAL_LLM_URL"] = "http://localhost:11434/v1"
-        with patch.dict("os.environ", env, clear=True), \
-             patch("applypilot.llm._find_claude_cli", return_value=None):
-            chain = _build_fallback_chain("llama3.2", quality=False)
+        with patch.dict("os.environ", env, clear=True), patch("applypilot.llm._find_claude_cli", return_value=None):
+            chain = _build_fallback_chain("llama3.2", quality=False, include_local=True)
         self.assertEqual(len(chain), 1)
         self.assertEqual(chain[0].provider, "local")
 
@@ -118,9 +153,11 @@ class TestLocalProviderConfig(unittest.TestCase):
 # 2. Successful local generation
 # ---------------------------------------------------------------------------
 
+
 class TestLocalGenerationSuccess(unittest.TestCase):
     def _client_with_local_only(self):
         from applypilot.llm import LLMClient, ModelEntry
+
         fake_chain = [ModelEntry("llama3.2", "local", "http://localhost:11434/v1", "")]
         with patch("applypilot.llm._build_fallback_chain", return_value=fake_chain):
             client = LLMClient(base_url="http://localhost:11434/v1", model="llama3.2", api_key="")
@@ -130,9 +167,7 @@ class TestLocalGenerationSuccess(unittest.TestCase):
         client = self._client_with_local_only()
         mock_resp = MagicMock()
         mock_resp.status_code = 200
-        mock_resp.json.return_value = {
-            "choices": [{"message": {"content": '{"status":"ok"}'}}]
-        }
+        mock_resp.json.return_value = {"choices": [{"message": {"content": '{"status":"ok"}'}}]}
         mock_resp.raise_for_status.return_value = None
         with patch.object(client._client, "post", return_value=mock_resp) as mock_post:
             result = client.chat([{"role": "user", "content": "hi"}])
@@ -160,15 +195,14 @@ class TestLocalGenerationSuccess(unittest.TestCase):
         # Pipeline project matches 3 terms (score 3) and comes first as E1;
         # Python and SQL each match 1 term (score 1) and follow as E2/E3.
         mock_resp.json.return_value = {
-            "message": {"content": (
-                '{"matches":[{"r":1,"e":[2]},{"r":2,"e":[3]},{"r":3,"e":[1]}]}'
-            )}
+            "message": {"content": ('{"matches":[{"r":1,"e":[2]},{"r":2,"e":[3]},{"r":3,"e":[1]}]}')}
         }
-        job = {"title": "Data Engineer", "full_description": (
-            "- Python experience required\n"
-            "- SQL experience required\n"
-            "- ETL pipeline experience required\n"
-        )}
+        job = {
+            "title": "Data Engineer",
+            "full_description": (
+                "- Python experience required\n- SQL experience required\n- ETL pipeline experience required\n"
+            ),
+        }
         profile = {
             "resume_facts": {},
             "skills_inventory": [
@@ -176,13 +210,16 @@ class TestLocalGenerationSuccess(unittest.TestCase):
                 {"name": "SQL", "resume_allowed": True, "relevance_categories": ["sql"]},
             ],
             "project_inventory": [
-                {"name": "ETL Pipeline", "resume_allowed": True,
-                 "relevance_categories": ["etl"], "factual_concepts": ["ETL"]},
+                {
+                    "name": "ETL Pipeline",
+                    "resume_allowed": True,
+                    "relevance_categories": ["etl"],
+                    "factual_concepts": ["ETL"],
+                },
             ],
         }
         env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
-        with patch.dict("os.environ", env, clear=False), \
-             patch("httpx.post", return_value=mock_resp):
+        with patch.dict("os.environ", env, clear=False), patch("httpx.post", return_value=mock_resp):
             plan = local_tailor.get_local_tailoring_plan(resume_text, job, profile)
         self.assertIsNotNone(plan)
         self.assertEqual(len(plan["requirements"]), 3)
@@ -201,25 +238,27 @@ class TestLocalGenerationSuccess(unittest.TestCase):
 # 3. Local provider unavailable
 # ---------------------------------------------------------------------------
 
+
 class TestLocalProviderUnavailable(unittest.TestCase):
     def test_local_available_false_when_not_configured(self):
         from applypilot import llm as llm_mod
+
         with patch.dict("os.environ", {}, clear=True):
             self.assertFalse(llm_mod.local_available())
 
     def test_local_available_false_on_connection_error(self):
         from applypilot import llm as llm_mod
+
         env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
-        with patch.dict("os.environ", env, clear=False), \
-             patch("httpx.get", side_effect=ConnectionError("refused")):
+        with patch.dict("os.environ", env, clear=False), patch("httpx.get", side_effect=ConnectionError("refused")):
             self.assertFalse(llm_mod.local_available())
 
     def test_get_local_tailoring_plan_returns_none_on_connection_error(self):
         from applypilot.scoring import local_tailor
+
         job, profile = _matchable_job_and_profile()
         env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
-        with patch.dict("os.environ", env, clear=False), \
-             patch("httpx.post", side_effect=ConnectionError("refused")):
+        with patch.dict("os.environ", env, clear=False), patch("httpx.post", side_effect=ConnectionError("refused")):
             plan = local_tailor.get_local_tailoring_plan("resume", job, profile)
         self.assertIsNone(plan)
 
@@ -228,18 +267,27 @@ class TestLocalProviderUnavailable(unittest.TestCase):
         it should proceed with tailor_resume(local_plan=None)."""
         from applypilot.scoring import tailor as tailor_mod
 
-        job = {"url": "https://example.com/j1", "title": "Engineer", "site": "test",
-               "full_description": "desc", "fit_score": 9}
+        job = {
+            "url": "https://example.com/j1",
+            "title": "Engineer",
+            "site": "test",
+            "full_description": "desc",
+            "fit_score": 9,
+        }
         profile = {"personal": {"full_name": "Jane Doe"}, "resume_facts": {}}
 
-        with patch.dict("os.environ", {"APPLYPILOT_LOCAL_PLAN": "1",
-                                        "APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}), \
-             patch("applypilot.scoring.local_tailor.get_local_tailoring_plan",
-                   side_effect=Exception("boom")), \
-             patch.object(tailor_mod, "tailor_resume",
-                          return_value=("RESUME TEXT", {"status": "approved", "attempts": 1,
-                                                         "approved_facts": []})) as mock_tailor, \
-             patch.object(tailor_mod, "TAILORED_DIR", Path("/tmp/applypilot-test-tailor")):
+        with (
+            patch.dict(
+                "os.environ", {"APPLYPILOT_LOCAL_PLAN": "1", "APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
+            ),
+            patch("applypilot.scoring.local_tailor.get_local_tailoring_plan", side_effect=Exception("boom")),
+            patch.object(
+                tailor_mod,
+                "tailor_resume",
+                return_value=("RESUME TEXT", {"status": "approved", "attempts": 1, "approved_facts": []}),
+            ) as mock_tailor,
+            patch.object(tailor_mod, "TAILORED_DIR", Path("/tmp/applypilot-test-tailor")),
+        ):
             tailor_mod.TAILORED_DIR.mkdir(parents=True, exist_ok=True)
             result = tailor_mod._tailor_one_job(job, "Original resume text.", profile)
 
@@ -264,30 +312,41 @@ class TestLocalFirstObservability(unittest.TestCase):
     """
 
     def _job_and_profile(self):
-        job = {"url": "https://example.com/j1", "title": "Help Desk Technician",
-               "site": "test", "full_description": "desc", "fit_score": 9}
+        job = {
+            "url": "https://example.com/j1",
+            "title": "Help Desk Technician",
+            "site": "test",
+            "full_description": "desc",
+            "fit_score": 9,
+        }
         profile = {"personal": {"full_name": "Jane Doe"}, "resume_facts": {}}
         return job, profile
 
     def _patched_tailor_resume(self, tailor_mod):
         return patch.object(
-            tailor_mod, "tailor_resume",
-            return_value=("RESUME TEXT", {"status": "approved", "attempts": 1,
-                                           "approved_facts": []}),
+            tailor_mod,
+            "tailor_resume",
+            return_value=("RESUME TEXT", {"status": "approved", "attempts": 1, "approved_facts": []}),
         )
 
     def test_logs_info_when_plan_accepted(self):
         from applypilot.scoring import tailor as tailor_mod
-        job, profile = self._job_and_profile()
-        plan = {"requirements": [{"requirement": "Python", "supported": True},
-                                  {"requirement": "SQL", "supported": False}]}
 
-        with patch.dict("os.environ", {"APPLYPILOT_LOCAL_PLAN": "1"}), \
-             patch("applypilot.scoring.local_tailor.get_local_tailoring_plan", return_value=plan), \
-             patch("applypilot.scoring.local_tailor.format_local_plan_for_cloud",
-                   return_value="Job requirements:\n- Python -- supported"), \
-             self._patched_tailor_resume(tailor_mod) as mock_tailor, \
-             patch.object(tailor_mod, "TAILORED_DIR", Path("/tmp/applypilot-test-tailor")):
+        job, profile = self._job_and_profile()
+        plan = {
+            "requirements": [{"requirement": "Python", "supported": True}, {"requirement": "SQL", "supported": False}]
+        }
+
+        with (
+            patch.dict("os.environ", {"APPLYPILOT_LOCAL_PLAN": "1"}),
+            patch("applypilot.scoring.local_tailor.get_local_tailoring_plan", return_value=plan),
+            patch(
+                "applypilot.scoring.local_tailor.format_local_plan_for_cloud",
+                return_value="Job requirements:\n- Python -- supported",
+            ),
+            self._patched_tailor_resume(tailor_mod) as mock_tailor,
+            patch.object(tailor_mod, "TAILORED_DIR", Path("/tmp/applypilot-test-tailor")),
+        ):
             tailor_mod.TAILORED_DIR.mkdir(parents=True, exist_ok=True)
             with self.assertLogs("applypilot.scoring.tailor", level="INFO") as cm:
                 tailor_mod._tailor_one_job(job, "Original resume text.", profile)
@@ -304,14 +363,17 @@ class TestLocalFirstObservability(unittest.TestCase):
         every requirement unsupported, or a benefits-only posting) must be
         distinguished from an outright planner failure."""
         from applypilot.scoring import tailor as tailor_mod
+
         job, profile = self._job_and_profile()
         plan = {"requirements": []}
 
-        with patch.dict("os.environ", {"APPLYPILOT_LOCAL_PLAN": "1"}), \
-             patch("applypilot.scoring.local_tailor.get_local_tailoring_plan", return_value=plan), \
-             patch("applypilot.scoring.local_tailor.format_local_plan_for_cloud", return_value=""), \
-             self._patched_tailor_resume(tailor_mod) as mock_tailor, \
-             patch.object(tailor_mod, "TAILORED_DIR", Path("/tmp/applypilot-test-tailor")):
+        with (
+            patch.dict("os.environ", {"APPLYPILOT_LOCAL_PLAN": "1"}),
+            patch("applypilot.scoring.local_tailor.get_local_tailoring_plan", return_value=plan),
+            patch("applypilot.scoring.local_tailor.format_local_plan_for_cloud", return_value=""),
+            self._patched_tailor_resume(tailor_mod) as mock_tailor,
+            patch.object(tailor_mod, "TAILORED_DIR", Path("/tmp/applypilot-test-tailor")),
+        ):
             tailor_mod.TAILORED_DIR.mkdir(parents=True, exist_ok=True)
             with self.assertLogs("applypilot.scoring.tailor", level="INFO") as cm:
                 tailor_mod._tailor_one_job(job, "Original resume text.", profile)
@@ -328,12 +390,15 @@ class TestLocalFirstObservability(unittest.TestCase):
         confirming local-first ran and got nothing, distinct from the
         'model answered but had nothing useful' case above."""
         from applypilot.scoring import tailor as tailor_mod
+
         job, profile = self._job_and_profile()
 
-        with patch.dict("os.environ", {"APPLYPILOT_LOCAL_PLAN": "1"}), \
-             patch("applypilot.scoring.local_tailor.get_local_tailoring_plan", return_value=None), \
-             self._patched_tailor_resume(tailor_mod) as mock_tailor, \
-             patch.object(tailor_mod, "TAILORED_DIR", Path("/tmp/applypilot-test-tailor")):
+        with (
+            patch.dict("os.environ", {"APPLYPILOT_LOCAL_PLAN": "1"}),
+            patch("applypilot.scoring.local_tailor.get_local_tailoring_plan", return_value=None),
+            self._patched_tailor_resume(tailor_mod) as mock_tailor,
+            patch.object(tailor_mod, "TAILORED_DIR", Path("/tmp/applypilot-test-tailor")),
+        ):
             tailor_mod.TAILORED_DIR.mkdir(parents=True, exist_ok=True)
             with self.assertLogs("applypilot.scoring.tailor", level="INFO") as cm:
                 tailor_mod._tailor_one_job(job, "Original resume text.", profile)
@@ -348,13 +413,15 @@ class TestLocalFirstObservability(unittest.TestCase):
         not a full traceback at that level) and must NOT prevent cloud
         tailoring from proceeding."""
         from applypilot.scoring import tailor as tailor_mod
+
         job, profile = self._job_and_profile()
 
-        with patch.dict("os.environ", {"APPLYPILOT_LOCAL_PLAN": "1"}), \
-             patch("applypilot.scoring.local_tailor.get_local_tailoring_plan",
-                   side_effect=ValueError("boom")), \
-             self._patched_tailor_resume(tailor_mod) as mock_tailor, \
-             patch.object(tailor_mod, "TAILORED_DIR", Path("/tmp/applypilot-test-tailor")):
+        with (
+            patch.dict("os.environ", {"APPLYPILOT_LOCAL_PLAN": "1"}),
+            patch("applypilot.scoring.local_tailor.get_local_tailoring_plan", side_effect=ValueError("boom")),
+            self._patched_tailor_resume(tailor_mod) as mock_tailor,
+            patch.object(tailor_mod, "TAILORED_DIR", Path("/tmp/applypilot-test-tailor")),
+        ):
             tailor_mod.TAILORED_DIR.mkdir(parents=True, exist_ok=True)
             with self.assertLogs("applypilot.scoring.tailor", level="WARNING") as cm:
                 result = tailor_mod._tailor_one_job(job, "Original resume text.", profile)
@@ -371,13 +438,15 @@ class TestLocalFirstObservability(unittest.TestCase):
         """With APPLYPILOT_LOCAL_PLAN unset, none of the local-first log
         lines should appear at all -- it must stay fully opt-in."""
         from applypilot.scoring import tailor as tailor_mod
+
         job, profile = self._job_and_profile()
 
-        env = {k: v for k, v in __import__("os").environ.items()
-               if k != "APPLYPILOT_LOCAL_PLAN"}
-        with patch.dict("os.environ", env, clear=True), \
-             self._patched_tailor_resume(tailor_mod), \
-             patch.object(tailor_mod, "TAILORED_DIR", Path("/tmp/applypilot-test-tailor")):
+        env = {k: v for k, v in __import__("os").environ.items() if k != "APPLYPILOT_LOCAL_PLAN"}
+        with (
+            patch.dict("os.environ", env, clear=True),
+            self._patched_tailor_resume(tailor_mod),
+            patch.object(tailor_mod, "TAILORED_DIR", Path("/tmp/applypilot-test-tailor")),
+        ):
             tailor_mod.TAILORED_DIR.mkdir(parents=True, exist_ok=True)
             with self.assertLogs("applypilot.scoring.tailor", level="INFO") as cm:
                 # at least one INFO line must exist elsewhere in
@@ -393,9 +462,11 @@ class TestLocalFirstObservability(unittest.TestCase):
 # 4. Cloud models all exhausted but local model available
 # ---------------------------------------------------------------------------
 
+
 class TestCloudExhaustedLocalAvailable(unittest.TestCase):
     def _client(self):
         from applypilot.llm import LLMClient, ModelEntry
+
         fake_chain = [
             ModelEntry("cloud-a", "openai_compat", "https://fake.api/v1", "fake-key"),
             ModelEntry("cloud-b", "openai_compat", "https://fake.api/v1", "fake-key"),
@@ -442,13 +513,12 @@ class TestCloudExhaustedLocalAvailable(unittest.TestCase):
 # 5. Daily-exhausted cloud models being skipped (not re-tried)
 # ---------------------------------------------------------------------------
 
+
 class TestDailyExhaustionNotReset(unittest.TestCase):
     def _client(self, n=2):
         from applypilot.llm import LLMClient, ModelEntry
-        fake_chain = [
-            ModelEntry(f"cloud-{i}", "openai_compat", "https://fake.api/v1", "fake-key")
-            for i in range(n)
-        ]
+
+        fake_chain = [ModelEntry(f"cloud-{i}", "openai_compat", "https://fake.api/v1", "fake-key") for i in range(n)]
         with patch("applypilot.llm._build_fallback_chain", return_value=fake_chain):
             client = LLMClient(base_url="https://fake.api/v1", model="cloud-0", api_key="fake-key")
         return client
@@ -462,9 +532,8 @@ class TestDailyExhaustionNotReset(unittest.TestCase):
         client._exhausted["cloud-0"] = now + 86400  # daily exhausted
         client._exhausted["cloud-1"] = now + 86400  # daily exhausted
 
-        with patch.object(client._client, "post") as mock_post:
-            with self.assertRaises(RuntimeError):
-                client.chat([{"role": "user", "content": "hi"}])
+        with patch.object(client._client, "post") as mock_post, self.assertRaises(RuntimeError):
+            client.chat([{"role": "user", "content": "hi"}])
         # No HTTP call should have been attempted -- both entries are still
         # marked exhausted and there's no local fallback in this chain.
         mock_post.assert_not_called()
@@ -474,8 +543,8 @@ class TestDailyExhaustionNotReset(unittest.TestCase):
         entry is temporarily exhausted -- only long daily blocks persist."""
         client = self._client(2)
         now = time.time()
-        client._exhausted["cloud-0"] = now + 30   # short transient cooldown
-        client._exhausted["cloud-1"] = now + 60   # short transient cooldown
+        client._exhausted["cloud-0"] = now + 30  # short transient cooldown
+        client._exhausted["cloud-1"] = now + 60  # short transient cooldown
 
         resp = MagicMock()
         resp.status_code = 200
@@ -517,6 +586,7 @@ class TestDailyExhaustionNotReset(unittest.TestCase):
 # 6. Local draft preserving factual resume information
 # ---------------------------------------------------------------------------
 
+
 class TestFactualAnchorValidation(unittest.TestCase):
     def _profile(self):
         return {
@@ -531,6 +601,7 @@ class TestFactualAnchorValidation(unittest.TestCase):
 
     def test_validate_factual_anchors_passes_known_employer(self):
         from applypilot.scoring.validator import validate_factual_anchors
+
         data = {"experience": [{"header": "Software Engineer | Acme Corp | 2020-2023"}]}
         result = validate_factual_anchors(data, self._profile())
         self.assertEqual(result["errors"], [])
@@ -538,6 +609,7 @@ class TestFactualAnchorValidation(unittest.TestCase):
 
     def test_validate_factual_anchors_warns_on_unknown_employer(self):
         from applypilot.scoring.validator import validate_factual_anchors
+
         data = {"experience": [{"header": "Software Engineer | Totally Fake Inc | 2020-2023"}]}
         result = validate_factual_anchors(data, self._profile())
         self.assertEqual(result["errors"], [])
@@ -546,6 +618,7 @@ class TestFactualAnchorValidation(unittest.TestCase):
 
     def test_validate_factual_anchors_noop_when_no_preserved_companies(self):
         from applypilot.scoring.validator import validate_factual_anchors
+
         data = {"experience": [{"header": "Software Engineer | Anything | 2020-2023"}]}
         profile = {"resume_facts": {}}
         result = validate_factual_anchors(data, profile)
@@ -555,6 +628,7 @@ class TestFactualAnchorValidation(unittest.TestCase):
     def test_validate_json_fields_surfaces_anchor_warning(self):
         """validate_json_fields wires in validate_factual_anchors as warnings."""
         from applypilot.scoring.validator import validate_json_fields
+
         data = {
             "title": "Engineer",
             "summary": "Experienced engineer.",
@@ -572,6 +646,7 @@ class TestFactualAnchorValidation(unittest.TestCase):
 # 7. Malformed local-model output
 # ---------------------------------------------------------------------------
 
+
 class TestMalformedLocalOutput(unittest.TestCase):
     def test_get_local_tailoring_plan_returns_none_on_non_json(self):
         from applypilot.scoring import local_tailor
@@ -579,13 +654,10 @@ class TestMalformedLocalOutput(unittest.TestCase):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.raise_for_status.return_value = None
-        mock_resp.json.return_value = {
-            "message": {"content": "Sure! Here's your plan: it looks great."}
-        }
+        mock_resp.json.return_value = {"message": {"content": "Sure! Here's your plan: it looks great."}}
         job, profile = _matchable_job_and_profile()
         env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
-        with patch.dict("os.environ", env, clear=False), \
-             patch("httpx.post", return_value=mock_resp):
+        with patch.dict("os.environ", env, clear=False), patch("httpx.post", return_value=mock_resp):
             plan = local_tailor.get_local_tailoring_plan("resume", job, profile)
         self.assertIsNone(plan)
 
@@ -598,8 +670,7 @@ class TestMalformedLocalOutput(unittest.TestCase):
         mock_resp.json.return_value = {"message": {}}
         job, profile = _matchable_job_and_profile()
         env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
-        with patch.dict("os.environ", env, clear=False), \
-             patch("httpx.post", return_value=mock_resp):
+        with patch.dict("os.environ", env, clear=False), patch("httpx.post", return_value=mock_resp):
             plan = local_tailor.get_local_tailoring_plan("resume", job, profile)
         self.assertIsNone(plan)
 
@@ -625,10 +696,14 @@ class TestMalformedLocalOutput(unittest.TestCase):
         mock_client = MagicMock()
         mock_client.chat.side_effect = ["not json at all", good_json]
 
-        with patch("applypilot.scoring.tailor.get_stage_client", return_value=mock_client), \
-             patch("applypilot.scoring.tailor.is_local_configured", return_value=False), \
-             patch("applypilot.scoring.tailor.judge_tailored_resume",
-                   return_value={"passed": True, "verdict": "SKIP", "issues": "none", "raw": "n/a"}):
+        with (
+            patch("applypilot.scoring.tailor.get_stage_client", return_value=mock_client),
+            patch("applypilot.scoring.tailor.is_local_configured", return_value=False),
+            patch(
+                "applypilot.scoring.tailor.judge_tailored_resume",
+                return_value={"passed": True, "verdict": "SKIP", "issues": "none", "raw": "n/a"},
+            ),
+        ):
             tailored, report = tailor_mod.tailor_resume("Original resume.", job, profile, max_retries=2)
 
         self.assertEqual(report["status"], "approved")
@@ -639,6 +714,7 @@ class TestMalformedLocalOutput(unittest.TestCase):
         </think> block (populated or empty) preceding the real JSON must not
         break parsing."""
         from applypilot.scoring.local_tailor import _parse_plan
+
         text = (
             "<think>\nLet me consider the {curly brace} in this reasoning "
             "text first.\n</think>\n"
@@ -649,6 +725,7 @@ class TestMalformedLocalOutput(unittest.TestCase):
 
     def test_parse_plan_strips_empty_think_block(self):
         from applypilot.scoring.local_tailor import _parse_plan
+
         text = '<think>\n\n</think>\n{"requirements": []}'
         result = _parse_plan(text)
         self.assertEqual(result, {"requirements": []})
@@ -657,6 +734,7 @@ class TestMalformedLocalOutput(unittest.TestCase):
         """Regression guard: the new stripping step must not affect plain
         JSON responses (the common case with /no_think honored)."""
         from applypilot.scoring.local_tailor import _parse_plan
+
         text = '{"requirements": [], "skills_to_emphasize": ["SQL"]}'
         result = _parse_plan(text)
         self.assertEqual(result["skills_to_emphasize"], ["SQL"])
@@ -668,15 +746,13 @@ class TestMalformedLocalOutput(unittest.TestCase):
         mock_resp.status_code = 200
         mock_resp.raise_for_status.return_value = None
         mock_resp.json.return_value = {
-            "message": {"content": (
-                '<think>\nThe candidate has Python experience.\n</think>\n'
-                '{"matches":[{"r":1,"e":[1]}]}'
-            )}
+            "message": {
+                "content": ('<think>\nThe candidate has Python experience.\n</think>\n{"matches":[{"r":1,"e":[1]}]}')
+            }
         }
         job, profile = _matchable_job_and_profile()
         env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
-        with patch.dict("os.environ", env, clear=False), \
-             patch("httpx.post", return_value=mock_resp):
+        with patch.dict("os.environ", env, clear=False), patch("httpx.post", return_value=mock_resp):
             plan = local_tailor.get_local_tailoring_plan("Uses Python daily.", job, profile)
         self.assertIsNotNone(plan)
         self.assertIn("Python", plan["skills_to_emphasize"])
@@ -686,9 +762,11 @@ class TestMalformedLocalOutput(unittest.TestCase):
 # 8. Validation failures
 # ---------------------------------------------------------------------------
 
+
 class TestValidationFailures(unittest.TestCase):
     def test_validate_json_fields_fails_on_missing_required_field(self):
         from applypilot.scoring.validator import validate_json_fields
+
         data = {"title": "Engineer", "summary": "", "skills": {}, "experience": [], "education": ""}
         result = validate_json_fields(data, {"resume_facts": {}})
         self.assertFalse(result["passed"])
@@ -696,6 +774,7 @@ class TestValidationFailures(unittest.TestCase):
 
     def test_validate_json_fields_fails_on_fabricated_skill(self):
         from applypilot.scoring.validator import validate_json_fields
+
         data = {
             "title": "Engineer",
             "summary": "Experienced engineer.",
@@ -730,9 +809,11 @@ class TestValidationFailures(unittest.TestCase):
         mock_client = MagicMock()
         mock_client.chat.return_value = bad_json
 
-        with patch("applypilot.scoring.tailor.get_stage_client", return_value=mock_client), \
-             patch("applypilot.scoring.tailor.is_local_configured", return_value=False):
-            tailored, report = tailor_mod.tailor_resume("Original resume.", job, profile, max_retries=1)
+        with (
+            patch("applypilot.scoring.tailor.get_stage_client", return_value=mock_client),
+            patch("applypilot.scoring.tailor.is_local_configured", return_value=False),
+        ):
+            _tailored, report = tailor_mod.tailor_resume("Original resume.", job, profile, max_retries=1)
 
         self.assertEqual(report["status"], "failed_validation")
 
@@ -741,23 +822,33 @@ class TestValidationFailures(unittest.TestCase):
 # 9. Existing cloud-only behavior remains functional
 # ---------------------------------------------------------------------------
 
+
 class TestExistingCloudBehaviorUnaffected(unittest.TestCase):
     def test_gemini_only_chain_unaffected_by_local_support(self):
         from applypilot.llm import _build_fallback_chain
+
         env = {
-            k: v for k, v in __import__("os").environ.items()
-            if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-                         "DEEPSEEK_API_KEY", "LLM_URL", "APPLYPILOT_LOCAL_LLM_URL")
+            k: v
+            for k, v in __import__("os").environ.items()
+            if k
+            not in (
+                "GEMINI_API_KEY",
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "DEEPSEEK_API_KEY",
+                "LLM_URL",
+                "APPLYPILOT_LOCAL_LLM_URL",
+            )
         }
         env["GEMINI_API_KEY"] = "fake-key"
-        with patch.dict("os.environ", env, clear=True), \
-             patch("applypilot.llm._find_claude_cli", return_value=None):
+        with patch.dict("os.environ", env, clear=True), patch("applypilot.llm._find_claude_cli", return_value=None):
             chain = _build_fallback_chain("gemini-3.6-flash", quality=False)
         self.assertTrue(all(e.provider == "gemini" for e in chain))
         self.assertFalse(any(e.provider == "local" for e in chain))
 
     def test_cloud_chat_success_unaffected(self):
         from applypilot.llm import LLMClient, ModelEntry
+
         fake_chain = [ModelEntry("cloud-a", "openai_compat", "https://fake.api/v1", "fake-key")]
         with patch("applypilot.llm._build_fallback_chain", return_value=fake_chain):
             client = LLMClient(base_url="https://fake.api/v1", model="cloud-a", api_key="fake-key")
@@ -793,9 +884,11 @@ class TestExistingCloudBehaviorUnaffected(unittest.TestCase):
         mock_client = MagicMock()
         mock_client.chat.return_value = good_json
 
-        with patch("applypilot.scoring.tailor.get_stage_client", return_value=mock_client), \
-             patch("applypilot.scoring.tailor.is_local_configured", return_value=False):
-            tailored, report = tailor_mod.tailor_resume("Original resume.", job, profile, max_retries=1)
+        with (
+            patch("applypilot.scoring.tailor.get_stage_client", return_value=mock_client),
+            patch("applypilot.scoring.tailor.is_local_configured", return_value=False),
+        ):
+            _tailored, report = tailor_mod.tailor_resume("Original resume.", job, profile, max_retries=1)
 
         self.assertEqual(report["status"], "approved")
 
@@ -804,14 +897,13 @@ class TestExistingCloudBehaviorUnaffected(unittest.TestCase):
 # 10. Deterministic requirement-line extraction (no LLM, no embeddings)
 # ---------------------------------------------------------------------------
 
+
 class TestDeterministicRequirementExtraction(unittest.TestCase):
     def test_extracts_bulleted_lines(self):
         from applypilot.scoring.local_tailor import _extract_requirement_lines
+
         desc = (
-            "About the role:\n"
-            "- Experience with Python required\n"
-            "- SQL is a plus\n"
-            "- Familiarity with Docker preferred\n"
+            "About the role:\n- Experience with Python required\n- SQL is a plus\n- Familiarity with Docker preferred\n"
         )
         lines = _extract_requirement_lines(desc)
         texts = [l["text"] for l in lines]
@@ -821,11 +913,8 @@ class TestDeterministicRequirementExtraction(unittest.TestCase):
 
     def test_tags_required_vs_preferred(self):
         from applypilot.scoring.local_tailor import _extract_requirement_lines
-        desc = (
-            "- Python experience is required\n"
-            "- Docker knowledge preferred\n"
-            "- Owns a pet dinosaur\n"
-        )
+
+        desc = "- Python experience is required\n- Docker knowledge preferred\n- Owns a pet dinosaur\n"
         lines = {l["text"]: l["importance"] for l in _extract_requirement_lines(desc)}
         self.assertEqual(lines["Python experience is required"], "required")
         self.assertEqual(lines["Docker knowledge preferred"], "preferred")
@@ -833,6 +922,7 @@ class TestDeterministicRequirementExtraction(unittest.TestCase):
 
     def test_numbered_lines_also_extracted(self):
         from applypilot.scoring.local_tailor import _extract_requirement_lines
+
         desc = "1. Must have 3+ years of experience\n2. Bachelor's degree preferred\n"
         texts = [l["text"] for l in _extract_requirement_lines(desc)]
         self.assertIn("Must have 3+ years of experience", texts)
@@ -840,11 +930,13 @@ class TestDeterministicRequirementExtraction(unittest.TestCase):
 
     def test_empty_description_returns_empty_list(self):
         from applypilot.scoring.local_tailor import _extract_requirement_lines
+
         self.assertEqual(_extract_requirement_lines(""), [])
         self.assertEqual(_extract_requirement_lines(None), [])
 
     def test_deduplicates_and_caps_line_count(self):
         from applypilot.scoring.local_tailor import _extract_requirement_lines
+
         desc = "\n".join(f"- Requirement number {i} needs real content here" for i in range(20))
         desc += "\n- Requirement number 0 needs real content here"  # exact duplicate
         lines = _extract_requirement_lines(desc, max_lines=10)
@@ -852,6 +944,7 @@ class TestDeterministicRequirementExtraction(unittest.TestCase):
 
     def test_prose_paragraph_with_no_bullets_yields_nothing(self):
         from applypilot.scoring.local_tailor import _extract_requirement_lines
+
         desc = "This is a great job at a great company doing great things for great people."
         self.assertEqual(_extract_requirement_lines(desc), [])
 
@@ -862,6 +955,7 @@ class TestDeterministicRequirementExtraction(unittest.TestCase):
         (which it can get wrong, and which costs it reasoning time even
         when it gets it right)."""
         from applypilot.scoring.local_tailor import _extract_requirement_lines
+
         desc = (
             "- 3+ years of Python experience required\n"
             "- Generous PTO and paid holidays\n"
@@ -888,6 +982,7 @@ class TestDeterministicRequirementExtraction(unittest.TestCase):
         offer laundered into a candidate qualification. Every one of these
         must be dropped before the model ever sees it."""
         from applypilot.scoring.local_tailor import _extract_requirement_lines
+
         desc = (
             "  * Competitive Wages & Paid Time Off \n"
             "  * Stock Purchase Plan & 401k with Employer Contributions Starting Day One \n"
@@ -902,6 +997,7 @@ class TestDeterministicRequirementExtraction(unittest.TestCase):
         """Phrase/category matching, not one-off strings: each of these is a
         differently-worded instance of a category the filter must cover."""
         from applypilot.scoring.local_tailor import _is_benefit_line
+
         for line in [
             "Team Member Health/Wellbeing Programs",
             "Employee Wellness Programs",
@@ -936,6 +1032,7 @@ class TestDeterministicRequirementExtraction(unittest.TestCase):
         ordinary words inside genuine requirements, so their presence alone
         must never drop a line."""
         from applypilot.scoring.local_tailor import _is_benefit_line
+
         for line in [
             "Bachelor's degree in Health Sciences required",
             "5+ years of experience in health care operations",
@@ -959,22 +1056,212 @@ class TestDeterministicRequirementExtraction(unittest.TestCase):
 
     def test_split_reports_dropped_benefit_lines(self):
         from applypilot.scoring.local_tailor import _split_requirement_lines
+
         desc = (
             "- 3+ years of Python experience required\n"
             "- Opportunities for Career Growth\n"
             "- Tuition Educational Assistance Programs\n"
         )
         lines, dropped = _split_requirement_lines(desc)
-        self.assertEqual([l["text"] for l in lines],
-                         ["3+ years of Python experience required"])
-        self.assertEqual(dropped,
-                         ["Opportunities for Career Growth",
-                          "Tuition Educational Assistance Programs"])
+        self.assertEqual([l["text"] for l in lines], ["3+ years of Python experience required"])
+        self.assertEqual(dropped, ["Opportunities for Career Growth", "Tuition Educational Assistance Programs"])
+
+
+# ---------------------------------------------------------------------------
+# Markerless paragraph-fallback extraction (2026-08-25, Direction 1 of the
+# extraction audit)
+#
+# Root cause (measured against the live database, see the audit report):
+# three real NO_SUPPORTED_EVIDENCE incidents (Axon, Twilio, Pinterest) and
+# ~1,478 active Workday-sourced rows all extracted ZERO requirement lines
+# via _REQUIREMENT_MARKER_RE, because their itemized requirements were
+# flattened by HTML-to-text conversion to plain, unmarked lines -- not
+# because evidence matching rejected the candidate's qualifications. This
+# fallback recovers that lost requirement TEXT only; it does not change
+# what counts as evidence for a requirement (_pair_candidate_evidence,
+# _auto_resolve_requirements, claim/agency/causal/metric safety checks are
+# all untouched).
+# ---------------------------------------------------------------------------
+
+
+class TestParagraphFallbackExtraction(unittest.TestCase):
+    def test_a_bare_terms_separated_by_blank_lines_are_extracted(self):
+        """Test A: markerless, blank-line-separated bare skill terms."""
+        from applypilot.scoring.local_tailor import _extract_requirement_lines
+
+        desc = "Python\n\nDistributed systems\n\nKubernetes\n\nObservability\n"
+        lines = _extract_requirement_lines(desc)
+        self.assertEqual(len(lines), 4)
+        texts = {l["text"] for l in lines}
+        self.assertEqual(texts, {"Python", "Distributed systems", "Kubernetes", "Observability"})
+
+    def test_b_fallback_never_fires_when_marker_extraction_found_anything(self):
+        """Test B: the single most important test in this suite -- marker
+        extraction winning must mean the fallback contributes NOTHING, even
+        when markerless-looking lines sit right next to the marked one."""
+        from applypilot.scoring.local_tailor import _extract_requirement_lines
+
+        desc = "- Experience with Python programming\n\nDistributed systems\n\nKubernetes\n\nSomething else entirely\n"
+        lines = _extract_requirement_lines(desc)
+        texts = [l["text"] for l in lines]
+        self.assertEqual(texts, ["Experience with Python programming"])
+        self.assertNotIn("Distributed systems", texts)
+        self.assertNotIn("Kubernetes", texts)
+
+    def test_c_benefit_paragraphs_remain_excluded(self):
+        """Test C: reuses _is_benefit_line, not a second classifier."""
+        from applypilot.scoring.local_tailor import _split_requirement_lines
+
+        desc = (
+            "Competitive salary\n\nMedical, dental, and vision insurance\n\nGenerous paid time off\n\n401(k) matching\n"
+        )
+        lines, dropped = _split_requirement_lines(desc)
+        self.assertEqual(lines, [])
+        self.assertEqual(len(dropped), 4)
+
+    def test_d_multi_sentence_prose_paragraphs_are_rejected(self):
+        """Test D: ordinary multi-sentence employer prose, even several
+        paragraphs of it (enough to clear a naive count-only gate), must
+        never become requirement candidates."""
+        from applypilot.scoring.local_tailor import _extract_requirement_lines
+
+        desc = (
+            "We are a rapidly growing company committed to innovation. "
+            "Our team loves solving hard problems together.\n\n"
+            "Our employees receive great support and mentorship. "
+            "Everyone is encouraged to grow their career here.\n\n"
+            "We believe in doing right by our customers. "
+            "That philosophy guides everything we build.\n\n"
+            "Diversity and inclusion are core to how we operate. "
+            "We want everyone to feel like they belong.\n"
+        )
+        self.assertEqual(_extract_requirement_lines(desc), [])
+
+    def test_e_existing_marker_based_fixtures_are_unchanged(self):
+        """Test E: regression -- the refactor into _extract_marker_lines/
+        _extract_paragraph_lines must not change marker-path behavior."""
+        from applypilot.scoring.local_tailor import _extract_requirement_lines
+
+        desc = (
+            "About the role:\n- Experience with Python required\n- SQL is a plus\n- Familiarity with Docker preferred\n"
+        )
+        lines = _extract_requirement_lines(desc)
+        texts = [l["text"] for l in lines]
+        self.assertIn("Experience with Python required", texts)
+        self.assertIn("SQL is a plus", texts)
+        self.assertIn("Familiarity with Docker preferred", texts)
+
+    def test_f_real_workday_fixture_recovers_requirements(self):
+        """Test F: a real Workday posting (captured 2026-08-25), paragraph-
+        per-requirement with blank-line separation and no marker
+        characters at all -- the single largest affected source (~1,478
+        active rows) identified by the audit."""
+        from applypilot.scoring.local_tailor import _extract_marker_lines, _split_requirement_lines
+
+        desc = (
+            "Your work days are brighter here.\n\n"
+            "We're obsessed with making hard work pay off, for our people, "
+            "our customers, and the world around us.\n\n"
+            "Basic Qualifications:\n\n"
+            "4+ years in deploying large-scale, complex applications, with "
+            "3+ years in cloud-based deployments on AWS or GCP\n\n"
+            "2+ years experience with automation tools and languages, "
+            "including Ansible, Python, Go, Chef, and Puppet\n\n"
+            "2+ years experience with networks, servers, storage, and "
+            "operating systems in cloud environments\n\n"
+            "Hands-on experience with infrastructure automation tools like "
+            "Chef, Puppet, and Ansible\n"
+        )
+        marker_lines, _ = _extract_marker_lines(desc)
+        self.assertEqual(marker_lines, [])
+
+        lines, _dropped = _split_requirement_lines(desc)
+        self.assertGreater(len(lines), 0)
+        texts = " ".join(l["text"] for l in lines)
+        self.assertIn("Ansible", texts)
+        self.assertIn("AWS", texts)
+
+    def test_g_extraction_does_not_weaken_the_evidence_boundary(self):
+        """Test G: a markerless requirement is extracted, but with no
+        matching profile evidence it must remain unsupported -- proves the
+        fallback only recovers TEXT, never invents a match."""
+        from applypilot.scoring.local_tailor import (
+            _auto_resolve_requirements,
+            _split_requirement_lines,
+            rank_profile_evidence,
+        )
+
+        desc = (
+            "Experience with Kubernetes orchestration\n\n"
+            "Experience with distributed tracing systems\n\n"
+            "Experience with service mesh architectures\n"
+        )
+        lines, _dropped = _split_requirement_lines(desc)
+        self.assertEqual(len(lines), 3)
+
+        profile_no_k8s_evidence = {
+            "experience_inventory": [
+                {
+                    "name": "Retail Associate",
+                    "resume_allowed": True,
+                    "relevance_categories": ["customer service"],
+                    "description": "Assisted customers on the sales floor.",
+                },
+            ],
+            "project_inventory": [],
+            "skills_inventory": [],
+            "certifications": [],
+        }
+        ranked = rank_profile_evidence({"title": "SRE", "full_description": desc}, profile_no_k8s_evidence, top_n=6)
+        self.assertEqual(ranked, [])  # nothing in this profile matches at all
+        resolved, candidates = _auto_resolve_requirements(lines, ranked)
+        for i in range(1, len(lines) + 1):
+            self.assertEqual(resolved.get(i, []), [])
+            self.assertEqual(candidates.get(i, []), [])
+
+    def test_h_extraction_lets_legitimate_evidence_resolve(self):
+        """Test H: the mirror case -- when the profile DOES contain
+        matching evidence, the existing (unmodified) matcher must still be
+        able to resolve it once the text is recovered."""
+        from applypilot.scoring.local_tailor import (
+            _auto_resolve_requirements,
+            _split_requirement_lines,
+            rank_profile_evidence,
+        )
+
+        desc = (
+            "Experience with Python automation\n\n"
+            "Experience with distributed tracing systems\n\n"
+            "Experience with service mesh architectures\n"
+        )
+        lines, _dropped = _split_requirement_lines(desc)
+        self.assertEqual(len(lines), 3)
+
+        profile_with_python = {
+            "experience_inventory": [
+                {
+                    "name": "Automation Engineer",
+                    "resume_allowed": True,
+                    "relevance_categories": ["automation", "python"],
+                    "description": "Built Python automation scripts.",
+                },
+            ],
+            "project_inventory": [],
+            "skills_inventory": [],
+            "certifications": [],
+        }
+        job = {"title": "Platform Engineer", "full_description": desc}
+        ranked = rank_profile_evidence(job, profile_with_python, top_n=6)
+        self.assertTrue(any(r["name"] == "Automation Engineer" for r in ranked))
+        resolved, _candidates = _auto_resolve_requirements(lines, ranked)
+        python_req_idx = next(i for i, l in enumerate(lines, start=1) if "Python" in l["text"])
+        self.assertTrue(resolved.get(python_req_idx))
 
 
 # ---------------------------------------------------------------------------
 # 11. Deterministic evidence retrieval/ranking (no LLM, no embeddings)
 # ---------------------------------------------------------------------------
+
 
 def _sample_profile():
     return {
@@ -1008,10 +1295,18 @@ def _sample_profile():
             },
         ],
         "skills_inventory": [
-            {"name": "Python", "evidence_level": "demonstrated", "resume_allowed": True,
-             "relevance_categories": ["python", "automation"]},
-            {"name": "Photography", "evidence_level": "demonstrated", "resume_allowed": True,
-             "relevance_categories": ["media"]},
+            {
+                "name": "Python",
+                "evidence_level": "demonstrated",
+                "resume_allowed": True,
+                "relevance_categories": ["python", "automation"],
+            },
+            {
+                "name": "Photography",
+                "evidence_level": "demonstrated",
+                "resume_allowed": True,
+                "relevance_categories": ["media"],
+            },
         ],
     }
 
@@ -1022,6 +1317,7 @@ class TestEvidenceRetrieval(unittest.TestCase):
 
     def test_ranks_matching_items_above_unrelated(self):
         from applypilot.scoring.local_tailor import rank_profile_evidence
+
         job = self._job("Looking for Python automation experience with OCR tooling.")
         ranked = rank_profile_evidence(job, _sample_profile(), top_n=10)
         names = [r["name"] for r in ranked]
@@ -1033,6 +1329,7 @@ class TestEvidenceRetrieval(unittest.TestCase):
 
     def test_excludes_resume_allowed_false_items(self):
         from applypilot.scoring.local_tailor import rank_profile_evidence
+
         job = self._job("Looking for a consulting background.")
         ranked = rank_profile_evidence(job, _sample_profile(), top_n=10)
         names = [r["name"] for r in ranked]
@@ -1041,6 +1338,7 @@ class TestEvidenceRetrieval(unittest.TestCase):
     def test_matched_terms_are_inspectable(self):
         """The retrieval must expose WHY an item matched, not just that it did."""
         from applypilot.scoring.local_tailor import rank_profile_evidence
+
         job = self._job("We need strong Python automation skills.")
         ranked = rank_profile_evidence(job, _sample_profile(), top_n=10)
         python_skill = next(r for r in ranked if r["name"] == "Python" and r["type"] == "skill")
@@ -1049,6 +1347,7 @@ class TestEvidenceRetrieval(unittest.TestCase):
 
     def test_reports_source_inventory_type(self):
         from applypilot.scoring.local_tailor import rank_profile_evidence
+
         job = self._job("Python automation and OCR and media and photography work.")
         ranked = rank_profile_evidence(job, _sample_profile(), top_n=10)
         types = {r["name"]: r["type"] for r in ranked}
@@ -1058,6 +1357,7 @@ class TestEvidenceRetrieval(unittest.TestCase):
 
     def test_no_match_returns_empty(self):
         from applypilot.scoring.local_tailor import rank_profile_evidence
+
         job = self._job(
             "Seeking an experienced neurosurgeon for our hospital.",
             title="Neurosurgeon",
@@ -1067,6 +1367,7 @@ class TestEvidenceRetrieval(unittest.TestCase):
 
     def test_top_n_is_respected(self):
         from applypilot.scoring.local_tailor import rank_profile_evidence
+
         job = self._job("Python automation OCR media photography content creative.")
         ranked = rank_profile_evidence(job, _sample_profile(), top_n=2)
         self.assertLessEqual(len(ranked), 2)
@@ -1075,13 +1376,17 @@ class TestEvidenceRetrieval(unittest.TestCase):
         """Regression: a multi-word item name like 'X and Y' must not match
         via the word 'and', which appears in virtually every job posting."""
         from applypilot.scoring.local_tailor import rank_profile_evidence
+
         profile = {
-            "experience_inventory": [{
-                "name": "National Tire and Battery",
-                "relevance_categories": ["retail"],
-                "resume_allowed": True,
-            }],
-            "project_inventory": [], "skills_inventory": [],
+            "experience_inventory": [
+                {
+                    "name": "National Tire and Battery",
+                    "relevance_categories": ["retail"],
+                    "resume_allowed": True,
+                }
+            ],
+            "project_inventory": [],
+            "skills_inventory": [],
         }
         job = self._job("We need someone who works well with a team and communicates clearly.")
         ranked = rank_profile_evidence(job, profile, top_n=10)
@@ -1089,6 +1394,7 @@ class TestEvidenceRetrieval(unittest.TestCase):
 
     def test_format_evidence_for_prompt_includes_constraints(self):
         from applypilot.scoring.local_tailor import format_evidence_for_prompt, rank_profile_evidence
+
         job = self._job("Python automation OCR experience needed.")
         ranked = rank_profile_evidence(job, _sample_profile(), top_n=10)
         rendered = format_evidence_for_prompt(ranked)
@@ -1097,6 +1403,7 @@ class TestEvidenceRetrieval(unittest.TestCase):
 
     def test_format_evidence_for_prompt_empty_list_returns_empty_string(self):
         from applypilot.scoring.local_tailor import format_evidence_for_prompt
+
         self.assertEqual(format_evidence_for_prompt([]), "")
 
     def test_certifications_are_included_as_evidence(self):
@@ -1106,11 +1413,15 @@ class TestEvidenceRetrieval(unittest.TestCase):
         text, which is exactly where a small model is most likely to
         hallucinate a certification name."""
         from applypilot.scoring.local_tailor import rank_profile_evidence
+
         profile = _sample_profile()
-        profile["certifications"] = [{
-            "name": "CompTIA A+", "resume_allowed": True,
-            "relevance_categories": ["IT", "help desk"],
-        }]
+        profile["certifications"] = [
+            {
+                "name": "CompTIA A+",
+                "resume_allowed": True,
+                "relevance_categories": ["IT", "help desk"],
+            }
+        ]
         job = self._job("Looking for CompTIA A+ certified help desk support.")
         ranked = rank_profile_evidence(job, profile, top_n=10)
         cert = next(r for r in ranked if r["name"] == "CompTIA A+")
@@ -1119,6 +1430,7 @@ class TestEvidenceRetrieval(unittest.TestCase):
     def test_malformed_inventory_entries_do_not_crash(self):
         """Non-dict entries / missing fields must be skipped, not raise."""
         from applypilot.scoring.local_tailor import rank_profile_evidence
+
         profile = {
             "experience_inventory": ["not a dict", None, {"no_name_field": True}],
             "project_inventory": [{"name": 123}],  # name not a string
@@ -1145,9 +1457,11 @@ class TestEvidenceRetrieval(unittest.TestCase):
 # -- not as a special case bolted onto _pair_candidate_evidence.
 # ---------------------------------------------------------------------------
 
+
 class TestGenericEvidenceTermFiltering(unittest.TestCase):
     def test_bare_it_category_is_not_a_usable_term(self):
         from applypilot.scoring.local_tailor import _item_terms
+
         item = {"name": "CompTIA A+", "relevance_categories": ["IT", "help desk"]}
         terms = _item_terms(item)
         self.assertNotIn("it", terms)
@@ -1155,8 +1469,8 @@ class TestGenericEvidenceTermFiltering(unittest.TestCase):
 
     def test_bare_technical_category_is_not_a_usable_term(self):
         from applypilot.scoring.local_tailor import _item_terms
-        item = {"name": "Python Tooling",
-                "relevance_categories": ["technical", "automation", "data", "OCR"]}
+
+        item = {"name": "Python Tooling", "relevance_categories": ["technical", "automation", "data", "OCR"]}
         terms = _item_terms(item)
         self.assertNotIn("technical", terms)
         self.assertIn("automation", terms)
@@ -1168,10 +1482,13 @@ class TestGenericEvidenceTermFiltering(unittest.TestCase):
         merely CONTAINS "technical" as part of a longer, specific phrase
         is untouched."""
         from applypilot.scoring.local_tailor import _item_terms
+
         item = {
             "name": "Field Support Tech",
             "relevance_categories": [
-                "technical support", "customer-facing technical", "desktop support",
+                "technical support",
+                "customer-facing technical",
+                "desktop support",
             ],
         }
         terms = _item_terms(item)
@@ -1188,6 +1505,7 @@ class TestGenericEvidenceTermFiltering(unittest.TestCase):
         "python" anywhere), so with "technical" excluded there is nothing
         left for it to match on."""
         from applypilot.scoring.local_tailor import rank_profile_evidence
+
         job = {
             "title": "Hardware Sales Associate",
             "full_description": (
@@ -1200,7 +1518,8 @@ class TestGenericEvidenceTermFiltering(unittest.TestCase):
             "skills_inventory": [
                 {"name": "Python", "relevance_categories": ["technical"], "resume_allowed": True},
             ],
-            "experience_inventory": [], "project_inventory": [],
+            "experience_inventory": [],
+            "project_inventory": [],
         }
         ranked = rank_profile_evidence(job, profile, top_n=10)
         self.assertEqual(ranked, [])
@@ -1210,18 +1529,18 @@ class TestGenericEvidenceTermFiltering(unittest.TestCase):
         happens to use the pronoun "it" -- the exact live-test failure
         ("...as it relates to the selection...")."""
         from applypilot.scoring.local_tailor import rank_profile_evidence
+
         job = {
             "title": "Retail Associate",
-            "full_description": (
-                "Build customer confidence as it relates to the selection "
-                "of products.\n"
-            ),
+            "full_description": ("Build customer confidence as it relates to the selection of products.\n"),
         }
         profile = {
             "certifications": [
                 {"name": "CompTIA A+", "relevance_categories": ["IT"], "resume_allowed": True},
             ],
-            "experience_inventory": [], "project_inventory": [], "skills_inventory": [],
+            "experience_inventory": [],
+            "project_inventory": [],
+            "skills_inventory": [],
         }
         ranked = rank_profile_evidence(job, profile, top_n=10)
         self.assertEqual(ranked, [])
@@ -1231,23 +1550,29 @@ class TestGenericEvidenceTermFiltering(unittest.TestCase):
         software requirement -- Python is also tagged with the specific
         category "python", so a real programming requirement still
         matches it. Only the bare generic word is removed, not the item."""
-        from applypilot.scoring.local_tailor import rank_profile_evidence, _pair_candidate_evidence
+        from applypilot.scoring.local_tailor import _pair_candidate_evidence, rank_profile_evidence
+
         job = {
             "title": "Software Engineer",
             "full_description": "- 3+ years of Python programming experience required\n",
         }
         profile = {
             "skills_inventory": [
-                {"name": "Python", "relevance_categories": ["technical", "python", "automation"],
-                 "resume_allowed": True},
+                {
+                    "name": "Python",
+                    "relevance_categories": ["technical", "python", "automation"],
+                    "resume_allowed": True,
+                },
             ],
-            "experience_inventory": [], "project_inventory": [],
+            "experience_inventory": [],
+            "project_inventory": [],
         }
         ranked = rank_profile_evidence(job, profile, top_n=10)
         names = [r["name"] for r in ranked]
         self.assertIn("Python", names)
         cands = _pair_candidate_evidence(
-            "3+ years of Python programming experience required", ranked,
+            "3+ years of Python programming experience required",
+            ranked,
         )
         self.assertEqual({names[i - 1] for i in cands}, {"Python"})
 
@@ -1256,17 +1581,22 @@ class TestGenericEvidenceTermFiltering(unittest.TestCase):
         service -- are multi-word or specific enough single words and must
         be completely unaffected by the generic-term filter."""
         from applypilot.scoring.local_tailor import rank_profile_evidence
+
         job = {
             "title": "Hardware Sales Associate",
             "full_description": "We value sales, customer service, and automotive skills.\n",
         }
         profile = {
             "experience_inventory": [
-                {"name": "National Tire and Battery / Mavis",
-                 "relevance_categories": ["automotive", "customer service"], "resume_allowed": True},
+                {
+                    "name": "National Tire and Battery / Mavis",
+                    "relevance_categories": ["automotive", "customer service"],
+                    "resume_allowed": True,
+                },
                 {"name": "AMP Smart", "relevance_categories": ["sales"], "resume_allowed": True},
             ],
-            "skills_inventory": [], "project_inventory": [],
+            "skills_inventory": [],
+            "project_inventory": [],
         }
         ranked = rank_profile_evidence(job, profile, top_n=10)
         names = {r["name"] for r in ranked}
@@ -1277,10 +1607,13 @@ class TestGenericEvidenceTermFiltering(unittest.TestCase):
 # 12. Cloud/local plan generation now uses retrieved evidence as grounding
 # ---------------------------------------------------------------------------
 
+
 class TestPlanUsesEvidenceGrounding(unittest.TestCase):
     def _job(self):
-        return {"title": "Python Automation Engineer",
-                "full_description": "- Python automation and OCR experience required\n"}
+        return {
+            "title": "Python Automation Engineer",
+            "full_description": "- Python automation and OCR experience required\n",
+        }
 
     def test_prompt_includes_evidence_section_when_matched(self):
         """get_local_tailoring_plan must actually send the retrieved
@@ -1299,16 +1632,24 @@ class TestPlanUsesEvidenceGrounding(unittest.TestCase):
         # a genuine ambiguity that must reach the model.
         profile = {
             "project_inventory": [
-                {"name": "Standup-OCR", "relevance_categories": ["python", "ocr", "automation"],
-                 "factual_concepts": ["Python", "OCR"], "resume_allowed": True},
-                {"name": "Doc-OCR Pipeline", "relevance_categories": ["python", "ocr", "automation"],
-                 "factual_concepts": ["Python", "OCR"], "resume_allowed": True},
+                {
+                    "name": "Standup-OCR",
+                    "relevance_categories": ["python", "ocr", "automation"],
+                    "factual_concepts": ["Python", "OCR"],
+                    "resume_allowed": True,
+                },
+                {
+                    "name": "Doc-OCR Pipeline",
+                    "relevance_categories": ["python", "ocr", "automation"],
+                    "factual_concepts": ["Python", "OCR"],
+                    "resume_allowed": True,
+                },
             ],
-            "skills_inventory": [], "experience_inventory": [],
+            "skills_inventory": [],
+            "experience_inventory": [],
         }
         env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
-        with patch.dict("os.environ", env, clear=False), \
-             patch("httpx.post", return_value=mock_resp) as mock_post:
+        with patch.dict("os.environ", env, clear=False), patch("httpx.post", return_value=mock_resp) as mock_post:
             local_tailor.get_local_tailoring_plan("Resume text.", job, profile)
         sent_payload = mock_post.call_args.kwargs["json"]
         user_content = sent_payload["messages"][1]["content"]
@@ -1330,18 +1671,13 @@ class TestPlanUsesEvidenceGrounding(unittest.TestCase):
         job = self._job()
         profile = _sample_profile()
         ranked = local_tailor.rank_profile_evidence(job, profile, top_n=6)
-        ocr_project_id = next(
-            i for i, r in enumerate(ranked, start=1) if r["name"] == "Standup-OCR"
-        )
+        ocr_project_id = next(i for i, r in enumerate(ranked, start=1) if r["name"] == "Standup-OCR")
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.raise_for_status.return_value = None
-        mock_resp.json.return_value = {
-            "message": {"content": f'{{"matches":[{{"r":1,"e":[{ocr_project_id}]}}]}}'}
-        }
+        mock_resp.json.return_value = {"message": {"content": f'{{"matches":[{{"r":1,"e":[{ocr_project_id}]}}]}}'}}
         env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
-        with patch.dict("os.environ", env, clear=False), \
-             patch("httpx.post", return_value=mock_resp):
+        with patch.dict("os.environ", env, clear=False), patch("httpx.post", return_value=mock_resp):
             plan = local_tailor.get_local_tailoring_plan(resume_text, job, profile)
         self.assertIsNotNone(plan)
         self.assertEqual(len(plan["requirements"]), 1)
@@ -1362,6 +1698,7 @@ class TestPlanUsesEvidenceGrounding(unittest.TestCase):
 # deterministically -- these tests exercise it directly and end-to-end.
 # ---------------------------------------------------------------------------
 
+
 def _job_domain_mix_profile():
     """Evidence spanning three unrelated domains (customer service,
     sales, technical) so a requirement about one domain has a
@@ -1370,8 +1707,11 @@ def _job_domain_mix_profile():
     live 20171/20170 failures (Mavis/Waffle House misread as Python)."""
     return {
         "experience_inventory": [
-            {"name": "National Tire and Battery / Mavis",
-             "relevance_categories": ["automotive", "customer service"], "resume_allowed": True},
+            {
+                "name": "National Tire and Battery / Mavis",
+                "relevance_categories": ["automotive", "customer service"],
+                "resume_allowed": True,
+            },
             {"name": "AMP Smart", "relevance_categories": ["sales"], "resume_allowed": True},
             {"name": "Waffle House", "relevance_categories": ["customer service"], "resume_allowed": True},
         ],
@@ -1401,14 +1741,17 @@ def _job_domain_mix_job():
 class TestPairScoringNarrowsCandidates(unittest.TestCase):
     def _ranked(self):
         from applypilot.scoring.local_tailor import rank_profile_evidence
+
         return rank_profile_evidence(_job_domain_mix_job(), _job_domain_mix_profile(), top_n=10)
 
     def test_customer_service_requirement_excludes_python(self):
         from applypilot.scoring.local_tailor import _pair_candidate_evidence
+
         ranked = self._ranked()
         names = [r["name"] for r in ranked]
         cands = _pair_candidate_evidence(
-            "Practice excellent customer service at all times", ranked,
+            "Practice excellent customer service at all times",
+            ranked,
         )
         cand_names = {names[i - 1] for i in cands}
         self.assertTrue(cand_names & {"National Tire and Battery / Mavis", "Waffle House"})
@@ -1417,10 +1760,12 @@ class TestPairScoringNarrowsCandidates(unittest.TestCase):
 
     def test_sales_outreach_requirement_favors_amp_smart(self):
         from applypilot.scoring.local_tailor import _pair_candidate_evidence
+
         ranked = self._ranked()
         names = [r["name"] for r in ranked]
         cands = _pair_candidate_evidence(
-            "Generate leads and close sales with new customers", ranked,
+            "Generate leads and close sales with new customers",
+            ranked,
         )
         cand_names = {names[i - 1] for i in cands}
         self.assertIn("AMP Smart", cand_names)
@@ -1429,10 +1774,12 @@ class TestPairScoringNarrowsCandidates(unittest.TestCase):
 
     def test_technical_requirement_favors_python_and_a_plus(self):
         from applypilot.scoring.local_tailor import _pair_candidate_evidence
+
         ranked = self._ranked()
         names = [r["name"] for r in ranked]
         cands = _pair_candidate_evidence(
-            "Strong technical and information technology troubleshooting skills", ranked,
+            "Strong technical and information technology troubleshooting skills",
+            ranked,
         )
         cand_names = {names[i - 1] for i in cands}
         self.assertTrue(cand_names & {"Python", "CompTIA A+"})
@@ -1441,6 +1788,7 @@ class TestPairScoringNarrowsCandidates(unittest.TestCase):
 
     def test_irrelevant_evidence_excluded_from_candidates(self):
         from applypilot.scoring.local_tailor import _pair_candidate_evidence
+
         ranked = self._ranked()
         cands = _pair_candidate_evidence("Lift up to 50 pounds of merchandise", ranked)
         self.assertEqual(cands, [])
@@ -1479,13 +1827,10 @@ class TestPairScoringNarrowsCandidates(unittest.TestCase):
         mock_resp.status_code = 200
         mock_resp.raise_for_status.return_value = None
         mock_resp.json.return_value = {
-            "message": {"content": (
-                f'{{"matches":[{{"r":1,"e":[{waffle_id},{comptia_id}]}}]}}'
-            )}
+            "message": {"content": (f'{{"matches":[{{"r":1,"e":[{waffle_id},{comptia_id}]}}]}}')}
         }
         env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
-        with patch.dict("os.environ", env, clear=False), \
-             patch("httpx.post", return_value=mock_resp):
+        with patch.dict("os.environ", env, clear=False), patch("httpx.post", return_value=mock_resp):
             plan = local_tailor.get_local_tailoring_plan("resume", job, profile)
 
         self.assertIsNotNone(plan)
@@ -1509,14 +1854,17 @@ class TestPairScoringNarrowsCandidates(unittest.TestCase):
 # false positives.
 # ---------------------------------------------------------------------------
 
+
 class TestConceptSynonymRecall(unittest.TestCase):
     def _ranked(self):
         from applypilot.scoring.local_tailor import rank_profile_evidence
+
         return rank_profile_evidence(_job_domain_mix_job(), _job_domain_mix_profile(), top_n=10)
 
     def test_telephone_inquiries_paraphrase_matches_customer_service_evidence(self):
         """The exact live-test false negative from job 20171."""
         from applypilot.scoring.local_tailor import _pair_candidate_evidence
+
         ranked = self._ranked()
         names = [r["name"] for r in ranked]
         cands = _pair_candidate_evidence(
@@ -1533,11 +1881,11 @@ class TestConceptSynonymRecall(unittest.TestCase):
         """Another real line from job 20171: 'based on customer feedback'
         never says 'customer service' either."""
         from applypilot.scoring.local_tailor import _pair_candidate_evidence
+
         ranked = self._ranked()
         names = [r["name"] for r in ranked]
         cands = _pair_candidate_evidence(
-            "Make new product recommendations to store management based on "
-            "customer feedback.",
+            "Make new product recommendations to store management based on customer feedback.",
             ranked,
         )
         cand_names = {names[i - 1] for i in cands}
@@ -1546,6 +1894,7 @@ class TestConceptSynonymRecall(unittest.TestCase):
 
     def test_lead_generation_paraphrase_matches_sales_evidence_without_literal_sales_word(self):
         from applypilot.scoring.local_tailor import _pair_candidate_evidence
+
         ranked = self._ranked()
         names = [r["name"] for r in ranked]
         cands = _pair_candidate_evidence(
@@ -1562,6 +1911,7 @@ class TestConceptSynonymRecall(unittest.TestCase):
         table -- otherwise this stops being a bounded vocabulary and
         becomes general fuzzy matching again."""
         from applypilot.scoring.local_tailor import _synonym_hit
+
         self.assertFalse(_synonym_hit("technical", "telephone inquiries from customers"))
         self.assertFalse(_synonym_hit("some random project name", "customer feedback"))
 
@@ -1575,10 +1925,8 @@ class TestConceptSynonymRecall(unittest.TestCase):
         has no synonym entry at all -- see the comment above
         _CONCEPT_SYNONYM_PATTERNS."""
         from applypilot.scoring.local_tailor import _synonym_hit
-        text = (
-            "provide technical assistance and product knowledge for "
-            "installation of parts."
-        ).lower()
+
+        text = ("provide technical assistance and product knowledge for installation of parts.").lower()
         self.assertFalse(_synonym_hit("customer service", text))
         self.assertFalse(_synonym_hit("sales", text))
 
@@ -1589,6 +1937,7 @@ class TestConceptSynonymRecall(unittest.TestCase):
         positive -- 'customer confidence' is squarely about the customer
         relationship, unlike bare 'technical'/'product' language."""
         from applypilot.scoring.local_tailor import _synonym_hit
+
         text = (
             "build customer confidence by supplying product knowledge and "
             "technical assistance related to installation of products."
@@ -1611,14 +1960,13 @@ class TestConceptSynonymRecall(unittest.TestCase):
         }
         profile = {
             "experience_inventory": [
-                {"name": "Waffle House", "relevance_categories": ["customer service"],
-                 "resume_allowed": True},
+                {"name": "Waffle House", "relevance_categories": ["customer service"], "resume_allowed": True},
             ],
-            "skills_inventory": [], "project_inventory": [],
+            "skills_inventory": [],
+            "project_inventory": [],
         }
         env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
-        with patch.dict("os.environ", env, clear=False), \
-             patch("httpx.post") as mock_post:
+        with patch.dict("os.environ", env, clear=False), patch("httpx.post") as mock_post:
             plan = local_tailor.get_local_tailoring_plan("resume", job, profile)
 
         mock_post.assert_not_called()
@@ -1639,6 +1987,7 @@ class TestConceptSynonymRecall(unittest.TestCase):
 # longer a per-model branch to test here.
 # ---------------------------------------------------------------------------
 
+
 class TestSkipsLlmCallWhenNothingToMatch(unittest.TestCase):
     """Deterministic short-circuit: if there's no requirement line or no
     retrieved evidence, there is nothing for the local model to usefully
@@ -1647,15 +1996,14 @@ class TestSkipsLlmCallWhenNothingToMatch(unittest.TestCase):
 
     def test_no_requirement_lines_skips_llm_call(self):
         from applypilot.scoring import local_tailor
+
         job = {"title": "Engineer", "full_description": "A great team doing great work."}
         profile = {
             "resume_facts": {},
-            "skills_inventory": [{"name": "Python", "resume_allowed": True,
-                                   "relevance_categories": ["python"]}],
+            "skills_inventory": [{"name": "Python", "resume_allowed": True, "relevance_categories": ["python"]}],
         }
         env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
-        with patch.dict("os.environ", env, clear=False), \
-             patch("httpx.post") as mock_post:
+        with patch.dict("os.environ", env, clear=False), patch("httpx.post") as mock_post:
             plan = local_tailor.get_local_tailoring_plan("resume", job, profile)
         mock_post.assert_not_called()
         self.assertIsNotNone(plan)
@@ -1663,20 +2011,18 @@ class TestSkipsLlmCallWhenNothingToMatch(unittest.TestCase):
 
     def test_no_matching_evidence_skips_llm_call(self):
         from applypilot.scoring import local_tailor
+
         job = {"title": "Chef", "full_description": "- Culinary arts degree required\n"}
         profile = {
             "resume_facts": {},
-            "skills_inventory": [{"name": "Python", "resume_allowed": True,
-                                   "relevance_categories": ["python"]}],
+            "skills_inventory": [{"name": "Python", "resume_allowed": True, "relevance_categories": ["python"]}],
         }
         env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
-        with patch.dict("os.environ", env, clear=False), \
-             patch("httpx.post") as mock_post:
+        with patch.dict("os.environ", env, clear=False), patch("httpx.post") as mock_post:
             plan = local_tailor.get_local_tailoring_plan("resume", job, profile)
         mock_post.assert_not_called()
         self.assertIsNotNone(plan)
-        self.assertEqual(plan["unsupported_requirements"],
-                          ["Culinary arts degree required"])
+        self.assertEqual(plan["unsupported_requirements"], ["Culinary arts degree required"])
 
     def test_benefits_only_posting_skips_llm_call(self):
         """A posting whose only bullet lines are employer benefits has
@@ -1685,6 +2031,7 @@ class TestSkipsLlmCallWhenNothingToMatch(unittest.TestCase):
         requirements were perks' look identical in the debug output
         otherwise."""
         from applypilot.scoring import local_tailor
+
         job = {
             "title": "Parts Specialist",
             "full_description": (
@@ -1700,13 +2047,15 @@ class TestSkipsLlmCallWhenNothingToMatch(unittest.TestCase):
         profile = {
             "resume_facts": {},
             "skills_inventory": [
-                {"name": "Customer Service", "resume_allowed": True,
-                 "relevance_categories": ["customer", "service", "retail"]},
+                {
+                    "name": "Customer Service",
+                    "resume_allowed": True,
+                    "relevance_categories": ["customer", "service", "retail"],
+                },
             ],
         }
         env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
-        with patch.dict("os.environ", env, clear=False), \
-             patch("httpx.post") as mock_post:
+        with patch.dict("os.environ", env, clear=False), patch("httpx.post") as mock_post:
             plan = local_tailor.get_local_tailoring_plan("resume", job, profile)
 
         mock_post.assert_not_called()
@@ -1732,10 +2081,8 @@ class TestThinkDisabled(unittest.TestCase):
         mock_resp.raise_for_status.return_value = None
         mock_resp.json.return_value = {"message": {"content": '{"matches":[]}'}}
         job, profile = _matchable_job_and_profile()
-        env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1",
-               "APPLYPILOT_LOCAL_LLM_MODEL": "qwen3:8b"}
-        with patch.dict("os.environ", env, clear=False), \
-             patch("httpx.post", return_value=mock_resp) as mock_post:
+        env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1", "APPLYPILOT_LOCAL_LLM_MODEL": "qwen3:8b"}
+        with patch.dict("os.environ", env, clear=False), patch("httpx.post", return_value=mock_resp) as mock_post:
             local_tailor.get_local_tailoring_plan("resume", job, profile)
         sent = mock_post.call_args.kwargs["json"]
         self.assertIs(sent["think"], False)
@@ -1746,25 +2093,52 @@ class TestThinkDisabled(unittest.TestCase):
         explanation rather than being silently swallowed at debug level --
         'a local planning failure should remain a local planning failure
         and explain why'."""
-        from applypilot.scoring import local_tailor
         import httpx as httpx_mod
 
+        from applypilot.scoring import local_tailor
+
         job, profile = _matchable_job_and_profile()
-        env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1",
-               "APPLYPILOT_LOCAL_LLM_MODEL": "qwen3:8b"}
-        with patch.dict("os.environ", env, clear=False), \
-             patch("httpx.post", side_effect=httpx_mod.ReadTimeout("timed out")), \
-             patch.object(local_tailor.log, "warning") as mock_warn:
+        env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1", "APPLYPILOT_LOCAL_LLM_MODEL": "qwen3:8b"}
+        with (
+            patch.dict("os.environ", env, clear=False),
+            patch("httpx.post", side_effect=httpx_mod.ReadTimeout("timed out")),
+            patch.object(local_tailor.log, "warning") as mock_warn,
+        ):
             plan = local_tailor.get_local_tailoring_plan("resume", job, profile)
         self.assertIsNone(plan)
         mock_warn.assert_called_once()
         logged_msg = mock_warn.call_args[0][0]
         self.assertIn("timed out", logged_msg.lower())
 
+    def test_connect_error_is_logged_and_falls_back_gracefully(self):
+        """A connection failure to the configured local endpoint must be
+        logged with the unreachable URL, and (per the existing 'local
+        planner failure must not block cloud tailoring' rule) the call must
+        still return None cleanly rather than raise."""
+        import httpx as httpx_mod
+
+        from applypilot.scoring import local_tailor
+
+        job, profile = _matchable_job_and_profile()
+        env = {"APPLYPILOT_LOCAL_LLM_URL": "http://127.0.0.1:11434", "APPLYPILOT_LOCAL_LLM_MODEL": "qwen3:32b"}
+        with (
+            patch.dict("os.environ", env, clear=False),
+            patch("httpx.post", side_effect=httpx_mod.ConnectError("Connection refused")),
+            patch.object(local_tailor.log, "warning") as mock_warn,
+        ):
+            plan = local_tailor.get_local_tailoring_plan("resume", job, profile)
+
+        self.assertIsNone(plan)
+        mock_warn.assert_called_once()
+        logged_msg = mock_warn.call_args[0][0] % mock_warn.call_args[0][1:]
+        self.assertIn("could not reach", logged_msg.lower())
+        self.assertIn("127.0.0.1:11434", logged_msg)
+
 
 # ---------------------------------------------------------------------------
 # 13. debug_plan_for_job: combined plan + evidence + requirement lines
 # ---------------------------------------------------------------------------
+
 
 class TestDebugPlanForJob(unittest.TestCase):
     def test_returns_plan_evidence_and_requirement_lines(self):
@@ -1779,13 +2153,17 @@ class TestDebugPlanForJob(unittest.TestCase):
         # automation) and the Python skill (categories python/automation)
         # tie for the top pair-score against it -- genuinely ambiguous,
         # so the HTTP call actually happens.
-        job = {"url": "https://example.com/j1", "title": "Python Automation Engineer",
-               "full_description": "- Python experience required\n"}
+        job = {
+            "url": "https://example.com/j1",
+            "title": "Python Automation Engineer",
+            "full_description": "- Python experience required\n",
+        }
         env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
-        with patch.dict("os.environ", env, clear=False), \
-             patch("httpx.post", return_value=mock_resp), \
-             patch("applypilot.scoring.resume_router.load_resume_text_for_job",
-                   return_value=("Resume text.", None)):
+        with (
+            patch.dict("os.environ", env, clear=False),
+            patch("httpx.post", return_value=mock_resp),
+            patch("applypilot.scoring.resume_router.load_resume_text_for_job", return_value=("Resume text.", None)),
+        ):
             result = local_tailor.debug_plan_for_job(job, _sample_profile())
         self.assertIsNotNone(result)
         self.assertIn("plan", result)
@@ -1800,13 +2178,17 @@ class TestDebugPlanForJob(unittest.TestCase):
         # See the sibling test above for why this description (rather than
         # the full "Python automation and OCR..." line) is needed to force
         # a genuinely ambiguous pair-score and therefore an actual HTTP call.
-        job = {"url": "https://example.com/j2", "title": "Python Automation Engineer",
-               "full_description": "- Python experience required\n"}
+        job = {
+            "url": "https://example.com/j2",
+            "title": "Python Automation Engineer",
+            "full_description": "- Python experience required\n",
+        }
         env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
-        with patch.dict("os.environ", env, clear=False), \
-             patch("httpx.post", side_effect=ConnectionError("refused")), \
-             patch("applypilot.scoring.resume_router.load_resume_text_for_job",
-                   return_value=("Resume text.", None)):
+        with (
+            patch.dict("os.environ", env, clear=False),
+            patch("httpx.post", side_effect=ConnectionError("refused")),
+            patch("applypilot.scoring.resume_router.load_resume_text_for_job", return_value=("Resume text.", None)),
+        ):
             result = local_tailor.debug_plan_for_job(job, _sample_profile())
         self.assertIsNone(result)
 
@@ -1822,13 +2204,23 @@ class TestDebugPlanForJob(unittest.TestCase):
 # bogus "qwen3:8b (gemini)" entry that 404s against the real Gemini API.
 # ---------------------------------------------------------------------------
 
+
 class TestFallbackChainProviderSeparation(unittest.TestCase):
     def _env(self, **overrides):
         env = {
-            k: v for k, v in __import__("os").environ.items()
-            if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-                         "DEEPSEEK_API_KEY", "LLM_URL", "LLM_MODEL",
-                         "APPLYPILOT_LOCAL_LLM_URL", "APPLYPILOT_LOCAL_LLM_MODEL")
+            k: v
+            for k, v in __import__("os").environ.items()
+            if k
+            not in (
+                "GEMINI_API_KEY",
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "DEEPSEEK_API_KEY",
+                "LLM_URL",
+                "LLM_MODEL",
+                "APPLYPILOT_LOCAL_LLM_URL",
+                "APPLYPILOT_LOCAL_LLM_MODEL",
+            )
         }
         env.update(overrides)
         return env
@@ -1839,30 +2231,31 @@ class TestFallbackChainProviderSeparation(unittest.TestCase):
         the gemini provider, and gemini/qwen3:8b must never be a valid
         (name, provider) pair anywhere in the chain."""
         from applypilot.llm import _build_fallback_chain
+
         env = self._env(
             GEMINI_API_KEY="fake-gemini-key",
             APPLYPILOT_LOCAL_LLM_URL="http://localhost:11434/v1",
             APPLYPILOT_LOCAL_LLM_MODEL="qwen3:8b",
         )
-        with patch.dict("os.environ", env, clear=True), \
-             patch("applypilot.llm._find_claude_cli", return_value=None):
+        with patch.dict("os.environ", env, clear=True), patch("applypilot.llm._find_claude_cli", return_value=None):
             chain = _build_fallback_chain("qwen3:8b", quality=False)
-        self.assertFalse(
-            any(e.name == "qwen3:8b" and e.provider == "gemini" for e in chain)
-        )
+        self.assertFalse(any(e.name == "qwen3:8b" and e.provider == "gemini" for e in chain))
 
     def test_local_entry_still_present_as_final_fallback(self):
         """The local model must still appear -- exactly once, under the
-        correct provider, and last in the chain (final fallback)."""
+        correct provider, and last in the chain (final fallback) -- when
+        the caller opts in via include_local=True (the quality tier's
+        default). The fast/scoring tier's implicit default is now False;
+        see TestLocalExcludedFromFastTier."""
         from applypilot.llm import _build_fallback_chain
+
         env = self._env(
             GEMINI_API_KEY="fake-gemini-key",
             APPLYPILOT_LOCAL_LLM_URL="http://localhost:11434/v1",
             APPLYPILOT_LOCAL_LLM_MODEL="qwen3:8b",
         )
-        with patch.dict("os.environ", env, clear=True), \
-             patch("applypilot.llm._find_claude_cli", return_value=None):
-            chain = _build_fallback_chain("qwen3:8b", quality=False)
+        with patch.dict("os.environ", env, clear=True), patch("applypilot.llm._find_claude_cli", return_value=None):
+            chain = _build_fallback_chain("qwen3:8b", quality=False, include_local=True)
         local_entries = [e for e in chain if e.provider == "local"]
         self.assertEqual(len(local_entries), 1)
         self.assertEqual(local_entries[0].name, "qwen3:8b")
@@ -1874,9 +2267,9 @@ class TestFallbackChainProviderSeparation(unittest.TestCase):
 
     def test_gemini_only_chain_unaffected_when_local_not_configured(self):
         from applypilot.llm import _build_fallback_chain
+
         env = self._env(GEMINI_API_KEY="fake-gemini-key")
-        with patch.dict("os.environ", env, clear=True), \
-             patch("applypilot.llm._find_claude_cli", return_value=None):
+        with patch.dict("os.environ", env, clear=True), patch("applypilot.llm._find_claude_cli", return_value=None):
             chain = _build_fallback_chain("gemini-3.6-flash", quality=False)
         self.assertTrue(all(e.provider == "gemini" for e in chain))
         self.assertEqual(chain[0].name, "gemini-3.6-flash")
@@ -1886,9 +2279,9 @@ class TestFallbackChainProviderSeparation(unittest.TestCase):
         configured local model must still be treated as a Gemini primary --
         this pre-existing behavior must survive the fix."""
         from applypilot.llm import _build_fallback_chain
+
         env = self._env(GEMINI_API_KEY="fake-gemini-key")
-        with patch.dict("os.environ", env, clear=True), \
-             patch("applypilot.llm._find_claude_cli", return_value=None):
+        with patch.dict("os.environ", env, clear=True), patch("applypilot.llm._find_claude_cli", return_value=None):
             chain = _build_fallback_chain("gemini-4.0-custom-preview", quality=False)
         self.assertEqual(chain[0].name, "gemini-4.0-custom-preview")
         self.assertEqual(chain[0].provider, "gemini")
@@ -1899,13 +2292,16 @@ class TestFallbackChainProviderSeparation(unittest.TestCase):
         cloud fallback (which would mask a broken local setup as 'working')."""
         import applypilot.cli as cli_mod
 
-        env = {"GEMINI_API_KEY": "fake-gemini-key",
-               "APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1",
-               "APPLYPILOT_LOCAL_LLM_MODEL": "qwen3:8b"}
-        with patch.dict("os.environ", env, clear=False), \
-             patch("applypilot.llm.local_available", return_value=True), \
-             patch("applypilot.llm.LLMClient._try_openai_compat",
-                   return_value='{"status":"ok"}') as mock_try:
+        env = {
+            "GEMINI_API_KEY": "fake-gemini-key",
+            "APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1",
+            "APPLYPILOT_LOCAL_LLM_MODEL": "qwen3:8b",
+        }
+        with (
+            patch.dict("os.environ", env, clear=False),
+            patch("applypilot.llm.local_available", return_value=True),
+            patch("applypilot.llm.LLMClient._try_openai_compat", return_value='{"status":"ok"}') as mock_try,
+        ):
             cli_mod.test_local_cmd()
         self.assertTrue(mock_try.called)
         called_entry = mock_try.call_args[0][0]
@@ -1923,20 +2319,30 @@ class TestFallbackChainProviderSeparation(unittest.TestCase):
 # explicit url=/job_id= kwargs exercises the exact same command body.
 # ---------------------------------------------------------------------------
 
+
 def _empty_debug_result():
     return {
         "plan": {
-            "requirements": [], "skills_to_emphasize": [], "bullets_to_prioritize": [],
-            "bullets_to_deemphasize": [], "matching_projects": [], "matching_certifications": [],
-            "summary_focus": [], "keyword_targets": [], "safe_rewrites": [],
-            "unsupported_requirements": [], "_warnings": [],
+            "requirements": [],
+            "skills_to_emphasize": [],
+            "bullets_to_prioritize": [],
+            "bullets_to_deemphasize": [],
+            "matching_projects": [],
+            "matching_certifications": [],
+            "summary_focus": [],
+            "keyword_targets": [],
+            "safe_rewrites": [],
+            "unsupported_requirements": [],
+            "_warnings": [],
         },
-        "evidence": [], "requirement_lines": [],
+        "evidence": [],
+        "requirement_lines": [],
     }
 
 
 def test_debug_local_plan_both_url_and_job_id_is_a_clean_error():
     import applypilot.cli as cli_mod
+
     with pytest.raises(cli_mod.typer.Exit) as excinfo:
         cli_mod.debug_local_plan_cmd(url="https://example.com/j1", job_id=5)
     assert excinfo.value.exit_code == 1
@@ -1944,6 +2350,7 @@ def test_debug_local_plan_both_url_and_job_id_is_a_clean_error():
 
 def test_debug_local_plan_neither_url_nor_job_id_is_a_clean_error():
     import applypilot.cli as cli_mod
+
     with pytest.raises(cli_mod.typer.Exit) as excinfo:
         cli_mod.debug_local_plan_cmd(url=None, job_id=None)
     assert excinfo.value.exit_code == 1

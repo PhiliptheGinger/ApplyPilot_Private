@@ -20,6 +20,7 @@ re-exports to the bottom of launcher.py — by the time orchestrator's
 top-level imports fire, all of launcher's module state and functions are
 already defined.
 """
+
 from __future__ import annotations
 
 import logging
@@ -35,7 +36,6 @@ from rich.console import Console
 from rich.live import Live
 
 from applypilot import config
-from applypilot.claude_status import gate as _claude_gate
 from applypilot.apply.chrome import (
     BASE_CDP_PORT,
     _AdoptedChromeProcess,
@@ -74,6 +74,7 @@ from applypilot.apply.result_handlers import (
     _log_failed_attempt,
     _record_job_history,
 )
+from applypilot.claude_status import gate as _claude_gate
 from applypilot.database import (
     commit_with_retry,
     get_connection,
@@ -112,7 +113,9 @@ def _probe_for_reconnect(worker_id: int, port: int) -> tuple[int | None, str | N
 
     logger.info(
         "[W%d] Existing Chrome on port %d (pid %d) — checking for interrupted job",
-        worker_id, port, pid,
+        worker_id,
+        port,
+        pid,
     )
     add_event(f"[W{worker_id}] Reconnecting to existing Chrome (pid {pid})")
 
@@ -136,30 +139,32 @@ def _probe_for_reconnect(worker_id: int, port: int) -> tuple[int | None, str | N
                 (job_url,),
             )
             commit_with_retry(conn)
-            add_event(
-                f"[W{worker_id}] Found interrupted job: {title[:40]} — will resume"
-            )
+            add_event(f"[W{worker_id}] Found interrupted job: {title[:40]} — will resume")
             logger.info("[W%d] Interrupted job reset for reconnect: %s", worker_id, apply_url[:80])
             return pid, apply_url
         else:
             add_event(f"[W{worker_id}] No interrupted job found — Chrome has next job")
             return pid, None
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - startup reconnect probe must degrade to "no interrupted job found", not crash worker startup
         logger.warning("[W%d] Reconnect probe: could not look up interrupted job: %s", worker_id, exc)
         return pid, None
 
 
-def worker_loop(worker_id: int = 0, limit: int = 1,
-                target_url: str | None = None,
-                min_score: int | None = None,
-                max_score: int | None = None,
-                max_age_days: int | None = None,
-                headless: bool = False,
-                model: str = "sonnet", dry_run: bool = False,
-                apply_engine: str = "claude",
-                fresh_sessions: bool = False,
-                total_workers: int = 1,
-                no_hitl: bool = False) -> tuple[int, int]:
+def worker_loop(
+    worker_id: int = 0,
+    limit: int = 1,
+    target_url: str | None = None,
+    min_score: int | None = None,
+    max_score: int | None = None,
+    max_age_days: int | None = None,
+    headless: bool = False,
+    model: str = "sonnet",
+    dry_run: bool = False,
+    apply_engine: str = "claude",
+    fresh_sessions: bool = False,
+    total_workers: int = 1,
+    no_hitl: bool = False,
+) -> tuple[int, int]:
     """Run jobs sequentially until limit is reached or queue is empty.
 
     Args:
@@ -179,6 +184,7 @@ def worker_loop(worker_id: int = 0, limit: int = 1,
         Tuple of (applied_count, failed_count).
     """
     from applypilot.apply.launcher import _start_worker_listener, _stop_worker_listener
+
     if min_score is None:
         min_score = config.DEFAULTS["min_score"]
     if max_age_days is None:
@@ -195,22 +201,50 @@ def worker_loop(worker_id: int = 0, limit: int = 1,
     _start_worker_listener(worker_id, no_hitl=no_hitl)
     try:
         return _worker_loop_body(
-            worker_id, limit, target_url, min_score, max_score, max_age_days,
-            headless, model, dry_run, apply_engine, fresh_sessions, applied, failed, continuous,
-            jobs_done, empty_polls, port, total_workers, no_hitl=no_hitl,
+            worker_id,
+            limit,
+            target_url,
+            min_score,
+            max_score,
+            max_age_days,
+            headless,
+            model,
+            dry_run,
+            apply_engine,
+            fresh_sessions,
+            applied,
+            failed,
+            continuous,
+            jobs_done,
+            empty_polls,
+            port,
+            total_workers,
+            no_hitl=no_hitl,
         )
     finally:
         _stop_worker_listener(worker_id)
 
 
 def _worker_loop_body(
-    worker_id: int, limit: int, target_url: str | None,
-    min_score: int, max_score: int | None, max_age_days: int | None,
+    worker_id: int,
+    limit: int,
+    target_url: str | None,
+    min_score: int,
+    max_score: int | None,
+    max_age_days: int | None,
     headless: bool,
-    model: str, dry_run: bool, apply_engine: str, fresh_sessions: bool,
-    applied: int, failed: int, continuous: bool,
-    jobs_done: int, empty_polls: int, port: int,
-    total_workers: int = 1, no_hitl: bool = False,
+    model: str,
+    dry_run: bool,
+    apply_engine: str,
+    fresh_sessions: bool,
+    applied: int,
+    failed: int,
+    continuous: bool,
+    jobs_done: int,
+    empty_polls: int,
+    port: int,
+    total_workers: int = 1,
+    no_hitl: bool = False,
 ) -> tuple[int, int]:
     """Main per-worker processing loop."""
     from applypilot.apply.launcher import (
@@ -225,6 +259,7 @@ def _worker_loop_body(
         release_lock,
         run_job,
     )
+
     # ── Reconnect probe ───────────────────────────────────────────────────────
     # If a previous run was killed while Chrome was running, adopt the existing
     # browser and resume the interrupted job rather than starting fresh.
@@ -245,11 +280,9 @@ def _worker_loop_body(
         if continuous:
             if _claude_gate.is_paused():
                 empty_polls += 1
-                update_state(worker_id, status="idle",
-                             last_action=f"paused: Claude {_claude_gate.state}")
+                update_state(worker_id, status="idle", last_action=f"paused: Claude {_claude_gate.state}")
                 if empty_polls == 1:
-                    add_event(f"[W{worker_id}] Paused: Claude {_claude_gate.state}, "
-                              f"resuming when available")
+                    add_event(f"[W{worker_id}] Paused: Claude {_claude_gate.state}, resuming when available")
                 if _stop_event.wait(timeout=POLL_INTERVAL):
                     break
                 continue
@@ -261,24 +294,26 @@ def _worker_loop_body(
             # may have already moved).
             _is_probe_attempt = _claude_gate.is_probe_attempt()
 
-        update_state(worker_id, status="idle", job_title="", company="",
-                     last_action="waiting for job", actions=0)
+        update_state(worker_id, status="idle", job_title="", company="", last_action="waiting for job", actions=0)
 
         # On reconnect, prioritize the interrupted job URL for this iteration only
         _effective_target = _reconnect_url or target_url
         _reconnect_url = None  # clear after first use
 
-        job = acquire_job(target_url=_effective_target, min_score=min_score,
-                          max_score=max_score, max_age_days=max_age_days,
-                          worker_id=worker_id)
+        job = acquire_job(
+            target_url=_effective_target,
+            min_score=min_score,
+            max_score=max_score,
+            max_age_days=max_age_days,
+            worker_id=worker_id,
+        )
         if not job:
             if not continuous:
                 add_event(f"[W{worker_id}] Queue empty")
                 update_state(worker_id, status="done", last_action="queue empty")
                 break
             empty_polls += 1
-            update_state(worker_id, status="idle",
-                         last_action=f"polling ({empty_polls})")
+            update_state(worker_id, status="idle", last_action=f"polling ({empty_polls})")
             if empty_polls == 1:
                 add_event(f"[W{worker_id}] Queue empty, polling every {POLL_INTERVAL}s...")
             # Use Event.wait for interruptible sleep
@@ -310,10 +345,14 @@ def _worker_loop_body(
                     _chrome_procs[worker_id] = chrome_proc
             else:
                 add_event(f"[W{worker_id}] Launching Chrome...")
-                chrome_proc = launch_chrome(worker_id, port=port, headless=headless,
-                                            refresh_cookies=fresh_sessions,
-                                            ats_slug=ats_slug,
-                                            total_workers=total_workers)
+                chrome_proc = launch_chrome(
+                    worker_id,
+                    port=port,
+                    headless=headless,
+                    refresh_cookies=fresh_sessions,
+                    ats_slug=ats_slug,
+                    total_workers=total_workers,
+                )
 
             with _worker_state_lock:
                 ws = _worker_state.get(worker_id)
@@ -329,8 +368,9 @@ def _worker_loop_body(
             with _worker_state_lock:
                 ws = _worker_state.get(worker_id)
             if ws is not None:
-                ws.update({"job": job, "status": "applying", "reason": None,
-                           "instructions": None, "saved_instruction": None})
+                ws.update(
+                    {"job": job, "status": "applying", "reason": None, "instructions": None, "saved_instruction": None}
+                )
 
             # On reconnect with interrupted job: don't reset tabs (form is mid-fill)
             _reconnect_ctx = None
@@ -345,8 +385,11 @@ def _worker_loop_body(
                 )
 
             result, duration_ms, screening_qs = run_job(
-                job, port=port, worker_id=worker_id,
-                model=model, dry_run=dry_run,
+                job,
+                port=port,
+                worker_id=worker_id,
+                model=model,
+                dry_run=dry_run,
                 apply_engine=apply_engine,
                 skip_tab_reset=_this_had_interrupted_job,
                 extra_context=_reconnect_ctx,
@@ -365,8 +408,7 @@ def _worker_loop_body(
                     break
                 elif "credits_exhausted" in result:
                     reason = result.split(":", 1)[-1] if ":" in result else result
-                    mark_result(job["url"], "failed", reason, permanent=True,
-                                duration_ms=duration_ms)
+                    mark_result(job["url"], "failed", reason, permanent=True, duration_ms=duration_ms)
                     _log_failed_attempt(job, reason, worker_id, duration_ms, True)
                     failed += 1
                     _stop_event.set()
@@ -383,8 +425,7 @@ def _worker_loop_body(
                     # running).
                     release_lock(job["url"])
                     add_event(f"[W{worker_id}] Claude session limit — job requeued, backing off")
-                    update_state(worker_id, status="idle",
-                                 last_action="claude session limit, backing off")
+                    update_state(worker_id, status="idle", last_action="claude session limit, backing off")
                     was_skipped = True
                     _stop_event.wait(timeout=_SESSION_LIMIT_BACKOFF_SECONDS)
                     break
@@ -392,8 +433,7 @@ def _worker_loop_body(
                     mark_result(job["url"], "applied", duration_ms=duration_ms)
                     _record_job_history(worker_id, job, result, duration_ms)
                     applied += 1
-                    update_state(worker_id, jobs_applied=applied,
-                                 jobs_done=applied + failed)
+                    update_state(worker_id, jobs_applied=applied, jobs_done=applied + failed)
                     if ats_slug:
                         profile_dir = config.CHROME_WORKER_DIR / f"worker-{worker_id}"
                         save_ats_session(profile_dir, ats_slug)
@@ -404,8 +444,7 @@ def _worker_loop_body(
                     # The Claude proc was already killed by the takeover handler.
                     # Wait for the user to click "Give Back Control" (handback event).
                     add_event(f"[W{worker_id}] PAUSED by user: {(job.get('title') or '')[:30]}")
-                    update_state(worker_id, status="paused_by_user",
-                                 last_action="paused by user")
+                    update_state(worker_id, status="paused_by_user", last_action="paused by user")
                     _register_waiting(worker_id, "waiting_human")
 
                     hb_event = _handback_events.get(worker_id)
@@ -434,21 +473,29 @@ def _worker_loop_body(
                         tev.clear()
 
                     add_event(f"[W{worker_id}] Resuming after user takeover...")
-                    update_state(worker_id, status="applying",
-                                 last_action="resuming after takeover",
-                                 start_time=time.time(), actions=0)
+                    update_state(
+                        worker_id,
+                        status="applying",
+                        last_action="resuming after takeover",
+                        start_time=time.time(),
+                        actions=0,
+                    )
                     result, duration_ms, screening_qs = run_job(
-                        job, port=port, worker_id=worker_id,
-                        model=model, dry_run=dry_run,
+                        job,
+                        port=port,
+                        worker_id=worker_id,
+                        model=model,
+                        dry_run=dry_run,
                         apply_engine=apply_engine,
-                        skip_tab_reset=True, extra_context=extra_ctx,
+                        skip_tab_reset=True,
+                        extra_context=extra_ctx,
                     )
                     relaunch = True
                     continue
 
                 elif result.startswith("needs_human:"):
                     # Parse reason and URL (optional |detail:... suffix from agent)
-                    after = result[len("needs_human:"):]
+                    after = result[len("needs_human:") :]
                     if ":" in after:
                         nh_reason, nh_url = after.split(":", 1)
                     else:
@@ -463,8 +510,9 @@ def _worker_loop_body(
                     # --- Screening Q&A: interactive TUI answers + relaunch ---
                     if nh_reason == "screening_questions" and screening_qs:
                         add_event(f"[W{worker_id}] Q&A: {len(screening_qs)} question(s) — waiting for answers")
-                        update_state(worker_id, status="waiting_answer",
-                                     last_action=f"Q&A: {len(screening_qs)} question(s)")
+                        update_state(
+                            worker_id, status="waiting_answer", last_action=f"Q&A: {len(screening_qs)} question(s)"
+                        )
                         _register_waiting(worker_id, "waiting_answer")
 
                         # Post to the Q&A queue — main thread will prompt user
@@ -481,14 +529,22 @@ def _worker_loop_body(
 
                         # Relaunch agent on same Chrome (form still open)
                         add_event(f"[W{worker_id}] Relaunching with Q&A answers...")
-                        update_state(worker_id, status="applying",
-                                     last_action="relaunching with answers",
-                                     start_time=time.time(), actions=0)
+                        update_state(
+                            worker_id,
+                            status="applying",
+                            last_action="relaunching with answers",
+                            start_time=time.time(),
+                            actions=0,
+                        )
                         result, duration_ms, screening_qs = run_job(
-                            job, port=port, worker_id=worker_id,
-                            model=model, dry_run=dry_run,
+                            job,
+                            port=port,
+                            worker_id=worker_id,
+                            model=model,
+                            dry_run=dry_run,
                             apply_engine=apply_engine,
-                            skip_tab_reset=True)
+                            skip_tab_reset=True,
+                        )
                         relaunch = True
                         continue
 
@@ -498,14 +554,23 @@ def _worker_loop_body(
                         nh_instructions = f"{nh_instructions}\n\nAgent detail: {nh_detail}"
 
                     hitl_outcome = _run_hitl(
-                        worker_id=worker_id, port=port, job=job,
-                        reason=nh_reason, instructions=nh_instructions,
-                        navigate_url=nh_url, duration_ms=duration_ms,
-                        headless=headless, ats_slug=ats_slug,
-                        total_workers=total_workers, model=model, dry_run=dry_run,
+                        worker_id=worker_id,
+                        port=port,
+                        job=job,
+                        reason=nh_reason,
+                        instructions=nh_instructions,
+                        navigate_url=nh_url,
+                        duration_ms=duration_ms,
+                        headless=headless,
+                        ats_slug=ats_slug,
+                        total_workers=total_workers,
+                        model=model,
+                        dry_run=dry_run,
                         apply_engine=apply_engine,
-                        no_hitl=no_hitl, chrome_proc=chrome_proc,
-                        add_event=add_event, update_state=update_state,
+                        no_hitl=no_hitl,
+                        chrome_proc=chrome_proc,
+                        add_event=add_event,
+                        update_state=update_state,
                         stop_event=_stop_event,
                     )
                     if hitl_outcome is None:
@@ -525,14 +590,23 @@ def _worker_loop_body(
                         nh_instructions = get_hitl_instruction("login_required")
 
                         hitl_outcome = _run_hitl(
-                            worker_id=worker_id, port=port, job=job,
-                            reason="login_required", instructions=nh_instructions,
-                            navigate_url=nh_url, duration_ms=duration_ms,
-                            headless=headless, ats_slug=ats_slug,
-                            total_workers=total_workers, model=model, dry_run=dry_run,
+                            worker_id=worker_id,
+                            port=port,
+                            job=job,
+                            reason="login_required",
+                            instructions=nh_instructions,
+                            navigate_url=nh_url,
+                            duration_ms=duration_ms,
+                            headless=headless,
+                            ats_slug=ats_slug,
+                            total_workers=total_workers,
+                            model=model,
+                            dry_run=dry_run,
                             apply_engine=apply_engine,
-                            no_hitl=no_hitl, chrome_proc=chrome_proc,
-                            add_event=add_event, update_state=update_state,
+                            no_hitl=no_hitl,
+                            chrome_proc=chrome_proc,
+                            add_event=add_event,
+                            update_state=update_state,
                             stop_event=_stop_event,
                         )
                         if hitl_outcome is None:
@@ -548,14 +622,23 @@ def _worker_loop_body(
                         nh_instructions = get_hitl_instruction(reason)
 
                         hitl_outcome = _run_hitl(
-                            worker_id=worker_id, port=port, job=job,
-                            reason=reason, instructions=nh_instructions,
-                            navigate_url=nh_url, duration_ms=duration_ms,
-                            headless=headless, ats_slug=ats_slug,
-                            total_workers=total_workers, model=model, dry_run=dry_run,
+                            worker_id=worker_id,
+                            port=port,
+                            job=job,
+                            reason=reason,
+                            instructions=nh_instructions,
+                            navigate_url=nh_url,
+                            duration_ms=duration_ms,
+                            headless=headless,
+                            ats_slug=ats_slug,
+                            total_workers=total_workers,
+                            model=model,
+                            dry_run=dry_run,
                             apply_engine=apply_engine,
-                            no_hitl=no_hitl, chrome_proc=chrome_proc,
-                            add_event=add_event, update_state=update_state,
+                            no_hitl=no_hitl,
+                            chrome_proc=chrome_proc,
+                            add_event=add_event,
+                            update_state=update_state,
                             stop_event=_stop_event,
                         )
                         if hitl_outcome is None:
@@ -566,13 +649,11 @@ def _worker_loop_body(
 
                     else:
                         perm = _is_permanent_failure(result)
-                        mark_result(job["url"], "failed", reason,
-                                    permanent=perm, duration_ms=duration_ms)
+                        mark_result(job["url"], "failed", reason, permanent=perm, duration_ms=duration_ms)
                         _log_failed_attempt(job, reason, worker_id, duration_ms, perm)
                         _record_job_history(worker_id, job, result, duration_ms)
                         failed += 1
-                        update_state(worker_id, jobs_failed=failed,
-                                     jobs_done=applied + failed)
+                        update_state(worker_id, jobs_failed=failed, jobs_done=applied + failed)
 
         except KeyboardInterrupt:
             release_lock(job["url"])
@@ -605,8 +686,8 @@ def _worker_loop_body(
 # Q&A interactive prompt (called from main thread)
 # ---------------------------------------------------------------------------
 
-def _prompt_user_for_qa(console: Console, worker_id: int,
-                        questions: list[dict]) -> list[str]:
+
+def _prompt_user_for_qa(console: Console, worker_id: int, questions: list[dict]) -> list[str]:
     """Prompt the user in the terminal for screening question answers.
 
     Args:
@@ -648,15 +729,24 @@ def _prompt_user_for_qa(console: Console, worker_id: int,
 # Main entry point (called from cli.py)
 # ---------------------------------------------------------------------------
 
-def main(limit: int = 1, target_url: str | None = None,
-         min_score: int | None = None, max_score: int | None = None,
-         max_age_days: int | None = None,
-         headless: bool = False, model: str = "sonnet",
-         dry_run: bool = False, continuous: bool = False,
-         poll_interval: int = 60, workers: int = 1,
-         fresh_sessions: bool = False, no_hitl: bool = False,
-         no_focus: bool = False,
-         apply_engine: str = "claude") -> None:
+
+def main(
+    limit: int = 1,
+    target_url: str | None = None,
+    min_score: int | None = None,
+    max_score: int | None = None,
+    max_age_days: int | None = None,
+    headless: bool = False,
+    model: str = "sonnet",
+    dry_run: bool = False,
+    continuous: bool = False,
+    poll_interval: int = 60,
+    workers: int = 1,
+    fresh_sessions: bool = False,
+    no_hitl: bool = False,
+    no_focus: bool = False,
+    apply_engine: str = "claude",
+) -> None:
     """Launch the apply pipeline.
 
     Args:
@@ -681,6 +771,7 @@ def main(limit: int = 1, target_url: str | None = None,
         _qa_queue,
         _stop_event,
     )
+
     global POLL_INTERVAL
     POLL_INTERVAL = poll_interval
     _stop_event.clear()
@@ -695,9 +786,7 @@ def main(limit: int = 1, target_url: str | None = None,
     _boot_conn = get_connection()
     # P0.5 leak (d) from decision #31: pull URLs first, then bulk-update,
     # then emit per-row state transitions back to ready_to_apply.
-    _nh_urls = [r[0] for r in _boot_conn.execute(
-        "SELECT url FROM jobs WHERE apply_status='needs_human'"
-    ).fetchall()]
+    _nh_urls = [r[0] for r in _boot_conn.execute("SELECT url FROM jobs WHERE apply_status='needs_human'").fetchall()]
     _nh_count = len(_nh_urls)
     if _nh_count > 0:
         _boot_conn.execute(
@@ -708,13 +797,14 @@ def main(limit: int = 1, target_url: str | None = None,
         for _nh_url in _nh_urls:
             try:
                 transition_state(
-                    _boot_conn, _nh_url, "ready_to_apply",
+                    _boot_conn,
+                    _nh_url,
+                    "ready_to_apply",
                     reason="startup re-queue from needs_human",
                     force=True,
                 )
             except Exception:
-                logger.debug("startup re-queue transition failed for %s",
-                             _nh_url[:60], exc_info=True)
+                logger.debug("startup re-queue transition failed for %s", _nh_url[:60], exc_info=True)
         commit_with_retry(_boot_conn)
         console.print(f"[yellow]Re-queued {_nh_count} needs_human job(s) from previous session[/yellow]")
         logger.info("Startup: re-queued %d needs_human jobs from previous session", _nh_count)
@@ -734,7 +824,9 @@ def main(limit: int = 1, target_url: str | None = None,
 
     worker_label = f"{workers} worker{'s' if workers > 1 else ''}"
     console.print(f"Launching apply pipeline ({mode_label}, {worker_label}, poll every {POLL_INTERVAL}s)...")
-    console.print("[dim]Hotkeys: [S] skip current job | [Q] quit all | Ctrl+C = skip current job(s) | Ctrl+C x2 = stop[/dim]")
+    console.print(
+        "[dim]Hotkeys: [S] skip current job | [Q] quit all | Ctrl+C = skip current job(s) | Ctrl+C x2 = stop[/dim]"
+    )
 
     def _skip_active_jobs() -> None:
         with _claude_lock:
@@ -771,15 +863,17 @@ def main(limit: int = 1, target_url: str | None = None,
             while not _stop_event.is_set():
                 if os.name == "nt":
                     import msvcrt
+
                     if msvcrt.kbhit():
                         key = msvcrt.getwch().lower()
-                        if key == 's':
+                        if key == "s":
                             _skip_active_jobs()
-                        elif key == 'q':
+                        elif key == "q":
                             _stop_all()
                             return
                 else:
                     import select
+
                     dr, _, _ = select.select([sys.stdin], [], [], 0.25)
                     if not dr:
                         continue
@@ -787,9 +881,9 @@ def main(limit: int = 1, target_url: str | None = None,
                     if not ch:
                         continue
                     key = ch.lower()
-                    if key == 's':
+                    if key == "s":
                         _skip_active_jobs()
-                    elif key == 'q':
+                    elif key == "q":
                         _stop_all()
                         return
                 time.sleep(0.05)
@@ -808,7 +902,7 @@ def main(limit: int = 1, target_url: str | None = None,
                 while _dashboard_running:
                     try:
                         live.update(render_full())
-                    except Exception:
+                    except Exception:  # noqa: BLE001, S110 - terminal dashboard refresh tick; a single rendering glitch must not kill the display thread, just retry in 0.5s
                         pass
                     time.sleep(0.5)
 
@@ -819,8 +913,7 @@ def main(limit: int = 1, target_url: str | None = None,
             if effective_limit:
                 base = effective_limit // workers
                 extra = effective_limit % workers
-                limits = [base + (1 if i < extra else 0)
-                          for i in range(workers)]
+                limits = [base + (1 if i < extra else 0) for i in range(workers)]
             else:
                 limits = [0] * workers  # continuous mode
 
@@ -828,8 +921,7 @@ def main(limit: int = 1, target_url: str | None = None,
             # Restores the previous GNOME focus-new-windows setting when done.
             _prev_focus_mode = prevent_focus_stealing() if (no_focus and not headless) else None
 
-            with ThreadPoolExecutor(max_workers=workers,
-                                    thread_name_prefix="apply-worker") as executor:
+            with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="apply-worker") as executor:
                 futures = {
                     executor.submit(
                         worker_loop,
@@ -863,10 +955,10 @@ def main(limit: int = 1, target_url: str | None = None,
                         answers = _prompt_user_for_qa(console, wid, questions)
                         # Store answers in Q&A knowledge base
                         from applypilot.database import store_qa
+
                         for q_dict, ans in zip(questions, answers):
                             if ans:
-                                store_qa(q_dict["question"], ans, source="human",
-                                         field_type=q_dict.get("field_type"))
+                                store_qa(q_dict["question"], ans, source="human", field_type=q_dict.get("field_type"))
                         answer_event.set()  # unblock the worker
 
                         live.start()
@@ -876,19 +968,18 @@ def main(limit: int = 1, target_url: str | None = None,
 
                     # Check if all workers are blocked
                     waiting = _get_waiting_count()
-                    active_workers = sum(
-                        1 for f in futures if not f.done()
-                    )
+                    active_workers = sum(1 for f in futures if not f.done())
                     if waiting > 0 and waiting >= active_workers and not _all_blocked_prompted:
                         _all_blocked_prompted = True
-                        add_event(f"[bold magenta]All {waiting} active worker(s) waiting for human input[/bold magenta]")
+                        add_event(
+                            f"[bold magenta]All {waiting} active worker(s) waiting for human input[/bold magenta]"
+                        )
 
                     if _all_blocked_prompted and _get_waiting_count() == 0:
                         _all_blocked_prompted = False
 
                 results: list[tuple[int, int]] = []
-                for future in futures:
-                    wid = futures[future]
+                for future, wid in futures.items():
                     try:
                         results.append(future.result())
                     except Exception:
@@ -903,10 +994,7 @@ def main(limit: int = 1, target_url: str | None = None,
             live.update(render_full())
 
         totals = get_totals()
-        console.print(
-            f"\n[bold]Done: {total_applied} applied, {total_failed} failed "
-            f"(${totals['cost']:.3f})[/bold]"
-        )
+        console.print(f"\n[bold]Done: {total_applied} applied, {total_failed} failed (${totals['cost']:.3f})[/bold]")
         console.print(f"Logs: {config.LOG_DIR}")
 
     except KeyboardInterrupt:

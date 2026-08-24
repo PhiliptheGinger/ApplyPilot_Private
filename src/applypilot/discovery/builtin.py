@@ -26,7 +26,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from applypilot import config
 from applypilot.database import get_connection, init_db, write_with_retry
@@ -34,15 +34,13 @@ from applypilot.discovery.ats_common import strip_html_to_text
 
 log = logging.getLogger(__name__)
 
-UTC = timezone.utc
 
 
 _BASE = "https://builtin.com"
 _HEADERS = {
     # Real-Chrome UA — builtin.com responds with empty body to obvious bot UAs.
     "User-Agent": (
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
     ),
     "Accept": "text/html,application/xhtml+xml",
     "Accept-Language": "en-US,en;q=0.9",
@@ -53,6 +51,7 @@ _HEADERS = {
 # HTML-to-text converter shared by every direct-API ATS scraper. See
 # ats_common.py's module comment for why this used to be a separate
 # copy-pasted implementation per scraper (and the bug that cost).
+
 
 def _strip_html(s: str | None) -> str:
     return strip_html_to_text(s)
@@ -88,7 +87,7 @@ def _fetch(url: str, timeout: float = 20.0) -> str | None:
             return ""  # past last page
         log.warning("builtin.com fetch %s: HTTP %d", url, e.code)
         return None
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - page fetch is unreliable; degrade to None, caller stops paginating this source
         log.warning("builtin.com fetch %s: %s", url, e)
         return None
 
@@ -105,13 +104,11 @@ _CARD_RE = re.compile(
 )
 _TITLE_RE = re.compile(
     r'<a href="(?P<url>/job/[^"]+)"[^>]*>\s*'
-    r'(?:<[^>]+>\s*)*(?P<title>[^<]{3,200})',
+    r"(?:<[^>]+>\s*)*(?P<title>[^<]{3,200})",
 )
 _COMPANY_RE = re.compile(r'href="/company/(?P<slug>[a-z0-9][a-z0-9-]+)"')
 _BARLOW_RE = re.compile(r'<span class="font-barlow[^"]*">([^<]+)</span>')
-_SUMMARY_RE = re.compile(
-    r'class="fs-sm fw-regular mb-md text-gray-04">([^<]+)<'
-)
+_SUMMARY_RE = re.compile(r'class="fs-sm fw-regular mb-md text-gray-04">([^<]+)<')
 
 
 def _slug_to_company_name(slug: str) -> str:
@@ -150,8 +147,8 @@ def _parse_card(card_html: str, job_id: str) -> dict | None:
             fields.append(b)
 
     work_mode = None  # "Remote", "Hybrid", "In-Office", "Remote or Hybrid", ...
-    location = None   # "Seattle, WA, USA"
-    salary = None     # "180K-220K Annually"
+    location = None  # "Seattle, WA, USA"
+    salary = None  # "180K-220K Annually"
     seniority = None  # "Senior level"
     for f in fields:
         if any(k in f for k in ("Remote", "Hybrid", "In-Office", "On-site")):
@@ -163,9 +160,8 @@ def _parse_card(card_html: str, job_id: str) -> dict | None:
         elif "level" in f.lower() or "intern" in f.lower() or "expert" in f.lower():
             if not seniority:
                 seniority = f
-        elif re.search(r"[A-Z][a-z]+,\s*[A-Z]{2}", f) or "USA" in f or "USC" in f:
-            if not location:
-                location = f
+        elif (re.search(r"[A-Z][a-z]+,\s*[A-Z]{2}", f) or "USA" in f or "USC" in f) and not location:
+            location = f
 
     full_url = urllib.parse.urljoin(_BASE, relative_url)
     company_name = _slug_to_company_name(company_slug) if company_slug else "BuiltIn"
@@ -223,9 +219,16 @@ def _insert_jobs(conn: sqlite3.Connection, jobs: list[dict]) -> tuple[int, int]:
                     "site, strategy, discovered_at, application_url, state) "
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (
-                        url, job.get("title"), job.get("salary"),
-                        description, job.get("location"),
-                        site, "builtin_html", now, url, initial_state,
+                        url,
+                        job.get("title"),
+                        job.get("salary"),
+                        description,
+                        job.get("location"),
+                        site,
+                        "builtin_html",
+                        now,
+                        url,
+                        initial_state,
                     ),
                 )
                 conn.execute(
@@ -279,7 +282,10 @@ def run_builtin_discovery(workers: int = 1) -> dict:
 
     log.info(
         "BuiltIn discovery: %d targets (cities=%s, categories=%s, remote_only=%s)",
-        len(targets), cities or ["<global>"], categories, remote_only,
+        len(targets),
+        cities or ["<global>"],
+        categories,
+        remote_only,
     )
 
     conn = get_connection()
@@ -319,7 +325,11 @@ def run_builtin_discovery(workers: int = 1) -> dict:
             grand_jobs += len(jobs)
             log.info(
                 "  [%s] page %d: %d found (%d new, %d existing)",
-                label, page, len(jobs), new, existing,
+                label,
+                page,
+                len(jobs),
+                new,
+                existing,
             )
             time.sleep(_PAGE_DELAY)
 
@@ -327,12 +337,18 @@ def run_builtin_discovery(workers: int = 1) -> dict:
         grand_existing += target_existing
         log.info(
             "  [%s] done: %d new, %d existing",
-            label, target_new, target_existing,
+            label,
+            target_new,
+            target_existing,
         )
 
     log.info(
         "BuiltIn discovery done: %d targets, %d pages, %d jobs (%d new, %d existing)",
-        len(targets), grand_pages, grand_jobs, grand_new, grand_existing,
+        len(targets),
+        grand_pages,
+        grand_jobs,
+        grand_new,
+        grand_existing,
     )
     return {
         "targets": len(targets),

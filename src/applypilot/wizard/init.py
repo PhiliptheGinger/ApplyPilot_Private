@@ -35,6 +35,7 @@ console = Console()
 # Resume
 # ---------------------------------------------------------------------------
 
+
 def _setup_resume() -> None:
     """Prompt for resume file and copy into APP_DIR."""
     console.print(Panel("[bold]Step 1: Resume[/bold]\nPoint to your master resume file (.txt or .pdf)."))
@@ -78,9 +79,14 @@ def _setup_resume() -> None:
 # Profile
 # ---------------------------------------------------------------------------
 
+
 def _setup_profile() -> dict:
     """Walk through profile questions and return a nested profile dict."""
-    console.print(Panel("[bold]Step 2: Profile[/bold]\nTell ApplyPilot about yourself. This powers scoring, tailoring, and auto-fill."))
+    console.print(
+        Panel(
+            "[bold]Step 2: Profile[/bold]\nTell ApplyPilot about yourself. This powers scoring, tailoring, and auto-fill."
+        )
+    )
 
     profile: dict = {}
 
@@ -172,6 +178,7 @@ def _setup_profile() -> dict:
 # Search config
 # ---------------------------------------------------------------------------
 
+
 def _setup_searches() -> None:
     """Generate a searches.yaml from user input."""
     console.print(Panel("[bold]Step 3: Job Search Config[/bold]\nDefine what you're looking for."))
@@ -183,9 +190,7 @@ def _setup_searches() -> None:
     except ValueError:
         distance = 0
 
-    roles_raw = Prompt.ask(
-        "Target job titles (comma-separated, e.g. 'Backend Engineer, Full Stack Developer')"
-    )
+    roles_raw = Prompt.ask("Target job titles (comma-separated, e.g. 'Backend Engineer, Full Stack Developer')")
     roles = [r.strip() for r in roles_raw.split(",") if r.strip()]
 
     if not roles:
@@ -221,13 +226,16 @@ def _setup_searches() -> None:
 # AI Features
 # ---------------------------------------------------------------------------
 
+
 def _setup_ai_features() -> None:
     """Ask about AI scoring/tailoring — optional LLM configuration."""
-    console.print(Panel(
-        "[bold]Step 4: AI Features (optional)[/bold]\n"
-        "An LLM powers job scoring, resume tailoring, and cover letters.\n"
-        "Without this, you can still discover and enrich jobs."
-    ))
+    console.print(
+        Panel(
+            "[bold]Step 4: AI Features (optional)[/bold]\n"
+            "An LLM powers job scoring, resume tailoring, and cover letters.\n"
+            "Without this, you can still discover and enrich jobs."
+        )
+    )
 
     if not Confirm.ask("Enable AI scoring and resume tailoring?", default=True):
         console.print("[dim]Discovery-only mode. You can configure AI later with [bold]applypilot init[/bold].[/dim]")
@@ -267,13 +275,16 @@ def _setup_ai_features() -> None:
 # Auto-Apply
 # ---------------------------------------------------------------------------
 
+
 def _setup_auto_apply() -> None:
     """Configure autonomous job application (requires Claude Code CLI)."""
-    console.print(Panel(
-        "[bold]Step 5: Auto-Apply (optional)[/bold]\n"
-        "ApplyPilot can autonomously fill and submit job applications\n"
-        "using Claude Code as the browser agent."
-    ))
+    console.print(
+        Panel(
+            "[bold]Step 5: Auto-Apply (optional)[/bold]\n"
+            "ApplyPilot can autonomously fill and submit job applications\n"
+            "using Claude Code as the browser agent."
+        )
+    )
 
     if not Confirm.ask("Enable autonomous job applications?", default=True):
         console.print("[dim]You can apply manually using the tailored resumes ApplyPilot generates.[/dim]")
@@ -313,19 +324,21 @@ def _setup_auto_apply() -> None:
 # ---------------------------------------------------------------------------
 
 _OPTIONAL_FILE_KEYS = [
-    ("profile_photo",  "Profile photo / headshot", [".jpg", ".jpeg", ".png", ".webp"]),
-    ("id_document",    "Government-issued ID scan", [".pdf", ".jpg", ".jpeg", ".png"]),
-    ("passport",       "Passport scan",             [".pdf", ".jpg", ".jpeg", ".png"]),
+    ("profile_photo", "Profile photo / headshot", [".jpg", ".jpeg", ".png", ".webp"]),
+    ("id_document", "Government-issued ID scan", [".pdf", ".jpg", ".jpeg", ".png"]),
+    ("passport", "Passport scan", [".pdf", ".jpg", ".jpeg", ".png"]),
 ]
 
 
 def _setup_optional_files(profile: dict) -> None:
     """Optionally copy documents into ~/.applypilot/files/ and record paths in profile."""
-    console.print(Panel(
-        "[bold]Step 6: Optional Documents (skip if not needed)[/bold]\n"
-        "Profile photo, ID, passport, certificates — some applications ask for these.\n"
-        "Files are copied to [cyan]~/.applypilot/files/[/cyan] for use by the apply agent."
-    ))
+    console.print(
+        Panel(
+            "[bold]Step 6: Optional Documents (skip if not needed)[/bold]\n"
+            "Profile photo, ID, passport, certificates — some applications ask for these.\n"
+            "Files are copied to [cyan]~/.applypilot/files/[/cyan] for use by the apply agent."
+        )
+    )
 
     if not Confirm.ask("Do you have any optional documents to add?", default=False):
         console.print("[dim]Skipped. Add files to ~/.applypilot/files/ and update profile.json later.[/dim]")
@@ -378,6 +391,7 @@ def _setup_optional_files(profile: dict) -> None:
 # ---------------------------------------------------------------------------
 # Main entry
 # ---------------------------------------------------------------------------
+
 
 def run_wizard() -> None:
     """Run the full interactive setup wizard."""
@@ -444,9 +458,7 @@ def run_wizard() -> None:
     console.print(
         Panel.fit(
             "[bold green]Setup complete![/bold green]\n\n"
-            f"[bold]Your tier: Tier {tier} — {TIER_LABELS[tier]}[/bold]\n\n"
-            + "\n".join(tier_lines)
-            + unlock_hint,
+            f"[bold]Your tier: Tier {tier} — {TIER_LABELS[tier]}[/bold]\n\n" + "\n".join(tier_lines) + unlock_hint,
             border_style="green",
         )
     )

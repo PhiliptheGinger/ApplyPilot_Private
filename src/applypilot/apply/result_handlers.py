@@ -8,6 +8,7 @@ to the manual-actions markdown, or update a per-worker history list.
 `_record_job_history` lazy-imports `launcher` to read the shared
 `_worker_state` dict; everything else is self-contained.
 """
+
 from __future__ import annotations
 
 import json
@@ -24,9 +25,11 @@ logger = logging.getLogger(__name__)
 # Result/output parsers
 # ---------------------------------------------------------------------------
 
+
 def _parse_account_created(output: str, job_url: str | None = None) -> None:
     """Parse ACCOUNT_CREATED lines from agent output and save to DB."""
     from applypilot.database import get_connection, store_account
+
     for line in output.split("\n"):
         if "ACCOUNT_CREATED:" not in line:
             continue
@@ -35,14 +38,12 @@ def _parse_account_created(output: str, job_url: str | None = None) -> None:
             account = json.loads(json_str)
             conn = get_connection()
             store_account(conn, account, job_url=job_url)
-            logger.info("Saved new account: %s @ %s",
-                        account.get("email"), account.get("domain"))
-        except (json.JSONDecodeError, IndexError, Exception) as e:
+            logger.info("Saved new account: %s @ %s", account.get("email"), account.get("domain"))
+        except Exception as e:  # noqa: BLE001 - processing independent output lines; one malformed ACCOUNT_CREATED line must not abort parsing the rest (also: Exception already subsumes the JSONDecodeError/IndexError this used to list separately)
             logger.warning("Failed to parse ACCOUNT_CREATED line: %s", e)
 
 
-def _parse_qa_lines(output: str, job_url: str | None = None,
-                    ats_slug: str | None = None) -> int:
+def _parse_qa_lines(output: str, job_url: str | None = None, ats_slug: str | None = None) -> int:
     """Parse QA: lines from agent output and store in qa_knowledge DB.
 
     Format: QA:{question}|{answer}|{field_type}
@@ -50,6 +51,7 @@ def _parse_qa_lines(output: str, job_url: str | None = None,
     Returns count of Q&A pairs stored.
     """
     from applypilot.database import store_qa
+
     count = 0
     for line in output.split("\n"):
         if not line.strip().startswith("QA:"):
@@ -63,11 +65,9 @@ def _parse_qa_lines(output: str, job_url: str | None = None,
             answer = parts[1].strip()
             field_type = parts[2].strip() if len(parts) > 2 else None
             if question and answer:
-                store_qa(question, answer, source="agent",
-                         field_type=field_type, ats_slug=ats_slug,
-                         job_url=job_url)
+                store_qa(question, answer, source="agent", field_type=field_type, ats_slug=ats_slug, job_url=job_url)
                 count += 1
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - processing independent output lines; one malformed QA line must not abort parsing the rest
             logger.debug("Failed to parse QA line: %s", e)
     if count:
         logger.info("Stored %d Q&A pair(s) from agent output", count)
@@ -112,62 +112,86 @@ def _infer_result_from_output(output: str) -> str | None:
 
     # Order matters — check most specific patterns first
     patterns: list[tuple[str, list[str]]] = [
-        ("login_issue", [
-            "password reset requires email",
-            "cannot log in",
-            "login failed permanently",
-            "cannot access external email",
-            "session has now expired",
-            "credentials between session",
-        ]),
-        ("account_required", [
-            "account was successfully created",
-            "password from the original account",
-            "password was not stored",
-        ]),
-        ("captcha", [
-            "blocked by captcha",
-            "captcha cannot be solved",
-            "unsolvable captcha",
-        ]),
-        ("already_applied", [
-            "you've already applied",
-            "you have already applied",
-            "already applied to this",
-            "application already submitted",
-            "duplicate application",
-            "already applied for this role",
-            "application already exists",
-        ]),
-        ("expired", [
-            "no longer accepting",
-            "job has been closed",
-            "position has been filled",
-            "listing is closed",
-            "listing has expired",
-        ]),
-        ("not_eligible_location", [
-            "not eligible for this location",
-            "onsite only",
-            "outside your area",
-            "cannot relocate",
-        ]),
-        ("stuck", [
-            "cannot be completed through browser automation",
-            "must be completed manually",
-            "sandbox environment",
-            "sandboxed environment",
-            "non-sandboxed environment",
-            "technical blocker",
-            "cannot satisfy",
-            "blocked_by_environment",
-            "infrastructure-level",
-        ]),
-        ("browser_unavailable", [
-            "browser automation service is not responding",
-            "connection refused on localhost",
-            "browser connection issue",
-        ]),
+        (
+            "login_issue",
+            [
+                "password reset requires email",
+                "cannot log in",
+                "login failed permanently",
+                "cannot access external email",
+                "session has now expired",
+                "credentials between session",
+            ],
+        ),
+        (
+            "account_required",
+            [
+                "account was successfully created",
+                "password from the original account",
+                "password was not stored",
+            ],
+        ),
+        (
+            "captcha",
+            [
+                "blocked by captcha",
+                "captcha cannot be solved",
+                "unsolvable captcha",
+            ],
+        ),
+        (
+            "already_applied",
+            [
+                "you've already applied",
+                "you have already applied",
+                "already applied to this",
+                "application already submitted",
+                "duplicate application",
+                "already applied for this role",
+                "application already exists",
+            ],
+        ),
+        (
+            "expired",
+            [
+                "no longer accepting",
+                "job has been closed",
+                "position has been filled",
+                "listing is closed",
+                "listing has expired",
+            ],
+        ),
+        (
+            "not_eligible_location",
+            [
+                "not eligible for this location",
+                "onsite only",
+                "outside your area",
+                "cannot relocate",
+            ],
+        ),
+        (
+            "stuck",
+            [
+                "cannot be completed through browser automation",
+                "must be completed manually",
+                "sandbox environment",
+                "sandboxed environment",
+                "non-sandboxed environment",
+                "technical blocker",
+                "cannot satisfy",
+                "blocked_by_environment",
+                "infrastructure-level",
+            ],
+        ),
+        (
+            "browser_unavailable",
+            [
+                "browser automation service is not responding",
+                "connection refused on localhost",
+                "browser connection issue",
+            ],
+        ),
     ]
     for reason, phrases in patterns:
         for phrase in phrases:
@@ -181,27 +205,39 @@ def _infer_result_from_output(output: str) -> str | None:
 # ---------------------------------------------------------------------------
 
 PERMANENT_FAILURES: set[str] = {
-    "expired", "form_interaction_error", "browser_unavailable",
-    "not_eligible_location", "not_eligible_salary",
-    "already_applied", "not_a_job_application", "unsafe_permissions",
-    "unsafe_verification", "contract_only",
-    "site_blocked", "cloudflare_blocked", "blocked_by_cloudflare",
-    "credits_exhausted", "file_upload_blocked",
-    "account_creation_broken", "page_error",
+    "expired",
+    "form_interaction_error",
+    "browser_unavailable",
+    "not_eligible_location",
+    "not_eligible_salary",
+    "already_applied",
+    "not_a_job_application",
+    "unsafe_permissions",
+    "unsafe_verification",
+    "contract_only",
+    "site_blocked",
+    "cloudflare_blocked",
+    "blocked_by_cloudflare",
+    "credits_exhausted",
+    "file_upload_blocked",
+    "account_creation_broken",
+    "page_error",
     "application_limit_exceeded",
 }
 
 # Errors that should pause and wait for human intervention via HITL banner
 # instead of being marked as permanent failures.
-HITL_AUTO_ROUTE: frozenset[str] = frozenset({
-    "captcha",
-    "login_issue",
-    "account_required",
-    "sso_required",
-    "email_verification",
-    "resume_upload_blocked",
-    "stuck",
-})
+HITL_AUTO_ROUTE: frozenset[str] = frozenset(
+    {
+        "captcha",
+        "login_issue",
+        "account_required",
+        "sso_required",
+        "email_verification",
+        "resume_upload_blocked",
+        "stuck",
+    }
+)
 
 # login_required is retryable — user logs in manually, then retry succeeds
 RETRYABLE_AUTH_FAILURES: set[str] = {"login_required"}
@@ -248,8 +284,7 @@ _FAILED_LOG = config.LOG_DIR / "failed_actions.log"
 _MANUAL_LOG = config.APP_DIR / "manual_actions.md"
 
 
-def _log_failed_attempt(job: dict, reason: str, worker_id: int,
-                        duration_ms: int, permanent: bool) -> None:
+def _log_failed_attempt(job: dict, reason: str, worker_id: int, duration_ms: int, permanent: bool) -> None:
     """Append a structured entry to the failed actions log.
 
     Each entry includes the job, failure reason, whether it's retryable,
@@ -316,8 +351,8 @@ def _log_manual_action(job: dict, reason: str, instructions: str) -> None:
 # Worker history (depends on launcher's shared _worker_state)
 # ---------------------------------------------------------------------------
 
-def _record_job_history(worker_id: int, job: dict, result: str,
-                        duration_ms: int) -> None:
+
+def _record_job_history(worker_id: int, job: dict, result: str, duration_ms: int) -> None:
     """Append a completed job entry to the worker's in-memory history list.
 
     Shown on the per-worker homepage (http://localhost:{7380+worker_id}/).
@@ -327,6 +362,7 @@ def _record_job_history(worker_id: int, job: dict, result: str,
     # _worker_state dict (also touched by the always-on HTTP server and by
     # the orchestrator), and launcher.py re-exports this function.
     from applypilot.apply import launcher
+
     with launcher._worker_state_lock:
         ws = launcher._worker_state.get(worker_id)
     if ws is None:
@@ -343,15 +379,17 @@ def _record_job_history(worker_id: int, job: dict, result: str,
         outcome = "needs_human"
     else:
         outcome = "failed"
-    history.append({
-        "ts": time.time(),
-        "title": job.get("title", ""),
-        "company": job.get("company") or job.get("site", ""),
-        "url": job.get("application_url") or job.get("url", ""),
-        "score": job.get("fit_score", 0),
-        "result": result,
-        "outcome": outcome,
-        "duration_s": round(duration_ms / 1000) if duration_ms else 0,
-    })
+    history.append(
+        {
+            "ts": time.time(),
+            "title": job.get("title", ""),
+            "company": job.get("company") or job.get("site", ""),
+            "url": job.get("application_url") or job.get("url", ""),
+            "score": job.get("fit_score", 0),
+            "result": result,
+            "outcome": outcome,
+            "duration_s": round(duration_ms / 1000) if duration_ms else 0,
+        }
+    )
     if len(history) > 50:
         del history[:-50]

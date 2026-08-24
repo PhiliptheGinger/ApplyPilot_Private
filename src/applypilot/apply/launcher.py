@@ -12,24 +12,24 @@ import os
 import platform
 import queue
 import re
-import signal
 import shutil
+import signal
 import socketserver
 import sqlite3
 import subprocess
 import sys
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-
+from typing import ClassVar
 
 from applypilot import config
 from applypilot.database import (
-    get_connection,
     categorize_apply_result,
     commit_with_retry,
+    get_connection,
     get_in_flight_by_company,
     transition_state,
 )
@@ -48,58 +48,76 @@ def _auto_reject_title(title: str | None) -> bool:
     2026-08-21 incident (a stale pre-guard score reaching ready_to_apply).
     """
     return seniority_disqualifier(title) is not None
+
+
 from applypilot.apply import prompt as prompt_mod
 from applypilot.apply.chrome import (  # noqa: F401  (re-exports)
-    launch_chrome, cleanup_worker, kill_all_chrome,
-    detect_ats, save_ats_session, clear_ats_session,
-    reset_worker_dir, cleanup_on_exit, _kill_process_tree,
-    BASE_CDP_PORT, HITL_LISTEN_BASE_PORT, bring_to_foreground,
-    probe_existing_chrome, _AdoptedChromeProcess,
-    _chrome_procs, _chrome_lock,
+    BASE_CDP_PORT,
+    HITL_LISTEN_BASE_PORT,
+    _AdoptedChromeProcess,
+    _chrome_lock,
+    _chrome_procs,
+    _kill_process_tree,
+    bring_to_foreground,
+    cleanup_on_exit,
+    cleanup_worker,
+    clear_ats_session,
+    detect_ats,
+    kill_all_chrome,
+    launch_chrome,
+    probe_existing_chrome,
+    reset_worker_dir,
+    save_ats_session,
 )
 from applypilot.apply.dashboard import (  # noqa: F401  (re-exports)
-    init_worker, update_state, add_event, get_state,
-    render_full, get_totals, start_health_checks, stop_health_checks,
+    add_event,
+    get_state,
+    get_totals,
+    init_worker,
+    render_full,
+    start_health_checks,
+    stop_health_checks,
+    update_state,
+)
+from applypilot.apply.hitl import (  # noqa: F401  (re-exports)
+    _HITL_INSTRUCTIONS,
+    _HITL_TRANSIENT_ERRORS,
+    _action_log_cache,
+    _action_log_cache_lock,
+    _format_action_log,
+    _get_waiting_count,
+    _hitl_server_lock,
+    _hitl_servers,
+    _inject_banner_for_worker,
+    _register_waiting,
+    _run_hitl,
+    _send_desktop_notification,
+    _start_hitl_listener,
+    _stdin_fallback_lock,
+    _stop_hitl_listener,
+    _unregister_waiting,
+    _waiting_lock,
+    _waiting_workers,
+    get_hitl_instruction,
+    mark_needs_human,
+    notify_human_needed,
+    reset_needs_human,
 )
 from applypilot.apply.result_handlers import (  # noqa: F401  (re-exports)
-    PERMANENT_FAILURES,
-    HITL_AUTO_ROUTE,
-    RETRYABLE_AUTH_FAILURES,
-    PERMANENT_PREFIXES,
-    _NEXT_STEPS,
     _FAILED_LOG,
     _MANUAL_LOG,
-    _parse_account_created,
-    _parse_qa_lines,
+    _NEXT_STEPS,
+    HITL_AUTO_ROUTE,
+    PERMANENT_FAILURES,
+    PERMANENT_PREFIXES,
+    RETRYABLE_AUTH_FAILURES,
     _infer_result_from_output,
     _is_permanent_failure,
     _log_failed_attempt,
     _log_manual_action,
+    _parse_account_created,
+    _parse_qa_lines,
     _record_job_history,
-)
-from applypilot.apply.hitl import (  # noqa: F401  (re-exports)
-    _HITL_TRANSIENT_ERRORS,
-    _HITL_INSTRUCTIONS,
-    get_hitl_instruction,
-    _action_log_cache,
-    _action_log_cache_lock,
-    _stdin_fallback_lock,
-    _waiting_workers,
-    _waiting_lock,
-    _hitl_servers,
-    _hitl_server_lock,
-    _register_waiting,
-    _unregister_waiting,
-    _get_waiting_count,
-    _start_hitl_listener,
-    _stop_hitl_listener,
-    _inject_banner_for_worker,
-    mark_needs_human,
-    reset_needs_human,
-    _send_desktop_notification,
-    notify_human_needed,
-    _format_action_log,
-    _run_hitl,
 )
 
 logger = logging.getLogger(__name__)
@@ -118,7 +136,9 @@ def set_doc_format(fmt: str) -> None:
 # Blocked sites loaded from config/sites.yaml
 def _load_blocked():
     from applypilot.config import load_blocked_sites
+
     return load_blocked_sites()
+
 
 # How often to poll the DB when the queue is empty: now lives in
 # apply/orchestrator.py (mutated by main(); read by _worker_loop_body).
@@ -145,13 +165,13 @@ def _kill_all_children() -> None:
         if p.poll() is None:
             try:
                 _kill_process_tree(p.pid)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110 - best-effort cleanup/probe, must not crash the caller
                 pass
     for p in list(_mini_procs.values()):
         if p.poll() is None:
             try:
                 _kill_process_tree(p.pid)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110 - best-effort cleanup/probe, must not crash the caller
                 pass
     _mini_procs.clear()
 
@@ -159,11 +179,13 @@ def _kill_all_children() -> None:
 atexit.register(_kill_all_children)
 
 if platform.system() != "Windows":
+
     def _sigterm_handler(*_):
         _stop_event.set()
         _kill_all_children()
         kill_all_chrome()
         sys.exit(0)
+
     signal.signal(signal.SIGTERM, _sigterm_handler)
 
 # Q&A interactive queue: worker threads post questions, main thread answers
@@ -225,14 +247,19 @@ def _run_mini_task(worker_id: int, cdp_port: int, instructions: str) -> subproce
     proc = subprocess.Popen(
         [
             "claude",
-            "--model", "sonnet",
+            "--model",
+            "sonnet",
             "-p",
-            "--mcp-config", str(mcp_config_path),
+            "--mcp-config",
+            str(mcp_config_path),
             "--strict-mcp-config",
-            "--permission-mode", "bypassPermissions",
+            "--permission-mode",
+            "bypassPermissions",
             "--no-session-persistence",
-            "--output-format", "stream-json",
-            "--verbose", "-",
+            "--output-format",
+            "stream-json",
+            "--verbose",
+            "-",
         ],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
@@ -253,8 +280,10 @@ def _run_mini_task(worker_id: int, cdp_port: int, instructions: str) -> subproce
 # Always-on per-worker HTTP listener
 # ---------------------------------------------------------------------------
 
+
 class _ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
     """HTTPServer that handles each connection in a new daemon thread."""
+
     daemon_threads = True
 
 
@@ -391,7 +420,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 return {}
             try:
                 return json.loads(self.rfile.read(length))
-            except Exception:
+            except Exception:  # noqa: BLE001 - probe/status helper must degrade to a safe default, not crash its caller
                 return {}
 
         def _json_ok(self, data: dict) -> None:
@@ -413,6 +442,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
 
         def _handle_homepage(self):
             import html as _html
+
             job = state.get("job") or {}
             status = state.get("status", "idle")
             title = job.get("title", "") or "No active job"
@@ -433,19 +463,19 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
             if instructions:
                 instructions_block = (
                     f'<div class="instructions">'
-                    f'<strong>Instructions:</strong><br>'
-                    f'{_html.escape(instructions).replace(chr(10), "<br>")}'
-                    f'</div>'
+                    f"<strong>Instructions:</strong><br>"
+                    f"{_html.escape(instructions).replace(chr(10), '<br>')}"
+                    f"</div>"
                 )
 
             # Build activity log rows
             history = list(reversed(state.get("history", [])))
             outcome_colors = {
-                "applied":       ("#22c55e", "✓ Applied"),
+                "applied": ("#22c55e", "✓ Applied"),
                 "already_applied": ("#6366f1", "↩ Already applied"),
-                "expired":       ("#6b7280", "⌛ Expired"),
-                "needs_human":   ("#a855f7", "⚑ Needs human"),
-                "failed":        ("#ef4444", "✗ Failed"),
+                "expired": ("#6b7280", "⌛ Expired"),
+                "needs_human": ("#a855f7", "⚑ Needs human"),
+                "failed": ("#ef4444", "✗ Failed"),
             }
             log_rows = ""
             for h in history:
@@ -458,7 +488,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 dur = h.get("duration_s", 0)
                 url = _html.escape(h.get("url", "#"))
                 log_rows += (
-                    f'<tr>'
+                    f"<tr>"
                     f'<td style="color:#64748b;font-size:11px">{ts_str}</td>'
                     f'<td><span style="color:{color};font-weight:600;font-size:11px">{label}</span></td>'
                     f'<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'
@@ -466,7 +496,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                     f'<br><span style="font-size:10px;color:#64748b">{job_co}</span></td>'
                     f'<td style="color:#60a5fa;font-size:11px;text-align:center">{sc}/10</td>'
                     f'<td style="color:#64748b;font-size:11px;text-align:right">{dur}s</td>'
-                    f'</tr>'
+                    f"</tr>"
                 )
             log_section = ""
             if log_rows:
@@ -522,7 +552,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
   <div class="wid">W{worker_id}</div>
   <div class="status">{status.upper().replace("_", " ")}</div>
   <div class="title">{_html.escape(title)}</div>
-  {'<div class="meta">' + meta_line + '</div>' if meta_line else ''}
+  {'<div class="meta">' + meta_line + "</div>" if meta_line else ""}
   {instructions_block}
 </div>
 {log_section}
@@ -545,20 +575,22 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
             reason = state.get("reason", "")
             # Use cached saved_instruction — never hit DB on status polls.
             # (DB access from per-request daemon threads leaks SQLite fds over time.)
-            self._json_ok({
-                "workerId": worker_id,
-                "status": state.get("status", "idle"),
-                "jobTitle": job.get("title", ""),
-                "jobSite": site,
-                "jobCompany": job.get("company", ""),
-                "score": job.get("fit_score", 0),
-                "reason": reason,
-                "instructions": state.get("instructions"),
-                "savedInstruction": state.get("saved_instruction"),
-                "chromePid": state.get("chrome_pid"),
-                "lastFocused": state.get("last_focused", 0),
-                "noHitl": bool(state.get("no_hitl", False)),
-            })
+            self._json_ok(
+                {
+                    "workerId": worker_id,
+                    "status": state.get("status", "idle"),
+                    "jobTitle": job.get("title", ""),
+                    "jobSite": site,
+                    "jobCompany": job.get("company", ""),
+                    "score": job.get("fit_score", 0),
+                    "reason": reason,
+                    "instructions": state.get("instructions"),
+                    "savedInstruction": state.get("saved_instruction"),
+                    "chromePid": state.get("chrome_pid"),
+                    "lastFocused": state.get("last_focused", 0),
+                    "noHitl": bool(state.get("no_hitl", False)),
+                }
+            )
 
         def _handle_log(self):
             self._json_ok({"history": list(reversed(state.get("history", [])))})
@@ -567,12 +599,13 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
             state["last_focused"] = time.time()
             try:
                 from applypilot.apply.chrome import bring_to_foreground_cdp, bring_to_foreground_pid
+
                 # CDP bringToFront focuses the tab within Chrome.
                 # bring_to_foreground_pid raises the OS window (X11/Wayland).
                 # Both are needed: CDP alone doesn't always raise the window.
                 bring_to_foreground_cdp(cdp_port)
                 bring_to_foreground_pid(state.get("chrome_pid"))
-            except Exception:
+            except Exception:  # noqa: BLE001, S110 - best-effort cleanup/probe, must not crash the caller
                 pass
             self._text_ok()
 
@@ -617,7 +650,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 try:
                     self.wfile.write(b"data: No task running\n\n")
                     self.wfile.flush()
-                except Exception:
+                except Exception:  # noqa: BLE001, S110 - best-effort cleanup/probe, must not crash the caller
                     pass
                 return
             try:
@@ -654,6 +687,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 reason = state.get("reason") or "takeover"
                 try:
                     from applypilot.database import store_qa
+
                     store_qa(
                         question=f"HITL:{site}:{reason}",
                         answer=instructions,
@@ -661,7 +695,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                         field_type="hitl_instruction",
                     )
                     state["saved_instruction"] = instructions
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 - HTTP control-panel handler must not crash the server thread on unexpected input
                     logger.debug("Failed to save HITL instruction to Q&A KB: %s", e)
             state["handback_instructions"] = instructions or None
             state["status"] = "applying"
@@ -705,13 +739,17 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
 
         def _handle_jobs_list(self):
             """Return actionable jobs for the extension Jobs tab."""
-            from urllib.parse import parse_qs, urlparse as _up
+            from urllib.parse import parse_qs
+            from urllib.parse import urlparse as _up
+
             qs = parse_qs(_up(self.path).query)
             limit = min(int(qs.get("limit", ["50"])[0]), 200)
             try:
                 from applypilot.database import get_connection
+
                 conn = get_connection()
-                rows = conn.execute("""
+                rows = conn.execute(
+                    """
                     SELECT url, title, company, site, fit_score,
                            apply_status, apply_category, apply_error,
                            tailored_resume_path, cover_letter_path
@@ -722,9 +760,11 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                       AND (eligibility IS NULL OR eligibility = 'eligible')
                     ORDER BY fit_score DESC, discovered_at DESC
                     LIMIT ?
-                """, (limit,)).fetchall()
+                """,
+                    (limit,),
+                ).fetchall()
                 self._json_ok({"jobs": [dict(r) for r in rows]})
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - HTTP control-panel handler must not crash the server thread on unexpected input
                 logger.debug("jobs_list error: %s", e)
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -734,6 +774,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
         def _handle_add_job(self):
             """Add a job URL to the discovery queue from the extension."""
             from applypilot.database import get_connection
+
             body = self._read_body()
             url = (body.get("url") or "").strip()
             title = (body.get("title") or "").strip()
@@ -745,24 +786,21 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 return
             try:
                 from urllib.parse import urlparse
+
                 site = urlparse(url).netloc.replace("www.", "")
                 conn = get_connection()
-                existing = conn.execute(
-                    "SELECT url, apply_status FROM jobs WHERE url=?", (url,)
-                ).fetchone()
+                existing = conn.execute("SELECT url, apply_status FROM jobs WHERE url=?", (url,)).fetchone()
                 if existing:
-                    self._json_ok({"status": "exists",
-                                   "applyStatus": existing["apply_status"]})
+                    self._json_ok({"status": "exists", "applyStatus": existing["apply_status"]})
                     return
                 conn.execute(
-                    "INSERT INTO jobs (url, title, site, discovered_at) "
-                    "VALUES (?, ?, ?, datetime('now'))",
+                    "INSERT INTO jobs (url, title, site, discovered_at) VALUES (?, ?, ?, datetime('now'))",
                     (url, title or "Unknown Position", site),
                 )
                 commit_with_retry(conn)
                 logger.info("[W%d] Added job via extension: %s", worker_id, url[:80])
                 self._json_ok({"status": "queued"})
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - HTTP control-panel handler must not crash the server thread on unexpected input
                 logger.debug("add_job error: %s", e)
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -771,12 +809,14 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
 
         def _handle_jobs_mark(self):
             """Manually mark a job's apply status from the extension Jobs tab."""
+            from datetime import datetime
+
             from applypilot.database import get_connection
-            from datetime import datetime, timezone as tz
+
             body = self._read_body()
-            url    = (body.get("url") or "").strip()
+            url = (body.get("url") or "").strip()
             action = (body.get("action") or "").strip()
-            valid  = ("applied", "skip", "error", "reset")
+            valid = ("applied", "skip", "error", "reset")
             if not url or action not in valid:
                 self.send_response(400)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -784,38 +824,45 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self.wfile.write(b"url and action required")
                 return
             try:
-                
                 conn = get_connection()
-                now = datetime.now(tz.utc).isoformat()
+                now = datetime.now(UTC).isoformat()
                 if action == "applied":
-                    conn.execute("""UPDATE jobs SET apply_status='applied', applied_at=?,
+                    conn.execute(
+                        """UPDATE jobs SET apply_status='applied', applied_at=?,
                         apply_category='applied', apply_attempts=COALESCE(apply_attempts,0)+1
-                        WHERE url=?""", (now, url))
-                    transition_state(conn, url, "applied",
-                        reason="HTTP handler mark", force=True)
+                        WHERE url=?""",
+                        (now, url),
+                    )
+                    transition_state(conn, url, "applied", reason="HTTP handler mark", force=True)
                     _export_submitted_resume_artifacts(conn, url)
                 elif action == "skip":
-                    conn.execute("""UPDATE jobs SET apply_status='failed',
+                    conn.execute(
+                        """UPDATE jobs SET apply_status='failed',
                         apply_category='archived_ineligible',
-                        apply_error='manually skipped', apply_attempts=99 WHERE url=?""", (url,))
-                    transition_state(conn, url, "manual_only",
-                        reason="HTTP handler skip", force=True)
+                        apply_error='manually skipped', apply_attempts=99 WHERE url=?""",
+                        (url,),
+                    )
+                    transition_state(conn, url, "manual_only", reason="HTTP handler skip", force=True)
                 elif action == "error":
-                    conn.execute("""UPDATE jobs SET apply_status='failed',
+                    conn.execute(
+                        """UPDATE jobs SET apply_status='failed',
                         apply_category='archived_platform',
-                        apply_error='manually marked error', apply_attempts=99 WHERE url=?""", (url,))
-                    transition_state(conn, url, "apply_failed",
-                        reason="HTTP handler error", force=True)
+                        apply_error='manually marked error', apply_attempts=99 WHERE url=?""",
+                        (url,),
+                    )
+                    transition_state(conn, url, "apply_failed", reason="HTTP handler error", force=True)
                 elif action == "reset":
-                    conn.execute("""UPDATE jobs SET apply_status=NULL, apply_category='pending',
-                        apply_error=NULL, apply_attempts=0, agent_id=NULL WHERE url=?""", (url,))
-                    transition_state(conn, url, "ready_to_apply",
-                        reason="HTTP handler reset", force=True)
+                    conn.execute(
+                        """UPDATE jobs SET apply_status=NULL, apply_category='pending',
+                        apply_error=NULL, apply_attempts=0, agent_id=NULL WHERE url=?""",
+                        (url,),
+                    )
+                    transition_state(conn, url, "ready_to_apply", reason="HTTP handler reset", force=True)
                 commit_with_retry(conn)
                 logger.info("[W%d] Manual mark '%s': %s", worker_id, action, url[:70])
                 self._json_ok({"status": "ok", "action": action})
             except Exception as e:
-                logger.error("HTTP _handle_jobs_mark failed for %s: %s", url, e, exc_info=True)
+                logger.exception("HTTP _handle_jobs_mark failed for %s", url)
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
@@ -831,6 +878,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
             """
             try:
                 from applypilot.database import get_connection
+
                 conn = get_connection()
                 rows = conn.execute(
                     "SELECT id, site, domain, email, password, "
@@ -838,7 +886,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                     "FROM accounts ORDER BY created_at DESC"
                 ).fetchall()
                 self._json_ok({"rows": [dict(r) for r in rows]})
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - HTTP control-panel handler must not crash the server thread on unexpected input
                 logger.debug("accounts_list error: %s", e)
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -857,6 +905,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
             action = (body.get("action") or "").strip()
             try:
                 from applypilot.database import get_connection
+
                 conn = get_connection()
                 if action == "delete":
                     conn.execute("DELETE FROM accounts WHERE id = ?", (row_id,))
@@ -886,7 +935,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(b"action must be 'update' or 'delete'")
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - HTTP control-panel handler must not crash the server thread on unexpected input
                 logger.debug("account_mutate error: %s", e)
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -910,10 +959,10 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 return
             try:
                 from applypilot.apply.chrome import clear_ats_session
+
                 ok = clear_ats_session(slug)
-                self._json_ok({"status": "cleared" if ok else "not_found",
-                               "slug": slug})
-            except Exception as e:
+                self._json_ok({"status": "cleared" if ok else "not_found", "slug": slug})
+            except Exception as e:  # noqa: BLE001 - HTTP control-panel handler must not crash the server thread on unexpected input
                 logger.debug("session_mutate error: %s", e)
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -923,10 +972,10 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
         # --- Preferences (file editor) ---
         # Maps URL key → (path, format). Format determines how we validate
         # before saving — broken YAML/JSON would brick the next pipeline run.
-        _PREFS_FILES = {
-            "profile":         (config.PROFILE_PATH,                                 "json"),
-            "searches":        (config.SEARCH_CONFIG_PATH,                           "yaml"),
-            "company-limits":  (config.APP_DIR / config.COMPANY_LIMITS_PATH_NAME,    "yaml"),
+        _PREFS_FILES: ClassVar[dict[str, tuple]] = {
+            "profile": (config.PROFILE_PATH, "json"),
+            "searches": (config.SEARCH_CONFIG_PATH, "yaml"),
+            "company-limits": (config.APP_DIR / config.COMPANY_LIMITS_PATH_NAME, "yaml"),
         }
 
         def _handle_prefs_get(self):
@@ -941,14 +990,16 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
             path, fmt = entry
             try:
                 text = path.read_text(encoding="utf-8") if path.exists() else ""
-                self._json_ok({
-                    "key": key,
-                    "path": str(path),
-                    "format": fmt,
-                    "text": text,
-                    "exists": path.exists(),
-                })
-            except Exception as e:
+                self._json_ok(
+                    {
+                        "key": key,
+                        "path": str(path),
+                        "format": fmt,
+                        "text": text,
+                        "exists": path.exists(),
+                    }
+                )
+            except Exception as e:  # noqa: BLE001 - HTTP control-panel handler must not crash the server thread on unexpected input
                 logger.debug("prefs_get error: %s", e)
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -980,8 +1031,9 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                     json.loads(text)
                 elif fmt == "yaml":
                     import yaml
+
                     yaml.safe_load(text)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - HTTP control-panel handler must not crash the server thread on unexpected input
                 self.send_response(400)
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
@@ -1002,11 +1054,10 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 if key == "company-limits":
                     try:
                         config._company_limits_cache = None
-                    except Exception:
+                    except Exception:  # noqa: BLE001, S110 - best-effort cleanup/probe, must not crash the caller
                         pass
-                self._json_ok({"status": "saved", "path": str(path),
-                               "bytes": len(text.encode())})
-            except Exception as e:
+                self._json_ok({"status": "saved", "path": str(path), "bytes": len(text.encode())})
+            except Exception as e:  # noqa: BLE001 - HTTP control-panel handler must not crash the server thread on unexpected input
                 logger.warning("prefs_save error: %s", e)
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -1018,16 +1069,19 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
 
             Query params: q (free text), ats, source, outcome, limit, offset.
             """
-            from urllib.parse import parse_qs, urlparse as _up
+            from urllib.parse import parse_qs
+            from urllib.parse import urlparse as _up
+
             qs = parse_qs(_up(self.path).query)
-            q       = (qs.get("q",       [""])[0] or "").strip()
-            ats     = (qs.get("ats",     [""])[0] or "").strip()
-            source  = (qs.get("source",  [""])[0] or "").strip()
+            q = (qs.get("q", [""])[0] or "").strip()
+            ats = (qs.get("ats", [""])[0] or "").strip()
+            source = (qs.get("source", [""])[0] or "").strip()
             outcome = (qs.get("outcome", [""])[0] or "").strip()
-            limit   = max(1, min(int(qs.get("limit",  ["200"])[0]), 500))
-            offset  = max(0, int(qs.get("offset", ["0"])[0]))
+            limit = max(1, min(int(qs.get("limit", ["200"])[0]), 500))
+            offset = max(0, int(qs.get("offset", ["0"])[0]))
             try:
                 from applypilot.database import get_connection
+
                 conn = get_connection()
                 where = ["1=1"]
                 params: list = []
@@ -1059,7 +1113,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                     [*params, limit, offset],
                 ).fetchall()
                 self._json_ok({"rows": [dict(r) for r in rows], "total": total})
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - HTTP control-panel handler must not crash the server thread on unexpected input
                 logger.debug("qa_list error: %s", e)
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -1070,22 +1124,22 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
             """Insert a new qa_knowledge row from the options-page editor."""
             body = self._read_body()
             question = (body.get("question") or "").strip()
-            answer   = (body.get("answer")   or "").strip()
+            answer = (body.get("answer") or "").strip()
             if not question or not answer:
                 self.send_response(400)
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(b"question and answer required")
                 return
-            source     = (body.get("source")     or "human").strip() or "human"
+            source = (body.get("source") or "human").strip() or "human"
             field_type = (body.get("field_type") or "").strip() or None
-            ats_slug   = (body.get("ats_slug")   or "").strip() or None
+            ats_slug = (body.get("ats_slug") or "").strip() or None
             try:
                 from applypilot.database import store_qa
-                row_id = store_qa(question, answer, source=source,
-                                  field_type=field_type, ats_slug=ats_slug)
+
+                row_id = store_qa(question, answer, source=source, field_type=field_type, ats_slug=ats_slug)
                 self._json_ok({"status": "created", "id": row_id})
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - HTTP control-panel handler must not crash the server thread on unexpected input
                 logger.debug("qa_create error: %s", e)
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -1099,8 +1153,10 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
             Update fields: question_text, answer_text, answer_source,
             field_type, options_json, ats_slug, outcome.
             """
-            from datetime import datetime as _dt, timezone as _tz
+            from datetime import datetime as _dt
+
             from applypilot.database import get_connection, question_key
+
             try:
                 row_id = int(self.path.rsplit("/", 1)[-1])
             except ValueError:
@@ -1120,8 +1176,13 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                     fields = []
                     params: list = []
                     for col in (
-                        "question_text", "answer_text", "answer_source",
-                        "field_type", "options_json", "ats_slug", "outcome",
+                        "question_text",
+                        "answer_text",
+                        "answer_source",
+                        "field_type",
+                        "options_json",
+                        "ats_slug",
+                        "outcome",
                     ):
                         if col in body:
                             fields.append(f"{col} = ?")
@@ -1135,7 +1196,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                         self.end_headers()
                         return
                     fields.append("updated_at = ?")
-                    params.append(_dt.now(_tz.utc).isoformat())
+                    params.append(_dt.now(UTC).isoformat())
                     params.append(row_id)
                     conn.execute(
                         f"UPDATE qa_knowledge SET {', '.join(fields)} WHERE id = ?",
@@ -1148,7 +1209,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(b"action must be 'update' or 'delete'")
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - HTTP control-panel handler must not crash the server thread on unexpected input
                 logger.debug("qa_mutate error: %s", e)
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -1162,12 +1223,13 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
             """
             try:
                 from applypilot.apply.chrome import list_ats_sessions
+
                 payload = {
                     "gmail": _gmail_status(),
                     "ats_sessions": list_ats_sessions(),
                 }
                 self._json_ok(payload)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - HTTP control-panel handler must not crash the server thread on unexpected input
                 logger.debug("integrations error: %s", e)
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -1213,14 +1275,15 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 logger.warning(
                     "Worker %d: preferred port %d was busy; using random port %d "
                     "(extension will not connect — restart the pipeline to fix)",
-                    worker_id, preferred_port, port,
+                    worker_id,
+                    preferred_port,
+                    port,
                 )
 
     with _worker_server_lock:
         _worker_servers[worker_id] = server
 
-    thread = threading.Thread(target=server.serve_forever, daemon=True,
-                              name=f"worker-http-w{worker_id}")
+    thread = threading.Thread(target=server.serve_forever, daemon=True, name=f"worker-http-w{worker_id}")
     thread.start()
     logger.debug("Worker listener for worker %d on port %d", worker_id, port)
     return port
@@ -1278,7 +1341,7 @@ def _gmail_status() -> dict:
             "expires_in_seconds": delta_s,
             "scopes": creds.get("scope") or "",
         }
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - probe/status helper must degrade to a safe default, not crash its caller
         return {"configured": True, "status": "error", "error": str(e)[:200]}
 
 
@@ -1302,7 +1365,7 @@ def _trigger_gmail_reauth() -> dict:
         return {"status": "started", "pid": proc.pid}
     except FileNotFoundError:
         return {"status": "error", "error": "npx not found in PATH"}
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - spawning the Gmail re-auth subprocess is best-effort; failure degrades to a status dict, not a crash
         logger.warning("Gmail re-auth subprocess failed: %s", e)
         return {"status": "error", "error": str(e)[:200]}
 
@@ -1337,17 +1400,20 @@ def _refresh_gmail_token() -> bool:
                 return True
 
             logger.info("Gmail token expiring soon, refreshing...")
-            import urllib.request
             import urllib.parse
+            import urllib.request
 
-            data = urllib.parse.urlencode({
-                "client_id": key_info["client_id"],
-                "client_secret": key_info["client_secret"],
-                "refresh_token": creds["refresh_token"],
-                "grant_type": "refresh_token",
-            }).encode()
+            data = urllib.parse.urlencode(
+                {
+                    "client_id": key_info["client_id"],
+                    "client_secret": key_info["client_secret"],
+                    "refresh_token": creds["refresh_token"],
+                    "grant_type": "refresh_token",
+                }
+            ).encode()
             req = urllib.request.Request(
-                "https://oauth2.googleapis.com/token", data=data,
+                "https://oauth2.googleapis.com/token",
+                data=data,
             )
             resp = json.loads(urllib.request.urlopen(req, timeout=15).read())
 
@@ -1356,7 +1422,7 @@ def _refresh_gmail_token() -> bool:
             creds_path.write_text(json.dumps(creds, indent=2))
             logger.info("Gmail token refreshed, expires in %ds", resp["expires_in"])
             return True
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - Gmail token-refresh HTTP call is inherently unreliable (network/OAuth); degrade to False (Gmail unavailable), not a crash
             logger.warning("Gmail token refresh failed: %s", e)
             return False
 
@@ -1364,6 +1430,7 @@ def _refresh_gmail_token() -> bool:
 # ---------------------------------------------------------------------------
 # MCP config
 # ---------------------------------------------------------------------------
+
 
 def _make_mcp_config(cdp_port: int, worker_id: int = 0) -> dict:
     """Build MCP config dict for a specific CDP port.
@@ -1417,8 +1484,10 @@ def _make_mcp_config(cdp_port: int, worker_id: int = 0) -> dict:
 # Database operations
 # ---------------------------------------------------------------------------
 
-def _db_retry_execute(conn: "sqlite3.Connection", sql: str,
-                      params: tuple = (), timeout: float = 300.0) -> "sqlite3.Cursor":
+
+def _db_retry_execute(
+    conn: "sqlite3.Connection", sql: str, params: tuple = (), timeout: float = 300.0
+) -> "sqlite3.Cursor":
     """Execute a SQL statement with retry on 'database is locked' errors.
 
     Concurrent tailor/cover/pdf pipeline stages can hold WAL write locks for
@@ -1455,11 +1524,13 @@ def _db_retry_commit(conn: "sqlite3.Connection", timeout: float = 300.0) -> None
             delay = min(delay * 1.5, 30.0)
 
 
-def acquire_job(target_url: str | None = None,
-                min_score: int | None = None,
-                max_score: int | None = None,
-                max_age_days: int | None = None,
-                worker_id: int = 0) -> dict | None:
+def acquire_job(
+    target_url: str | None = None,
+    min_score: int | None = None,
+    max_score: int | None = None,
+    max_age_days: int | None = None,
+    worker_id: int = 0,
+) -> dict | None:
     """Atomically acquire the next job to apply to.
 
     Enforces:
@@ -1473,8 +1544,9 @@ def acquire_job(target_url: str | None = None,
       - Per-ATS concurrency: at most 1 active worker per ATS family
       - Manual-ATS skip list
     """
+    from datetime import datetime, timedelta
+
     from applypilot import config as _cfg
-    from datetime import datetime, timedelta, timezone
 
     if min_score is None:
         min_score = _cfg.DEFAULTS["min_score"]
@@ -1504,7 +1576,8 @@ def acquire_job(target_url: str | None = None,
         # affected URLs first so we can emit per-row transitions after the
         # bulk UPDATE.
         stale_urls = [
-            r[0] for r in conn.execute("""
+            r[0]
+            for r in conn.execute("""
                 SELECT url FROM jobs
                 WHERE apply_status = 'in_progress'
                   AND last_attempted_at IS NOT NULL
@@ -1520,7 +1593,9 @@ def acquire_job(target_url: str | None = None,
         for stale_url in stale_urls:
             try:
                 transition_state(
-                    conn, stale_url, "ready_to_apply",
+                    conn,
+                    stale_url,
+                    "ready_to_apply",
                     reason="stale-lock release (acquire_job)",
                     force=True,
                 )
@@ -1529,7 +1604,8 @@ def acquire_job(target_url: str | None = None,
 
         if target_url:
             like = f"%{target_url.split('?')[0].rstrip('/')}%"
-            row = conn.execute("""
+            row = conn.execute(
+                """
                 SELECT url, title, site, application_url, tailored_resume_path,
                        fit_score, location, full_description, cover_letter_path, company
                 FROM jobs
@@ -1540,16 +1616,19 @@ def acquire_job(target_url: str | None = None,
                 ORDER BY
                     CASE WHEN url = ? OR application_url = ? THEN 0 ELSE 1 END
                 LIMIT 1
-            """, (target_url, target_url, like, like,
-                  target_url, target_url)).fetchone()
+            """,
+                (target_url, target_url, like, like, target_url, target_url),
+            ).fetchone()
             if row and _auto_reject_title(row["title"]):
                 conn.execute(
                     "UPDATE jobs SET apply_category='archived_ineligible', "
                     "apply_error=?, last_attempted_at=? WHERE url=?",
-                    ("title_pattern_reject:auto_apply", datetime.now(timezone.utc).isoformat(), row["url"]),
+                    ("title_pattern_reject:auto_apply", datetime.now(UTC).isoformat(), row["url"]),
                 )
                 transition_state(
-                    conn, row["url"], "archived",
+                    conn,
+                    row["url"],
+                    "archived",
                     reason="title_pattern_reject:auto_apply",
                     metadata={"title": row["title"][:120]},
                     force=True,
@@ -1562,9 +1641,7 @@ def acquire_job(target_url: str | None = None,
             site_filter = " AND ".join(f"site != '{s}'" for s in blocked_sites) if blocked_sites else "1=1"
             url_filter = " AND ".join(f"url NOT LIKE '{p}'" for p in blocked_patterns) if blocked_patterns else "1=1"
             manual_domains = config.load_sites_config().get("manual_ats", [])
-            manual_ats_filter = " AND ".join(
-                "LOWER(j.application_url) NOT LIKE ?" for _ in manual_domains
-            ) or "1=1"
+            manual_ats_filter = " AND ".join("LOWER(j.application_url) NOT LIKE ?" for _ in manual_domains) or "1=1"
             manual_ats_params = [f"%{domain.lower()}%" for domain in manual_domains]
             max_score_filter = f"AND j.fit_score <= {max_score}" if max_score is not None else ""
 
@@ -1606,7 +1683,8 @@ def acquire_job(target_url: str | None = None,
             # eligible to fire after the first applies. Skip any candidate
             # whose application_url matches another row that's already in
             # flight (applied, in_progress, or needs_human).
-            candidates = conn.execute(f"""
+            candidates = conn.execute(
+                f"""
                 SELECT j.url, j.title, j.site, j.application_url,
                        j.tailored_resume_path, j.fit_score, j.location,
                        j.full_description, j.cover_letter_path, j.company,
@@ -1636,17 +1714,21 @@ def acquire_job(target_url: str | None = None,
                   )
                 ORDER BY j.fit_score DESC, j.discovered_at DESC, j.url
                 LIMIT 100
-            """, (min_score, *company_excl_params, *age_params, *manual_ats_params)).fetchall()
+            """,
+                (min_score, *company_excl_params, *age_params, *manual_ats_params),
+            ).fetchall()
 
             title_rejected = [candidate for candidate in candidates if _auto_reject_title(candidate["title"])]
             for candidate in title_rejected:
                 conn.execute(
                     "UPDATE jobs SET apply_category='archived_ineligible', "
                     "apply_error=?, last_attempted_at=? WHERE url=?",
-                    ("title_pattern_reject:auto_apply", datetime.now(timezone.utc).isoformat(), candidate["url"]),
+                    ("title_pattern_reject:auto_apply", datetime.now(UTC).isoformat(), candidate["url"]),
                 )
                 transition_state(
-                    conn, candidate["url"], "archived",
+                    conn,
+                    candidate["url"],
+                    "archived",
                     reason="title_pattern_reject:auto_apply",
                     metadata={"title": candidate["title"][:120]},
                     force=True,
@@ -1659,8 +1741,9 @@ def acquire_job(target_url: str | None = None,
             # Use resolve_company_key so Greenhouse/Workday jobs (NULL company,
             # employer name in `site`) bucket correctly.
             from applypilot.scoring.tailor import resolve_company_key
+
             in_flight = get_in_flight_by_company(conn)
-            now_utc = datetime.now(timezone.utc)
+            now_utc = datetime.now(UTC)
 
             def _in_flight_count(key: str | None) -> int:
                 """How many in-flight applies for ``key`` in the per-company
@@ -1670,8 +1753,7 @@ def acquire_job(target_url: str | None = None,
                     return 0
                 _, window = _cfg.get_company_limit(key)
                 cutoff = (now_utc - timedelta(days=window)).isoformat()
-                return sum(1 for ts in in_flight.get(key, [])
-                           if ts and ts > cutoff)
+                return sum(1 for ts in in_flight.get(key, []) if ts and ts > cutoff)
 
             def over_cap(job: dict) -> bool:
                 key = resolve_company_key(job)
@@ -1715,7 +1797,8 @@ def acquire_job(target_url: str | None = None,
             if row is None and candidates:
                 logger.debug(
                     "acquire_job: all %d candidates blocked (ATS lanes=%s, cap-blocked companies present)",
-                    len(candidates), active_ats,
+                    len(candidates),
+                    active_ats,
                 )
 
         if not row:
@@ -1736,13 +1819,11 @@ def acquire_job(target_url: str | None = None,
                 "apply_category = 'manual_only' WHERE url = ?",
                 (row["url"],),
             )
-            transition_state(conn, row["url"], "manual_only",
-                             reason="acquire_job: missing application_url",
-                             force=True)
+            transition_state(conn, row["url"], "manual_only", reason="acquire_job: missing application_url", force=True)
             commit_with_retry(conn)
             logger.warning(
-                "acquire_job: candidate had no application_url; "
-                "marked manual_only: %s", row["url"][:80],
+                "acquire_job: candidate had no application_url; marked manual_only: %s",
+                row["url"][:80],
             )
             return acquire_job(
                 target_url=target_url,
@@ -1761,9 +1842,7 @@ def acquire_job(target_url: str | None = None,
             )
             # P0.5 leak (b) from decision #31: also emit canonical state
             # transition so jobs.state matches.
-            transition_state(conn, row["url"], "manual_only",
-                             reason="acquire_job: manual ATS",
-                             force=True)
+            transition_state(conn, row["url"], "manual_only", reason="acquire_job: manual ATS", force=True)
             commit_with_retry(conn)
             logger.info("Skipping manual ATS: %s", row["url"][:80])
             return acquire_job(
@@ -1774,20 +1853,27 @@ def acquire_job(target_url: str | None = None,
                 worker_id=worker_id,
             )
 
-        now = datetime.now(timezone.utc).isoformat()
-        conn.execute("""
+        now = datetime.now(UTC).isoformat()
+        conn.execute(
+            """
             UPDATE jobs SET apply_status = 'in_progress',
                            agent_id = ?,
                            last_attempted_at = ?
             WHERE url = ?
-        """, (f"worker-{worker_id}", now, row["url"]))
+        """,
+            (f"worker-{worker_id}", now, row["url"]),
+        )
 
         # Emit state transition: ready_to_apply → applying (force=True since
         # the in-flight job may currently be at apply_failed from a prior run).
-        transition_state(conn, row["url"], "applying",
-                         reason=f"worker-{worker_id} acquired",
-                         metadata={"worker_id": worker_id},
-                         force=True)
+        transition_state(
+            conn,
+            row["url"],
+            "applying",
+            reason=f"worker-{worker_id} acquired",
+            metadata={"worker_id": worker_id},
+            force=True,
+        )
 
         commit_with_retry(conn)
 
@@ -1827,61 +1913,79 @@ def _export_submitted_resume_artifacts(conn: sqlite3.Connection, url: str) -> No
             logger.debug("Failed exporting submitted artifact: %s", src, exc_info=True)
 
 
-def mark_result(url: str, status: str, error: str | None = None,
-                permanent: bool = False, duration_ms: int | None = None,
-                task_id: str | None = None) -> None:
+def mark_result(
+    url: str,
+    status: str,
+    error: str | None = None,
+    permanent: bool = False,
+    duration_ms: int | None = None,
+    task_id: str | None = None,
+) -> None:
     """Update a job's apply status in the database + emit state transition."""
     conn = get_connection()
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     if status == "applied":
-        _db_retry_execute(conn, """
+        _db_retry_execute(
+            conn,
+            """
             UPDATE jobs SET apply_status = 'applied', applied_at = ?,
                            apply_error = NULL, agent_id = NULL,
                            apply_duration_ms = ?, apply_task_id = ?,
                            apply_category = 'applied'
             WHERE url = ?
-        """, (now, duration_ms, task_id, url))
-        transition_state(conn, url, "applied",
-                         reason="submission completed",
-                         metadata={"duration_ms": duration_ms, "task_id": task_id},
-                         force=True)
+        """,
+            (now, duration_ms, task_id, url),
+        )
+        transition_state(
+            conn,
+            url,
+            "applied",
+            reason="submission completed",
+            metadata={"duration_ms": duration_ms, "task_id": task_id},
+            force=True,
+        )
         _export_submitted_resume_artifacts(conn, url)
     else:
         attempts = 99 if permanent else "COALESCE(apply_attempts, 0) + 1"
         category = categorize_apply_result(status, error)
-        _db_retry_execute(conn, f"""
+        _db_retry_execute(
+            conn,
+            f"""
             UPDATE jobs SET apply_status = ?, apply_error = ?,
                            apply_attempts = {attempts}, agent_id = NULL,
                            apply_duration_ms = ?, apply_task_id = ?,
                            apply_category = ?
             WHERE url = ?
-        """, (status, error or "unknown", duration_ms, task_id, category, url))
+        """,
+            (status, error or "unknown", duration_ms, task_id, category, url),
+        )
 
         # Map the legacy apply_status value to a state-machine state.
         to_state = {
-            "failed":       "apply_failed",
-            "manual":       "manual_only",
-            "needs_human":  "needs_human",
+            "failed": "apply_failed",
+            "manual": "manual_only",
+            "needs_human": "needs_human",
         }.get(status, "apply_failed")
-        transition_state(conn, url, to_state,
-                         reason=(error or status)[:200],
-                         metadata={"category": category,
-                                   "duration_ms": duration_ms,
-                                   "task_id": task_id},
-                         force=True)
+        transition_state(
+            conn,
+            url,
+            to_state,
+            reason=(error or status)[:200],
+            metadata={"category": category, "duration_ms": duration_ms, "task_id": task_id},
+            force=True,
+        )
     _db_retry_commit(conn)
 
 
 def release_lock(url: str) -> None:
     """Release the in_progress lock and revert state from applying back to ready_to_apply."""
     conn = get_connection()
-    _db_retry_execute(conn,
+    _db_retry_execute(
+        conn,
         "UPDATE jobs SET apply_status = NULL, agent_id = NULL WHERE url = ? AND apply_status = 'in_progress'",
         (url,),
     )
-    transition_state(conn, url, "ready_to_apply",
-                     reason="lock released without submit",
-                     force=True)
+    transition_state(conn, url, "ready_to_apply", reason="lock released without submit", force=True)
     _db_retry_commit(conn)
 
 
@@ -1889,18 +1993,24 @@ def release_lock(url: str) -> None:
 # Utility modes (--gen, --mark-applied, --mark-failed, --reset-failed)
 # ---------------------------------------------------------------------------
 
-def gen_prompt(target_url: str, min_score: int | None = None, max_score: int | None = None,
-               model: str = "sonnet", worker_id: int = 0) -> Path | None:
+
+def gen_prompt(
+    target_url: str,
+    min_score: int | None = None,
+    max_score: int | None = None,
+    model: str = "sonnet",
+    worker_id: int = 0,
+) -> Path | None:
     """Generate a prompt file and print the Claude CLI command for manual debugging.
 
     Returns:
         Path to the generated prompt file, or None if no job found.
     """
     from applypilot import config as _cfg
+
     if min_score is None:
         min_score = _cfg.DEFAULTS["min_score"]
-    job = acquire_job(target_url=target_url, min_score=min_score, max_score=max_score,
-                      worker_id=worker_id)
+    job = acquire_job(target_url=target_url, min_score=min_score, max_score=max_score, worker_id=worker_id)
     if not job:
         return None
 
@@ -1939,36 +2049,42 @@ def mark_job(url: str, status: str, reason: str | None = None) -> None:
         reason: Failure reason (only for status='failed').
     """
     conn = get_connection()
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     if status == "applied":
-        _db_retry_execute(conn, """
+        _db_retry_execute(
+            conn,
+            """
             UPDATE jobs SET apply_status = 'applied', applied_at = ?,
                            apply_error = NULL, agent_id = NULL,
                            apply_category = 'applied'
             WHERE url = ?
-        """, (now, url))
+        """,
+            (now, url),
+        )
         _export_submitted_resume_artifacts(conn, url)
     else:
         error = reason or "manual"
         category = categorize_apply_result("failed", error)
-        _db_retry_execute(conn, """
+        _db_retry_execute(
+            conn,
+            """
             UPDATE jobs SET apply_status = 'failed', apply_error = ?,
                            apply_attempts = 99, agent_id = NULL,
                            apply_category = ?
             WHERE url = ?
-        """, (error, category, url))
-    
+        """,
+            (error, category, url),
+        )
+
     state_map = {
-        "applied":      "applied",
-        "failed":       "apply_failed",
-        "manual":       "manual_only",
-        "needs_human":  "needs_human",
+        "applied": "applied",
+        "failed": "apply_failed",
+        "manual": "manual_only",
+        "needs_human": "needs_human",
     }
     target = state_map.get(status)
     if target:
-        transition_state(conn, url, target,
-            reason=f"manually marked {status} via CLI",
-            force=True)
+        transition_state(conn, url, target, reason=f"manually marked {status} via CLI", force=True)
     else:
         logger.warning("mark_job: unknown status %r, no state transition emitted", status)
     _db_retry_commit(conn)
@@ -1983,7 +2099,8 @@ def reset_failed() -> int:
     conn = get_connection()
     # Collect URLs before the bulk UPDATE so we can emit individual transitions.
     urls_to_reset = [
-        r[0] for r in conn.execute("""
+        r[0]
+        for r in conn.execute("""
             SELECT url FROM jobs
             WHERE apply_status = 'failed'
               OR (apply_status IS NOT NULL AND apply_status != 'applied'
@@ -1991,7 +2108,9 @@ def reset_failed() -> int:
                   AND apply_status != 'needs_human')
         """).fetchall()
     ]
-    cursor = _db_retry_execute(conn, """
+    cursor = _db_retry_execute(
+        conn,
+        """
         UPDATE jobs SET apply_status = NULL, apply_error = NULL,
                        apply_attempts = 0, agent_id = NULL,
                        apply_category = NULL
@@ -1999,12 +2118,11 @@ def reset_failed() -> int:
           OR (apply_status IS NOT NULL AND apply_status != 'applied'
               AND apply_status != 'in_progress'
               AND apply_status != 'needs_human')
-    """)
-    
+    """,
+    )
+
     for u in urls_to_reset:
-        transition_state(conn, u, "ready_to_apply",
-            reason="reset_failed — re-queued",
-            force=True)
+        transition_state(conn, u, "ready_to_apply", reason="reset_failed — re-queued", force=True)
     _db_retry_commit(conn)
     return cursor.rowcount
 
@@ -2013,6 +2131,7 @@ def reset_failed() -> int:
 # Per-job execution
 # ---------------------------------------------------------------------------
 
+
 def _reset_browser_tabs(port: int) -> None:
     """Close all existing tabs and open a fresh about:blank tab via CDP.
 
@@ -2020,31 +2139,24 @@ def _reset_browser_tabs(port: int) -> None:
     Skips chrome:// internal pages (omnibox overlays etc.) to avoid side effects.
     """
     import urllib.request
+
     try:
         data = urllib.request.urlopen(f"http://localhost:{port}/json", timeout=3).read()
         tabs = json.loads(data)
         # Only close http/https/about: pages — never touch chrome:// internal targets
-        closeable = [
-            t for t in tabs
-            if t.get("type") == "page"
-            and not t.get("url", "").startswith("chrome://")
-        ]
+        closeable = [t for t in tabs if t.get("type") == "page" and not t.get("url", "").startswith("chrome://")]
         if not closeable:
             return
         # Open a fresh blank tab first (CDP requires PUT for /json/new)
-        req = urllib.request.Request(
-            f"http://localhost:{port}/json/new?about:blank", method="PUT"
-        )
+        req = urllib.request.Request(f"http://localhost:{port}/json/new?about:blank", method="PUT")
         urllib.request.urlopen(req, timeout=3)
         # Close all old closeable tabs
         for tab in closeable:
             try:
-                urllib.request.urlopen(
-                    f"http://localhost:{port}/json/close/{tab['id']}", timeout=2
-                )
-            except Exception:
+                urllib.request.urlopen(f"http://localhost:{port}/json/close/{tab['id']}", timeout=2)
+            except Exception:  # noqa: BLE001, S110 - best-effort cleanup/probe, must not crash the caller
                 pass
-    except Exception:
+    except Exception:  # noqa: BLE001, S110 - best-effort cleanup/probe, must not crash the caller
         pass  # Chrome not ready yet or CDP unavailable — agent will navigate anyway
 
 
@@ -2056,6 +2168,7 @@ def _activate_agent_tab(port: int, timeout: float = 20.0) -> None:
     while the agent works in a background tab.
     """
     import urllib.request
+
     deadline = time.time() + timeout
     activated_url = None
     while time.time() < deadline:
@@ -2064,19 +2177,19 @@ def _activate_agent_tab(port: int, timeout: float = 20.0) -> None:
             tabs = json.loads(data)
             for tab in tabs:
                 url = tab.get("url", "")
-                if (tab.get("type") == "page"
-                        and url
-                        and not url.startswith("about:")
-                        and not url.startswith("chrome://")):
+                if (
+                    tab.get("type") == "page"
+                    and url
+                    and not url.startswith("about:")
+                    and not url.startswith("chrome://")
+                ):
                     tab_id = tab.get("id")
                     if tab_id and url != activated_url:
-                        urllib.request.urlopen(
-                            f"http://localhost:{port}/json/activate/{tab_id}", timeout=2
-                        )
+                        urllib.request.urlopen(f"http://localhost:{port}/json/activate/{tab_id}", timeout=2)
                         activated_url = url
                         # Keep watching in case the agent opens a new tab mid-job
                     break
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 - best-effort cleanup/probe, must not crash the caller
             pass
         time.sleep(0.75)
 
@@ -2118,12 +2231,17 @@ def _classify_claude_apply_exhaustion(output: str, returncode: int) -> str | Non
     return None
 
 
-def run_job(job: dict, port: int, worker_id: int = 0,
-            model: str = "sonnet", dry_run: bool = False,
-            apply_engine: str = "claude",
-            skip_tab_reset: bool = False,
-            extra_context: str | None = None,
-            is_probe: bool = False) -> tuple[str, int, list[dict]]:
+def run_job(
+    job: dict,
+    port: int,
+    worker_id: int = 0,
+    model: str = "sonnet",
+    dry_run: bool = False,
+    apply_engine: str = "claude",
+    skip_tab_reset: bool = False,
+    extra_context: str | None = None,
+    is_probe: bool = False,
+) -> tuple[str, int, list[dict]]:
     """Spawn a Claude Code session for one job application.
 
     Args:
@@ -2154,6 +2272,7 @@ def run_job(job: dict, port: int, worker_id: int = 0,
     # Deterministic engine path (Option 1): no Claude subprocess.
     if apply_engine == "deterministic":
         from applypilot.apply.engine_deterministic import run_job_deterministic
+
         return run_job_deterministic(
             job=job,
             port=port,
@@ -2174,10 +2293,10 @@ def run_job(job: dict, port: int, worker_id: int = 0,
     if dry_run:
         try:
             from applypilot.apply.chrome import inject_dry_run_gate
+
             inject_dry_run_gate(port)
         except Exception:
-            logger.debug("dry_run gate injection failed; falling back to prompt-only",
-                         exc_info=True)
+            logger.debug("dry_run gate injection failed; falling back to prompt-only", exc_info=True)
 
     # Wipe stale resume / cover-letter / MCP-config copies from the previous
     # job BEFORE build_prompt writes the fresh files. Earlier this wipe sat
@@ -2216,11 +2335,7 @@ def run_job(job: dict, port: int, worker_id: int = 0,
             "== END RESUME ==\n\n"
         )
         if extra_context:
-            resume_header += (
-                f"== USER INSTRUCTIONS ==\n"
-                f"{extra_context}\n"
-                f"== END USER INSTRUCTIONS ==\n\n"
-            )
+            resume_header += f"== USER INSTRUCTIONS ==\n{extra_context}\n== END USER INSTRUCTIONS ==\n\n"
         agent_prompt = resume_header + agent_prompt
     elif extra_context:
         agent_prompt = (
@@ -2240,27 +2355,43 @@ def run_job(job: dict, port: int, worker_id: int = 0,
     # Build claude command
     cmd = [
         "claude",
-        "--model", model,
+        "--model",
+        model,
         "-p",
-        "--mcp-config", str(mcp_config_path),
+        "--mcp-config",
+        str(mcp_config_path),
         "--strict-mcp-config",
-        "--permission-mode", "bypassPermissions",
+        "--permission-mode",
+        "bypassPermissions",
         "--no-session-persistence",
-        "--disallowedTools", ",".join([
-            # browser_install restarts the browser in CDP mode, breaking the session
-            "mcp__playwright__browser_install",
-            # Block Gmail write tools (read-only access for email verification)
-            "mcp__gmail__draft_email", "mcp__gmail__modify_email",
-            "mcp__gmail__delete_email", "mcp__gmail__download_attachment",
-            "mcp__gmail__batch_modify_emails", "mcp__gmail__batch_delete_emails",
-            "mcp__gmail__create_label", "mcp__gmail__update_label",
-            "mcp__gmail__delete_label", "mcp__gmail__get_or_create_label",
-            "mcp__gmail__list_email_labels", "mcp__gmail__create_filter",
-            "mcp__gmail__list_filters", "mcp__gmail__get_filter",
-            "mcp__gmail__delete_filter",
-        ]),
-        "--output-format", "stream-json",
-        "--verbose", "-",
+        "--disallowedTools",
+        ",".join(  # noqa: FLY002 -- a 16-entry policy list with per-item
+            # comments; an f-string would destroy both, not simplify it.
+            [
+                # browser_install restarts the browser in CDP mode, breaking the session
+                "mcp__playwright__browser_install",
+                # Block Gmail write tools (read-only access for email verification)
+                "mcp__gmail__draft_email",
+                "mcp__gmail__modify_email",
+                "mcp__gmail__delete_email",
+                "mcp__gmail__download_attachment",
+                "mcp__gmail__batch_modify_emails",
+                "mcp__gmail__batch_delete_emails",
+                "mcp__gmail__create_label",
+                "mcp__gmail__update_label",
+                "mcp__gmail__delete_label",
+                "mcp__gmail__get_or_create_label",
+                "mcp__gmail__list_email_labels",
+                "mcp__gmail__create_filter",
+                "mcp__gmail__list_filters",
+                "mcp__gmail__get_filter",
+                "mcp__gmail__delete_filter",
+            ]
+        ),
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "-",
     ]
 
     env = os.environ.copy()
@@ -2276,9 +2407,16 @@ def run_job(job: dict, port: int, worker_id: int = 0,
     # worker_dir was wiped+recreated above, before build_prompt populated it.
     worker_dir = config.APPLY_WORKER_DIR / f"worker-{worker_id}"
 
-    update_state(worker_id, status="applying", job_title=job["title"],
-                 company=job.get("site", ""), score=job.get("fit_score", 0),
-                 start_time=time.time(), actions=0, last_action="starting")
+    update_state(
+        worker_id,
+        status="applying",
+        job_title=job["title"],
+        company=job.get("site", ""),
+        score=job.get("fit_score", 0),
+        start_time=time.time(),
+        actions=0,
+        last_action="starting",
+    )
     add_event(f"[W{worker_id}] Starting: {(job.get('title') or '')[:40]} @ {job.get('site', '')}")
 
     worker_log = config.LOG_DIR / f"worker-{worker_id}.log"
@@ -2366,25 +2504,23 @@ def run_job(job: dict, port: int, worker_id: int = 0,
                                 for tl in block["text"].split("\n"):
                                     tl = tl.strip()
                                     if tl.startswith("SCREENING_Q:"):
-                                        payload = tl[len("SCREENING_Q:"):].strip()
+                                        payload = tl[len("SCREENING_Q:") :].strip()
                                         parts = payload.split("|")
                                         if len(parts) >= 2:
-                                            screening_qs.append({
-                                                "question": parts[0].strip(),
-                                                "field_type": parts[1].strip(),
-                                                "options": parts[2].strip() if len(parts) > 2 else "",
-                                            })
+                                            screening_qs.append(
+                                                {
+                                                    "question": parts[0].strip(),
+                                                    "field_type": parts[1].strip(),
+                                                    "options": parts[2].strip() if len(parts) > 2 else "",
+                                                }
+                                            )
                             elif bt == "tool_use":
                                 full_name = block.get("name", "")
                                 # Remember tool_use_id → name so we can label results below.
                                 tu_id = block.get("id")
                                 if tu_id:
                                     tool_use_names[tu_id] = full_name
-                                name = (
-                                    full_name
-                                    .replace("mcp__playwright__", "")
-                                    .replace("mcp__gmail__", "gmail:")
-                                )
+                                name = full_name.replace("mcp__playwright__", "").replace("mcp__gmail__", "gmail:")
                                 inp = block.get("input", {})
                                 if "url" in inp:
                                     desc = f"{name} {inp['url'][:60]}"
@@ -2401,9 +2537,7 @@ def run_job(job: dict, port: int, worker_id: int = 0,
                                 tool_calls.append({"tool": name, "summary": desc})
                                 ws = get_state(worker_id)
                                 cur_actions = ws.actions if ws else 0
-                                update_state(worker_id,
-                                             actions=cur_actions + 1,
-                                             last_action=desc[:35])
+                                update_state(worker_id, actions=cur_actions + 1, last_action=desc[:35])
                     elif msg_type == "user":
                         # Tool results return as user messages. We don't log
                         # browser_snapshot etc. — the dumps would dwarf the log.
@@ -2421,14 +2555,11 @@ def run_job(job: dict, port: int, worker_id: int = 0,
                             content = block.get("content", "")
                             if isinstance(content, list):
                                 content = "\n".join(
-                                    (c.get("text", "") if isinstance(c, dict) else str(c))
-                                    for c in content
+                                    (c.get("text", "") if isinstance(c, dict) else str(c)) for c in content
                                 )
                             preview = str(content).replace("\n", " ")[:500]
                             short_name = (
-                                full_name
-                                .replace("mcp__playwright__", "")
-                                .replace("mcp__gmail__", "gmail:")
+                                full_name.replace("mcp__playwright__", "").replace("mcp__gmail__", "gmail:")
                             ) or "?"
                             marker = " [ERROR]" if is_error else ""
                             lf.write(f"  << {short_name}{marker}: {preview}\n")
@@ -2486,25 +2617,27 @@ def run_job(job: dict, port: int, worker_id: int = 0,
         exhaustion_kind = _classify_claude_apply_exhaustion(output, returncode)
         if exhaustion_kind == "billing":
             add_event(f"[W{worker_id}] CREDIT EXHAUSTED — Claude Code credits depleted")
-            update_state(worker_id, status="credits_exhausted",
-                         last_action="NO CREDITS")
-            logger.error("Claude Code credits exhausted. Cannot auto-apply. "
-                         "Top up at https://console.anthropic.com/settings/billing")
+            update_state(worker_id, status="credits_exhausted", last_action="NO CREDITS")
+            logger.error(
+                "Claude Code credits exhausted. Cannot auto-apply. "
+                "Top up at https://console.anthropic.com/settings/billing"
+            )
             return "failed:credits_exhausted", duration_ms, []
 
         if exhaustion_kind in ("session_limit", "empty_output"):
             from applypilot.claude_status import record_apply_exhaustion
+
             if exhaustion_kind == "empty_output":
                 logger.warning(
                     "[W%d] claude apply session exited %s with empty output; treating as "
                     "session-limit exhaustion (heuristic, not a confirmed rate-limit message)",
-                    worker_id, returncode,
+                    worker_id,
+                    returncode,
                 )
             else:
                 logger.warning("[W%d] claude apply session hit usage/session limit", worker_id)
             add_event(f"[W{worker_id}] Claude session limit hit — job requeued, pausing apply")
-            update_state(worker_id, status="claude_session_exhausted",
-                         last_action="session limit, backing off")
+            update_state(worker_id, status="claude_session_exhausted", last_action="session limit, backing off")
             record_apply_exhaustion(exhaustion_kind)
             return "failed:claude_session_exhausted", duration_ms, []
 
@@ -2513,6 +2646,7 @@ def run_job(job: dict, port: int, worker_id: int = 0,
         # when the apply attempt itself fails for an unrelated reason, since
         # that still proves Claude is currently usable.
         from applypilot.claude_status import record_apply_success
+
         record_apply_success()
         # Set only after record_apply_success() actually returns -- if it
         # raises, this line is skipped and the except handler below still
@@ -2529,7 +2663,7 @@ def run_job(job: dict, port: int, worker_id: int = 0,
         _parse_qa_lines(output, job_url=job_url, ats_slug=job_ats)
 
         def _clean_reason(s: str) -> str:
-            return re.sub(r'[*`"]+$', '', s).strip()
+            return re.sub(r'[*`"]+$', "", s).strip()
 
         for result_status in ["APPLIED", "ALREADY_APPLIED", "SUCCESS", "EXPIRED", "CAPTCHA", "LOGIN_ISSUE"]:
             if f"RESULT:{result_status}" in output:
@@ -2538,19 +2672,20 @@ def run_job(job: dict, port: int, worker_id: int = 0,
                 # Mark Q&A outcomes based on application result
                 if canonical == "applied" and job_url:
                     from applypilot.database import mark_qa_outcome
+
                     mark_qa_outcome(job_url, "accepted")
                 # Memo the successful tool-call sequence for this ATS so
                 # the next first-of-its-kind apply gets a "prior path"
                 # hint in its prompt (apply/successful_paths.py).
                 if canonical == "applied" and job_ats:
                     from applypilot.apply.successful_paths import save_path
-                    save_path(job_ats, tool_calls,
-                              job_url=job.get("application_url") or job_url,
-                              duration_ms=duration_ms)
+
+                    save_path(
+                        job_ats, tool_calls, job_url=job.get("application_url") or job_url, duration_ms=duration_ms
+                    )
                 display = "ALREADY APPLIED" if result_status == "ALREADY_APPLIED" else canonical.upper()
                 add_event(f"[W{worker_id}] {display} ({elapsed}s): {(job.get('title') or '')[:30]}")
-                update_state(worker_id, status=canonical,
-                             last_action=f"{display} ({elapsed}s)")
+                update_state(worker_id, status=canonical, last_action=f"{display} ({elapsed}s)")
                 return canonical, duration_ms, screening_qs
 
         # Check for RESULT:NEEDS_HUMAN:{reason}:{stuck_url}
@@ -2578,8 +2713,7 @@ def run_job(job: dict, port: int, worker_id: int = 0,
                     if reason_detail:
                         nh_url = f"{nh_url}|detail:{reason_detail}"
                     add_event(f"[W{worker_id}] NEEDS_HUMAN:{nh_reason} ({elapsed}s): {(job.get('title') or '')[:30]}")
-                    update_state(worker_id, status="needs_human",
-                                 last_action=f"NEEDS_HUMAN: {nh_reason[:25]}")
+                    update_state(worker_id, status="needs_human", last_action=f"NEEDS_HUMAN: {nh_reason[:25]}")
                     return f"needs_human:{nh_reason}:{nh_url}", duration_ms, screening_qs
 
         if "RESULT:FAILED" in output:
@@ -2587,19 +2721,17 @@ def run_job(job: dict, port: int, worker_id: int = 0,
                 if "RESULT:FAILED" in out_line:
                     reason = (
                         out_line.split("RESULT:FAILED:")[-1].strip()
-                        if ":" in out_line[out_line.index("FAILED") + 6:]
+                        if ":" in out_line[out_line.index("FAILED") + 6 :]
                         else "unknown"
                     )
                     reason = _clean_reason(reason)
                     PROMOTE_TO_STATUS = {"captcha", "expired", "login_issue"}
                     if reason in PROMOTE_TO_STATUS:
                         add_event(f"[W{worker_id}] {reason.upper()} ({elapsed}s): {(job.get('title') or '')[:30]}")
-                        update_state(worker_id, status=reason,
-                                     last_action=f"{reason.upper()} ({elapsed}s)")
+                        update_state(worker_id, status=reason, last_action=f"{reason.upper()} ({elapsed}s)")
                         return reason, duration_ms, screening_qs
                     add_event(f"[W{worker_id}] FAILED ({elapsed}s): {reason[:30]}")
-                    update_state(worker_id, status="failed",
-                                 last_action=f"FAILED: {reason[:25]}")
+                    update_state(worker_id, status="failed", last_action=f"FAILED: {reason[:25]}")
                     return f"failed:{reason}", duration_ms, screening_qs
             return "failed:unknown", duration_ms, screening_qs
 
@@ -2608,19 +2740,16 @@ def run_job(job: dict, port: int, worker_id: int = 0,
         if inferred in ("applied", "already_applied"):
             label = "ALREADY APPLIED" if inferred == "already_applied" else "APPLIED"
             add_event(f"[W{worker_id}] INFERRED {label} ({elapsed}s): {(job.get('title') or '')[:30]}")
-            update_state(worker_id, status="applied",
-                         last_action=f"{label} (inferred, {elapsed}s)")
+            update_state(worker_id, status="applied", last_action=f"{label} (inferred, {elapsed}s)")
             # Same memoization as the literal-RESULT path above.
             if job_ats:
                 from applypilot.apply.successful_paths import save_path
-                save_path(job_ats, tool_calls,
-                          job_url=job.get("application_url") or job_url,
-                          duration_ms=duration_ms)
+
+                save_path(job_ats, tool_calls, job_url=job.get("application_url") or job_url, duration_ms=duration_ms)
             return "applied", duration_ms, screening_qs
         if inferred:
             add_event(f"[W{worker_id}] INFERRED {inferred.upper()} ({elapsed}s): {(job.get('title') or '')[:30]}")
-            update_state(worker_id, status="failed",
-                         last_action=f"inferred:{inferred[:25]}")
+            update_state(worker_id, status="failed", last_action=f"inferred:{inferred[:25]}")
             return f"failed:{inferred}", duration_ms, screening_qs
 
         add_event(f"[W{worker_id}] NO RESULT ({elapsed}s)")
@@ -2640,9 +2769,10 @@ def run_job(job: dict, port: int, worker_id: int = 0,
             # Durable exhaustion itself is untouched (already True); this
             # only pushes the next-probe-eligible time back out.
             from applypilot.claude_status import record_apply_exhaustion
+
             record_apply_exhaustion("probe_failed:timeout")
         return "failed:timeout", duration_ms, []
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - top-level per-job boundary: any failure (browser/subprocess/parse) must degrade to a failed-result tuple, never crash the worker loop
         duration_ms = int((time.time() - start) * 1000)
         add_event(f"[W{worker_id}] ERROR: {str(e)[:40]}")
         update_state(worker_id, status="failed", last_action=f"ERROR: {str(e)[:25]}")
@@ -2654,6 +2784,7 @@ def run_job(job: dict, port: int, worker_id: int = 0,
             # that with a fresh exhaustion record. Only re-arm when the
             # exception happened BEFORE success was ever established.
             from applypilot.claude_status import record_apply_exhaustion
+
             record_apply_exhaustion(f"probe_failed:{type(e).__name__}")
         return f"failed:{str(e)[:100]}", duration_ms, []
     finally:
@@ -2677,11 +2808,11 @@ def run_job(job: dict, port: int, worker_id: int = 0,
 # partially-loaded launcher. By the time we reach this line, every name
 # in launcher's module namespace is fully defined.
 
-from applypilot.apply.orchestrator import (  # noqa: E402, F401
+from applypilot.apply.orchestrator import (  # noqa: F401
     POLL_INTERVAL,
     _probe_for_reconnect,
-    worker_loop,
-    _worker_loop_body,
     _prompt_user_for_qa,
+    _worker_loop_body,
     main,
+    worker_loop,
 )

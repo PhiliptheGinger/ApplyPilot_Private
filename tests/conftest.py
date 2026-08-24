@@ -11,7 +11,7 @@ Adaptation notes vs. original plan:
 """
 
 import sqlite3
-from pathlib import Path
+from datetime import UTC
 
 import pytest
 
@@ -26,8 +26,7 @@ def tmp_db(tmp_path, monkeypatch):
     Also monkeypatches applypilot.config.DB_PATH and APP_DIR so that
     `applypilot.database.get_connection()` returns the same connection.
     """
-    from applypilot import config
-    from applypilot import database
+    from applypilot import config, database
 
     db_file = tmp_path / "applypilot.db"
     monkeypatch.setattr(config, "DB_PATH", db_file)
@@ -43,7 +42,7 @@ def tmp_db(tmp_path, monkeypatch):
         for conn in database._local.connections.values():
             try:
                 conn.close()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110 - fixture teardown; closing an already-closed/broken connection is harmless, must not fail the test run
                 pass
         database._local.connections.clear()
 
@@ -60,7 +59,7 @@ def tmp_db(tmp_path, monkeypatch):
         if conn is not None:
             try:
                 conn.close()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110 - fixture teardown; closing an already-closed/broken connection is harmless, must not fail the test run
                 pass
 
 
@@ -76,13 +75,13 @@ def seed_job():
     suffix is used so that repeated calls never collide on the UNIQUE ``url``
     constraint.
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     def _seed(conn: sqlite3.Connection, **overrides) -> dict:
         default_suffix = f"auto-{_seed_counter[0]}"
         _seed_counter[0] += 1
         suffix = overrides.get("url_suffix", default_suffix)
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         row = {
             "url": f"https://example.com/job/{suffix}",
             "title": "Software Engineer",

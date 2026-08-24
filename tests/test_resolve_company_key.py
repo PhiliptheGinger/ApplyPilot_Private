@@ -20,8 +20,8 @@ from __future__ import annotations
 
 from applypilot.scoring.tailor import resolve_company_key
 
-
 # ── Greenhouse ───────────────────────────────────────────────────────────
+
 
 def test_extracts_greenhouse_slug_for_aggregator_discovered_job():
     job = {
@@ -58,6 +58,7 @@ def test_extracts_greenhouse_legacy_boards_subdomain():
 
 # ── Other ATSes ──────────────────────────────────────────────────────────
 
+
 def test_extracts_lever_slug():
     job = {
         "company": None,
@@ -89,6 +90,7 @@ def test_extracts_workday_tenant():
 
 
 # ── Resolution priority ──────────────────────────────────────────────────
+
 
 def test_explicit_company_column_wins_over_apply_url():
     job = {

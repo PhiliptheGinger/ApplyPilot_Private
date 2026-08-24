@@ -31,45 +31,49 @@ console = Console()
 
 # Stage definitions: (label, bg_color, text_color)
 STAGE_META = {
-    "discovered":    ("Discovered",    "#64748b", "#e2e8f0"),
-    "enrich_error":  ("Enrich Error",  "#ef4444", "#fecaca"),
-    "enriched":      ("Enriched",      "#3b82f6", "#dbeafe"),
-    "scored":        ("Scored <7",     "#f59e0b", "#fef3c7"),
-    "scored_high":   ("Scored 7+",     "#10b981", "#d1fae5"),
+    "discovered": ("Discovered", "#64748b", "#e2e8f0"),
+    "enrich_error": ("Enrich Error", "#ef4444", "#fecaca"),
+    "enriched": ("Enriched", "#3b82f6", "#dbeafe"),
+    "scored": ("Scored <7", "#f59e0b", "#fef3c7"),
+    "scored_high": ("Scored 7+", "#10b981", "#d1fae5"),
     "tailor_failed": ("Tailor Failed", "#ef4444", "#fecaca"),
-    "tailored":      ("Tailored",      "#14b8a6", "#ccfbf1"),
-    "cover_ready":   ("Cover Ready",   "#06b6d4", "#cffafe"),
-    "needs_human":   ("Needs Human",   "#7c3aed", "#ede9fe"),
-    "applied":       ("Applied",       "#10b981", "#d1fae5"),
+    "tailored": ("Tailored", "#14b8a6", "#ccfbf1"),
+    "cover_ready": ("Cover Ready", "#06b6d4", "#cffafe"),
+    "needs_human": ("Needs Human", "#7c3aed", "#ede9fe"),
+    "applied": ("Applied", "#10b981", "#d1fae5"),
     # Apply category stages
-    "blocked_auth":         ("Auth Barrier",      "#f59e0b", "#fef3c7"),
-    "blocked_technical":    ("Technical Issue",   "#f97316", "#ffedd5"),
-    "archived_ineligible":  ("Ineligible",        "#6b7280", "#e5e7eb"),
-    "non_us_only":          ("Non-US Only",       "#6b7280", "#e5e7eb"),
-    "archived_expired":     ("Expired",           "#6b7280", "#e5e7eb"),
-    "archived_platform":    ("Platform Blocked",  "#ef4444", "#fecaca"),
-    "archived_no_url":      ("No URL",            "#6b7280", "#e5e7eb"),
-    "manual_only":          ("Manual Only",       "#64748b", "#e2e8f0"),
+    "blocked_auth": ("Auth Barrier", "#f59e0b", "#fef3c7"),
+    "blocked_technical": ("Technical Issue", "#f97316", "#ffedd5"),
+    "archived_ineligible": ("Ineligible", "#6b7280", "#e5e7eb"),
+    "non_us_only": ("Non-US Only", "#6b7280", "#e5e7eb"),
+    "archived_expired": ("Expired", "#6b7280", "#e5e7eb"),
+    "archived_platform": ("Platform Blocked", "#ef4444", "#fecaca"),
+    "archived_no_url": ("No URL", "#6b7280", "#e5e7eb"),
+    "manual_only": ("Manual Only", "#64748b", "#e2e8f0"),
     # Legacy stages (kept for backward compat until all rows have apply_category)
-    "apply_failed":  ("Apply Failed",  "#ef4444", "#fecaca"),
-    "apply_retry":   ("Retry Apply",   "#f97316", "#ffedd5"),
+    "apply_failed": ("Apply Failed", "#ef4444", "#fecaca"),
+    "apply_retry": ("Retry Apply", "#f97316", "#ffedd5"),
     # Tracking stages
     "track_confirmation": ("Confirmation", "#10b981", "#d1fae5"),
-    "track_rejection":    ("Rejected",     "#ef4444", "#fecaca"),
-    "track_interview":    ("Interview",    "#a855f7", "#f3e8ff"),
-    "track_follow_up":    ("Follow-Up",    "#f59e0b", "#fef3c7"),
-    "track_offer":        ("Offer",        "#14b8a6", "#ccfbf1"),
-    "track_ghosted":      ("Ghosted",      "#64748b", "#e2e8f0"),
+    "track_rejection": ("Rejected", "#ef4444", "#fecaca"),
+    "track_interview": ("Interview", "#a855f7", "#f3e8ff"),
+    "track_follow_up": ("Follow-Up", "#f59e0b", "#fef3c7"),
+    "track_offer": ("Offer", "#14b8a6", "#ccfbf1"),
+    "track_ghosted": ("Ghosted", "#64748b", "#e2e8f0"),
 }
 
 # Archived categories go to the archive tab
 _ARCHIVED_CATEGORIES = {
-    "archived_ineligible", "archived_expired", "archived_platform", "archived_no_url",
+    "archived_ineligible",
+    "archived_expired",
+    "archived_platform",
+    "archived_no_url",
 }
 
 # Blocked categories stay in active (retryable)
 _BLOCKED_CATEGORIES = {
-    "blocked_auth", "blocked_technical",
+    "blocked_auth",
+    "blocked_technical",
 }
 
 # Apply error human-readable descriptions
@@ -231,13 +235,13 @@ def _build_timeline(row) -> str:
     """Build a pipeline timeline HTML snippet from DB timestamps."""
     steps = []
     ts_fields = [
-        ("discovered_at",     "Discovered",    "#64748b"),
-        ("detail_scraped_at", "Enriched",      "#3b82f6"),
-        ("scored_at",         "Scored",        "#f59e0b"),
-        ("tailored_at",       "Tailored",      "#14b8a6"),
-        ("cover_letter_at",   "Cover Letter",  "#06b6d4"),
-        ("applied_at",        "Applied",       "#10b981"),
-        ("last_attempted_at", "Last Attempt",  "#f97316"),
+        ("discovered_at", "Discovered", "#64748b"),
+        ("detail_scraped_at", "Enriched", "#3b82f6"),
+        ("scored_at", "Scored", "#f59e0b"),
+        ("tailored_at", "Tailored", "#14b8a6"),
+        ("cover_letter_at", "Cover Letter", "#06b6d4"),
+        ("applied_at", "Applied", "#10b981"),
+        ("last_attempted_at", "Last Attempt", "#f97316"),
     ]
 
     for col, label, color in ts_fields:
@@ -255,8 +259,8 @@ def _build_timeline(row) -> str:
             steps.append(
                 f'<span class="tl-step" style="color:{color}">'
                 f'<span class="tl-dot" style="background:{color}"></span>'
-                f'{label}: {ts_str}{escape(extra)}'
-                f'</span>'
+                f"{label}: {ts_str}{escape(extra)}"
+                f"</span>"
             )
 
     # Add error entries if present
@@ -264,8 +268,8 @@ def _build_timeline(row) -> str:
         steps.append(
             f'<span class="tl-step" style="color:#ef4444">'
             f'<span class="tl-dot" style="background:#ef4444"></span>'
-            f'Enrich Error: {escape(row["detail_error"][:80])}'
-            f'</span>'
+            f"Enrich Error: {escape(row['detail_error'][:80])}"
+            f"</span>"
         )
 
     if not steps:
@@ -329,7 +333,7 @@ def _build_apply_summary(row) -> str:
             reason = _safe_get(row, "needs_human_reason", "")
             parts.append(
                 f'<span class="apply-stat" style="background:#4c1d9533;color:#c4b5fd">'
-                f'Needs Human: {escape(reason)}</span>'
+                f"Needs Human: {escape(reason)}</span>"
             )
         elif status == "failed":
             err = row["apply_error"] or "unknown"
@@ -376,17 +380,13 @@ def _build_tracking_html(row) -> str:
         parts.append(
             f'<div class="tracking-action">'
             f'<span class="tracking-action-label">Next:</span> {escape(next_action)}{due_html}'
-            f'</div>'
+            f"</div>"
         )
 
     # Last email
     last_email = _safe_get(row, "last_email_at")
     if last_email:
-        parts.append(
-            f'<div class="tracking-detail">'
-            f'Last email: {_fmt_ts(last_email)}'
-            f'</div>'
-        )
+        parts.append(f'<div class="tracking-detail">Last email: {_fmt_ts(last_email)}</div>')
 
     # Link to tracking doc
     doc_path = _safe_get(row, "tracking_doc_path")
@@ -394,7 +394,7 @@ def _build_tracking_html(row) -> str:
         parts.append(
             f'<div class="tracking-detail">'
             f'<a href="file:///{escape(doc_path)}" class="tracking-doc-link" target="_blank">View Tracking Doc</a>'
-            f'</div>'
+            f"</div>"
         )
 
     if not parts:
@@ -446,12 +446,12 @@ def generate_dashboard(output_path: str | None = None) -> str:
 
     # Funnel
     funnel = [
-        ("Discovered",   stats["total"],              "#64748b"),
-        ("Enriched",     stats["with_description"],   "#3b82f6"),
-        ("Scored",       stats["scored"],             "#f59e0b"),
-        ("Tailored",     stats["tailored"],           "#14b8a6"),
-        ("Cover Letter", stats["with_cover_letter"],  "#06b6d4"),
-        ("Applied",      stats["applied"],            "#10b981"),
+        ("Discovered", stats["total"], "#64748b"),
+        ("Enriched", stats["with_description"], "#3b82f6"),
+        ("Scored", stats["scored"], "#f59e0b"),
+        ("Tailored", stats["tailored"], "#14b8a6"),
+        ("Cover Letter", stats["with_cover_letter"], "#06b6d4"),
+        ("Applied", stats["applied"], "#10b981"),
     ]
     funnel_max = max(f[1] for f in funnel) if funnel else 1
 
@@ -462,10 +462,14 @@ def generate_dashboard(output_path: str | None = None) -> str:
     high_fit = sum(c for s, c in score_dist.items() if s >= 7)
 
     colors = {
-        "RemoteOK": "#10b981", "WelcomeToTheJungle": "#f59e0b",
-        "Hacker News Jobs": "#ff6600", "BuiltIn Remote": "#ec4899",
-        "indeed": "#2164f3", "linkedin": "#0a66c2",
-        "Dice": "#eb1c26", "Glassdoor": "#0caa41",
+        "RemoteOK": "#10b981",
+        "WelcomeToTheJungle": "#f59e0b",
+        "Hacker News Jobs": "#ff6600",
+        "BuiltIn Remote": "#ec4899",
+        "indeed": "#2164f3",
+        "linkedin": "#0a66c2",
+        "Dice": "#eb1c26",
+        "Glassdoor": "#0caa41",
     }
 
     # Funnel HTML
@@ -473,7 +477,7 @@ def generate_dashboard(output_path: str | None = None) -> str:
     for label, count, color in funnel:
         pct = (count / funnel_max * 100) if funnel_max else 0
         funnel_html += f"""
-        <div class="funnel-row" onclick="filterByFunnelStage('{label.lower().replace(' ', '_')}')" style="cursor:pointer">
+        <div class="funnel-row" onclick="filterByFunnelStage('{label.lower().replace(" ", "_")}')" style="cursor:pointer">
           <span class="funnel-label">{label}</span>
           <div class="funnel-bar-track">
             <div class="funnel-bar-fill" style="width:{max(pct, 2)}%;background:{color}"></div>
@@ -556,31 +560,41 @@ def generate_dashboard(output_path: str | None = None) -> str:
         tracking_html = _build_tracking_html(row)
 
         job_cards += f"""
-        <div class="job-card" data-tab="{tab}" data-stage="{stage}" data-score="{score_val}" data-site="{escape(row['site'] or '')}" style="border-left-color:{border_color}">
+        <div class="job-card" data-tab="{tab}" data-stage="{stage}" data-score="{score_val}" data-site="{escape(row["site"] or "")}" style="border-left-color:{border_color}">
           <div class="card-header">
             {score_html}
             <span class="stage-badge" style="background:{stage_bg};color:{stage_fg}">{stage_label}</span>
             <a href="{url}" class="job-title" target="_blank">{title}</a>
           </div>
           <div class="meta-row">{meta_html}</div>
-          {f'<div class="keywords-row">{escape(keywords)}</div>' if keywords else ''}
-          {f'<div class="reasoning-row">{escape(reasoning)}</div>' if reasoning else ''}
+          {f'<div class="keywords-row">{escape(keywords)}</div>' if keywords else ""}
+          {f'<div class="reasoning-row">{escape(reasoning)}</div>' if reasoning else ""}
           {timeline_html}
           {tracking_html}
           {artifacts_html}
-          {f'<p class="desc-preview">{desc_preview}...</p>' if desc_preview else ''}
+          {f'<p class="desc-preview">{desc_preview}...</p>' if desc_preview else ""}
           {_expand_desc(full_desc_html, desc_len) if row["full_description"] else ""}
           <div class="card-footer">{footer_html}</div>
         </div>"""
 
     # Stage filter buttons
-    active_stages = ["needs_human", "blocked_auth", "blocked_technical", "enriched", "scored_high", "tailored", "cover_ready"]
+    active_stages = [
+        "needs_human",
+        "blocked_auth",
+        "blocked_technical",
+        "enriched",
+        "scored_high",
+        "tailored",
+        "cover_ready",
+    ]
     stage_btns_html = '<button class="filter-btn active" onclick="filterStage(\'all\')">All</button>\n'
     for s in active_stages:
         cnt = stage_counts.get(s, 0)
         if cnt > 0:
             label = STAGE_META[s][0]
-            stage_btns_html += f'          <button class="filter-btn" onclick="filterStage(\'{s}\')">{label} ({cnt})</button>\n'
+            stage_btns_html += (
+                f'          <button class="filter-btn" onclick="filterStage(\'{s}\')">{label} ({cnt})</button>\n'
+            )
 
     html = _build_html(
         stats=stats,
@@ -756,7 +770,7 @@ def _build_html(
 
 <div class="summary">
   <div class="stat-card"><div class="stat-num" style="color:#e2e8f0">{total:,}</div><div class="stat-label">Total Jobs</div></div>
-  <div class="stat-card"><div class="stat-num" style="color:#3b82f6">{stats['with_description']:,}</div><div class="stat-label">Enriched</div></div>
+  <div class="stat-card"><div class="stat-num" style="color:#3b82f6">{stats["with_description"]:,}</div><div class="stat-label">Enriched</div></div>
   <div class="stat-card"><div class="stat-num" style="color:#f59e0b">{scored_total:,}</div><div class="stat-label">Scored</div></div>
   <div class="stat-card"><div class="stat-num" style="color:#10b981">{high_fit:,}</div><div class="stat-label">Strong Fit (7+)</div></div>
 </div>
@@ -767,10 +781,10 @@ def _build_html(
 </div>
 
 <div class="tabs">
-  <button class="tab-btn active" onclick="switchTab('active')">Active Pipeline<span class="tab-count">{tab_counts['active']}</span></button>
-  <button class="tab-btn" onclick="switchTab('archive')">Archive<span class="tab-count">{tab_counts['archive']}</span></button>
-  <button class="tab-btn" onclick="switchTab('applied')">Applied<span class="tab-count">{tab_counts['applied']}</span></button>
-  <button class="tab-btn" onclick="switchTab('tracking')">Tracking<span class="tab-count">{tab_counts['tracking']}</span></button>
+  <button class="tab-btn active" onclick="switchTab('active')">Active Pipeline<span class="tab-count">{tab_counts["active"]}</span></button>
+  <button class="tab-btn" onclick="switchTab('archive')">Archive<span class="tab-count">{tab_counts["archive"]}</span></button>
+  <button class="tab-btn" onclick="switchTab('applied')">Applied<span class="tab-count">{tab_counts["applied"]}</span></button>
+  <button class="tab-btn" onclick="switchTab('tracking')">Tracking<span class="tab-count">{tab_counts["tracking"]}</span></button>
 </div>
 
 <div class="filters">

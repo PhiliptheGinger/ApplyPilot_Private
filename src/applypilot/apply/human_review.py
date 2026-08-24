@@ -30,12 +30,11 @@ def _job_hash(url: str) -> str:
 def _cdp_list_targets(port: int) -> list[dict]:
     """List CDP targets (tabs). Returns [] if Chrome isn't running."""
     import urllib.request
+
     try:
-        data = urllib.request.urlopen(
-            f"http://localhost:{port}/json", timeout=3
-        ).read()
+        data = urllib.request.urlopen(f"http://localhost:{port}/json", timeout=3).read()
         return json.loads(data)
-    except Exception:
+    except Exception:  # noqa: BLE001 - CDP probe: Chrome not running/reachable degrades to no targets (per this function's own docstring), not a crash
         return []
 
 
@@ -50,7 +49,8 @@ def _inject_banner(port: int, job: dict, server_port: int = 7373) -> bool:
     score = job.get("fit_score", "?")
     instructions = (
         (job.get("needs_human_instructions") or "Complete the required action on this page.")
-        .replace("\\", "\\\\").replace("'", "\\'")
+        .replace("\\", "\\\\")
+        .replace("'", "\\'")
     )
 
     js = _build_banner_js(h, title, company, score, instructions, server_port=server_port)
@@ -84,19 +84,20 @@ const {{ chromium }} = require('@playwright/test');
             timeout=15,
             capture_output=True,
             text=True,
+            check=False,
         )
         if result.returncode != 0:
             logger.warning("Banner injection failed: %s", result.stderr[:200])
             return False
         return True
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - Node/CDP subprocess for banner injection is inherently unreliable (browser may be closed, CDP unavailable); degrade to False, don't crash the pause flow
         logger.warning("Banner injection error: %s", e)
         return False
 
 
-def _build_banner_js(hash_: str, title: str, company: str,
-                     score: int | str, instructions: str,
-                     server_port: int = 7373) -> str:
+def _build_banner_js(
+    hash_: str, title: str, company: str, score: int | str, instructions: str, server_port: int = 7373
+) -> str:
     """Build the JavaScript banner overlay that persists across navigations.
 
     Features:
@@ -109,7 +110,7 @@ def _build_banner_js(hash_: str, title: str, company: str,
     # Instructions summary (first sentence for inline display)
     first_period = instructions.find(". ")
     if 0 < first_period < 80:
-        instructions_summary = instructions[:first_period + 1]
+        instructions_summary = instructions[: first_period + 1]
     else:
         instructions_summary = instructions[:80] + ("..." if len(instructions) > 80 else "")
     instructions_summary_js = instructions_summary.replace("\\", "\\\\").replace("'", "\\'")
@@ -415,10 +416,9 @@ const {{ chromium }} = require('@playwright/test');
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-        logger.debug("Done watcher started (pid=%d) for hash=%s port=%d",
-                     proc.pid, hash_, server_port)
+        logger.debug("Done watcher started (pid=%d) for hash=%s port=%d", proc.pid, hash_, server_port)
         return proc
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - spawning the Node done-watcher subprocess is best-effort; failure degrades to no watcher (banner Done button + stdin fallback still work)
         logger.warning("Failed to start done watcher: %s", e)
         return None
 
@@ -426,6 +426,7 @@ const {{ chromium }} = require('@playwright/test');
 def _navigate_chrome(port: int, url: str) -> bool:
     """Navigate the first Chrome tab to a URL via CDP."""
     import urllib.request
+
     try:
         targets = _cdp_list_targets(port)
         pages = [t for t in targets if t.get("type") == "page"]
@@ -437,18 +438,14 @@ def _navigate_chrome(port: int, url: str) -> bool:
         # Navigate by opening a new blank tab and using CDP
         # Use the existing tab's websocket to navigate
         # Simple approach: PUT /json/new with URL
-        req = urllib.request.Request(
-            f"http://localhost:{port}/json/new?{url}", method="PUT"
-        )
+        req = urllib.request.Request(f"http://localhost:{port}/json/new?{url}", method="PUT")
         urllib.request.urlopen(req, timeout=3)
         # Close the old blank tab
         try:
-            urllib.request.urlopen(
-                f"http://localhost:{port}/json/close/{tab_id}", timeout=2
-            )
-        except Exception:
+            urllib.request.urlopen(f"http://localhost:{port}/json/close/{tab_id}", timeout=2)
+        except Exception:  # noqa: BLE001, S110 - best-effort cleanup/probe, must not crash the caller
             pass
         return True
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - CDP navigation is inherently unreliable (Chrome may be closed/unreachable); degrade to False, don't crash the pause flow
         logger.debug("CDP navigate failed: %s", e)
         return False

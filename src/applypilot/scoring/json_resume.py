@@ -36,18 +36,30 @@ _SCHEMA = json.loads(_SCHEMA_PATH.read_text())
 # ── Date-range parsing ───────────────────────────────────────────────────
 
 _MONTHS = {
-    "january": "01", "jan": "01",
-    "february": "02", "feb": "02",
-    "march": "03", "mar": "03",
-    "april": "04", "apr": "04",
+    "january": "01",
+    "jan": "01",
+    "february": "02",
+    "feb": "02",
+    "march": "03",
+    "mar": "03",
+    "april": "04",
+    "apr": "04",
     "may": "05",
-    "june": "06", "jun": "06",
-    "july": "07", "jul": "07",
-    "august": "08", "aug": "08",
-    "september": "09", "sep": "09", "sept": "09",
-    "october": "10", "oct": "10",
-    "november": "11", "nov": "11",
-    "december": "12", "dec": "12",
+    "june": "06",
+    "jun": "06",
+    "july": "07",
+    "jul": "07",
+    "august": "08",
+    "aug": "08",
+    "september": "09",
+    "sep": "09",
+    "sept": "09",
+    "october": "10",
+    "oct": "10",
+    "november": "11",
+    "nov": "11",
+    "december": "12",
+    "dec": "12",
 }
 
 _DATE_RANGE_RE = re.compile(
@@ -103,8 +115,7 @@ def _split_title_pipes(title: str) -> dict:
         "El Ninja | Founder & Principal Engineer | Seattle, WA"
     """
     parts = [p.strip() for p in title.split("|") if p.strip()]
-    out = {"name": None, "url": None, "position": None,
-           "description": None, "location": None}
+    out = {"name": None, "url": None, "position": None, "description": None, "location": None}
     if not parts:
         return out
 
@@ -119,8 +130,7 @@ def _split_title_pipes(title: str) -> dict:
     # Last piece: location if it looks like one ("City, ST" or contains "Remote").
     if len(parts) > 1:
         last = parts[-1]
-        if (re.match(r"^[A-Z][A-Za-z .-]+,\s*[A-Z]{2}\b", last)
-                or "Remote" in last or "Seattle" in last):
+        if re.match(r"^[A-Z][A-Za-z .-]+,\s*[A-Z]{2}\b", last) or "Remote" in last or "Seattle" in last:
             out["location"] = last
             parts = parts[:-1]
 
@@ -140,12 +150,16 @@ def _join_title_pipes(work: dict) -> str:
     if work.get("url"):
         host = re.sub(r"^https?://", "", work["url"]).rstrip("/")
         name = f"{name} ({host})" if name else f"({host})"
-    parts = [p for p in (
-        name,
-        work.get("position"),
-        work.get("description"),
-        work.get("location"),
-    ) if p]
+    parts = [
+        p
+        for p in (
+            name,
+            work.get("position"),
+            work.get("description"),
+            work.get("location"),
+        )
+        if p
+    ]
     return " | ".join(parts)
 
 
@@ -170,18 +184,22 @@ def _parse_contact(text: str) -> tuple[dict, list[dict]]:
 
     if li := _LINKEDIN_RE.search(text):
         username = li.group(1)
-        profiles.append({
-            "network": "LinkedIn",
-            "username": username,
-            "url": f"https://linkedin.com/in/{username}",
-        })
+        profiles.append(
+            {
+                "network": "LinkedIn",
+                "username": username,
+                "url": f"https://linkedin.com/in/{username}",
+            }
+        )
     if gh := _GITHUB_RE.search(text):
         username = gh.group(1)
-        profiles.append({
-            "network": "GitHub",
-            "username": username,
-            "url": f"https://github.com/{username}",
-        })
+        profiles.append(
+            {
+                "network": "GitHub",
+                "username": username,
+                "url": f"https://github.com/{username}",
+            }
+        )
     return basics, profiles
 
 
@@ -190,8 +208,7 @@ def _parse_location(loc_text: str) -> dict:
     m = _LOC_RE.match((loc_text or "").strip())
     if not m:
         return {"address": loc_text} if loc_text else {}
-    return {"city": m.group(1).strip(), "region": m.group(2),
-            "countryCode": "US"}
+    return {"city": m.group(1).strip(), "region": m.group(2), "countryCode": "US"}
 
 
 # ── Earlier-experience one-liner parsing ─────────────────────────────────
@@ -287,13 +304,36 @@ def _extract_project(bullet: str) -> dict | None:
     # still catching pathological matches.
     if len(name) > 120:
         return None
-    if " " in name and name.lower().startswith((
-        "provisioned", "migrated", "rebuilt", "developed", "enhanced",
-        "designed", "built", "led", "managed", "implemented", "contributed",
-        "architected", "reduced", "improved", "engineered", "established",
-        "founded", "debugged", "deployed", "continued", "reverse-engineered",
-        "taught", "translated", "performed", "repaired", "lead",
-    )):
+    if " " in name and name.lower().startswith(
+        (
+            "provisioned",
+            "migrated",
+            "rebuilt",
+            "developed",
+            "enhanced",
+            "designed",
+            "built",
+            "led",
+            "managed",
+            "implemented",
+            "contributed",
+            "architected",
+            "reduced",
+            "improved",
+            "engineered",
+            "established",
+            "founded",
+            "debugged",
+            "deployed",
+            "continued",
+            "reverse-engineered",
+            "taught",
+            "translated",
+            "performed",
+            "repaired",
+            "lead",
+        )
+    ):
         return None
 
     project: dict = {"name": name, "description": rest}
@@ -312,19 +352,75 @@ def _extract_project(bullet: str) -> dict | None:
 
     # Heuristic keyword extraction: pick out tech tokens we recognize.
     keyword_pool = {
-        "TypeScript", "JavaScript", "Python", "Kotlin", "Java", "Go", "Rust", "PHP",
-        "Astro", "Next.js", "React", "React Native", "Vue.js", "Node.js", "FastAPI",
-        "Django", "Laravel", "Micronaut", "Spring Boot",
-        "PostgreSQL", "Postgres", "PostGIS", "Supabase", "MySQL", "MongoDB", "Redis",
-        "SQLite", "Cassandra", "CockroachDB",
-        "Kubernetes", "Docker", "AWS", "GCP", "Cloudflare", "Terraform",
-        "Cadence", "Temporal", "Apache Kafka", "gRPC",
-        "MCP", "Playwright", "Patchright", "Chrome DevTools Protocol", "Claude Code",
-        "Browser-Use", "Stripe", "Mapbox GL", "Mapbox",
-        "Ghidra", "OpenOCD", "SWD", "ARM Cortex-M", "ARM Cortex-M4", "FTDI",
-        "KWP2000", "BEST/2", "NMEA 2000", "AIS", "OpenCPN",
-        "RunPod", "GPTQ", "Triton", "H100", "8xH100", "OpenAI",
-        "DALL·E", "Flux", "Gemini", "Nano Banana",
+        "TypeScript",
+        "JavaScript",
+        "Python",
+        "Kotlin",
+        "Java",
+        "Go",
+        "Rust",
+        "PHP",
+        "Astro",
+        "Next.js",
+        "React",
+        "React Native",
+        "Vue.js",
+        "Node.js",
+        "FastAPI",
+        "Django",
+        "Laravel",
+        "Micronaut",
+        "Spring Boot",
+        "PostgreSQL",
+        "Postgres",
+        "PostGIS",
+        "Supabase",
+        "MySQL",
+        "MongoDB",
+        "Redis",
+        "SQLite",
+        "Cassandra",
+        "CockroachDB",
+        "Kubernetes",
+        "Docker",
+        "AWS",
+        "GCP",
+        "Cloudflare",
+        "Terraform",
+        "Cadence",
+        "Temporal",
+        "Apache Kafka",
+        "gRPC",
+        "MCP",
+        "Playwright",
+        "Patchright",
+        "Chrome DevTools Protocol",
+        "Claude Code",
+        "Browser-Use",
+        "Stripe",
+        "Mapbox GL",
+        "Mapbox",
+        "Ghidra",
+        "OpenOCD",
+        "SWD",
+        "ARM Cortex-M",
+        "ARM Cortex-M4",
+        "FTDI",
+        "KWP2000",
+        "BEST/2",
+        "NMEA 2000",
+        "AIS",
+        "OpenCPN",
+        "RunPod",
+        "GPTQ",
+        "Triton",
+        "H100",
+        "8xH100",
+        "OpenAI",
+        "DALL·E",
+        "Flux",
+        "Gemini",
+        "Nano Banana",
     }
     text = f"{annotation} {rest}"
     keywords = sorted({kw for kw in keyword_pool if kw.lower() in text.lower()})
@@ -384,6 +480,7 @@ def _parse_education_line(line: str) -> tuple[dict, list[dict]]:
 
 
 # ── Public conversion API ────────────────────────────────────────────────
+
 
 def to_json_resume(text: str) -> dict:
     """Convert the master ``resume.txt`` format into a JSON Resume document.
@@ -522,13 +619,20 @@ def to_json_resume(text: str) -> dict:
     projects: list[dict] = []
     for w in jr.get("work", []) or []:
         position = (w.get("position") or "").lower()
-        is_founder = any(role in position for role in (
-            "founder", "co-founder", "principal", "cto", "ceo",
-        ))
+        is_founder = any(
+            role in position
+            for role in (
+                "founder",
+                "co-founder",
+                "principal",
+                "cto",
+                "ceo",
+            )
+        )
         if not is_founder:
             continue
         kept_highlights: list[str] = []
-        for bullet in (w.get("highlights") or []):
+        for bullet in w.get("highlights") or []:
             project = _extract_project(bullet)
             if project:
                 project.setdefault("entity", w.get("name") or "")
@@ -604,13 +708,11 @@ def to_json_resume(text: str) -> dict:
             # Try em-dash / hyphen separator first, then parens.
             m = re.match(r"^([A-Za-z][A-Za-z -]+?)\s*[—–-]\s*(.+)$", line)
             if m:
-                languages.append({"language": m.group(1).strip(),
-                                  "fluency": m.group(2).strip()})
+                languages.append({"language": m.group(1).strip(), "fluency": m.group(2).strip()})
                 continue
             m = re.match(r"^([A-Za-z][A-Za-z -]+?)\s*\(([^)]+)\)\s*$", line)
             if m:
-                languages.append({"language": m.group(1).strip(),
-                                  "fluency": m.group(2).strip()})
+                languages.append({"language": m.group(1).strip(), "fluency": m.group(2).strip()})
                 continue
             languages.append({"language": line})
 
@@ -642,9 +744,21 @@ def _fmt_dates(w: dict) -> str:
         parts = s.split("-")
         if len(parts) >= 2:
             month_idx = int(parts[1])
-            month_name = ["", "January", "February", "March", "April", "May",
-                          "June", "July", "August", "September", "October",
-                          "November", "December"][month_idx]
+            month_name = [
+                "",
+                "January",
+                "February",
+                "March",
+                "April",
+                "May",
+                "June",
+                "July",
+                "August",
+                "September",
+                "October",
+                "November",
+                "December",
+            ][month_idx]
             return f"{month_name} {parts[0]}"
         return s
 
@@ -704,11 +818,15 @@ def from_json_resume(jr: dict) -> str:
         loc_str = f"{loc['city']}, {loc['region']}"
     elif loc.get("address"):
         loc_str = loc["address"]
-    contact_bits = [b for b in (
-        loc_str,
-        basics.get("phone"),
-        basics.get("email"),
-    ) if b]
+    contact_bits = [
+        b
+        for b in (
+            loc_str,
+            basics.get("phone"),
+            basics.get("email"),
+        )
+        if b
+    ]
     if contact_bits:
         out.append(" | ".join(contact_bits))
 
@@ -796,7 +914,7 @@ def from_json_resume(jr: dict) -> str:
     # Work split.
     work = jr.get("work") or []
     early = [w for w in work if w.get("_earlier")]
-    pro   = [w for w in work if not w.get("_earlier")]
+    pro = [w for w in work if not w.get("_earlier")]
 
     if pro:
         out.append("PROFESSIONAL EXPERIENCE")
@@ -864,6 +982,7 @@ def from_json_resume(jr: dict) -> str:
 
 # ── Validation ───────────────────────────────────────────────────────────
 
+
 def validate(jr: dict) -> list[str]:
     """Return list of validation-error messages (empty list = valid)."""
     try:
@@ -877,6 +996,7 @@ def validate(jr: dict) -> list[str]:
 
 
 # ── Audit ────────────────────────────────────────────────────────────────
+
 
 def _flatten(text: str) -> str:
     """Normalize whitespace + lowercase for fuzzy diffs."""
@@ -918,13 +1038,9 @@ def audit(text: str) -> dict:
     suggestions: list[str] = []
     basics = jr.get("basics", {})
     if "url" not in basics:
-        suggestions.append(
-            "basics.url — homepage / portfolio. Resume currently has no top-level personal site."
-        )
+        suggestions.append("basics.url — homepage / portfolio. Resume currently has no top-level personal site.")
     if "image" not in basics:
-        suggestions.append(
-            "basics.image — headshot URL. Optional but well-supported by JSON Resume themes."
-        )
+        suggestions.append("basics.image — headshot URL. Optional but well-supported by JSON Resume themes.")
     if not jr.get("projects"):
         suggestions.append(
             "projects — the El Ninja Founder bullets (Pursuit, Meridian, ApplyPilot, "
@@ -943,9 +1059,7 @@ def audit(text: str) -> dict:
             "awards — none currently. If Pursuit's $500K pre-seed counts as a "
             "milestone, it could land here with a date + summary."
         )
-    if "Citizenship" in text and not any(
-        "citizen" in str(v).lower() for v in jr.get("basics", {}).values()
-    ):
+    if "Citizenship" in text and not any("citizen" in str(v).lower() for v in jr.get("basics", {}).values()):
         suggestions.append(
             "Citizenship: Dual US-Mexico — JSON Resume has no native field for "
             "this. Convention is to put it in basics.summary or a custom property "
@@ -953,8 +1067,7 @@ def audit(text: str) -> dict:
         )
     if "meta" not in jr:
         suggestions.append(
-            "meta — populate `version`/`canonical`/`lastModified` for resume "
-            "consumers that surface those fields."
+            "meta — populate `version`/`canonical`/`lastModified` for resume consumers that surface those fields."
         )
 
     return {

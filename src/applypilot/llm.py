@@ -53,16 +53,19 @@ def _claude_cli_reserved_for_apply() -> bool:
     raw = os.environ.get("APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY", "true").strip().lower()
     return raw not in ("false", "0", "no")
 
+
 # ---------------------------------------------------------------------------
 # Model registry — each entry knows its provider, endpoint, and API key
 # ---------------------------------------------------------------------------
 
+
 @dataclass(frozen=True)
 class ModelEntry:
     """A model with everything needed to call it."""
+
     name: str
-    provider: str           # "gemini", "openai", "anthropic", "claude_cli", "local"
-    base_url: str            # for claude_cli: the resolved path to the claude binary
+    provider: str  # "gemini", "openai", "anthropic", "claude_cli", "local"
+    base_url: str  # for claude_cli: the resolved path to the claude binary
     api_key: str
 
 
@@ -115,12 +118,35 @@ def local_openai_base_url(raw_url: str) -> str:
     return f"{url}/v1"
 
 
-def _build_fallback_chain(primary_model: str, quality: bool = False) -> list[ModelEntry]:
+def _build_fallback_chain(
+    primary_model: str, quality: bool = False, include_local: bool | None = None
+) -> list[ModelEntry]:
     """Build a cross-provider fallback chain starting from the primary model.
 
     Gemini models come first (free tier), then OpenAI (cheap), then Anthropic.
     Only includes providers whose API keys are configured.
+
+    include_local: whether to append the configured local model
+        (APPLYPILOT_LOCAL_LLM_URL) as a last-resort entry. Defaults to
+        `quality` when not given explicitly.
+
+        2026-08-23: local (Qwen) must never be part of the FAST tier's
+        chain -- that's what scoring uses (get_stage_client("score",
+        quality=False)), and testing found qwen3:1.7b's scoring unreliable
+        enough (missing obvious SWE experience, scoring known-9s as 7)
+        that it must never silently substitute for a cloud model there. The
+        QUALITY tier (tailor, cover) keeps local as the existing, deliberate
+        last-resort fallback for when every cloud provider is exhausted
+        (see tailor.py's DEGRADED MODE / has_cloud_available()) -- that
+        behavior is unchanged. Explicitly-local operations (the
+        local-first planner in local_tailor.py, `applypilot test-local`)
+        don't go through this function's chain at all -- they either call
+        Ollama directly or construct/override a local-only ModelEntry
+        themselves, so they're unaffected either way. See CLAUDE.md
+        decision #54.
     """
+    if include_local is None:
+        include_local = quality
     gemini_key = os.environ.get("GEMINI_API_KEY", "")
     openai_key = os.environ.get("OPENAI_API_KEY", "")
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -228,13 +254,14 @@ def _build_fallback_chain(primary_model: str, quality: bool = False) -> list[Mod
 
     # Local model fallback — appended last, after all cloud providers, but
     # BEFORE the empty-chain check so a local-only setup (no cloud keys at
-    # all) is valid. Configured separately from LLM_URL (which sets the
-    # primary provider) so existing local-primary setups are unaffected.
-    # Presence of the URL implies enabled; no separate flag needed
-    # (consistent with how GEMINI_API_KEY works).
+    # all) is valid, PROVIDED include_local allows it (see docstring: the
+    # fast/scoring tier never includes it). Configured separately from
+    # LLM_URL (which sets the primary provider) so existing local-primary
+    # setups are unaffected. Presence of the URL implies enabled; no
+    # separate flag needed (consistent with how GEMINI_API_KEY works).
     _local_url = os.environ.get("APPLYPILOT_LOCAL_LLM_URL", "").rstrip("/")
     _local_model = os.environ.get("APPLYPILOT_LOCAL_LLM_MODEL", "llama3.2")
-    if _local_url:
+    if include_local and _local_url:
         chain.append(ModelEntry(_local_model, "local", local_openai_base_url(_local_url), ""))
 
     # If nothing was added (no keys, no local), raise
@@ -242,12 +269,15 @@ def _build_fallback_chain(primary_model: str, quality: bool = False) -> list[Mod
         reserved_note = (
             " claude_cli is installed but reserved for auto-apply "
             "(APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY=false to allow it here)."
-            if claude_reserved else ""
+            if claude_reserved
+            else ""
         )
+        _local_note = " or APPLYPILOT_LOCAL_LLM_URL" if include_local else ""
         raise RuntimeError(
             "No LLM provider configured. "
-            "Set GEMINI_API_KEY, OPENAI_API_KEY, DEEPSEEK_API_KEY, ANTHROPIC_API_KEY, "
-            "or APPLYPILOT_LOCAL_LLM_URL."
+            "Set GEMINI_API_KEY, OPENAI_API_KEY, DEEPSEEK_API_KEY, ANTHROPIC_API_KEY"
+            + _local_note
+            + "."
             + reserved_note
         )
 
@@ -257,6 +287,7 @@ def _build_fallback_chain(primary_model: str, quality: bool = False) -> list[Mod
 # ---------------------------------------------------------------------------
 # Provider detection (for primary model selection)
 # ---------------------------------------------------------------------------
+
 
 def _detect_provider(quality: bool = False, model_override: str | None = None) -> tuple[str, str, str]:
     """Return (base_url, model, api_key) for the primary provider."""
@@ -292,10 +323,7 @@ def _detect_provider(quality: bool = False, model_override: str | None = None) -
             chosen_model or "local-model",
             os.environ.get("LLM_API_KEY", ""),
         )
-    raise RuntimeError(
-        "No LLM provider configured. "
-        "Set GEMINI_API_KEY, OPENAI_API_KEY, or LLM_URL."
-    )
+    raise RuntimeError("No LLM provider configured. Set GEMINI_API_KEY, OPENAI_API_KEY, or LLM_URL.")
 
 
 # ---------------------------------------------------------------------------
@@ -306,11 +334,72 @@ _MAX_RETRIES = 3
 _TIMEOUT = 300  # seconds
 
 
+# ---------------------------------------------------------------------------
+# TEMPORARY diagnostic: full local-Qwen response capture
+# ---------------------------------------------------------------------------
+# 2026-08-23: investigating why the local qwen3:1.7b fallback is slow/times
+# out frequently -- writes each successful local-model response IN FULL to
+# its own file (never the main ApplyPilot log, so this doesn't flood normal
+# operational logging). Remove _log_local_qwen_response, its call site in
+# _try_openai_compat, and _get_qwen_diag_logger once the investigation is
+# done.
+
+_qwen_diag_logger: logging.Logger | None = None
+_qwen_diag_lock = threading.Lock()
+
+
+def _get_qwen_diag_logger() -> logging.Logger:
+    """Lazily create a logger that writes only to
+    ~/.applypilot/logs/local_qwen_output.log (propagate=False keeps it out
+    of the main log handlers/file)."""
+    global _qwen_diag_logger
+    if _qwen_diag_logger is not None:
+        return _qwen_diag_logger
+    with _qwen_diag_lock:
+        if _qwen_diag_logger is not None:
+            return _qwen_diag_logger
+        logger = logging.getLogger("applypilot.llm.qwen_diagnostic")
+        logger.setLevel(logging.INFO)
+        logger.propagate = False
+        log_dir = Path.home() / ".applypilot" / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        handler = logging.FileHandler(log_dir / "local_qwen_output.log", encoding="utf-8")
+        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
+        logger.addHandler(handler)
+        _qwen_diag_logger = logger
+        return logger
+
+
+def _log_local_qwen_response(entry: "ModelEntry", messages: list[dict], text: str) -> None:
+    """Record a successful local-model response to the diagnostic file.
+
+    Only called after a real, non-null response is received (see the call
+    site in _try_openai_compat) -- never on a failed/timed-out attempt.
+    `messages` never contains API keys/headers (those live in `headers`,
+    not the request body), so this can't leak secrets. Best-effort request
+    identifier: this layer doesn't receive a job id, so we log a short
+    prefix of the first user message, which is normally where job/company
+    context lives in this codebase's prompts.
+    """
+    context = ""
+    for msg in messages:
+        if msg.get("role") == "user":
+            context = (msg.get("content") or "").strip().replace("\n", " ")[:200]
+            break
+    diag = _get_qwen_diag_logger()
+    diag.info(
+        "=== local/%s response (%d chars) ===\ncontext: %s\n%s\n=== end response ===",
+        entry.name,
+        len(text),
+        context or "(no user message found)",
+        text,
+    )
+
+
 class LLMClient:
     """Multi-provider LLM client with automatic model fallback."""
 
-    def __init__(self, base_url: str, model: str, api_key: str,
-                 quality: bool = False) -> None:
+    def __init__(self, base_url: str, model: str, api_key: str, quality: bool = False) -> None:
         self.base_url = base_url
         self.model = model
         self.api_key = api_key
@@ -334,24 +423,35 @@ class LLMClient:
         self._claude_cli_lock = threading.Lock()
 
         chain_names = [f"{e.name} ({e.provider})" for e in self._fallback_chain]
-        log.info("Fallback chain (%s): %s",
-                 "quality" if quality else "fast", " -> ".join(chain_names))
+        log.info("Fallback chain (%s): %s", "quality" if quality else "fast", " -> ".join(chain_names))
 
     def chat(
         self,
         messages: list[dict],
         temperature: float = 0.0,
         max_tokens: int = 4096,
+        exclude_providers: frozenset[str] | None = None,
     ) -> str:
-        """Send a chat completion request with automatic cross-provider fallback."""
-        # Qwen3 optimization
-        if "qwen" in self.model.lower() and messages:
-            first = messages[0]
-            if first.get("role") == "user" and not first["content"].startswith("/no_think"):
-                messages = [{"role": first["role"], "content": f"/no_think\n{first['content']}"}] + messages[1:]
+        """Send a chat completion request with automatic cross-provider fallback.
+
+        exclude_providers: providers to skip for THIS call only (e.g.
+        frozenset({"local"})) -- does not touch self._fallback_chain, so it
+        can't race with concurrent callers sharing this client. 2026-08-23:
+        added so a caller can discover "cloud is exhausted" via a fast,
+        cloud-only attempt (429s reject in ~1-2s each) instead of silently
+        falling through to a slow local model it didn't intend to use for
+        this particular call -- see tailor.py's tailor_resume() DEGRADED
+        MODE handling.
+        """
+        # Qwen3 /no_think handling lives in _try_openai_compat, keyed on the
+        # actual entry being attempted (entry.name) rather than self.model --
+        # see that method's docstring for why (self.model is the ORIGINAL
+        # primary model, wrong whenever qwen is reached as a fallback from
+        # Gemini/OpenAI rather than as the primary).
 
         # Build list of models to try: skip recently exhausted ones
         now = time.time()
+
         # Skip entries that are marked exhausted. Support two storage styles:
         # - legacy: stored value is the time they were marked exhausted (start time)
         #   and a short cooldown (5 minutes) applies
@@ -368,38 +468,54 @@ class LLMClient:
             # legacy mode: v is the time it was marked exhausted; cooldown = 300s
             return (now - v) < 300
 
-        entries_to_try = [e for e in self._fallback_chain if not _is_exhausted(e.name)]
+        # Exclusion is a static, per-call filter (never recoverable within
+        # this call) -- applied before the exhaustion/cooldown-recovery
+        # logic below, which stays about STALE exhaustion timestamps, not
+        # about providers deliberately left out of consideration.
+        candidate_chain = (
+            [e for e in self._fallback_chain if e.provider not in exclude_providers]
+            if exclude_providers
+            else self._fallback_chain
+        )
+
+        entries_to_try = [e for e in candidate_chain if not _is_exhausted(e.name)]
         if not entries_to_try:
             # Don't blindly clear all exhaustion — only remove short-term rate-limit
             # cooldowns (<= 5 min remaining). Long-term 24h daily-quota blocks must
             # persist so repeated batch calls don't keep hammering the same provider.
             _SHORT_COOLDOWN = 300
-            for _e in list(self._fallback_chain):
+            for _e in list(candidate_chain):
                 _v = self._exhausted.get(_e.name)
                 if _v is None:
                     continue
                 _remaining = (_v - now) if _v > now else max(0.0, _SHORT_COOLDOWN - (now - _v))
                 if _remaining <= _SHORT_COOLDOWN:
                     self._exhausted.pop(_e.name, None)
-            entries_to_try = [e for e in self._fallback_chain if not _is_exhausted(e.name)]
+            entries_to_try = [e for e in candidate_chain if not _is_exhausted(e.name)]
             if not entries_to_try:
                 _waits = [
                     (self._exhausted[_e.name] - now) / 3600
-                    for _e in self._fallback_chain
+                    for _e in candidate_chain
                     if _e.name in self._exhausted and self._exhausted[_e.name] > now
                 ]
                 _min_h = min(_waits) if _waits else 0.0
+                # Only suggest APPLYPILOT_LOCAL_LLM_URL when local is actually
+                # eligible for THIS chain (quality tier), not already set, and
+                # not deliberately excluded for this call -- for the fast/
+                # scoring tier, local is deliberately excluded by default
+                # (see _build_fallback_chain), so suggesting it here would be
+                # misleading advice that wouldn't actually add a fallback.
                 _local_hint = (
                     " Set APPLYPILOT_LOCAL_LLM_URL for a local fallback."
-                    if not any(e.provider == "local" for e in self._fallback_chain)
+                    if self.quality
+                    and not os.environ.get("APPLYPILOT_LOCAL_LLM_URL", "").strip()
+                    and not (exclude_providers and "local" in exclude_providers)
                     else ""
                 )
-                raise RuntimeError(
-                    f"All LLM providers are on quota cooldown (min wait: {_min_h:.1f}h).{_local_hint}"
-                )
+                raise RuntimeError(f"All LLM providers are on quota cooldown (min wait: {_min_h:.1f}h).{_local_hint}")
 
         for idx, entry in enumerate(entries_to_try):
-            is_last = (idx == len(entries_to_try) - 1)
+            is_last = idx == len(entries_to_try) - 1
             result = self._try_entry(entry, messages, temperature, max_tokens, is_last)
             if result is not None:
                 return result
@@ -410,9 +526,9 @@ class LLMClient:
             "Wait a few minutes for rate limits to reset."
         )
 
-    def _try_entry(self, entry: ModelEntry, messages: list[dict],
-                   temperature: float, max_tokens: int,
-                   is_last: bool = False) -> str | None:
+    def _try_entry(
+        self, entry: ModelEntry, messages: list[dict], temperature: float, max_tokens: int, is_last: bool = False
+    ) -> str | None:
         """Try a single model entry. Dispatches to the right provider."""
         if entry.provider == "anthropic":
             return self._try_anthropic(entry, messages, temperature, max_tokens, is_last)
@@ -421,9 +537,9 @@ class LLMClient:
         else:
             return self._try_openai_compat(entry, messages, temperature, max_tokens, is_last)
 
-    def _try_openai_compat(self, entry: ModelEntry, messages: list[dict],
-                           temperature: float, max_tokens: int,
-                           is_last: bool = False) -> str | None:
+    def _try_openai_compat(
+        self, entry: ModelEntry, messages: list[dict], temperature: float, max_tokens: int, is_last: bool = False
+    ) -> str | None:
         """Try an OpenAI-compatible endpoint (Gemini, OpenAI, local)."""
         headers: dict[str, str] = {"Content-Type": "application/json"}
         # Local Ollama / llama.cpp may not require auth; omit Bearer when key is empty
@@ -432,9 +548,36 @@ class LLMClient:
         # DeepSeek deepseek-chat has an 8192 max output token limit
         if entry.provider == "deepseek":
             max_tokens = min(max_tokens, 8192)
+        # 2026-08-23 incident: a cloud-sized max_tokens (e.g. tailor's 16384)
+        # reaching a CPU-bound local model -- whether via an intentional
+        # local call or a cloud fallback chain that happens to cascade all
+        # the way down to "local" as its last entry -- let a slow small
+        # model grind for minutes even with /no_think, since the output
+        # budget alone (not just prompt size) drives generation time. Clamp
+        # unconditionally for any local-provider call; small, purpose-built
+        # local calls (e.g. local_tailor's realization/plan prompts) already
+        # request far less than this and are unaffected.
+        if entry.provider == "local":
+            max_tokens = min(max_tokens, int(os.environ.get("APPLYPILOT_LOCAL_LLM_MAX_TOKENS", "2048")))
+
+        # Qwen3 optimization: disable the model's internal <think> reasoning
+        # for models we only use as a fast structured-output planner. Keyed
+        # on entry.name (the model actually being attempted on THIS
+        # fallback tier), not self.model -- 2026-08-23 bug: the old check in
+        # chat() used self.model (the ORIGINAL primary model), so /no_think
+        # silently never applied when qwen was reached as a fallback from
+        # Gemini/OpenAI rather than as the primary model. Builds a local
+        # copy so the prefix doesn't mutate `messages`, which chat() reuses
+        # for every remaining fallback attempt in the chain.
+        req_messages = messages
+        if "qwen" in entry.name.lower() and messages:
+            first = messages[0]
+            if first.get("role") == "user" and not first["content"].startswith("/no_think"):
+                req_messages = [{"role": first["role"], "content": f"/no_think\n{first['content']}"}] + messages[1:]
+
         payload = {
             "model": entry.name,
-            "messages": messages,
+            "messages": req_messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
@@ -442,7 +585,8 @@ class LLMClient:
         # Local models may be slower; allow a configurable per-request timeout
         _req_timeout = (
             int(os.environ.get("APPLYPILOT_LOCAL_LLM_TIMEOUT", "120"))
-            if entry.provider == "local" else None  # None = use httpx client default
+            if entry.provider == "local"
+            else None  # None = use httpx client default
         )
         for attempt in range(_MAX_RETRIES):
             try:
@@ -455,28 +599,24 @@ class LLMClient:
                 )
                 if resp.status_code == 402:
                     # Payment Required — mark as exhausted for a full day (free-tier)
-                    log.warning("%s/%s payment required (402), marking exhausted for 24h",
-                                entry.provider, entry.name)
+                    log.warning("%s/%s payment required (402), marking exhausted for 24h", entry.provider, entry.name)
                     self._exhausted[entry.name] = time.time() + 86400  # 24h from now
                     return None
 
                 if resp.status_code == 400:
                     body = resp.text.lower()
                     if "api_key_invalid" in body or "api key expired" in body:
-                        log.warning("%s/%s API key invalid/expired, trying next",
-                                    entry.provider, entry.name)
+                        log.warning("%s/%s API key invalid/expired, trying next", entry.provider, entry.name)
                         self._exhausted[entry.name] = time.time()
                         return None
                     # Any other 400 (content safety, model not found, malformed prompt)
                     # — don't mark exhausted (it's per-request, not a quota), just skip
                     if not is_last:
-                        log.warning("%s/%s 400 Bad Request, trying next: %.120s",
-                                    entry.provider, entry.name, resp.text)
+                        log.warning("%s/%s 400 Bad Request, trying next: %.120s", entry.provider, entry.name, resp.text)
                         return None
 
                 if resp.status_code == 404:
-                    log.warning("%s/%s model not found (404), trying next",
-                                entry.provider, entry.name)
+                    log.warning("%s/%s model not found (404), trying next", entry.provider, entry.name)
                     self._exhausted[entry.name] = time.time()
                     return None
 
@@ -484,34 +624,38 @@ class LLMClient:
                     body = resp.text.lower()
                     # Distinguish daily/quota exhaustion vs transient rate limits
                     if "resource has been exhausted" in body or "quota" in body:
-                        log.warning("%s/%s hit quota limit (daily), marking exhausted for 24h",
-                                    entry.provider, entry.name)
+                        log.warning(
+                            "%s/%s hit quota limit (daily), marking exhausted for 24h", entry.provider, entry.name
+                        )
                         self._exhausted[entry.name] = time.time() + 86400
                         return None
 
                     if "rate_limit" in body:
                         # Transient rate limit — mark briefly and try next
-                        log.warning("%s/%s transient rate_limit, marking exhausted for 60s",
-                                    entry.provider, entry.name)
+                        log.warning("%s/%s transient rate_limit, marking exhausted for 60s", entry.provider, entry.name)
                         self._exhausted[entry.name] = time.time() + 60
                         return None
 
                     if attempt < _MAX_RETRIES - 1:
-                        wait = 2 ** attempt + 1
-                        log.warning("%s/%s 429 (RPM), retry in %ds (%d/%d)",
-                                    entry.provider, entry.name, wait,
-                                    attempt + 1, _MAX_RETRIES)
+                        wait = 2**attempt + 1
+                        log.warning(
+                            "%s/%s 429 (RPM), retry in %ds (%d/%d)",
+                            entry.provider,
+                            entry.name,
+                            wait,
+                            attempt + 1,
+                            _MAX_RETRIES,
+                        )
                         time.sleep(wait)
                         continue
                     elif not is_last:
-                        log.warning("%s/%s still 429, trying next model",
-                                    entry.provider, entry.name)
+                        log.warning("%s/%s still 429, trying next model", entry.provider, entry.name)
                         return None
                     else:
                         resp.raise_for_status()
 
                 if resp.status_code == 503 and attempt < _MAX_RETRIES - 1:
-                    wait = 2 ** attempt
+                    wait = 2**attempt
                     log.warning("%s/%s 503, retry in %ds", entry.provider, entry.name, wait)
                     time.sleep(wait)
                     continue
@@ -521,48 +665,81 @@ class LLMClient:
                 # Guard against malformed responses (null body, null choices, null content)
                 if not isinstance(data, dict) or not data.get("choices"):
                     if not is_last:
-                        log.warning("%s/%s: malformed response (no choices), trying next",
-                                    entry.provider, entry.name)
+                        log.warning("%s/%s: malformed response (no choices), trying next", entry.provider, entry.name)
                         return None
                     raise RuntimeError(
-                        f"Malformed response from {entry.provider}/{entry.name}: "
-                        f"no choices in {type(data).__name__}"
+                        f"Malformed response from {entry.provider}/{entry.name}: no choices in {type(data).__name__}"
                     )
                 text = data["choices"][0]["message"]["content"]
-                if text is None:
-                    # Model returned null content (refusal, tool_call, etc.)
+                # 2026-08-25: an empty or whitespace-only string is HTTP-level
+                # success but not a usable response -- a real local/qwen3:1.7b
+                # call was observed returning "" with status 200 (see
+                # ~/.applypilot/logs/local_qwen_output.log). Previously only
+                # `text is None` was rejected, so an empty string silently
+                # returned as if it were a real answer -- for score_job() that
+                # meant `_parse_score_response("")` producing a fake
+                # fit_score=0 "success" instead of a retryable failure. Reject
+                # both here, at the source, same fail-loud shape as the
+                # null-content branch below.
+                if text is None or not text.strip():
+                    # Model returned null/empty/blank content (refusal, tool_call, etc.)
                     if not is_last:
-                        log.warning("%s/%s: null content in response, trying next",
-                                    entry.provider, entry.name)
+                        log.warning("%s/%s: null/empty content in response, trying next", entry.provider, entry.name)
                         return None
                     raise RuntimeError(
-                        f"Null content from {entry.provider}/{entry.name} "
+                        f"Null/empty content from {entry.provider}/{entry.name} "
                         f"(refusal: {data['choices'][0]['message'].get('refusal', 'none')})"
                     )
 
                 if entry.name != self.model:
-                    log.info("Used fallback %s/%s (primary: %s)",
-                             entry.provider, entry.name, self.model)
+                    log.info("Used fallback %s/%s (primary: %s)", entry.provider, entry.name, self.model)
+                if entry.provider == "local":
+                    _log_local_qwen_response(entry, req_messages, text)
                 return text
 
             except httpx.TimeoutException:
                 if attempt < _MAX_RETRIES - 1:
-                    wait = 2 ** attempt
-                    log.warning("%s/%s timeout, retry in %ds",
-                                entry.provider, entry.name, wait)
+                    wait = 2**attempt
+                    log.warning("%s/%s timeout, retry in %ds", entry.provider, entry.name, wait)
                     time.sleep(wait)
                     continue
                 if not is_last:
-                    log.warning("%s/%s timeout after retries, trying next",
-                                entry.provider, entry.name)
+                    log.warning("%s/%s timeout after retries, trying next", entry.provider, entry.name)
+                    return None
+                raise
+
+            except httpx.ConnectError as exc:
+                # Nothing listening at entry.base_url -- most commonly a
+                # locally-configured endpoint (APPLYPILOT_LOCAL_LLM_URL)
+                # that isn't running. Previously uncaught here: ConnectError
+                # would abort the WHOLE fallback chain instead of falling
+                # through to the next provider, even when a perfectly good
+                # cloud fallback (Gemini/OpenAI) was next in line. Same
+                # retry-then-fall-through shape as the timeout branch above.
+                hint = " -- is the local model endpoint running?" if entry.provider == "local" else ""
+                if attempt < _MAX_RETRIES - 1:
+                    wait = 2**attempt
+                    log.warning(
+                        "%s/%s connection failed (%s), retry in %ds%s", entry.provider, entry.name, exc, wait, hint
+                    )
+                    time.sleep(wait)
+                    continue
+                if not is_last:
+                    log.warning(
+                        "%s/%s connection failed after retries (%s), trying next%s",
+                        entry.provider,
+                        entry.name,
+                        exc,
+                        hint,
+                    )
                     return None
                 raise
 
         return None
 
-    def _try_anthropic(self, entry: ModelEntry, messages: list[dict],
-                       temperature: float, max_tokens: int,
-                       is_last: bool = False) -> str | None:
+    def _try_anthropic(
+        self, entry: ModelEntry, messages: list[dict], temperature: float, max_tokens: int, is_last: bool = False
+    ) -> str | None:
         """Try the Anthropic Messages API (different format from OpenAI)."""
         headers = {
             "Content-Type": "application/json",
@@ -578,10 +755,12 @@ class LLMClient:
             if msg["role"] == "system":
                 system_text = msg["content"]
             else:
-                api_messages.append({
-                    "role": msg["role"],
-                    "content": msg["content"],
-                })
+                api_messages.append(
+                    {
+                        "role": msg["role"],
+                        "content": msg["content"],
+                    }
+                )
 
         # Anthropic requires at least one user message
         if not api_messages:
@@ -612,9 +791,10 @@ class LLMClient:
                         return None
 
                     if attempt < _MAX_RETRIES - 1:
-                        wait = 2 ** attempt + 1
-                        log.warning("anthropic/%s 429, retry in %ds (%d/%d)",
-                                    entry.name, wait, attempt + 1, _MAX_RETRIES)
+                        wait = 2**attempt + 1
+                        log.warning(
+                            "anthropic/%s 429, retry in %ds (%d/%d)", entry.name, wait, attempt + 1, _MAX_RETRIES
+                        )
                         time.sleep(wait)
                         continue
                     elif not is_last:
@@ -624,9 +804,8 @@ class LLMClient:
 
                 if resp.status_code == 529 and attempt < _MAX_RETRIES - 1:
                     # Anthropic overloaded
-                    wait = 2 ** attempt + 2
-                    log.warning("anthropic/%s overloaded (529), retry in %ds",
-                                entry.name, wait)
+                    wait = 2**attempt + 2
+                    log.warning("anthropic/%s overloaded (529), retry in %ds", entry.name, wait)
                     time.sleep(wait)
                     continue
 
@@ -641,15 +820,13 @@ class LLMClient:
                 text = "\n".join(text_parts)
 
                 if entry.name != self.model:
-                    log.info("Used fallback anthropic/%s (primary: %s)",
-                             entry.name, self.model)
+                    log.info("Used fallback anthropic/%s (primary: %s)", entry.name, self.model)
                 return text
 
             except httpx.TimeoutException:
                 if attempt < _MAX_RETRIES - 1:
-                    wait = 2 ** attempt
-                    log.warning("anthropic/%s timeout, retry in %ds",
-                                entry.name, wait)
+                    wait = 2**attempt
+                    log.warning("anthropic/%s timeout, retry in %ds", entry.name, wait)
                     time.sleep(wait)
                     continue
                 if not is_last:
@@ -658,8 +835,7 @@ class LLMClient:
 
         return None
 
-    def _try_claude_cli(self, entry: ModelEntry, messages: list[dict],
-                        is_last: bool = False) -> str | None:
+    def _try_claude_cli(self, entry: ModelEntry, messages: list[dict], is_last: bool = False) -> str | None:
         """Try the Claude Code CLI in one-shot print mode.
 
         Uses the user's Max plan OAuth login (subprocess env strips
@@ -689,8 +865,16 @@ class LLMClient:
             if exhausted_until is not None and exhausted_until > time.time():
                 return None
 
-            cmd = [entry.base_url, "--model", entry.name, "-p",
-                   "--output-format", "text", "--permission-mode", "dontAsk"]
+            cmd = [
+                entry.base_url,
+                "--model",
+                entry.name,
+                "-p",
+                "--output-format",
+                "text",
+                "--permission-mode",
+                "dontAsk",
+            ]
             if system_text:
                 cmd += ["--system-prompt", system_text]
 
@@ -701,8 +885,15 @@ class LLMClient:
 
             try:
                 proc = subprocess.run(
-                    cmd, input=user_text, capture_output=True, text=True,
-                    encoding="utf-8", errors="replace", env=env, timeout=180,
+                    cmd,
+                    input=user_text,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    env=env,
+                    timeout=180,
+                    check=False,
                 )
             except subprocess.TimeoutExpired:
                 log.warning("claude_cli/%s timed out after 180s", entry.name)
@@ -722,8 +913,7 @@ class LLMClient:
             # stdout (which -p --output-format text apparently uses for this
             # kind of rejection).
             matched_limit_text = any(
-                phrase in combined for phrase in
-                ("usage limit", "session limit", "rate limit", "overloaded")
+                phrase in combined for phrase in ("usage limit", "session limit", "rate limit", "overloaded")
             )
             # 2026-08-19 incident: a Max-plan 5-hour usage window at 100%
             # utilization (confirmed via ~/.claude.json's cachedUsageUtilization)
@@ -737,21 +927,19 @@ class LLMClient:
             # cause could in principle also produce empty output, so this is
             # logged distinctly from a text-matched limit rather than folded in
             # silently.
-            empty_output_failure = (
-                proc.returncode != 0 and not proc.stdout.strip() and not proc.stderr.strip()
-            )
+            empty_output_failure = proc.returncode != 0 and not proc.stdout.strip() and not proc.stderr.strip()
             if matched_limit_text or empty_output_failure:
                 if empty_output_failure and not matched_limit_text:
                     log.warning(
                         "claude_cli/%s failed with exit %d and empty output; treating as "
                         "exhausted (heuristic for Max-plan usage-limit fast-fail, not a "
                         "confirmed rate-limit message)",
-                        entry.name, proc.returncode,
+                        entry.name,
+                        proc.returncode,
                     )
                     self._exhaustion_reason[entry.name] = "empty_output_heuristic"
                 else:
-                    log.warning("claude_cli/%s hit usage/session/rate limit, marking exhausted for 30min",
-                                entry.name)
+                    log.warning("claude_cli/%s hit usage/session/rate limit, marking exhausted for 30min", entry.name)
                     self._exhaustion_reason[entry.name] = "quota_text_match"
                 self._exhausted[entry.name] = time.time() + 1800
                 return None
@@ -765,8 +953,7 @@ class LLMClient:
                 # content would appear) to leak here -- just Claude Code's
                 # own short system message about why it declined.
                 diag = (proc.stderr.strip() or proc.stdout.strip())[:300]
-                log.warning("claude_cli/%s failed (exit %d): %s",
-                            entry.name, proc.returncode, diag)
+                log.warning("claude_cli/%s failed (exit %d): %s", entry.name, proc.returncode, diag)
                 if not is_last:
                     return None
                 raise RuntimeError(f"claude_cli/{entry.name} failed: {diag}")
@@ -803,8 +990,7 @@ class LLMClient:
         """
         now = time.time()
         return any(
-            e.provider not in ("local", "claude_cli")
-            and self._exhausted.get(e.name, 0) <= now
+            e.provider not in ("local", "claude_cli") and self._exhausted.get(e.name, 0) <= now
             for e in self._fallback_chain
         )
 
@@ -842,8 +1028,7 @@ def get_token_limit(stage: str, default: int) -> int:
         value = int(raw)
         return value if value > 0 else default
     except ValueError:
-        log.warning("Invalid %s=%r; using default %d",
-                    f"APPLYPILOT_MAX_TOKENS_{stage.upper()}", raw, default)
+        log.warning("Invalid %s=%r; using default %d", f"APPLYPILOT_MAX_TOKENS_{stage.upper()}", raw, default)
         return default
 
 
@@ -862,8 +1047,7 @@ def get_client(quality: bool = False, model_override: str | None = None) -> LLMC
         client = _stage_instances.get(key)
         if client is None:
             base_url, model, api_key = _detect_provider(quality=quality, model_override=model_override)
-            log.info("LLM provider (%s override): %s  model: %s",
-                     "quality" if quality else "fast", base_url, model)
+            log.info("LLM provider (%s override): %s  model: %s", "quality" if quality else "fast", base_url, model)
             client = LLMClient(base_url, model, api_key, quality=quality)
             _stage_instances[key] = client
         return client
@@ -909,6 +1093,6 @@ def local_available() -> bool:
             resp = httpx.get(f"{url}{path}", timeout=4.0)
             if resp.status_code < 500:
                 return True
-        except Exception:
+        except Exception:  # noqa: BLE001, S112 - trying multiple candidate endpoint paths (Ollama/llama.cpp conventions differ); one path failing means try the next, not abort the probe
             continue
     return False

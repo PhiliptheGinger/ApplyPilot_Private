@@ -133,6 +133,7 @@ def test_ordered_list_items_also_get_a_bullet_marker():
 # Regression guards: everything else must stay exactly as it was.
 # ---------------------------------------------------------------------------
 
+
 def test_paragraph_and_div_still_produce_bare_newlines_not_bullets():
     from applypilot.discovery.greenhouse import _strip_html
 

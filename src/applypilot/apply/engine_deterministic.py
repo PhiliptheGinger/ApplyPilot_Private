@@ -40,7 +40,9 @@ def _get_profile_fields() -> dict[str, str]:
         "phone": str(personal.get("phone") or "").strip(),
         "city": str(personal.get("city") or "").strip(),
         "linkedin": str(online.get("linkedin") or personal.get("linkedin_url") or "").strip(),
-        "website": str(online.get("website") or personal.get("website_url") or personal.get("portfolio_url") or "").strip(),
+        "website": str(
+            online.get("website") or personal.get("website_url") or personal.get("portfolio_url") or ""
+        ).strip(),
     }
 
 
@@ -53,7 +55,7 @@ def _safe_fill(page, selectors: list[str], value: str) -> bool:
             try:
                 locator.first.fill(value, timeout=1200)
                 return True
-            except Exception:
+            except Exception:  # noqa: BLE001, S112 - try each candidate selector; a Playwright element-interaction failure means try the next one, not abort the whole fill/upload attempt
                 continue
     return False
 
@@ -86,7 +88,7 @@ def _upload_resume_if_present(page, job: dict) -> bool:
             try:
                 locator.first.set_input_files(str(src), timeout=3000)
                 return True
-            except Exception:
+            except Exception:  # noqa: BLE001, S112 - try each candidate selector; a Playwright element-interaction failure means try the next one, not abort the whole fill/upload attempt
                 continue
     return False
 
@@ -95,43 +97,71 @@ def _run_greenhouse(page, job: dict, dry_run: bool) -> tuple[str, int, list[dict
     started = time.time()
     fields = _get_profile_fields()
 
-    _safe_fill(page, [
-        "input[name='first_name']",
-        "input[name='job_application[first_name]']",
-        "#first_name",
-    ], fields["first_name"])
-    _safe_fill(page, [
-        "input[name='last_name']",
-        "input[name='job_application[last_name]']",
-        "#last_name",
-    ], fields["last_name"])
-    _safe_fill(page, [
-        "input[name='email']",
-        "input[name='job_application[email]']",
-        "#email",
-    ], fields["email"])
-    _safe_fill(page, [
-        "input[name='phone']",
-        "input[name='job_application[phone]']",
-        "input[type='tel']",
-        "#phone",
-    ], fields["phone"])
-    _safe_fill(page, [
-        "input[name='location']",
-        "input[name='job_application[location]']",
-        "#location",
-    ], fields["city"])
-    _safe_fill(page, [
-        "input[name='linkedin']",
-        "input[name='job_application[linkedin]']",
-        "input[name*='linkedin']",
-    ], fields["linkedin"])
-    _safe_fill(page, [
-        "input[name='website']",
-        "input[name='job_application[website]']",
-        "input[name*='portfolio']",
-        "input[name*='url']",
-    ], fields["website"])
+    _safe_fill(
+        page,
+        [
+            "input[name='first_name']",
+            "input[name='job_application[first_name]']",
+            "#first_name",
+        ],
+        fields["first_name"],
+    )
+    _safe_fill(
+        page,
+        [
+            "input[name='last_name']",
+            "input[name='job_application[last_name]']",
+            "#last_name",
+        ],
+        fields["last_name"],
+    )
+    _safe_fill(
+        page,
+        [
+            "input[name='email']",
+            "input[name='job_application[email]']",
+            "#email",
+        ],
+        fields["email"],
+    )
+    _safe_fill(
+        page,
+        [
+            "input[name='phone']",
+            "input[name='job_application[phone]']",
+            "input[type='tel']",
+            "#phone",
+        ],
+        fields["phone"],
+    )
+    _safe_fill(
+        page,
+        [
+            "input[name='location']",
+            "input[name='job_application[location]']",
+            "#location",
+        ],
+        fields["city"],
+    )
+    _safe_fill(
+        page,
+        [
+            "input[name='linkedin']",
+            "input[name='job_application[linkedin]']",
+            "input[name*='linkedin']",
+        ],
+        fields["linkedin"],
+    )
+    _safe_fill(
+        page,
+        [
+            "input[name='website']",
+            "input[name='job_application[website]']",
+            "input[name*='portfolio']",
+            "input[name*='url']",
+        ],
+        fields["website"],
+    )
 
     _upload_resume_if_present(page, job)
 
@@ -157,7 +187,7 @@ def _run_greenhouse(page, job: dict, dry_run: bool) -> tuple[str, int, list[dict
                 page.wait_for_timeout(1500)
                 dur = int((time.time() - started) * 1000)
                 return "applied", dur, []
-            except Exception:
+            except Exception:  # noqa: BLE001, S112 - try each candidate selector; a Playwright element-interaction failure means try the next one, not abort the whole fill/upload attempt
                 continue
 
     dur = int((time.time() - started) * 1000)

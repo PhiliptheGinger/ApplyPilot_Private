@@ -23,53 +23,61 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from applypilot.eligibility import seniority_disqualifier
+from datetime import UTC
 
+from applypilot.eligibility import seniority_disqualifier
 
 # ── seniority_disqualifier(): the canonical predicate ────────────────────
 
-@pytest.mark.parametrize("title", [
-    "Senior Software Engineer",
-    "Sr. Software Engineer",
-    "Sr Software Engineer",
-    "Senior Systems Engineer",
-    "Staff Engineer",
-    "Staff Software Engineer",
-    "Principal Engineer",
-    "Principal Software Engineer",
-    "Lead Engineer",
-    "Lead Software Engineer",
-    "Senior IT Support Specialist",
-    "Staff IT Systems Administrator",
-    "Solutions Architect",
-    "Software Architect",
-    "Engineering Director",
-    "VP of Engineering",
-    "Vice President, Platform",
-    "Chief Technology Officer",
-    "Engineering Manager",
-    "Head of Engineering",
-    "Distinguished Engineer",
-    "Technical Fellow",
-])
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Senior Software Engineer",
+        "Sr. Software Engineer",
+        "Sr Software Engineer",
+        "Senior Systems Engineer",
+        "Staff Engineer",
+        "Staff Software Engineer",
+        "Principal Engineer",
+        "Principal Software Engineer",
+        "Lead Engineer",
+        "Lead Software Engineer",
+        "Senior IT Support Specialist",
+        "Staff IT Systems Administrator",
+        "Solutions Architect",
+        "Software Architect",
+        "Engineering Director",
+        "VP of Engineering",
+        "Vice President, Platform",
+        "Chief Technology Officer",
+        "Engineering Manager",
+        "Head of Engineering",
+        "Distinguished Engineer",
+        "Technical Fellow",
+    ],
+)
 def test_senior_titles_disqualified(title):
     assert seniority_disqualifier(title) is not None, f"{title!r} should be disqualified"
 
 
-@pytest.mark.parametrize("title", [
-    "Software Engineer",
-    "IT Support Specialist",
-    "Help Desk Technician",
-    "Junior Software Engineer",
-    "Entry Level Software Engineer",
-    "New Grad Software Engineer",
-    "Graduate Software Engineer",
-    "Fresher Software Engineer",
-    "Software Engineering Intern",
-    "Systems Administrator",
-    "Desktop Support Technician",
-    "Technical Support Engineer",
-])
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Software Engineer",
+        "IT Support Specialist",
+        "Help Desk Technician",
+        "Junior Software Engineer",
+        "Entry Level Software Engineer",
+        "New Grad Software Engineer",
+        "Graduate Software Engineer",
+        "Fresher Software Engineer",
+        "Software Engineering Intern",
+        "Systems Administrator",
+        "Desktop Support Technician",
+        "Technical Support Engineer",
+    ],
+)
 def test_non_senior_titles_not_disqualified(title):
     assert seniority_disqualifier(title) is None, f"{title!r} should NOT be disqualified"
 
@@ -88,6 +96,7 @@ def test_empty_or_none_title_not_disqualified():
 
 # ── Score never compensates for a hard disqualifier ──────────────────────
 
+
 class TestScoreCannotBypassSeniority:
     """A senior title must be rejected before the LLM ever runs -- so no
     LLM-assigned score, however high, can ever reach min_score."""
@@ -104,6 +113,7 @@ class TestScoreCannotBypassSeniority:
         """Works even when no profile is supplied (profile=None), matching
         how _check_ineligible is called in some code paths."""
         from applypilot.scoring.scorer import _check_ineligible
+
         assert _check_ineligible(self._job()) is not None
 
     def test_score_job_never_calls_llm_for_senior_title(self):
@@ -124,10 +134,16 @@ class TestScoreCannotBypassSeniority:
         assert result["eligibility"] == "non_us_only"  # reused generic reject signal
         assert "seniority" in result["reasoning"].lower()
 
-    @pytest.mark.parametrize("title", [
-        "Senior Software Engineer", "Sr. Software Engineer", "Staff Software Engineer",
-        "Principal Engineer", "Senior Systems Engineer",
-    ])
+    @pytest.mark.parametrize(
+        "title",
+        [
+            "Senior Software Engineer",
+            "Sr. Software Engineer",
+            "Staff Software Engineer",
+            "Principal Engineer",
+            "Senior Systems Engineer",
+        ],
+    )
     def test_a_stored_high_score_cannot_have_come_from_these_titles(self, title):
         """Directly answers 'a previously stored fit_score of 9 does not
         bypass the current seniority rule': for every required senior
@@ -135,6 +151,7 @@ class TestScoreCannotBypassSeniority:
         what score a caller might imagine attaching to it -- there is no
         code path where score_job would return a passing score for these."""
         import applypilot.scoring.scorer as scorer_mod
+
         with patch.object(scorer_mod, "get_stage_client") as mock_get_client:
             result = scorer_mod.score_job("Resume.", self._job(title), {"education": []})
         mock_get_client.assert_not_called()
@@ -143,12 +160,23 @@ class TestScoreCannotBypassSeniority:
 
 # ── apply and scoring share one definition ────────────────────────────────
 
-@pytest.mark.parametrize("title", [
-    "Senior Software Engineer", "Sr. Software Engineer", "Staff Software Engineer",
-    "Principal Engineer", "Senior Systems Engineer", "Solutions Architect",
-    "Engineering Manager", "Head of Engineering", "Software Engineer",
-    "Junior Software Engineer", "IT Support Specialist",
-])
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Senior Software Engineer",
+        "Sr. Software Engineer",
+        "Staff Software Engineer",
+        "Principal Engineer",
+        "Senior Systems Engineer",
+        "Solutions Architect",
+        "Engineering Manager",
+        "Head of Engineering",
+        "Software Engineer",
+        "Junior Software Engineer",
+        "IT Support Specialist",
+    ],
+)
 def test_apply_and_scoring_agree(title):
     """apply/launcher.py's defense-in-depth check must never diverge from
     the canonical predicate -- that divergence (two independently
@@ -164,6 +192,7 @@ def test_apply_and_scoring_agree(title):
 
 # ── Stale-data revalidation sweep ─────────────────────────────────────────
 
+
 class TestRevalidateSeniority:
     def test_ready_to_apply_senior_job_is_not_retroactively_archived(self, tmp_db, seed_job):
         """Once a job reaches the post-tailoring lifecycle, the canonical
@@ -174,16 +203,22 @@ class TestRevalidateSeniority:
 
         conn = tmp_db()
         seed_job(
-            conn, url_suffix="stale-senior", title="Sr Software Engineer",
-            fit_score=8, state="ready_to_apply",
-            tailored_resume_path="/tmp/r.docx", cover_letter_path="/tmp/c.docx",
+            conn,
+            url_suffix="stale-senior",
+            title="Sr Software Engineer",
+            fit_score=8,
+            state="ready_to_apply",
+            tailored_resume_path="/tmp/r.docx",
+            cover_letter_path="/tmp/c.docx",
         )
 
         result = revalidate_seniority(conn)
 
         assert result["matched"] == 0
         assert result["updated"] == 0
-        row = conn.execute("SELECT state, fit_score, tailored_resume_path FROM jobs WHERE url LIKE '%stale-senior%'").fetchone()
+        row = conn.execute(
+            "SELECT state, fit_score, tailored_resume_path FROM jobs WHERE url LIKE '%stale-senior%'"
+        ).fetchone()
         assert row["state"] == "ready_to_apply"
         assert row["fit_score"] == 8
         assert row["tailored_resume_path"] == "/tmp/r.docx"
@@ -193,8 +228,11 @@ class TestRevalidateSeniority:
 
         conn = tmp_db()
         seed_job(
-            conn, url_suffix="clean-title", title="Software Engineer",
-            fit_score=9, state="ready_to_apply",
+            conn,
+            url_suffix="clean-title",
+            title="Software Engineer",
+            fit_score=9,
+            state="ready_to_apply",
         )
 
         result = revalidate_seniority(conn)
@@ -209,10 +247,14 @@ class TestRevalidateSeniority:
         from applypilot.eligibility import revalidate_seniority
 
         conn = tmp_db()
-        for i, title in enumerate([
-            "Junior Software Engineer", "Entry Level Software Engineer",
-            "New Grad Software Engineer", "IT Support Specialist",
-        ]):
+        for i, title in enumerate(
+            [
+                "Junior Software Engineer",
+                "Entry Level Software Engineer",
+                "New Grad Software Engineer",
+                "IT Support Specialist",
+            ]
+        ):
             seed_job(conn, url_suffix=f"ok-{i}", title=title, fit_score=8, state="ready_to_apply")
 
         result = revalidate_seniority(conn)
@@ -226,8 +268,11 @@ class TestRevalidateSeniority:
 
         conn = tmp_db()
         seed_job(
-            conn, url_suffix="stale-senior-2", title="Staff Software Engineer",
-            fit_score=9, state="scored",
+            conn,
+            url_suffix="stale-senior-2",
+            title="Staff Software Engineer",
+            fit_score=9,
+            state="scored",
         )
 
         first = revalidate_seniority(conn)
@@ -242,8 +287,11 @@ class TestRevalidateSeniority:
 
         conn = tmp_db()
         seed_job(
-            conn, url_suffix="dry-run-senior", title="Principal Engineer",
-            fit_score=8, state="scored",
+            conn,
+            url_suffix="dry-run-senior",
+            title="Principal Engineer",
+            fit_score=8,
+            state="scored",
         )
 
         result = revalidate_seniority(conn, dry_run=True)
@@ -256,14 +304,19 @@ class TestRevalidateSeniority:
     def test_already_applied_job_never_touched(self, tmp_db, seed_job):
         """Safety: never retroactively archive a job that was already
         submitted, even if its title matches."""
+        from datetime import datetime
+
         from applypilot.eligibility import revalidate_seniority
-        from datetime import datetime, timezone
 
         conn = tmp_db()
         seed_job(
-            conn, url_suffix="already-applied-senior", title="Senior Software Engineer",
-            fit_score=8, state="applied",
-            apply_status="applied", applied_at=datetime.now(timezone.utc).isoformat(),
+            conn,
+            url_suffix="already-applied-senior",
+            title="Senior Software Engineer",
+            fit_score=8,
+            state="applied",
+            apply_status="applied",
+            applied_at=datetime.now(UTC).isoformat(),
         )
 
         result = revalidate_seniority(conn)

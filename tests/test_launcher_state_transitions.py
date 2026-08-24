@@ -14,14 +14,12 @@ by the CLI tests; no separate HTTP integration test is added here
 (see commit message for rationale).
 """
 
-import pytest
-
 from applypilot.database import current_state, state_history
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _seed_ready(conn, seed_job, suffix):
     """Seed a job in 'ready_to_apply' state (the normal pre-apply state)."""
@@ -60,12 +58,14 @@ def _seed_apply_failed(conn, seed_job, suffix):
 # B1 — mark_needs_human → 'needs_human'
 # ---------------------------------------------------------------------------
 
+
 def test_mark_needs_human_transitions_to_needs_human(tmp_db, seed_job):
     conn = tmp_db()
     row = _seed_applying(conn, seed_job, "nh-b1")
     url = row["url"]
 
     from applypilot.apply.launcher import mark_needs_human
+
     mark_needs_human(
         url=url,
         reason="captcha",
@@ -86,20 +86,21 @@ def test_mark_needs_human_transitions_to_needs_human(tmp_db, seed_job):
 # B2 — reset_needs_human → 'applying'
 # ---------------------------------------------------------------------------
 
+
 def test_reset_needs_human_transitions_to_applying(tmp_db, seed_job):
     conn = tmp_db()
     row = _seed_needs_human(conn, seed_job, "nh-b2")
     url = row["url"]
 
     from applypilot.apply.launcher import reset_needs_human
+
     count = reset_needs_human(url=url)
 
     assert count == 1, f"Expected 1 row reset, got {count}"
     assert current_state(conn, url) == "applying"
     history = state_history(conn, url)
     reasons = [h["reason"] for h in history]
-    assert any("applying" in (r or "") or "needs_human resolved" in (r or "")
-               for r in reasons), (
+    assert any("applying" in (r or "") or "needs_human resolved" in (r or "") for r in reasons), (
         f"Expected transition reason mentioning 'applying' or 'resolved'; got {reasons}"
     )
 
@@ -108,19 +109,19 @@ def test_reset_needs_human_transitions_to_applying(tmp_db, seed_job):
 # B3 — mark_job 'applied' → 'applied'
 # ---------------------------------------------------------------------------
 
+
 def test_mark_job_applied_transitions_to_applied(tmp_db, seed_job):
     conn = tmp_db()
     row = _seed_applying(conn, seed_job, "mj-applied")
     url = row["url"]
 
     from applypilot.apply.launcher import mark_job
+
     mark_job(url=url, status="applied")
 
     assert current_state(conn, url) == "applied"
     history = state_history(conn, url)
-    assert any(h["to_state"] == "applied" for h in history), (
-        f"No 'applied' transition found in history: {history}"
-    )
+    assert any(h["to_state"] == "applied" for h in history), f"No 'applied' transition found in history: {history}"
     assert any("manually marked applied" in (h["reason"] or "") for h in history), (
         f"No CLI reason in history: {[h['reason'] for h in history]}"
     )
@@ -130,19 +131,19 @@ def test_mark_job_applied_transitions_to_applied(tmp_db, seed_job):
 # B3 — mark_job 'failed' → 'apply_failed'
 # ---------------------------------------------------------------------------
 
+
 def test_mark_job_failed_transitions_to_apply_failed(tmp_db, seed_job):
     conn = tmp_db()
     row = _seed_applying(conn, seed_job, "mj-failed")
     url = row["url"]
 
     from applypilot.apply.launcher import mark_job
+
     mark_job(url=url, status="failed", reason="test failure")
 
     assert current_state(conn, url) == "apply_failed"
     history = state_history(conn, url)
-    assert any(h["to_state"] == "apply_failed" for h in history), (
-        f"No 'apply_failed' transition found: {history}"
-    )
+    assert any(h["to_state"] == "apply_failed" for h in history), f"No 'apply_failed' transition found: {history}"
     assert any("manually marked failed" in (h["reason"] or "") for h in history), (
         f"No CLI reason in history: {[h['reason'] for h in history]}"
     )
@@ -152,19 +153,19 @@ def test_mark_job_failed_transitions_to_apply_failed(tmp_db, seed_job):
 # B3 — mark_job 'manual' → 'manual_only'
 # ---------------------------------------------------------------------------
 
+
 def test_mark_job_manual_transitions_to_manual_only(tmp_db, seed_job):
     conn = tmp_db()
     row = _seed_ready(conn, seed_job, "mj-manual")
     url = row["url"]
 
     from applypilot.apply.launcher import mark_job
+
     mark_job(url=url, status="manual")
 
     assert current_state(conn, url) == "manual_only"
     history = state_history(conn, url)
-    assert any(h["to_state"] == "manual_only" for h in history), (
-        f"No 'manual_only' transition found: {history}"
-    )
+    assert any(h["to_state"] == "manual_only" for h in history), f"No 'manual_only' transition found: {history}"
     assert any("manually marked manual" in (h["reason"] or "") for h in history), (
         f"No CLI reason in history: {[h['reason'] for h in history]}"
     )
@@ -174,12 +175,14 @@ def test_mark_job_manual_transitions_to_manual_only(tmp_db, seed_job):
 # B4 — reset_failed → 'ready_to_apply'
 # ---------------------------------------------------------------------------
 
+
 def test_reset_failed_transitions_to_ready_to_apply(tmp_db, seed_job):
     conn = tmp_db()
     row = _seed_apply_failed(conn, seed_job, "rf-b4")
     url = row["url"]
 
     from applypilot.apply.launcher import reset_failed
+
     count = reset_failed()
 
     assert count >= 1, f"Expected at least 1 row reset, got {count}"
@@ -195,6 +198,7 @@ def test_reset_failed_transitions_to_ready_to_apply(tmp_db, seed_job):
 # B6 — release_lock reverts applying → ready_to_apply
 # ---------------------------------------------------------------------------
 
+
 def test_release_lock_reverts_applying_to_ready_to_apply(tmp_db, seed_job):
     """When --gen or worker abandons a held job, state must revert."""
     conn = tmp_db()
@@ -204,6 +208,7 @@ def test_release_lock_reverts_applying_to_ready_to_apply(tmp_db, seed_job):
     conn.commit()
 
     from applypilot.apply.launcher import release_lock
+
     release_lock(url)
 
     assert current_state(conn, url) == "ready_to_apply"

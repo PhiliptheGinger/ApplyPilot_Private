@@ -68,3 +68,10 @@ artifacts = ["src/applypilot/config/*.yaml"]
 [tool.ruff]
 target-version = "py311"
 line-length = 120
+
+[tool.ruff.lint.flake8-bugbear]
+# typer.Argument(...)/typer.Option(...) as parameter defaults is the required
+# Typer idiom (cli.py) -- Typer introspects these objects at import time to
+# build the CLI; moving the calls into the function body (B008's usual fix)
+# would break the CLI entirely, not just silence a false positive.
+extend-immutable-calls = ["typer.Argument", "typer.Option"]

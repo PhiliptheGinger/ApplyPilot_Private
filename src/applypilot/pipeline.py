@@ -17,9 +17,7 @@ import os
 import signal
 import threading
 import time
-from datetime import datetime, timezone
-
-UTC = timezone.utc
+from datetime import UTC, datetime
 
 from rich.console import Console
 from rich.panel import Panel
@@ -44,15 +42,17 @@ def _setup_file_logging(stages: list[str]) -> logging.FileHandler | None:
     """
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     ts = datetime.now(UTC).strftime("%Y-%m-%d_%H-%M-%S")
-    stage_tag = "+".join(stages) if len(stages) <= 4 else f"{stages[0]}+{len(stages)-1}more"
+    stage_tag = "+".join(stages) if len(stages) <= 4 else f"{stages[0]}+{len(stages) - 1}more"
     log_path = LOG_DIR / f"{ts}_{stage_tag}.log"
 
     handler = logging.FileHandler(log_path, encoding="utf-8")
     handler.setLevel(logging.DEBUG)
-    handler.setFormatter(logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%H:%M:%S",
-    ))
+    handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%H:%M:%S",
+        )
+    )
     logging.getLogger().addHandler(handler)
     log.info("Log file: %s", log_path)
     return handler
@@ -66,22 +66,22 @@ STAGE_ORDER = ("discover", "enrich", "score", "tailor", "cover", "pdf")
 
 STAGE_META: dict[str, dict] = {
     "discover": {"desc": "Job discovery (JobSpy + Workday + smart extract + HN)"},
-    "enrich":   {"desc": "Detail enrichment (full descriptions + apply URLs)"},
-    "score":    {"desc": "LLM scoring (fit 1-10)"},
-    "tailor":   {"desc": "Resume tailoring (LLM + validation)"},
-    "cover":    {"desc": "Cover letter generation"},
-    "pdf":      {"desc": "PDF conversion (tailored resumes + cover letters)"},
+    "enrich": {"desc": "Detail enrichment (full descriptions + apply URLs)"},
+    "score": {"desc": "LLM scoring (fit 1-10)"},
+    "tailor": {"desc": "Resume tailoring (LLM + validation)"},
+    "cover": {"desc": "Cover letter generation"},
+    "pdf": {"desc": "PDF conversion (tailored resumes + cover letters)"},
 }
 
 # Upstream dependency: a stage only finishes when its upstream is done AND
 # it has no remaining pending work.
 _UPSTREAM: dict[str, str | None] = {
     "discover": None,
-    "enrich":   "discover",
-    "score":    "enrich",
-    "tailor":   "score",
-    "cover":    "tailor",
-    "pdf":      "cover",
+    "enrich": "discover",
+    "score": "enrich",
+    "tailor": "score",
+    "cover": "tailor",
+    "pdf": "cover",
 }
 
 
@@ -91,31 +91,31 @@ _UPSTREAM: dict[str, str | None] = {
 
 # Canonical name → description. Order determines default execution order.
 DISCOVERY_SOURCES: dict[str, str] = {
-    "jobspy":       "JobSpy aggregator (LinkedIn, Indeed, ZipRecruiter)",
-    "linkedin":     "LinkedIn only (via JobSpy)",
-    "indeed":       "Indeed only (via JobSpy)",
-    "workday":      "Workday corporate career sites",
-    "greenhouse":   "Greenhouse ATS public board API",
-    "lever":        "Lever ATS public postings API",
-    "ashby":        "Ashby ATS public posting API",
-    "amazon":       "amazon.jobs public search API",
-    "costco":       "careers.costco.com public API (Issaquah HQ)",
-    "builtin":      "builtin.com (config-driven cities + categories)",
+    "jobspy": "JobSpy aggregator (LinkedIn, Indeed, ZipRecruiter)",
+    "linkedin": "LinkedIn only (via JobSpy)",
+    "indeed": "Indeed only (via JobSpy)",
+    "workday": "Workday corporate career sites",
+    "greenhouse": "Greenhouse ATS public board API",
+    "lever": "Lever ATS public postings API",
+    "ashby": "Ashby ATS public posting API",
+    "amazon": "amazon.jobs public search API",
+    "costco": "careers.costco.com public API (Issaquah HQ)",
+    "builtin": "builtin.com (config-driven cities + categories)",
     "smartextract": "Smart extract (AI-powered scraping, incl. Dice via sites.yaml)",
-    "hackernews":   "Hacker News 'Who is Hiring?' thread",
+    "hackernews": "Hacker News 'Who is Hiring?' thread",
 }
 
 # Alias → canonical name for CLI convenience
 _SOURCE_ALIASES: dict[str, str] = {
-    "hn":    "hackernews",
+    "hn": "hackernews",
     "smart": "smartextract",
-    "dice":  "smartextract",  # dice is scraped via smartextract + sites.yaml
+    "dice": "smartextract",  # dice is scraped via smartextract + sites.yaml
 }
 
 # Sources that are jobspy with a specific site filter
 _JOBSPY_SITE_SOURCES: dict[str, list[str]] = {
     "linkedin": ["linkedin"],
-    "indeed":   ["indeed"],
+    "indeed": ["indeed"],
 }
 
 
@@ -126,10 +126,7 @@ def resolve_source_names(names: list[str]) -> list[str]:
         canonical = _SOURCE_ALIASES.get(name, name)
         if canonical not in DISCOVERY_SOURCES:
             valid = sorted(set(list(DISCOVERY_SOURCES.keys()) + list(_SOURCE_ALIASES.keys())))
-            raise ValueError(
-                f"Unknown discovery source: '{name}'. "
-                f"Valid sources: {', '.join(valid)}"
-            )
+            raise ValueError(f"Unknown discovery source: '{name}'. Valid sources: {', '.join(valid)}")
         if canonical not in resolved:
             resolved.append(canonical)
     return resolved
@@ -138,6 +135,7 @@ def resolve_source_names(names: list[str]) -> list[str]:
 # ---------------------------------------------------------------------------
 # Individual stage runners
 # ---------------------------------------------------------------------------
+
 
 def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
     """Stage: Job discovery — JobSpy, Workday, smart-extract, and HN scrapers.
@@ -154,6 +152,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
         console.print("  [cyan]JobSpy full crawl...[/cyan]")
         try:
             from applypilot.discovery.jobspy import run_discovery
+
             run_discovery()
             stats["jobspy"] = "ok"
         except Exception as e:
@@ -167,6 +166,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
             console.print(f"  [cyan]JobSpy ({source_name})...[/cyan]")
             try:
                 from applypilot.discovery.jobspy import run_discovery
+
                 run_discovery(sites_override=sites)
                 stats[source_name] = "ok"
             except Exception as e:
@@ -178,6 +178,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
         console.print("  [cyan]Workday corporate scraper...[/cyan]")
         try:
             from applypilot.discovery.workday import run_workday_discovery
+
             run_workday_discovery(workers=workers)
             stats["workday"] = "ok"
         except Exception as e:
@@ -189,6 +190,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
         console.print("  [cyan]Greenhouse ATS scraper...[/cyan]")
         try:
             from applypilot.discovery.greenhouse import run_greenhouse_discovery
+
             run_greenhouse_discovery(workers=workers)
             stats["greenhouse"] = "ok"
         except Exception as e:
@@ -200,6 +202,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
         console.print("  [cyan]Lever ATS scraper...[/cyan]")
         try:
             from applypilot.discovery.lever import run_lever_discovery
+
             run_lever_discovery(workers=workers)
             stats["lever"] = "ok"
         except Exception as e:
@@ -211,6 +214,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
         console.print("  [cyan]Ashby ATS scraper...[/cyan]")
         try:
             from applypilot.discovery.ashby import run_ashby_discovery
+
             run_ashby_discovery(workers=workers)
             stats["ashby"] = "ok"
         except Exception as e:
@@ -222,6 +226,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
         console.print("  [cyan]Amazon.jobs scraper...[/cyan]")
         try:
             from applypilot.discovery.amazon import run_amazon_discovery
+
             run_amazon_discovery(workers=workers)
             stats["amazon"] = "ok"
         except Exception as e:
@@ -233,6 +238,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
         console.print("  [cyan]Costco careers scraper...[/cyan]")
         try:
             from applypilot.discovery.costco import run_costco_discovery
+
             run_costco_discovery(workers=workers)
             stats["costco"] = "ok"
         except Exception as e:
@@ -244,6 +250,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
         console.print("  [cyan]BuiltIn (builtin.com) scraper...[/cyan]")
         try:
             from applypilot.discovery.builtin import run_builtin_discovery
+
             run_builtin_discovery(workers=workers)
             stats["builtin"] = "ok"
         except Exception as e:
@@ -255,6 +262,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
         console.print("  [cyan]Smart extract (AI-powered scraping)...[/cyan]")
         try:
             from applypilot.discovery.smartextract import run_smart_extract
+
             run_smart_extract(workers=workers)
             stats["smartextract"] = "ok"
         except Exception as e:
@@ -266,6 +274,7 @@ def _run_discover(workers: int = 1, sources: list[str] | None = None) -> dict:
         console.print("  [cyan]Hacker News 'Who is Hiring?' thread...[/cyan]")
         try:
             from applypilot.discovery.hackernews import run_hn_discovery
+
             hn_result = run_hn_discovery()
             new = hn_result.get("new", 0)
             console.print(f"  [dim]HN: {new} new jobs from '{hn_result.get('thread_title', '?')}'[/dim]")
@@ -282,6 +291,7 @@ def _run_enrich(workers: int = 1) -> dict:
     """Stage: Detail enrichment — scrape full descriptions and apply URLs."""
     try:
         from applypilot.enrichment.detail import run_enrichment
+
         run_enrichment(workers=workers)
         return {"status": "ok"}
     except Exception as e:
@@ -292,10 +302,12 @@ def _run_enrich(workers: int = 1) -> dict:
 def _run_score(workers: int = 1, max_age_days: int | None = None, limit: int = 0) -> dict:
     """Stage: LLM scoring — assign fit scores 1-10."""
     from applypilot.config import DEFAULTS
+
     if max_age_days is None:
         max_age_days = DEFAULTS["max_job_age_days"]
     try:
         from applypilot.scoring.scorer import run_scoring
+
         result = run_scoring(workers=workers, max_age_days=max_age_days, limit=limit)
         # job_ids carries this run's exact batch identity forward so a
         # following `tailor` stage in the same sequential run can restrict
@@ -307,9 +319,14 @@ def _run_score(workers: int = 1, max_age_days: int | None = None, limit: int = 0
         return {"status": f"error: {e}"}
 
 
-def _run_tailor(min_score: int | None = None, max_age_days: int | None = None,
-                limit: int = 20, workers: int = 1, doc_format: str = "docx",
-                job_ids: list[str] | None = None) -> dict:
+def _run_tailor(
+    min_score: int | None = None,
+    max_age_days: int | None = None,
+    limit: int = 20,
+    workers: int = 1,
+    doc_format: str = "docx",
+    job_ids: list[str] | None = None,
+) -> dict:
     """Stage: Resume tailoring — generate tailored resumes for high-fit jobs.
 
     job_ids: an upstream score stage's exact batch (see _run_score/
@@ -317,33 +334,64 @@ def _run_tailor(min_score: int | None = None, max_age_days: int | None = None,
         eligible jobs (standalone `applypilot run tailor` behavior).
     """
     from applypilot.config import DEFAULTS
+
     if min_score is None:
         min_score = DEFAULTS["min_score"]
     if max_age_days is None:
         max_age_days = DEFAULTS["max_job_age_days"]
     try:
         from applypilot.scoring.tailor import run_tailoring
-        run_tailoring(min_score=min_score, max_age_days=max_age_days,
-                      limit=limit, workers=workers, doc_format=doc_format,
-                      job_ids=job_ids)
-        return {"status": "ok"}
+
+        result = run_tailoring(
+            min_score=min_score,
+            max_age_days=max_age_days,
+            limit=limit,
+            workers=workers,
+            doc_format=doc_format,
+            job_ids=job_ids,
+        )
+        # job_ids carries this run's exact eligible-after-cap batch forward
+        # so a following `cover` stage in the same sequential run can
+        # restrict itself to these jobs instead of independently
+        # re-querying (see _run_sequential and run_cover_letters's job_ids
+        # parameter). Mirrors _run_score's identical pattern.
+        return {"status": "ok", "job_ids": result.get("job_urls") or []}
     except Exception as e:
         log.exception("Tailoring failed")
         return {"status": f"error: {e}"}
 
 
-def _run_cover(min_score: int | None = None, max_age_days: int | None = None,
-               limit: int = 20, workers: int = 1, doc_format: str = "docx") -> dict:
-    """Stage: Cover letter generation."""
+def _run_cover(
+    min_score: int | None = None,
+    max_age_days: int | None = None,
+    limit: int = 20,
+    workers: int = 1,
+    doc_format: str = "docx",
+    job_ids: list[str] | None = None,
+) -> dict:
+    """Stage: Cover letter generation.
+
+    job_ids: an upstream tailor stage's exact batch (see _run_tailor/
+        _run_sequential), or None to independently select up to `limit`
+        eligible jobs (standalone `applypilot run cover` behavior).
+    """
     from applypilot.config import DEFAULTS
+
     if min_score is None:
         min_score = DEFAULTS["min_score"]
     if max_age_days is None:
         max_age_days = DEFAULTS["max_job_age_days"]
     try:
         from applypilot.scoring.cover_letter import run_cover_letters
-        run_cover_letters(min_score=min_score, max_age_days=max_age_days,
-                          limit=limit, workers=workers, doc_format=doc_format)
+
+        run_cover_letters(
+            min_score=min_score,
+            max_age_days=max_age_days,
+            limit=limit,
+            workers=workers,
+            doc_format=doc_format,
+            job_ids=job_ids,
+        )
         return {"status": "ok"}
     except Exception as e:
         log.exception("Cover letter generation failed")
@@ -354,6 +402,7 @@ def _run_pdf(doc_format: str = "docx") -> dict:
     """Stage: Document conversion — convert tailored resumes and cover letters to PDF/DOCX."""
     try:
         from applypilot.scoring.pdf import batch_convert
+
         batch_convert(doc_format=doc_format)
         return {"status": "ok"}
     except Exception as e:
@@ -364,17 +413,18 @@ def _run_pdf(doc_format: str = "docx") -> dict:
 # Map stage names to their runner functions
 _STAGE_RUNNERS: dict[str, callable] = {
     "discover": _run_discover,
-    "enrich":   _run_enrich,
-    "score":    _run_score,
-    "tailor":   _run_tailor,
-    "cover":    _run_cover,
-    "pdf":      _run_pdf,
+    "enrich": _run_enrich,
+    "score": _run_score,
+    "tailor": _run_tailor,
+    "cover": _run_cover,
+    "pdf": _run_pdf,
 }
 
 
 # ---------------------------------------------------------------------------
 # Stage resolution
 # ---------------------------------------------------------------------------
+
 
 def _resolve_stages(stage_names: list[str]) -> list[str]:
     """Resolve 'all' and validate/order stage names."""
@@ -384,10 +434,7 @@ def _resolve_stages(stage_names: list[str]) -> list[str]:
     resolved = []
     for name in stage_names:
         if name not in STAGE_META:
-            console.print(
-                f"[red]Unknown stage:[/red] '{name}'. "
-                f"Available: {', '.join(STAGE_ORDER)}, all"
-            )
+            console.print(f"[red]Unknown stage:[/red] '{name}'. Available: {', '.join(STAGE_ORDER)}, all")
             raise SystemExit(1)
         if name not in resolved:
             resolved.append(name)
@@ -400,13 +447,12 @@ def _resolve_stages(stage_names: list[str]) -> list[str]:
 # Streaming pipeline helpers
 # ---------------------------------------------------------------------------
 
+
 class _StageTracker:
     """Thread-safe tracker for which stages have finished producing work."""
 
     def __init__(self):
-        self._events: dict[str, threading.Event] = {
-            stage: threading.Event() for stage in STAGE_ORDER
-        }
+        self._events: dict[str, threading.Event] = {stage: threading.Event() for stage in STAGE_ORDER}
         self._results: dict[str, dict] = {}
         self._lock = threading.Lock()
 
@@ -430,14 +476,8 @@ class _StageTracker:
 # The `?` params are: (min_score, age_cutoff_iso_offset) when both present;
 # scroll through _count_pending to see the binding order.
 _PENDING_SQL: dict[str, str] = {
-    "enrich": (
-        "SELECT COUNT(*) FROM jobs "
-        "WHERE detail_scraped_at IS NULL"
-    ),
-    "score":  (
-        "SELECT COUNT(*) FROM jobs "
-        "WHERE full_description IS NOT NULL AND fit_score IS NULL"
-    ),
+    "enrich": ("SELECT COUNT(*) FROM jobs WHERE detail_scraped_at IS NULL"),
+    "score": ("SELECT COUNT(*) FROM jobs WHERE full_description IS NOT NULL AND fit_score IS NULL"),
     "tailor": (
         "SELECT COUNT(*) FROM jobs WHERE fit_score >= ? "
         "AND full_description IS NOT NULL "
@@ -450,10 +490,7 @@ _PENDING_SQL: dict[str, str] = {
         "AND (cover_letter_path IS NULL OR cover_letter_path = '') "
         "AND COALESCE(cover_attempts, 0) < 5"
     ),
-    "pdf": (
-        "SELECT COUNT(*) FROM jobs WHERE tailored_resume_path IS NOT NULL "
-        "AND tailored_resume_path LIKE '%.txt'"
-    ),
+    "pdf": ("SELECT COUNT(*) FROM jobs WHERE tailored_resume_path IS NOT NULL AND tailored_resume_path LIKE '%.txt'"),
 }
 
 # Stages whose SQL takes a ? for min_score.
@@ -475,7 +512,7 @@ def _read_stream_pid() -> int | None:
         if not raw:
             return None
         return int(raw)
-    except Exception:
+    except Exception:  # noqa: BLE001 - a missing/corrupt PID file degrades to "no known stream process", not a crash
         return None
 
 
@@ -544,8 +581,7 @@ def _wait_or_stop(stop_event: threading.Event, timeout: float) -> bool:
     return _stop_requested(stop_event)
 
 
-def _count_pending(stage: str, min_score: int | None = None,
-                   max_age_days: int | None = None) -> int:
+def _count_pending(stage: str, min_score: int | None = None, max_age_days: int | None = None) -> int:
     """Count pending work items for a stage, honoring min_score and max_age_days."""
     from applypilot.config import DEFAULTS
 
@@ -588,6 +624,7 @@ def _run_stage_streaming(
     and repeats until upstream is done and no pending work remains.
     """
     from applypilot.config import DEFAULTS
+
     if min_score is None:
         min_score = DEFAULTS["min_score"]
     if max_age_days is None:
@@ -638,8 +675,9 @@ def _run_stage_streaming(
                 passes += 1
                 # If runner returned an error status, back off before retry
                 if isinstance(result, dict) and result.get("status", "").startswith("error"):
-                    log.warning("Stage '%s' pass %d returned error, backing off %ds",
-                                stage, passes, _STREAM_POLL_INTERVAL)
+                    log.warning(
+                        "Stage '%s' pass %d returned error, backing off %ds", stage, passes, _STREAM_POLL_INTERVAL
+                    )
                     if _wait_or_stop(stop_event, _STREAM_POLL_INTERVAL):
                         break
                 # Pending count looks like work but the runner did nothing
@@ -647,13 +685,17 @@ def _run_stage_streaming(
                 # we don't hot-loop logging the same "no jobs" message every
                 # millisecond — let upstream produce real new work first.
                 elif isinstance(result, dict):
-                    progress = sum(int(result.get(k, 0) or 0) for k in
-                                   ("approved", "failed", "errors", "processed",
-                                    "ok", "partial", "error", "new"))
+                    progress = sum(
+                        int(result.get(k, 0) or 0)
+                        for k in ("approved", "failed", "errors", "processed", "ok", "partial", "error", "new")
+                    )
                     if progress == 0:
                         log.info(
                             "Stage '%s' pass %d had pending=%d but progress=0; backing off %ds",
-                            stage, passes, pending, _STREAM_POLL_INTERVAL,
+                            stage,
+                            passes,
+                            pending,
+                            _STREAM_POLL_INTERVAL,
                         )
                         if _wait_or_stop(stop_event, _STREAM_POLL_INTERVAL):
                             break
@@ -672,7 +714,8 @@ def _run_stage_streaming(
             if passes > 0 and passes % 6 == 0:
                 log.info(
                     "Stage '%s' idle poll: no pending work yet, waiting for upstream '%s'",
-                    stage, upstream,
+                    stage,
+                    upstream,
                 )
             if _wait_or_stop(stop_event, _STREAM_POLL_INTERVAL):
                 break  # Stop requested
@@ -683,6 +726,7 @@ def _run_stage_streaming(
 # ---------------------------------------------------------------------------
 # Pipeline orchestrators
 # ---------------------------------------------------------------------------
+
 
 def _run_sequential(
     ordered: list[str],
@@ -698,11 +742,16 @@ def _run_sequential(
     errors: dict[str, str] = {}
     pipeline_start = time.time()
     # Batch identity carried from `score` to an immediately-following `tailor`
-    # stage in THIS SAME run -- see run_tailoring's job_ids parameter. None
-    # until a `score` stage actually completes here, so a standalone `tailor`
-    # run (no `score` stage in `ordered`) is completely unaffected and keeps
-    # its original independent-selection behavior.
+    # stage, and separately from `tailor` to an immediately-following `cover`
+    # stage, in THIS SAME run -- see run_tailoring's / run_cover_letters's
+    # job_ids parameters. Each stays None until its upstream stage actually
+    # completes here, so a standalone `tailor`-only or `cover`-only run (no
+    # `score`/`tailor` stage in `ordered`) is completely unaffected and keeps
+    # its original independent-selection behavior. This is exactly the bug a
+    # real 3-job run surfaced: cover had no batch of its own and silently
+    # picked up whatever else was independently pending_cover-eligible.
     scored_job_ids: list[str] | None = None
+    tailored_job_ids: list[str] | None = None
 
     for name in ordered:
         meta = STAGE_META[name]
@@ -730,19 +779,22 @@ def _run_sequential(
                 kwargs["max_age_days"] = max_age_days
             if name == "tailor" and scored_job_ids is not None:
                 kwargs["job_ids"] = scored_job_ids
+            if name == "cover" and tailored_job_ids is not None:
+                kwargs["job_ids"] = tailored_job_ids
             result = runner(**kwargs)
             elapsed = time.time() - t0
 
             if name == "score" and isinstance(result, dict) and "job_ids" in result:
                 scored_job_ids = result["job_ids"]
+            if name == "tailor" and isinstance(result, dict) and "job_ids" in result:
+                tailored_job_ids = result["job_ids"]
 
             status = "ok"
             if isinstance(result, dict):
                 status = result.get("status", "ok")
                 if name == "discover":
                     sub_errors = [
-                        f"{k}: {v}" for k, v in result.items()
-                        if isinstance(v, str) and v.startswith("error")
+                        f"{k}: {v}" for k, v in result.items() if isinstance(v, str) and v.startswith("error")
                     ]
                     if sub_errors:
                         status = "partial"
@@ -763,10 +815,15 @@ def _run_sequential(
     return {"stages": results, "errors": errors, "elapsed": total_elapsed}
 
 
-def _run_streaming(ordered: list[str], min_score: int,
-                   max_age_days: int | None = None,
-                   limit: int = 20, workers: int = 1,
-                   sources: list[str] | None = None, doc_format: str = "docx") -> dict:
+def _run_streaming(
+    ordered: list[str],
+    min_score: int,
+    max_age_days: int | None = None,
+    limit: int = 20,
+    workers: int = 1,
+    sources: list[str] | None = None,
+    doc_format: str = "docx",
+) -> dict:
     """Execute stages concurrently with DB as conveyor belt."""
     tracker = _StageTracker()
     stop_event = threading.Event()
@@ -871,6 +928,7 @@ def run_pipeline(
         Dict with keys: stages (list of result dicts), errors (dict), elapsed (float).
     """
     from applypilot.config import DEFAULTS
+
     if min_score is None:
         min_score = DEFAULTS["min_score"]
     if max_age_days is None:
@@ -890,10 +948,12 @@ def run_pipeline(
     # Banner
     mode = "streaming" if stream else "sequential"
     console.print()
-    console.print(Panel.fit(
-        f"[bold]ApplyPilot Pipeline[/bold] ({mode})",
-        border_style="blue",
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold]ApplyPilot Pipeline[/bold] ({mode})",
+            border_style="blue",
+        )
+    )
     console.print(f"  Min score: {min_score}")
     console.print(f"  Max age:   {max_age_days}d")
     console.print(f"  Limit:     {effective_limit} jobs/batch")
@@ -921,15 +981,25 @@ def run_pipeline(
     try:
         if stream:
             clear_stream_stop_request()
-            result = _run_streaming(ordered, min_score,
-                                    max_age_days=max_age_days,
-                                    limit=effective_limit, workers=workers,
-                                    sources=sources, doc_format=doc_format)
+            result = _run_streaming(
+                ordered,
+                min_score,
+                max_age_days=max_age_days,
+                limit=effective_limit,
+                workers=workers,
+                sources=sources,
+                doc_format=doc_format,
+            )
         else:
-            result = _run_sequential(ordered, min_score,
-                                     max_age_days=max_age_days,
-                                     limit=effective_limit, workers=workers,
-                                     sources=sources, doc_format=doc_format)
+            result = _run_sequential(
+                ordered,
+                min_score,
+                max_age_days=max_age_days,
+                limit=effective_limit,
+                workers=workers,
+                sources=sources,
+                doc_format=doc_format,
+            )
     finally:
         # Always remove file handler, even on crash
         if file_handler:

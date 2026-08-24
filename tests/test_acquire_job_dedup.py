@@ -21,6 +21,8 @@ flips a single assertion rather than the entire test file.
 
 from __future__ import annotations
 
+from datetime import UTC
+
 import pytest
 
 
@@ -29,9 +31,11 @@ def seed_job(seed_job):
     """Override the conftest fixture: acquire_job only ever considers
     state == 'ready_to_apply', so these selection-logic tests need
     candidates seeded in that state by default."""
+
     def _seed(conn, **overrides):
         overrides.setdefault("state", "ready_to_apply")
         return seed_job(conn, **overrides)
+
     return _seed
 
 
@@ -42,13 +46,14 @@ def _setup_apply_env(monkeypatch) -> None:
     # company_limits.yaml — return wide-open defaults so the cap doesn't
     # interfere with the dedup/NULL-url decisions under test.
     monkeypatch.setattr(
-        config, "get_company_limit", lambda key: (-1, 30), raising=False,
+        config,
+        "get_company_limit",
+        lambda key: (-1, 30),
+        raising=False,
     )
 
 
-def test_acquire_skips_job_when_other_row_already_applied(
-    tmp_db, seed_job, monkeypatch
-):
+def test_acquire_skips_job_when_other_row_already_applied(tmp_db, seed_job, monkeypatch):
     """Two queue rows → same application_url → applying once locks the
     other row out, even though they have different listing URLs."""
     _setup_apply_env(monkeypatch)
@@ -60,26 +65,30 @@ def test_acquire_skips_job_when_other_row_already_applied(
 
     # First listing — already applied.
     seed_job(
-        conn, url_suffix="li-original",
+        conn,
+        url_suffix="li-original",
         url="https://www.linkedin.com/jobs/view/4377839705",
         application_url=shared_apply_url,
         apply_status="applied",
-        fit_score=10, company="overstory",
+        fit_score=10,
+        company="overstory",
     )
     # Second listing — different URL, same upstream application_url.
     seed_job(
-        conn, url_suffix="li-repost",
+        conn,
+        url_suffix="li-repost",
         url="https://www.linkedin.com/jobs/view/4380167634",
         application_url=shared_apply_url,
         apply_status=None,
-        fit_score=10, company="overstory",
+        fit_score=10,
+        company="overstory",
     )
 
     job = acquire_job(min_score=10, max_age_days=0)
     assert job is None, (
         "Expected no acquireable jobs — the only candidate's "
         "application_url is already in flight on a sibling row, "
-        "got: %r" % (job,)
+        f"got: {job!r}"
     )
 
 
@@ -91,18 +100,22 @@ def test_acquire_skips_when_other_row_in_progress(tmp_db, seed_job, monkeypatch)
     conn = tmp_db()
     shared = "https://job-boards.greenhouse.io/temporaltechnologies/jobs/4290103007"
     seed_job(
-        conn, url_suffix="lock-1",
+        conn,
+        url_suffix="lock-1",
         url="https://www.linkedin.com/jobs/view/1",
         application_url=shared,
         apply_status="in_progress",
-        fit_score=10, company="temporal",
+        fit_score=10,
+        company="temporal",
     )
     seed_job(
-        conn, url_suffix="lock-2",
+        conn,
+        url_suffix="lock-2",
         url="https://www.linkedin.com/jobs/view/2",
         application_url=shared,
         apply_status=None,
-        fit_score=10, company="temporal",
+        fit_score=10,
+        company="temporal",
     )
 
     assert acquire_job(min_score=10, max_age_days=0) is None
@@ -116,20 +129,20 @@ def test_acquire_does_not_block_self(tmp_db, seed_job, monkeypatch):
 
     conn = tmp_db()
     seed_job(
-        conn, url_suffix="solo",
+        conn,
+        url_suffix="solo",
         url="https://www.linkedin.com/jobs/view/solo",
         application_url="https://boards.greenhouse.io/acme/jobs/123",
         apply_status=None,
-        fit_score=10, company="acme",
+        fit_score=10,
+        company="acme",
     )
     job = acquire_job(min_score=10, max_age_days=0)
     assert job is not None, "Solo candidate must be acquireable"
     assert job["url"] == "https://www.linkedin.com/jobs/view/solo"
 
 
-def test_acquire_skips_jobs_with_null_application_url(
-    tmp_db, seed_job, monkeypatch
-):
+def test_acquire_skips_jobs_with_null_application_url(tmp_db, seed_job, monkeypatch):
     """Jobs without an extracted application_url must never be acquired —
     the agent has nothing to navigate to."""
     _setup_apply_env(monkeypatch)
@@ -137,26 +150,28 @@ def test_acquire_skips_jobs_with_null_application_url(
 
     conn = tmp_db()
     seed_job(
-        conn, url_suffix="no-apply-url",
+        conn,
+        url_suffix="no-apply-url",
         url="https://www.linkedin.com/jobs/view/no-apply-url",
         application_url=None,
         apply_status=None,
-        fit_score=10, company="acme",
+        fit_score=10,
+        company="acme",
     )
     seed_job(
-        conn, url_suffix="empty-apply-url",
+        conn,
+        url_suffix="empty-apply-url",
         url="https://www.linkedin.com/jobs/view/empty",
         application_url="",
         apply_status=None,
-        fit_score=10, company="acme",
+        fit_score=10,
+        company="acme",
     )
 
     assert acquire_job(min_score=10, max_age_days=0) is None
 
 
-def test_acquire_picks_valid_when_others_are_null(
-    tmp_db, seed_job, monkeypatch
-):
+def test_acquire_picks_valid_when_others_are_null(tmp_db, seed_job, monkeypatch):
     """When multiple candidates exist and only one has a valid
     application_url, that's the one that fires."""
     _setup_apply_env(monkeypatch)
@@ -164,25 +179,31 @@ def test_acquire_picks_valid_when_others_are_null(
 
     conn = tmp_db()
     seed_job(
-        conn, url_suffix="bad-1",
+        conn,
+        url_suffix="bad-1",
         url="https://www.linkedin.com/jobs/view/bad-1",
         application_url=None,
         apply_status=None,
-        fit_score=10, company="acme",
+        fit_score=10,
+        company="acme",
     )
     seed_job(
-        conn, url_suffix="bad-2",
+        conn,
+        url_suffix="bad-2",
         url="https://www.linkedin.com/jobs/view/bad-2",
         application_url="",
         apply_status=None,
-        fit_score=10, company="acme",
+        fit_score=10,
+        company="acme",
     )
     seed_job(
-        conn, url_suffix="good",
+        conn,
+        url_suffix="good",
         url="https://www.linkedin.com/jobs/view/good",
         application_url="https://boards.greenhouse.io/acme/jobs/9",
         apply_status=None,
-        fit_score=10, company="acme",
+        fit_score=10,
+        company="acme",
     )
 
     job = acquire_job(min_score=10, max_age_days=0)
@@ -190,31 +211,33 @@ def test_acquire_picks_valid_when_others_are_null(
     assert job["url"] == "https://www.linkedin.com/jobs/view/good"
 
 
-def test_acquire_prefers_unapplied_company_over_higher_score(
-    tmp_db, seed_job, monkeypatch
-):
+def test_acquire_prefers_unapplied_company_over_higher_score(tmp_db, seed_job, monkeypatch):
     """Round-robin within a run: companies with FEWER in-flight applies
     win over higher-scoring jobs at companies we've already applied to.
     "Apply to each company at least once before picking a second role."
     """
     _setup_apply_env(monkeypatch)
+    from datetime import datetime, timedelta
+
     from applypilot.apply.launcher import acquire_job
-    from datetime import datetime, timedelta, timezone
 
     conn = tmp_db()
-    recent = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
+    recent = (datetime.now(UTC) - timedelta(days=2)).isoformat()
 
     # Acme already has one applied — same company, fresh tailored row at
     # the highest score. Without round-robin this would fire next.
     seed_job(
-        conn, url_suffix="acme-applied",
+        conn,
+        url_suffix="acme-applied",
         company="acme",
         application_url="https://boards.greenhouse.io/acme/jobs/100",
-        apply_status="applied", applied_at=recent,
+        apply_status="applied",
+        applied_at=recent,
         fit_score=10,
     )
     seed_job(
-        conn, url_suffix="acme-pending",
+        conn,
+        url_suffix="acme-pending",
         company="acme",
         application_url="https://boards.greenhouse.io/acme/jobs/101",
         apply_status=None,
@@ -223,7 +246,8 @@ def test_acquire_prefers_unapplied_company_over_higher_score(
 
     # Beta has zero in-flight — lower score but should fire first.
     seed_job(
-        conn, url_suffix="beta-pending",
+        conn,
+        url_suffix="beta-pending",
         company="beta",
         application_url="https://boards.greenhouse.io/beta/jobs/200",
         apply_status=None,
@@ -238,9 +262,7 @@ def test_acquire_prefers_unapplied_company_over_higher_score(
     )
 
 
-def test_acquire_falls_back_to_higher_score_when_in_flight_tied(
-    tmp_db, seed_job, monkeypatch
-):
+def test_acquire_falls_back_to_higher_score_when_in_flight_tied(tmp_db, seed_job, monkeypatch):
     """When two candidates are at the same in-flight count, fit_score
     wins (so the round-robin sort is stable + still score-aware)."""
     _setup_apply_env(monkeypatch)
@@ -248,14 +270,16 @@ def test_acquire_falls_back_to_higher_score_when_in_flight_tied(
 
     conn = tmp_db()
     seed_job(
-        conn, url_suffix="alpha-9",
+        conn,
+        url_suffix="alpha-9",
         company="alpha",
         application_url="https://boards.greenhouse.io/alpha/jobs/1",
         apply_status=None,
         fit_score=9,
     )
     seed_job(
-        conn, url_suffix="beta-10",
+        conn,
+        url_suffix="beta-10",
         company="beta",
         application_url="https://boards.greenhouse.io/beta/jobs/1",
         apply_status=None,

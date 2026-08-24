@@ -1,4 +1,5 @@
 """Tests for the Lever ATS direct-API scraper."""
+
 from __future__ import annotations
 
 import sys
@@ -11,8 +12,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 # ── Location composition ────────────────────────────────────────────────────
 
+
 def test_location_string_includes_workplace_type():
     from applypilot.discovery.lever import _location_string
+
     posting = {
         "categories": {"location": "Seattle, WA"},
         "workplaceType": "hybrid",
@@ -24,6 +27,7 @@ def test_location_string_remote_workplace_type():
     """Remote workplaceType should land in the location string so the
     location filter's remote-allowlist fires (location=remote → kept)."""
     from applypilot.discovery.lever import _location_string
+
     posting = {
         "categories": {"location": "United States"},
         "workplaceType": "remote",
@@ -36,6 +40,7 @@ def test_location_string_remote_workplace_type():
 def test_location_string_skips_onsite_label():
     """workplaceType="on-site" doesn't get prepended (it's the default)."""
     from applypilot.discovery.lever import _location_string
+
     posting = {
         "categories": {"location": "Seattle, WA"},
         "workplaceType": "on-site",
@@ -45,6 +50,7 @@ def test_location_string_skips_onsite_label():
 
 def test_location_string_dedupes_alllocations():
     from applypilot.discovery.lever import _location_string
+
     posting = {
         "categories": {
             "location": "Seattle, WA",
@@ -59,21 +65,22 @@ def test_location_string_dedupes_alllocations():
 
 def test_location_string_blank_inputs():
     from applypilot.discovery.lever import _location_string
+
     assert _location_string({}) == ""
     assert _location_string({"categories": {}}) == ""
 
 
 # ── Description composition ────────────────────────────────────────────────
 
+
 def test_description_text_combines_html_and_lists():
     from applypilot.discovery.lever import _description_text
+
     posting = {
         "description": "<p>About the role.</p>",
         "lists": [
-            {"text": "What you'll do",
-             "content": "<ul><li>Ship code</li><li>Mentor</li></ul>"},
-            {"text": "Requirements",
-             "content": "<ul><li>5y experience</li></ul>"},
+            {"text": "What you'll do", "content": "<ul><li>Ship code</li><li>Mentor</li></ul>"},
+            {"text": "Requirements", "content": "<ul><li>5y experience</li></ul>"},
         ],
         "additional": "<p>Equal opportunity employer.</p>",
     }
@@ -88,15 +95,18 @@ def test_description_text_combines_html_and_lists():
 
 def test_description_text_handles_empty_posting():
     from applypilot.discovery.lever import _description_text
+
     assert _description_text({}) == ""
 
 
 # ── End-to-end with mocked HTTP fetch ──────────────────────────────────────
 
+
 @pytest.fixture
 def mock_lever_api(monkeypatch):
     """Patch the shared fetch helper to return canned data."""
     from applypilot.discovery import ats_common
+
     captured = {"url": None}
 
     def fake_fetch(url, timeout=20.0):
@@ -112,10 +122,7 @@ def mock_lever_api(monkeypatch):
                 },
                 "workplaceType": "hybrid",
                 "description": "<p>Join us building stuff.</p>",
-                "lists": [
-                    {"text": "What you'll do",
-                     "content": "<ul><li>Ship code</li></ul>"}
-                ],
+                "lists": [{"text": "What you'll do", "content": "<ul><li>Ship code</li></ul>"}],
                 "additional": "",
                 "applyUrl": "https://jobs.lever.co/acme/abc-123/apply",
                 "hostedUrl": "https://jobs.lever.co/acme/abc-123",
@@ -137,8 +144,10 @@ def mock_lever_api(monkeypatch):
 
 def test_scrape_one_employer_filters_by_location(mock_lever_api):
     from applypilot.discovery.lever import scrape_one_employer
+
     jobs, err = scrape_one_employer(
-        "acme", {"name": "Acme"},
+        "acme",
+        {"name": "Acme"},
         accept_locs=["seattle", "remote", "wa"],
     )
     assert err is None
@@ -155,6 +164,7 @@ def test_scrape_one_employer_filters_by_location(mock_lever_api):
 
 def test_scrape_one_employer_hits_correct_endpoint(mock_lever_api):
     from applypilot.discovery.lever import scrape_one_employer
+
     scrape_one_employer("highspot", {"name": "Highspot"}, accept_locs=[])
     assert mock_lever_api["url"] == "https://api.lever.co/v0/postings/highspot?mode=json"
 
@@ -162,6 +172,7 @@ def test_scrape_one_employer_hits_correct_endpoint(mock_lever_api):
 def test_load_employers_reads_yaml():
     """Sanity-check the registry file is shipped and parsable."""
     from applypilot.discovery.lever import load_employers
+
     employers = load_employers()
     # The bootstrap registry has at least the 4 verified slugs.
     assert "highspot" in employers

@@ -1,4 +1,5 @@
 """Tests for the Ashby ATS direct-API scraper."""
+
 from __future__ import annotations
 
 import sys
@@ -11,10 +12,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 # ── Location composition ────────────────────────────────────────────────────
 
+
 def test_location_string_remote_workplace_type():
     """workplaceType=remote should land "remote" first so the location filter's
     remote-allowlist fires."""
     from applypilot.discovery.ashby import _location_string
+
     posting = {
         "location": "United States",
         "workplaceType": "Remote",
@@ -28,18 +31,21 @@ def test_location_string_isremote_alone():
     """isRemote=True should also surface 'remote' even if workplaceType is
     blank or hybrid."""
     from applypilot.discovery.ashby import _location_string
+
     posting = {"location": "Seattle, WA", "isRemote": True}
     assert "remote" in _location_string(posting).lower()
 
 
 def test_location_string_skips_onsite_label():
     from applypilot.discovery.ashby import _location_string
+
     posting = {"location": "Seattle, WA", "workplaceType": "On-site"}
     assert _location_string(posting) == "Seattle, WA"
 
 
 def test_location_string_dedupes_secondary():
     from applypilot.discovery.ashby import _location_string
+
     posting = {
         "location": "Seattle",
         "secondaryLocations": ["Seattle", "Bellevue"],
@@ -53,6 +59,7 @@ def test_location_string_handles_secondary_dict_form():
     """secondaryLocations can be a list of strings OR a list of {location: ...}
     dicts depending on the employer's setup. Both should work."""
     from applypilot.discovery.ashby import _location_string
+
     posting = {
         "location": "Seattle",
         "secondaryLocations": [{"location": "New York"}, {"location": "Seattle"}],
@@ -66,10 +73,12 @@ def test_location_string_handles_secondary_dict_form():
 
 # ── End-to-end with mocked HTTP fetch ──────────────────────────────────────
 
+
 @pytest.fixture
 def mock_ashby_api(monkeypatch):
     """Patch the shared fetch helper to return canned data."""
     from applypilot.discovery import ats_common
+
     captured = {"url": None}
 
     def fake_fetch(url, timeout=20.0):
@@ -121,8 +130,10 @@ def mock_ashby_api(monkeypatch):
 def test_scrape_one_employer_filters_unlisted_jobs(mock_ashby_api):
     """isListed=False jobs should be skipped (drafts, internal, etc.)."""
     from applypilot.discovery.ashby import scrape_one_employer
+
     jobs, err = scrape_one_employer(
-        "acme", {"name": "Acme"},
+        "acme",
+        {"name": "Acme"},
         accept_locs=["seattle", "remote", "wa"],
     )
     assert err is None
@@ -134,8 +145,8 @@ def test_scrape_one_employer_filters_unlisted_jobs(mock_ashby_api):
 
 def test_scrape_one_employer_normalizes_fields(mock_ashby_api):
     from applypilot.discovery.ashby import scrape_one_employer
-    jobs, err = scrape_one_employer("acme", {"name": "Acme"},
-                                    accept_locs=["seattle", "remote", "wa"])
+
+    jobs, _err = scrape_one_employer("acme", {"name": "Acme"}, accept_locs=["seattle", "remote", "wa"])
     j = jobs[0]
     assert j["title"] == "Senior Software Engineer"
     assert j["url"] == "https://jobs.ashbyhq.com/acme/cb12cd4d"
@@ -146,12 +157,14 @@ def test_scrape_one_employer_normalizes_fields(mock_ashby_api):
 
 def test_scrape_one_employer_hits_correct_endpoint(mock_ashby_api):
     from applypilot.discovery.ashby import scrape_one_employer
+
     scrape_one_employer("motherduck", {"name": "MotherDuck"}, accept_locs=[])
     assert mock_ashby_api["url"] == "https://api.ashbyhq.com/posting-api/job-board/motherduck"
 
 
 def test_load_employers_reads_yaml():
     from applypilot.discovery.ashby import load_employers
+
     employers = load_employers()
     # Bootstrap registry has at least these verified slugs
     for slug in ("motherduck", "statsig", "deepgram", "commonroom"):

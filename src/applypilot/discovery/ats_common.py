@@ -13,6 +13,7 @@ This module owns that orchestration so each scraper just provides:
 
 See ``greenhouse.py``, ``lever.py``, ``ashby.py`` for the adapters.
 """
+
 from __future__ import annotations
 
 import json
@@ -23,7 +24,7 @@ import time
 import urllib.error
 import urllib.request
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from html.parser import HTMLParser
 
 import yaml
@@ -67,6 +68,7 @@ log = logging.getLogger(__name__)
 # a thin wrapper so no other code (tests, other scrapers importing it,
 # lever.py's re-use of greenhouse's stripper) needs to change.
 # ---------------------------------------------------------------------------
+
 
 class _StructureAwareHTMLStripper(HTMLParser):
     """Strip HTML tags to plain text while preserving list-item structure.
@@ -127,11 +129,11 @@ def strip_html_to_text(html: str | None) -> str:
     stripper = _StructureAwareHTMLStripper()
     try:
         stripper.feed(html)
-    except Exception:
+    except Exception:  # noqa: BLE001 - documented contract: "never raises" -- malformed HTML falls back to raw input rather than losing the description entirely
         return html
     return stripper.text()
 
-UTC = timezone.utc
+
 
 
 _HEADERS = {
@@ -178,7 +180,7 @@ def fetch_with_retry(
             if e.code == 404:
                 return None, last_err
             time.sleep(2 + attempt * 3)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - network fetch retry loop; any error triggers backoff and retry, not a crash
             last_err = f"{type(e).__name__}: {e}"
             time.sleep(2 + attempt * 3)
     return None, last_err or "unknown error"
@@ -216,10 +218,21 @@ def insert_normalized_jobs(
                     "discovered_at, posted_at, full_description, application_url, "
                     "detail_scraped_at, state) "
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (url, job.get("title"), None, job.get("description"),
-                     job.get("location"), site, strategy, now,
-                     job.get("posted_at"), full_description,
-                     job.get("application_url"), detail_scraped_at, initial_state),
+                    (
+                        url,
+                        job.get("title"),
+                        None,
+                        job.get("description"),
+                        job.get("location"),
+                        site,
+                        strategy,
+                        now,
+                        job.get("posted_at"),
+                        full_description,
+                        job.get("application_url"),
+                        detail_scraped_at,
+                        initial_state,
+                    ),
                 )
                 conn.execute(
                     "INSERT INTO job_state_transitions "
@@ -269,8 +282,8 @@ def run_ats_crawl(
     # Lazy import to avoid a config-bootstrap cycle when the scraper modules
     # are imported at test-collection time.
     from applypilot import config as _cfg
-    accept_locs = (_cfg.load_search_config()
-                   .get("location", {}) or {}).get("accept_patterns", []) or []
+
+    accept_locs = (_cfg.load_search_config().get("location", {}) or {}).get("accept_patterns", []) or []
 
     conn = get_connection()
     init_db()
@@ -293,14 +306,19 @@ def run_ats_crawl(
             grand_new += new
             grand_existing += existing
             grand_found += len(jobs)
-            log.info("  [%s] %s: %d found (%d new, %d existing)",
-                     slug, name, len(jobs), new, existing)
+            log.info("  [%s] %s: %d found (%d new, %d existing)", slug, name, len(jobs), new, existing)
         except Exception as e:
-            log.exception("%s scrape failed for %s: %s", label, slug, e)
+            log.exception("%s scrape failed for %s", label, slug)
             errors.append(f"{slug}: {e}")
 
-    log.info("%s crawl done: %d found (%d new, %d existing) across %d employers",
-             label, grand_found, grand_new, grand_existing, len(employers))
+    log.info(
+        "%s crawl done: %d found (%d new, %d existing) across %d employers",
+        label,
+        grand_found,
+        grand_new,
+        grand_existing,
+        len(employers),
+    )
 
     return {
         "found": grand_found,

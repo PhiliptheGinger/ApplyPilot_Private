@@ -28,17 +28,13 @@ ENV_PATH = APP_DIR / ".env"
 # Generated output
 # Keep ApplyPilot-generated documents separate from hand-maintained source resumes.
 PROJECT_GENERATED_RESUMES_DIR = PROJECT_ROOT / "data" / "resumes" / "applypilot"
-TAILORED_DIR = Path(
-    os.environ.get("APPLYPILOT_TAILORED_DIR", str(PROJECT_GENERATED_RESUMES_DIR))
-)
+TAILORED_DIR = Path(os.environ.get("APPLYPILOT_TAILORED_DIR", str(PROJECT_GENERATED_RESUMES_DIR)))
 
 # Submitted resume export destination:
 # - APPLYPILOT_COMPLETED_RESUMES_DIR overrides everything
 # - Default: data/resumes/applypilot/submitted
 _DEFAULT_COMPLETED_RESUMES_DIR = PROJECT_GENERATED_RESUMES_DIR / "submitted"
-COMPLETED_RESUMES_DIR = Path(
-    os.environ.get("APPLYPILOT_COMPLETED_RESUMES_DIR", str(_DEFAULT_COMPLETED_RESUMES_DIR))
-)
+COMPLETED_RESUMES_DIR = Path(os.environ.get("APPLYPILOT_COMPLETED_RESUMES_DIR", str(_DEFAULT_COMPLETED_RESUMES_DIR)))
 COVER_LETTER_DIR = APP_DIR / "cover_letters"
 TRACKING_DIR = APP_DIR / "tracking"
 LOG_DIR = APP_DIR / "logs"
@@ -75,7 +71,8 @@ def get_chrome_path() -> str:
     if system == "Windows":
         candidates = [
             Path(os.environ.get("PROGRAMFILES", r"C:\Program Files")) / "Google/Chrome/Application/chrome.exe",
-            Path(os.environ.get("PROGRAMFILES(X86)", r"C:\Program Files (x86)")) / "Google/Chrome/Application/chrome.exe",
+            Path(os.environ.get("PROGRAMFILES(X86)", r"C:\Program Files (x86)"))
+            / "Google/Chrome/Application/chrome.exe",
             Path(os.environ.get("LOCALAPPDATA", "")) / "Google/Chrome/Application/chrome.exe",
         ]
     elif system == "Darwin":
@@ -107,9 +104,7 @@ def get_chrome_path() -> str:
         if found:
             return found
 
-    raise FileNotFoundError(
-        "Chrome/Chromium not found. Install Chrome or set CHROME_PATH environment variable."
-    )
+    raise FileNotFoundError("Chrome/Chromium not found. Install Chrome or set CHROME_PATH environment variable.")
 
 
 def get_chrome_user_data() -> Path:
@@ -143,10 +138,9 @@ def ensure_dirs():
 def load_profile() -> dict:
     """Load the canonical profile, preferring the project-local data source."""
     import json
+
     if not PROFILE_PATH.exists():
-        raise FileNotFoundError(
-            f"Profile not found at {PROFILE_PATH}. Run `applypilot init` first."
-        )
+        raise FileNotFoundError(f"Profile not found at {PROFILE_PATH}. Run `applypilot init` first.")
     profile = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
     # Lightweight validation for application_profile when present
     _validate_application_profile(profile)
@@ -271,7 +265,14 @@ def _validate_application_profile(profile: dict) -> None:
             if not isinstance(item, dict):
                 continue
             # forbidden application-only keys that must not be exposed on resumes
-            for forbidden in ("supervisor_name", "supervisor_phone", "supervisor_email", "starting_salary", "ending_salary", "may_contact_employer"):
+            for forbidden in (
+                "supervisor_name",
+                "supervisor_phone",
+                "supervisor_email",
+                "starting_salary",
+                "ending_salary",
+                "may_contact_employer",
+            ):
                 if forbidden in item and item.get("resume_allowed"):
                     raise ValueError(f"{forbidden} is application-only and must not be resume_allowed in {key}")
 
@@ -279,6 +280,7 @@ def _validate_application_profile(profile: dict) -> None:
 def load_search_config() -> dict:
     """Load search configuration from ~/.applypilot/searches.yaml."""
     import yaml
+
     if not SEARCH_CONFIG_PATH.exists():
         # Fall back to package-shipped example
         example = CONFIG_DIR / "searches.example.yaml"
@@ -291,6 +293,7 @@ def load_search_config() -> dict:
 def load_sites_config() -> dict:
     """Load sites.yaml configuration (sites list, manual_ats, blocked, etc.)."""
     import yaml
+
     path = CONFIG_DIR / "sites.yaml"
     if not path.exists():
         return {}
@@ -347,22 +350,22 @@ def load_base_urls() -> dict[str, str | None]:
 # ---------------------------------------------------------------------------
 
 DEFAULTS = {
-    "min_score": 8,                           # was 7; per 2026-04-23 funnel spec
-    "max_job_age_days": 14,                   # stale-job cutoff (discovered_at)
-    "max_in_flight_per_company": 3,           # hard cap per company (apply-time)
-    "in_flight_window_days": 30,              # window for in-flight count
-    "max_tailored_per_company": 10,           # cap per company at tailor stage
+    "min_score": 8,  # was 7; per 2026-04-23 funnel spec
+    "max_job_age_days": 14,  # stale-job cutoff (discovered_at)
+    "max_in_flight_per_company": 3,  # hard cap per company (apply-time)
+    "in_flight_window_days": 30,  # window for in-flight count
+    "max_tailored_per_company": 10,  # cap per company at tailor stage
     "max_apply_attempts": 3,
     "max_tailor_attempts": 5,
     "poll_interval": 60,
     "apply_timeout": 300,
     "viewport": "1280x900",
     # applypilot run-continuous (scheduler.py) -- all overridable via CLI flags.
-    "ready_buffer": 5,                        # target ready_to_apply size when Claude is available
-    "ready_buffer_unknown": 2,                 # smaller target used during EXHAUSTED_UNKNOWN_RESET/AUTH_FAILURE/TRANSIENT_ERROR
-    "scheduler_max_batch": 20,                 # hard per-cycle ceiling regardless of estimated capacity
-    "scheduler_safety_margin": 0.5,            # discount applied to measured tailor/cover throughput
-    "scheduler_cache_max_age": 600,            # seconds -- ~/.claude.json cache older than this is treated as unusable
+    "ready_buffer": 5,  # target ready_to_apply size when Claude is available
+    "ready_buffer_unknown": 2,  # smaller target used during EXHAUSTED_UNKNOWN_RESET/AUTH_FAILURE/TRANSIENT_ERROR
+    "scheduler_max_batch": 20,  # hard per-cycle ceiling regardless of estimated capacity
+    "scheduler_safety_margin": 0.5,  # discount applied to measured tailor/cover throughput
+    "scheduler_cache_max_age": 600,  # seconds -- ~/.claude.json cache older than this is treated as unusable
     "scheduler_discover_interval": 3600,
 }
 
@@ -370,6 +373,7 @@ DEFAULTS = {
 def load_env():
     """Load environment variables from ~/.applypilot/.env if it exists."""
     from dotenv import load_dotenv
+
     if ENV_PATH.exists():
         load_dotenv(ENV_PATH)
     # Also try CWD .env as fallback
@@ -431,6 +435,7 @@ def check_tier(required: int, feature: str) -> None:
         return
 
     from rich.console import Console
+
     _console = Console(stderr=True)
 
     missing: list[str] = []

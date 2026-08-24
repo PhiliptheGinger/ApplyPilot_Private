@@ -6,6 +6,7 @@ worker B's clean filename between B's "build prompt" and "spawn claude" steps.
 
 After the fix: each worker writes to APPLY_WORKER_DIR/f'worker-{wid}/'.
 """
+
 from __future__ import annotations
 
 import json
@@ -110,9 +111,11 @@ def _build_job(resume_txt: Path) -> dict:
 def _mock_db_calls(monkeypatch):
     """Stub out DB-dependent helpers so tests don't need a live DB."""
     from applypilot.apply import prompt as prompt_module
+
     monkeypatch.setattr(prompt_module, "get_all_qa", lambda **_kw: [])
     from applypilot import database
-    monkeypatch.setattr(database, "get_accounts_for_prompt", lambda: {})
+
+    monkeypatch.setattr(database, "get_accounts_for_prompt", dict)
 
 
 class TestPerWorkerResumeDir:
@@ -123,20 +126,20 @@ class TestPerWorkerResumeDir:
         _mock_db_calls(monkeypatch)
 
         from applypilot.apply.prompt import build_prompt
+
         job = _build_job(resume_txt)
         build_prompt(job, tailored_resume="Resume text", worker_id=3, doc_format="pdf")
 
         worker_dir = apply_worker_dir / "worker-3"
-        assert worker_dir.exists(), \
-            f"worker-3 dir not created. apply-workers contents: " \
-            f"{sorted(p.name for p in apply_worker_dir.iterdir())}"
+        assert worker_dir.exists(), (
+            f"worker-3 dir not created. apply-workers contents: {sorted(p.name for p in apply_worker_dir.iterdir())}"
+        )
         upload = worker_dir / "Test_User_Resume.pdf"
-        assert upload.exists(), \
-            f"resume not in worker-3/. dir contents: " \
-            f"{sorted(p.name for p in worker_dir.iterdir())}"
+        assert upload.exists(), f"resume not in worker-3/. dir contents: {sorted(p.name for p in worker_dir.iterdir())}"
         # The shared 'current/' dir from the buggy behavior must NOT exist.
-        assert not (apply_worker_dir / "current").exists(), \
+        assert not (apply_worker_dir / "current").exists(), (
             "shared 'current/' dir was created — fix did not take effect"
+        )
 
     def test_two_workers_do_not_collide(self, tmp_path, monkeypatch):
         """Workers 0 and 1 must write to separate dirs and not overwrite each other."""
@@ -145,6 +148,7 @@ class TestPerWorkerResumeDir:
         _mock_db_calls(monkeypatch)
 
         from applypilot.apply.prompt import build_prompt
+
         job = _build_job(resume_txt)
         build_prompt(job, tailored_resume="x", worker_id=0, doc_format="pdf")
         build_prompt(job, tailored_resume="x", worker_id=1, doc_format="pdf")

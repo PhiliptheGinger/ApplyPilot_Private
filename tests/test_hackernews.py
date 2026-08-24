@@ -10,7 +10,6 @@ import sqlite3
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
@@ -46,6 +45,7 @@ class TestDeobfuscateEmail(unittest.TestCase):
 
     def _run(self, text: str) -> str:
         from applypilot.discovery.hackernews import _deobfuscate_email
+
         return _deobfuscate_email(text)
 
     def test_bracket_at(self):
@@ -74,6 +74,7 @@ class TestIsEmail(unittest.TestCase):
 
     def _run(self, text: str) -> bool:
         from applypilot.discovery.hackernews import _is_email
+
         return _is_email(text)
 
     def test_plain_email(self):
@@ -100,12 +101,11 @@ class TestStoreHnJob(unittest.TestCase):
 
     def _store(self, job: dict) -> bool:
         from applypilot.discovery.hackernews import _store_hn_job
+
         return _store_hn_job(self.conn, job, "Who is Hiring? (March 2026)")
 
     def _get_url(self, title: str) -> str | None:
-        row = self.conn.execute(
-            "SELECT url FROM jobs WHERE title = ?", (title,)
-        ).fetchone()
+        row = self.conn.execute("SELECT url FROM jobs WHERE title = ?", (title,)).fetchone()
         return row[0] if row else None
 
     def test_http_url_stored_directly(self):
@@ -136,12 +136,12 @@ class TestStoreHnJob(unittest.TestCase):
 
     def test_no_url_gets_synthetic_hn_url(self):
         """Contact-only posts without any URL get a stable synthetic HN URL."""
-        self._store({"url": None, "title": "Data Eng", "company": "Acme",
-                     "contact": "hiring@acme.com"})
+        self._store({"url": None, "title": "Data Eng", "company": "Acme", "contact": "hiring@acme.com"})
         url = self._get_url("Data Eng")
         self.assertIsNotNone(url)
-        self.assertTrue(url.startswith("https://news.ycombinator.com/item?id="),
-                        f"Expected synthetic HN URL, got: {url}")
+        self.assertTrue(
+            url.startswith("https://news.ycombinator.com/item?id="), f"Expected synthetic HN URL, got: {url}"
+        )
 
     def test_duplicate_url_returns_false(self):
         job = {"url": "https://company.com/job/42", "title": "PM", "company": "Acme"}
@@ -152,38 +152,35 @@ class TestStoreHnJob(unittest.TestCase):
 
     def test_contact_email_appended_to_description(self):
         """The deobfuscated contact email is stored in the description for the apply agent."""
-        self._store({
-            "url": "https://company.com/jobs/infra",
-            "title": "Infra Eng",
-            "company": "Acme",
-            "contact": "infra [at] company.com",
-            "description": "Great role.",
-        })
-        row = self.conn.execute(
-            "SELECT description FROM jobs WHERE title = ?", ("Infra Eng",)
-        ).fetchone()
+        self._store(
+            {
+                "url": "https://company.com/jobs/infra",
+                "title": "Infra Eng",
+                "company": "Acme",
+                "contact": "infra [at] company.com",
+                "description": "Great role.",
+            }
+        )
+        row = self.conn.execute("SELECT description FROM jobs WHERE title = ?", ("Infra Eng",)).fetchone()
         self.assertIn("infra@company.com", row[0])
 
     def test_posted_at_stored_when_provided(self):
         """The HN comment creation time is stored in the posted_at column."""
         from applypilot.discovery.hackernews import _store_hn_job
+
         _store_hn_job(
             self.conn,
             {"url": "https://company.com/jobs/sre", "title": "SRE", "company": "Acme"},
             "Who is Hiring? (March 2026)",
             posted_at="2026-03-02T17:30:00+00:00",
         )
-        row = self.conn.execute(
-            "SELECT posted_at FROM jobs WHERE title = ?", ("SRE",)
-        ).fetchone()
+        row = self.conn.execute("SELECT posted_at FROM jobs WHERE title = ?", ("SRE",)).fetchone()
         self.assertEqual(row[0], "2026-03-02T17:30:00+00:00")
 
     def test_posted_at_null_when_omitted(self):
         """Backwards-compat: callers that don't pass posted_at leave it NULL."""
         self._store({"url": "https://company.com/jobs/em", "title": "EM", "company": "Acme"})
-        row = self.conn.execute(
-            "SELECT posted_at FROM jobs WHERE title = ?", ("EM",)
-        ).fetchone()
+        row = self.conn.execute("SELECT posted_at FROM jobs WHERE title = ?", ("EM",)).fetchone()
         self.assertIsNone(row[0])
 
     def test_non_http_non_domain_url_gets_synthetic(self):

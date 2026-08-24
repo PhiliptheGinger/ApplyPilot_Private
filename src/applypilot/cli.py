@@ -101,6 +101,7 @@ def _resolve_title_reject_patterns(
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _bootstrap() -> None:
     """Common setup: load env, create dirs, init DB."""
     from applypilot.config import ensure_dirs, load_env
@@ -121,10 +122,13 @@ def _version_callback(value: bool) -> None:
 # Commands
 # ---------------------------------------------------------------------------
 
+
 @app.callback()
 def main(
     version: bool = typer.Option(
-        False, "--version", "-V",
+        False,
+        "--version",
+        "-V",
         help="Show version and exit.",
         callback=_version_callback,
         is_eager=True,
@@ -145,51 +149,62 @@ def init() -> None:
 def run(
     stages: list[str] | None = typer.Argument(
         None,
-        help=(
-            "Pipeline stages to run. "
-            f"Valid: {', '.join(VALID_STAGES)}, all. "
-            "Defaults to 'all' if omitted."
-        ),
+        help=(f"Pipeline stages to run. Valid: {', '.join(VALID_STAGES)}, all. Defaults to 'all' if omitted."),
     ),
     min_score: int = typer.Option(
-        config.DEFAULTS["min_score"], "--min-score",
+        config.DEFAULTS["min_score"],
+        "--min-score",
         help=f"Minimum fit score for tailor/cover stages (default: {config.DEFAULTS['min_score']}).",
     ),
     max_age_days: int = typer.Option(
-        config.DEFAULTS["max_job_age_days"], "--max-age-days",
+        config.DEFAULTS["max_job_age_days"],
+        "--max-age-days",
         help=(
             "Skip jobs whose discovered_at is older than this many days. "
             "0 = no age filter. "
             f"Default: {config.DEFAULTS['max_job_age_days']}."
         ),
     ),
-    limit: int | None = typer.Option(None, "--limit", "-l", help="Max jobs per stage (score/tailor/cover). Default: 20."),
+    limit: int | None = typer.Option(
+        None, "--limit", "-l", help="Max jobs per stage (score/tailor/cover). Default: 20."
+    ),
     workers: int = typer.Option(
-        1, "--workers", "-w",
+        1,
+        "--workers",
+        "-w",
         help="Parallel threads for Workday/smart-extract stages. (JobSpy runs sequentially regardless.)",
     ),
     stream: bool = typer.Option(False, "--stream", help="Run stages concurrently (streaming mode)."),
-    doc_format: str = typer.Option("docx", "--doc-format", help="Document format for resumes/cover letters: docx (default) or pdf."),
+    doc_format: str = typer.Option(
+        "docx", "--doc-format", help="Document format for resumes/cover letters: docx (default) or pdf."
+    ),
     dry_run: bool = typer.Option(False, "--dry-run", help="Preview stages without executing."),
     source: list[str] | None = typer.Option(
-        None, "--source", "-s",
+        None,
+        "--source",
+        "-s",
         help="Discovery source(s) to run. Repeatable: --source hn --source jobspy. "
-             "Aliases: hn=hackernews, smart=smartextract. Only affects the discover stage.",
+        "Aliases: hn=hackernews, smart=smartextract. Only affects the discover stage.",
     ),
     list_sources: bool = typer.Option(
-        False, "--list-sources",
+        False,
+        "--list-sources",
         help="List available discovery sources and exit.",
     ),
     auto_reject_titles: bool = typer.Option(
-        False, "--auto-reject-titles",
+        False,
+        "--auto-reject-titles",
         help="Before running stages, bulk-archive title-pattern matches (senior/staff/lead/etc).",
     ),
     reject_pattern: list[str] | None = typer.Option(
-        None, "--reject-pattern",
+        None,
+        "--reject-pattern",
         help="Regex title reject pattern. Repeatable. Used with --auto-reject-titles.",
     ),
     quiet: bool = typer.Option(
-        False, "--quiet", "-q",
+        False,
+        "--quiet",
+        "-q",
         help=(
             "Suppress per-job/HTTP console logging (stage banners and the final "
             "summary still print). Full detail still goes to the per-run log "
@@ -197,7 +212,8 @@ def run(
         ),
     ),
     local_first: bool = typer.Option(
-        False, "--local-first",
+        False,
+        "--local-first",
         help=(
             "Before the cloud tailoring call, ask the local model "
             "(APPLYPILOT_LOCAL_LLM_URL) for a cheap tailoring plan that guides "
@@ -215,6 +231,7 @@ def run(
     # Handle --list-sources before bootstrap (no DB/env needed)
     if list_sources:
         from applypilot.pipeline import _SOURCE_ALIASES, DISCOVERY_SOURCES
+
         console.print("\n[bold]Available discovery sources:[/bold]\n")
         for name, desc in DISCOVERY_SOURCES.items():
             aliases = [a for a, canon in _SOURCE_ALIASES.items() if canon == name]
@@ -232,10 +249,7 @@ def run(
     # Validate stage names
     for s in stage_list:
         if s != "all" and s not in VALID_STAGES:
-            console.print(
-                f"[red]Unknown stage:[/red] '{s}'. "
-                f"Valid stages: {', '.join(VALID_STAGES)}, all"
-            )
+            console.print(f"[red]Unknown stage:[/red] '{s}'. Valid stages: {', '.join(VALID_STAGES)}, all")
             raise typer.Exit(code=1)
 
     # Resolve --source aliases
@@ -249,6 +263,7 @@ def run(
 
     if auto_reject_titles:
         from applypilot.database import reject_jobs_by_title_patterns
+
         patterns = _resolve_title_reject_patterns(
             use_defaults=True,
             use_config=True,
@@ -259,20 +274,22 @@ def run(
         else:
             res = reject_jobs_by_title_patterns(patterns, dry_run=dry_run, sample_limit=5)
             verb = "would archive" if dry_run else "archived"
-            console.print(
-                f"[cyan]Title reject pass:[/cyan] {verb} {res['updated']} / {res['matched']} matched job(s)"
-            )
+            console.print(f"[cyan]Title reject pass:[/cyan] {verb} {res['updated']} / {res['matched']} matched job(s)")
 
     # Validate --doc-format
     from applypilot.scoring.pdf import VALID_DOC_FORMATS
+
     if doc_format not in VALID_DOC_FORMATS:
-        console.print(f"[red]Invalid --doc-format:[/red] '{doc_format}'. Must be one of: {', '.join(VALID_DOC_FORMATS)}")
+        console.print(
+            f"[red]Invalid --doc-format:[/red] '{doc_format}'. Must be one of: {', '.join(VALID_DOC_FORMATS)}"
+        )
         raise typer.Exit(code=1)
 
     # Gate AI stages behind Tier 2
     llm_stages = {"score", "tailor", "cover"}
     if any(s in stage_list for s in llm_stages) or "all" in stage_list:
         from applypilot.config import check_tier
+
         check_tier(2, "AI scoring/tailoring")
 
     result = run_pipeline(
@@ -300,7 +317,11 @@ def test_local_cmd() -> None:
     """
     _bootstrap()
     from applypilot.llm import (
-        ModelEntry, is_local_configured, local_available, local_openai_base_url, LLMClient,
+        LLMClient,
+        ModelEntry,
+        is_local_configured,
+        local_available,
+        local_openai_base_url,
     )
 
     if not is_local_configured():
@@ -342,11 +363,8 @@ def test_local_cmd() -> None:
         )
         console.print(f"[dim]Response: {reply[:80]}[/dim]")
         console.print("[green]Local LLM is working.[/green]")
-    except Exception as exc:
-        console.print(
-            f"[yellow]Chat probe failed (endpoint reachable but model may not be loaded): "
-            f"{exc}[/yellow]"
-        )
+    except Exception as exc:  # noqa: BLE001 - CLI diagnostic probe of an unreliable local LLM endpoint; must degrade to a friendly error + exit code, not an unhandled traceback
+        console.print(f"[yellow]Chat probe failed (endpoint reachable but model may not be loaded): {exc}[/yellow]")
         raise typer.Exit(code=1)
 
 
@@ -354,10 +372,11 @@ def test_local_cmd() -> None:
 def debug_local_plan_cmd(
     url: str | None = typer.Option(None, "--url", help="Job URL (or a partial match) to debug."),
     job_id: int | None = typer.Option(
-        None, "--job-id",
+        None,
+        "--job-id",
         help="Job's database row id (see the leftmost column in e.g. `applypilot status`-adjacent "
-             "SQL, or note it down as jobs are discovered) -- lets you debug a stored job without "
-             "retrieving its original URL.",
+        "SQL, or note it down as jobs are discovered) -- lets you debug a stored job without "
+        "retrieving its original URL.",
     ),
 ) -> None:
     """Show the local model's tailoring plan for one job -- WITHOUT
@@ -396,14 +415,14 @@ def debug_local_plan_cmd(
     select_cols = "rowid, url, title, site, application_url, full_description, fit_score, company"
     if job_id is not None:
         row = conn.execute(
-            f"SELECT {select_cols} FROM jobs WHERE rowid = ?", (job_id,),
+            f"SELECT {select_cols} FROM jobs WHERE rowid = ?",
+            (job_id,),
         ).fetchone()
         not_found_desc = f"--job-id {job_id}"
     else:
         like = f"%{url.split('?')[0].rstrip('/')}%"
         row = conn.execute(
-            f"SELECT {select_cols} FROM jobs WHERE url = ? OR url LIKE ? "
-            "ORDER BY discovered_at DESC LIMIT 1",
+            f"SELECT {select_cols} FROM jobs WHERE url = ? OR url LIKE ? ORDER BY discovered_at DESC LIMIT 1",
             (url, like),
         ).fetchone()
         not_found_desc = f"--url {url}"
@@ -445,7 +464,9 @@ def debug_local_plan_cmd(
         console.print("[dim]No bullet/numbered requirement lines detected in the description.[/dim]")
 
     if evidence:
-        t = Table(title="Retrieved profile evidence (deterministic, no LLM)", show_header=True, header_style="bold cyan")
+        t = Table(
+            title="Retrieved profile evidence (deterministic, no LLM)", show_header=True, header_style="bold cyan"
+        )
         t.add_column("Type")
         t.add_column("Item")
         t.add_column("Score", justify="right")
@@ -464,7 +485,8 @@ def debug_local_plan_cmd(
         t.add_column("Evidence", overflow="fold")
         for r in plan["requirements"]:
             t.add_row(
-                r["importance"], r["requirement"],
+                r["importance"],
+                r["requirement"],
                 "yes" if r["supported"] else "no",
                 "; ".join(r["resume_evidence"]),
             )
@@ -499,7 +521,8 @@ def debug_local_plan_cmd(
 @app.command()
 def revalidate_seniority(
     dry_run: bool = typer.Option(
-        False, "--dry-run",
+        False,
+        "--dry-run",
         help="Report matches without archiving anything.",
     ),
 ) -> None:
@@ -521,8 +544,7 @@ def revalidate_seniority(
     result = _revalidate(dry_run=dry_run)
     verb = "Would archive" if dry_run else "Archived"
     console.print(
-        f"[cyan]Seniority revalidation:[/cyan] {verb} {result['updated']} / "
-        f"{result['matched']} matched job(s)."
+        f"[cyan]Seniority revalidation:[/cyan] {verb} {result['updated']} / {result['matched']} matched job(s)."
     )
     if result["sample"]:
         t = Table(show_header=True, header_style="bold cyan")
@@ -538,40 +560,51 @@ def revalidate_seniority(
 @app.command("run-continuous")
 def run_continuous(
     ready_buffer: int = typer.Option(
-        config.DEFAULTS["ready_buffer"], "--ready-buffer",
+        config.DEFAULTS["ready_buffer"],
+        "--ready-buffer",
         help="Target ready_to_apply queue size while Claude is available.",
     ),
     ready_buffer_unknown: int = typer.Option(
-        config.DEFAULTS["ready_buffer_unknown"], "--ready-buffer-unknown",
+        config.DEFAULTS["ready_buffer_unknown"],
+        "--ready-buffer-unknown",
         help="Smaller target used while Claude's reset time is unknown or it's unavailable for auth/transient reasons.",
     ),
     poll_interval: int = typer.Option(
-        config.DEFAULTS["poll_interval"], "--poll-interval",
+        config.DEFAULTS["poll_interval"],
+        "--poll-interval",
         help="Seconds between planning cycles when Claude is available.",
     ),
     cache_max_age: float = typer.Option(
-        config.DEFAULTS["scheduler_cache_max_age"], "--cache-max-age",
+        config.DEFAULTS["scheduler_cache_max_age"],
+        "--cache-max-age",
         help="Seconds -- ~/.claude.json's cached usage state older than this is treated as unusable.",
     ),
     max_batch: int = typer.Option(
-        config.DEFAULTS["scheduler_max_batch"], "--max-batch",
+        config.DEFAULTS["scheduler_max_batch"],
+        "--max-batch",
         help="Hard per-cycle ceiling on tailor/cover work regardless of estimated capacity.",
     ),
     safety_margin: float = typer.Option(
-        config.DEFAULTS["scheduler_safety_margin"], "--safety-margin",
+        config.DEFAULTS["scheduler_safety_margin"],
+        "--safety-margin",
         help="Discount applied to measured tailor/cover throughput when estimating capacity before a known reset.",
     ),
     min_score: int = typer.Option(
-        config.DEFAULTS["min_score"], "--min-score",
+        config.DEFAULTS["min_score"],
+        "--min-score",
         help=f"Minimum fit score for tailor/cover/apply (default: {config.DEFAULTS['min_score']}).",
     ),
     max_age_days: int = typer.Option(
-        config.DEFAULTS["max_job_age_days"], "--max-age-days",
+        config.DEFAULTS["max_job_age_days"],
+        "--max-age-days",
         help=f"Skip jobs older than this many days (default: {config.DEFAULTS['max_job_age_days']}).",
     ),
-    doc_format: str = typer.Option("docx", "--doc-format", help="Document format for resumes/cover letters: docx (default) or pdf."),
+    doc_format: str = typer.Option(
+        "docx", "--doc-format", help="Document format for resumes/cover letters: docx (default) or pdf."
+    ),
     no_continuous_apply: bool = typer.Option(
-        False, "--no-continuous-apply",
+        False,
+        "--no-continuous-apply",
         help="Run the upstream scheduler only -- do not also run the continuous apply worker in this process.",
     ),
 ) -> None:
@@ -586,14 +619,19 @@ def run_continuous(
     _bootstrap()
 
     from applypilot.config import check_tier
+
     check_tier(2, "AI scoring/tailoring")
 
     from applypilot.scoring.pdf import VALID_DOC_FORMATS
+
     if doc_format not in VALID_DOC_FORMATS:
-        console.print(f"[red]Invalid --doc-format:[/red] '{doc_format}'. Must be one of: {', '.join(VALID_DOC_FORMATS)}")
+        console.print(
+            f"[red]Invalid --doc-format:[/red] '{doc_format}'. Must be one of: {', '.join(VALID_DOC_FORMATS)}"
+        )
         raise typer.Exit(code=1)
 
-    from applypilot.scheduler import SchedulerAlreadyRunning, SchedulerConfig, run_continuous as _run_continuous
+    from applypilot.scheduler import SchedulerAlreadyRunning, SchedulerConfig
+    from applypilot.scheduler import run_continuous as _run_continuous
 
     cfg = SchedulerConfig(
         ready_buffer=ready_buffer,
@@ -625,7 +663,9 @@ def run_continuous(
 @app.command()
 def stop(
     stream: bool = typer.Option(True, "--stream/--no-stream", help="Stop an active `applypilot run --stream` process."),
-    signal_process: bool = typer.Option(True, "--signal/--no-signal", help="Also send an OS interrupt signal to the active stream PID."),
+    signal_process: bool = typer.Option(
+        True, "--signal/--no-signal", help="Also send an OS interrupt signal to the active stream PID."
+    ),
 ) -> None:
     """Request graceful shutdown of long-running pipeline processes."""
     from applypilot.config import ensure_dirs, load_env
@@ -652,6 +692,7 @@ def stop(
     # any active python run process so the discovery pipeline is not left running.
     if signal_process and not pid:
         import subprocess
+
         if os.name == "nt":
             res = subprocess.run(
                 [
@@ -744,39 +785,60 @@ def apply(
     limit: int | None = typer.Option(None, "--limit", "-l", help="Max applications to submit."),
     workers: int = typer.Option(5, "--workers", "-w", help="Number of parallel browser workers."),
     min_score: int = typer.Option(
-        config.DEFAULTS["min_score"], "--min-score",
+        config.DEFAULTS["min_score"],
+        "--min-score",
         help=f"Minimum fit score for job selection (default: {config.DEFAULTS['min_score']}).",
     ),
     max_age_days: int = typer.Option(
-        config.DEFAULTS["max_job_age_days"], "--max-age-days",
+        config.DEFAULTS["max_job_age_days"],
+        "--max-age-days",
         help=(
             "Skip jobs whose discovered_at is older than this many days. "
             "0 = no age filter. "
             f"Default: {config.DEFAULTS['max_job_age_days']}."
         ),
     ),
-    max_score: int | None = typer.Option(None, "--max-score", help="Maximum fit score for job selection (useful for testing on lower-score jobs)."),
+    max_score: int | None = typer.Option(
+        None, "--max-score", help="Maximum fit score for job selection (useful for testing on lower-score jobs)."
+    ),
     model: str = typer.Option("sonnet", "--model", "-m", help="Claude model name (sonnet | haiku | opus)."),
     apply_engine: str = typer.Option(
-        "claude", "--apply-engine",
+        "claude",
+        "--apply-engine",
         help="Apply engine: claude (current) or deterministic (Playwright rules).",
     ),
     continuous: bool = typer.Option(False, "--continuous", "-c", help="Run forever, polling for new jobs."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Preview actions without submitting."),
     headless: bool = typer.Option(False, "--headless", help="Run browsers in headless mode."),
     url: str | None = typer.Option(None, "--url", help="Apply to a specific job URL."),
-    doc_format: str = typer.Option("docx", "--doc-format", help="Document format for resumes/cover letters: docx (default) or pdf."),
+    doc_format: str = typer.Option(
+        "docx", "--doc-format", help="Document format for resumes/cover letters: docx (default) or pdf."
+    ),
     gen: bool = typer.Option(False, "--gen", help="Generate prompt file for manual debugging instead of running."),
     mark_applied: str | None = typer.Option(None, "--mark-applied", help="Manually mark a job URL as applied."),
-    fresh_sessions: bool = typer.Option(False, "--fresh-sessions", help="Refresh Chrome session cookies from your real profile before launching."),
-    no_hitl: bool = typer.Option(False, "--no-hitl", help="Skip HITL waits: park needs_human jobs and move on. Use for overnight runs."),
-    no_focus: bool = typer.Option(False, "--no-focus", help="Prevent Chrome windows from stealing keyboard focus (Linux/GNOME only). Windows stay visible but won't interrupt your active app."),
-    mark_failed: str | None = typer.Option(None, "--mark-failed", help="Manually mark a job URL as failed (provide URL)."),
+    fresh_sessions: bool = typer.Option(
+        False, "--fresh-sessions", help="Refresh Chrome session cookies from your real profile before launching."
+    ),
+    no_hitl: bool = typer.Option(
+        False, "--no-hitl", help="Skip HITL waits: park needs_human jobs and move on. Use for overnight runs."
+    ),
+    no_focus: bool = typer.Option(
+        False,
+        "--no-focus",
+        help="Prevent Chrome windows from stealing keyboard focus (Linux/GNOME only). Windows stay visible but won't interrupt your active app.",
+    ),
+    mark_failed: str | None = typer.Option(
+        None, "--mark-failed", help="Manually mark a job URL as failed (provide URL)."
+    ),
     fail_reason: str | None = typer.Option(None, "--fail-reason", help="Reason for --mark-failed."),
     reset_failed: bool = typer.Option(False, "--reset-failed", help="Reset all failed jobs for retry."),
-    reset_category: str | None = typer.Option(None, "--reset-category", help="Reset all jobs in a category for retry (e.g., blocked_technical)."),
+    reset_category: str | None = typer.Option(
+        None, "--reset-category", help="Reset all jobs in a category for retry (e.g., blocked_technical)."
+    ),
     sessions: bool = typer.Option(False, "--sessions", help="List saved ATS sessions."),
-    clear_session: str | None = typer.Option(None, "--clear-session", help="Clear a saved ATS session (e.g., workday)."),
+    clear_session: str | None = typer.Option(
+        None, "--clear-session", help="Clear a saved ATS session (e.g., workday)."
+    ),
 ) -> None:
     """Launch auto-apply to submit job applications."""
     _bootstrap()
@@ -793,35 +855,41 @@ def apply(
 
     if mark_applied:
         from applypilot.apply.launcher import mark_job
+
         mark_job(mark_applied, "applied")
         console.print(f"[green]Marked as applied:[/green] {mark_applied}")
         return
 
     if mark_failed:
         from applypilot.apply.launcher import mark_job
+
         mark_job(mark_failed, "failed", reason=fail_reason)
         console.print(f"[yellow]Marked as failed:[/yellow] {mark_failed} ({fail_reason or 'manual'})")
         return
 
     if reset_failed:
         from applypilot.apply.launcher import reset_failed as do_reset
+
         count = do_reset()
         console.print(f"[green]Reset {count} failed job(s) for retry.[/green]")
         return
 
     if reset_category:
         from applypilot.database import reset_by_category
+
         count = reset_by_category(reset_category)
         console.print(f"[green]Reset {count} job(s) in category '{reset_category}' for retry.[/green]")
         return
 
     if sessions:
         from applypilot.apply.chrome import list_ats_sessions
+
         ats_sessions = list_ats_sessions()
         if not ats_sessions:
             console.print("[dim]No saved ATS sessions.[/dim]")
             return
         from rich.table import Table
+
         t = Table(title="Saved ATS Sessions", show_header=True, header_style="bold cyan")
         t.add_column("ATS")
         t.add_column("Cookies")
@@ -834,6 +902,7 @@ def apply(
 
     if clear_session:
         from applypilot.apply.chrome import clear_ats_session
+
         if clear_ats_session(clear_session):
             console.print(f"[green]Cleared ATS session: {clear_session}[/green]")
         else:
@@ -844,12 +913,14 @@ def apply(
 
     # Validate --doc-format
     from applypilot.scoring.pdf import VALID_DOC_FORMATS as _valid_fmts
+
     if doc_format not in _valid_fmts:
         console.print(f"[red]Invalid --doc-format:[/red] '{doc_format}'. Must be one of: {', '.join(_valid_fmts)}")
         raise typer.Exit(code=1)
 
     # Set doc format for apply workers
     from applypilot.apply.launcher import set_doc_format
+
     set_doc_format(doc_format)
 
     # Check 1: Engine prerequisites
@@ -859,21 +930,18 @@ def apply(
     else:
         # Deterministic engine still requires Chrome, but not Claude CLI.
         from applypilot.config import get_chrome_path
+
         try:
             get_chrome_path()
         except FileNotFoundError:
             console.print(
-                "[red]Deterministic apply engine requires Chrome/Chromium.[/red]\n"
-                "Install Chrome or set CHROME_PATH."
+                "[red]Deterministic apply engine requires Chrome/Chromium.[/red]\nInstall Chrome or set CHROME_PATH."
             )
             raise typer.Exit(code=1)
 
     # Check 2: Profile exists
     if not _profile_path.exists():
-        console.print(
-            "[red]Profile not found.[/red]\n"
-            "Run [bold]applypilot init[/bold] to create your profile first."
-        )
+        console.print("[red]Profile not found.[/red]\nRun [bold]applypilot init[/bold] to create your profile first.")
         raise typer.Exit(code=1)
 
     # Check 3: Tailored resumes exist in the real ready_to_apply queue.
@@ -881,9 +949,7 @@ def apply(
     # state != 'archived' check is the real gate for that path.
     if not gen and not url:
         conn = get_connection()
-        ready = conn.execute(
-            "SELECT COUNT(*) FROM jobs WHERE state = 'ready_to_apply'"
-        ).fetchone()[0]
+        ready = conn.execute("SELECT COUNT(*) FROM jobs WHERE state = 'ready_to_apply'").fetchone()[0]
         if ready == 0:
             console.print(
                 "[red]No jobs in the ready_to_apply queue.[/red]\n"
@@ -893,6 +959,7 @@ def apply(
 
     if gen:
         from applypilot.apply.launcher import gen_prompt
+
         target = url or ""
         if not target:
             console.print("[red]--gen requires --url to specify which job.[/red]")
@@ -905,9 +972,7 @@ def apply(
         console.print(f"[green]Wrote prompt to:[/green] {prompt_file}")
         console.print("\n[bold]Run manually:[/bold]")
         console.print(
-            f"  claude --model {model} -p "
-            f"--mcp-config {mcp_path} "
-            f"--permission-mode bypassPermissions < {prompt_file}"
+            f"  claude --model {model} -p --mcp-config {mcp_path} --permission-mode bypassPermissions < {prompt_file}"
         )
         return
 
@@ -1010,23 +1075,23 @@ def status() -> None:
             show_header=True,
             header_style="bold magenta",
         )
-        funnel_table.add_column("Score",        justify="center", style="bold")
-        funnel_table.add_column("Cover Ready",  justify="right", style="green")
-        funnel_table.add_column("Tailored",     justify="right", style="cyan")
+        funnel_table.add_column("Score", justify="center", style="bold")
+        funnel_table.add_column("Cover Ready", justify="right", style="green")
+        funnel_table.add_column("Tailored", justify="right", style="cyan")
         funnel_table.add_column("Needs Tailor", justify="right", style="yellow")
-        funnel_table.add_column("Applied",      justify="right", style="dim green")
-        funnel_table.add_column("Errors",       justify="right", style="red")
+        funnel_table.add_column("Applied", justify="right", style="dim green")
+        funnel_table.add_column("Errors", justify="right", style="red")
 
         for row in funnel:
             score = row["score"]
             score_str = f"[bold {'green' if score >= 9 else 'yellow' if score >= 7 else 'white'}]{score}[/]"
             funnel_table.add_row(
                 score_str,
-                str(row["cover_ready"])  if row["cover_ready"]  else "[dim]—[/]",
-                str(row["tailored"])     if row["tailored"]     else "[dim]—[/]",
+                str(row["cover_ready"]) if row["cover_ready"] else "[dim]—[/]",
+                str(row["tailored"]) if row["tailored"] else "[dim]—[/]",
                 str(row["needs_tailor"]) if row["needs_tailor"] else "[dim]—[/]",
-                str(row["applied"])      if row["applied"]      else "[dim]—[/]",
-                str(row["errors"])       if row["errors"]       else "[dim]—[/]",
+                str(row["applied"]) if row["applied"] else "[dim]—[/]",
+                str(row["errors"]) if row["errors"] else "[dim]—[/]",
             )
 
         console.print(funnel_table)
@@ -1037,26 +1102,26 @@ def status() -> None:
         cat_table = Table(title="\nApply Categories", show_header=True, header_style="bold blue")
         cat_table.add_column("Category", style="bold")
         cat_table.add_column("Total", justify="right")
-        cat_table.add_column("10",  justify="right", style="bold green")
-        cat_table.add_column("9",   justify="right", style="green")
-        cat_table.add_column("8",   justify="right", style="yellow")
-        cat_table.add_column("7",   justify="right", style="yellow")
-        cat_table.add_column("6",   justify="right", style="dim")
-        cat_table.add_column("<6",  justify="right", style="dim")
+        cat_table.add_column("10", justify="right", style="bold green")
+        cat_table.add_column("9", justify="right", style="green")
+        cat_table.add_column("8", justify="right", style="yellow")
+        cat_table.add_column("7", justify="right", style="yellow")
+        cat_table.add_column("6", justify="right", style="dim")
+        cat_table.add_column("<6", justify="right", style="dim")
         cat_table.add_column("Action")
 
         cat_display = {
-            "applied":             ("green",   "Done"),
-            "pending":             ("white",   "In queue"),
-            "in_progress":         ("cyan",    "Running now"),
-            "needs_human":         ("magenta", "applypilot human-review"),
-            "blocked_auth":        ("yellow",  "Needs persistent sessions / HITL"),
-            "blocked_technical":   ("yellow",  "Retryable: applypilot reset-category blocked_technical"),
-            "archived_ineligible": ("dim",     "Location/salary/type mismatch"),
-            "archived_expired":    ("dim",     "Job no longer available"),
-            "archived_platform":   ("red",     "Unsupported platform"),
-            "archived_no_url":     ("dim",     "No application URL"),
-            "manual_only":         ("dim",     "Manual ATS (no automation)"),
+            "applied": ("green", "Done"),
+            "pending": ("white", "In queue"),
+            "in_progress": ("cyan", "Running now"),
+            "needs_human": ("magenta", "applypilot human-review"),
+            "blocked_auth": ("yellow", "Needs persistent sessions / HITL"),
+            "blocked_technical": ("yellow", "Retryable: applypilot reset-category blocked_technical"),
+            "archived_ineligible": ("dim", "Location/salary/type mismatch"),
+            "archived_expired": ("dim", "Job no longer available"),
+            "archived_platform": ("red", "Unsupported platform"),
+            "archived_no_url": ("dim", "No application URL"),
+            "manual_only": ("dim", "Manual ATS (no automation)"),
         }
 
         def _score_cell(d: dict, key: str) -> str:
@@ -1064,10 +1129,19 @@ def status() -> None:
             v = d.get(key, 0) if isinstance(d, dict) else 0
             return str(v) if v else "[dim]—[/dim]"
 
-        order = ["applied", "pending", "in_progress", "needs_human",
-                 "blocked_auth", "blocked_technical",
-                 "archived_ineligible", "archived_expired",
-                 "archived_platform", "archived_no_url", "manual_only"]
+        order = [
+            "applied",
+            "pending",
+            "in_progress",
+            "needs_human",
+            "blocked_auth",
+            "blocked_technical",
+            "archived_ineligible",
+            "archived_expired",
+            "archived_platform",
+            "archived_no_url",
+            "manual_only",
+        ]
         for cat in order:
             d = by_cat.get(cat)
             if not d:
@@ -1092,10 +1166,14 @@ def status() -> None:
                 total = d["total"] if isinstance(d, dict) else d
                 if total > 0:
                     cat_table.add_row(
-                        cat, str(total),
-                        _score_cell(d, "10"), _score_cell(d, "9"),
-                        _score_cell(d, "8"),  _score_cell(d, "7"),
-                        _score_cell(d, "6"),  _score_cell(d, "<6"),
+                        cat,
+                        str(total),
+                        _score_cell(d, "10"),
+                        _score_cell(d, "9"),
+                        _score_cell(d, "8"),
+                        _score_cell(d, "7"),
+                        _score_cell(d, "6"),
+                        _score_cell(d, "<6"),
                         "",
                     )
 
@@ -1129,17 +1207,11 @@ def status() -> None:
     # ── Funnel diagnostics ────────────────────────────────────────
     if stats.get("skipped_stale"):
         max_age = config.DEFAULTS["max_job_age_days"]
-        console.print(
-            f"\n[dim]Skipped as stale (>{max_age}d old): "
-            f"{stats['skipped_stale']} ready-to-apply jobs[/dim]"
-        )
+        console.print(f"\n[dim]Skipped as stale (>{max_age}d old): {stats['skipped_stale']} ready-to-apply jobs[/dim]")
 
     bbc = stats.get("blocked_by_cap") or {}
     if bbc.get("count"):
-        console.print(
-            f"\n[yellow]Blocked by company cap:[/yellow] "
-            f"{bbc['count']} company/companies"
-        )
+        console.print(f"\n[yellow]Blocked by company cap:[/yellow] {bbc['count']} company/companies")
         if bbc.get("companies"):
             preview = ", ".join(bbc["companies"][:10])
             more = f" (+{bbc['count'] - 10} more)" if bbc["count"] > 10 else ""
@@ -1147,25 +1219,33 @@ def status() -> None:
 
     # ── Pipeline state distribution (2026-04-24 state machine) ────
     from applypilot.database import get_connection as _get_conn
+
     _sc_conn = _get_conn()
     state_rows = _sc_conn.execute(
-        "SELECT state, COUNT(*) FROM jobs WHERE state IS NOT NULL "
-        "GROUP BY state ORDER BY COUNT(*) DESC"
+        "SELECT state, COUNT(*) FROM jobs WHERE state IS NOT NULL GROUP BY state ORDER BY COUNT(*) DESC"
     ).fetchall()
     if state_rows:
         state_table = Table(
             title="\nPipeline State Distribution",
-            show_header=True, header_style="bold cyan",
+            show_header=True,
+            header_style="bold cyan",
         )
         state_table.add_column("State", style="bold")
         state_table.add_column("Count", justify="right")
         # Color-code by lifecycle phase.
         TERMINAL_OK = {"applied", "responded", "interview", "offer"}
-        TERMINAL_BAD = {"rejected", "ghosted", "archived", "apply_failed",
-                        "enrich_failed", "score_failed", "tailor_failed",
-                        "cover_failed", "low_score"}
-        ACTIVE = {"applying", "tailoring", "cover_writing",
-                  "ready_to_apply", "needs_human"}
+        TERMINAL_BAD = {
+            "rejected",
+            "ghosted",
+            "archived",
+            "apply_failed",
+            "enrich_failed",
+            "score_failed",
+            "tailor_failed",
+            "cover_failed",
+            "low_score",
+        }
+        ACTIVE = {"applying", "tailoring", "cover_writing", "ready_to_apply", "needs_human"}
         for r in state_rows:
             st = r[0]
             n = r[1]
@@ -1191,13 +1271,18 @@ def track(
     ghosted_days: int = typer.Option(7, "--ghosted-days", help="Days before marking as ghosted."),
     limit: int = typer.Option(100, "--limit", "-l", help="Max emails to fetch."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Fetch + classify but don't write DB/files."),
-    relabel: bool = typer.Option(False, "--relabel", help="Apply 'ap-track' label to all emails already in the DB (backfill)."),
-    remap_stubs: bool = typer.Option(False, "--remap-stubs", help="Re-match emails under multi-company stubs to correct per-company jobs."),
+    relabel: bool = typer.Option(
+        False, "--relabel", help="Apply 'ap-track' label to all emails already in the DB (backfill)."
+    ),
+    remap_stubs: bool = typer.Option(
+        False, "--remap-stubs", help="Re-match emails under multi-company stubs to correct per-company jobs."
+    ),
 ) -> None:
     """Track application responses from Gmail."""
     _bootstrap()
 
     from applypilot.config import check_tier
+
     check_tier(2, "application tracking")
 
     if setup:
@@ -1222,16 +1307,19 @@ def track(
 
     if actions:
         from applypilot.tracking import show_action_items
+
         show_action_items()
         return
 
     if relabel:
         from applypilot.tracking import relabel_all_tracked
+
         relabel_all_tracked()
         return
 
     if remap_stubs:
         from applypilot.tracking import remap_stubs as _remap_stubs
+
         _remap_stubs()
         return
 
@@ -1357,6 +1445,7 @@ def qa_export(
         return
 
     from pathlib import Path
+
     out_path = Path(output)
     out_path.write_text(content, encoding="utf-8")
     console.print(f"[green]Exported Q&A to:[/green] {out_path.resolve()}")
@@ -1391,7 +1480,8 @@ def qa_import(
         a = item.get("answer", "").strip()
         if q and a:
             store_qa(
-                q, a,
+                q,
+                a,
                 source=item.get("source", "human"),
                 field_type=item.get("field_type"),
                 ats_slug=item.get("ats"),
@@ -1424,12 +1514,12 @@ def creds_list(
         return
 
     t = Table(title=f"Site Credentials ({len(rows)} entries)", show_header=True, header_style="bold cyan")
-    t.add_column("Domain",   min_width=28)
-    t.add_column("Site",     min_width=12)
-    t.add_column("Email",    min_width=24)
+    t.add_column("Domain", min_width=28)
+    t.add_column("Site", min_width=12)
+    t.add_column("Email", min_width=24)
     t.add_column("Password", min_width=16)
-    t.add_column("Notes",    max_width=30)
-    t.add_column("Saved",    min_width=10)
+    t.add_column("Notes", max_width=30)
+    t.add_column("Saved", min_width=10)
 
     for row in rows:
         pwd = row["password"] or ""
@@ -1477,11 +1567,11 @@ def creds_show(
 
 @creds_app.command("add")
 def creds_add(
-    domain:   str = typer.Argument(..., help="Domain key (e.g. linkedin.com, myworkdayjobs.com)."),
-    email:    str = typer.Option(...,  "--email",    "-e", help="Login email / username."),
+    domain: str = typer.Argument(..., help="Domain key (e.g. linkedin.com, myworkdayjobs.com)."),
+    email: str = typer.Option(..., "--email", "-e", help="Login email / username."),
     password: str = typer.Option(None, "--password", "-p", help="Password (prompted if omitted)."),
-    site:     str = typer.Option(None, "--site",     "-s", help="Human-readable site name."),
-    notes:    str = typer.Option(None, "--notes",    "-n", help="Optional notes."),
+    site: str = typer.Option(None, "--site", "-s", help="Human-readable site name."),
+    notes: str = typer.Option(None, "--notes", "-n", help="Optional notes."),
 ) -> None:
     """Add or update credentials for a site."""
     _bootstrap()
@@ -1498,10 +1588,10 @@ def creds_add(
 
 @creds_app.command("set")
 def creds_set(
-    domain:   str = typer.Argument(..., help="Domain to update."),
-    email:    str = typer.Option(None, "--email",    "-e", help="New email / username."),
+    domain: str = typer.Argument(..., help="Domain to update."),
+    email: str = typer.Option(None, "--email", "-e", help="New email / username."),
     password: str = typer.Option(None, "--password", "-p", help="New password (prompted if --email not given either)."),
-    notes:    str = typer.Option(None, "--notes",    "-n", help="Update notes."),
+    notes: str = typer.Option(None, "--notes", "-n", help="Update notes."),
 ) -> None:
     """Update one or more fields for an existing credential entry."""
     _bootstrap()
@@ -1513,9 +1603,9 @@ def creds_set(
         console.print(f"[red]No credentials found for:[/red] {domain}  (use [bold]add[/bold] to create one)")
         raise typer.Exit(code=1)
 
-    new_email    = email    or existing["email"]
+    new_email = email or existing["email"]
     new_password = password or existing["password"]
-    new_notes    = notes    if notes is not None else existing["notes"]
+    new_notes = notes if notes is not None else existing["notes"]
 
     if not email and not password and notes is None:
         # Nothing specified — prompt for password at minimum
@@ -1529,7 +1619,7 @@ def creds_set(
 def creds_import_logs(
     log_dir: str = typer.Option(None, "--log-dir", help="Directory of apply logs. Defaults to ~/.applypilot/logs/."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be imported without writing."),
-    yes:     bool = typer.Option(False, "--yes", "-y", help="Skip per-entry confirmation for free-form entries."),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip per-entry confirmation for free-form entries."),
 ) -> None:
     """Scan apply logs for account credentials and import into the DB.
 
@@ -1557,16 +1647,16 @@ def creds_import_logs(
 
     imported = skipped = already = 0
     for entry in found:
-        domain   = entry["domain"]
-        email    = entry["email"]
+        domain = entry["domain"]
+        email = entry["email"]
         password = entry.get("password", "")
-        site     = entry.get("site", "")
-        source   = entry.get("source", "")
+        site = entry.get("site", "")
+        source = entry.get("source", "")
         src_file = entry.get("source_file", "")
-        is_new   = domain not in existing_domains
+        is_new = domain not in existing_domains
 
         status_tag = "[green]NEW[/green]" if is_new else "[dim]EXISTS[/dim]"
-        src_tag    = "[cyan]structured[/cyan]" if source == "structured" else "[yellow]free-form[/yellow]"
+        src_tag = "[cyan]structured[/cyan]" if source == "structured" else "[yellow]free-form[/yellow]"
         console.print(
             f"  {status_tag} {src_tag}  {domain}  {email or '[dim](no email)[/dim]'}"
             f"  pw={'***' if password else '[dim]none[/dim]'}  ({src_file})"
@@ -1583,8 +1673,10 @@ def creds_import_logs(
         # Free-form entries ask for confirmation (may be less reliable)
         if source == "free-form" and not yes:
             if not email or not password:
-                console.print(f"    [dim]Skipping — missing email or password. Add manually with: "
-                              f"applypilot creds add {domain}[/dim]")
+                console.print(
+                    f"    [dim]Skipping — missing email or password. Add manually with: "
+                    f"applypilot creds add {domain}[/dim]"
+                )
                 skipped += 1
                 continue
             confirmed = typer.confirm(f"    Import {domain} ({email} / {password[:4]}***)?")
@@ -1593,26 +1685,26 @@ def creds_import_logs(
                 continue
 
         if email and password:
-            upsert_account(domain, email, password, site=site or None,
-                           notes=f"auto-imported from log: {src_file}")
+            upsert_account(domain, email, password, site=site or None, notes=f"auto-imported from log: {src_file}")
             existing_domains.add(domain)
             imported += 1
         else:
-            console.print(f"    [dim]Skipping — missing {'email' if not email else 'password'}. "
-                          f"Add manually: applypilot creds add {domain}[/dim]")
+            console.print(
+                f"    [dim]Skipping — missing {'email' if not email else 'password'}. "
+                f"Add manually: applypilot creds add {domain}[/dim]"
+            )
             skipped += 1
 
     suffix = " [dim](dry run — nothing written)[/dim]" if dry_run else ""
     console.print(
-        f"\n[green]Imported {imported}[/green]  "
-        f"[dim]already-known {already}  skipped {skipped}[/dim]{suffix}"
+        f"\n[green]Imported {imported}[/green]  [dim]already-known {already}  skipped {skipped}[/dim]{suffix}"
     )
 
 
 @creds_app.command("delete")
 def creds_delete(
     domain: str = typer.Argument(..., help="Domain whose credentials to delete."),
-    yes:    bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt."),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt."),
 ) -> None:
     """Delete all saved credentials for a domain."""
     _bootstrap()

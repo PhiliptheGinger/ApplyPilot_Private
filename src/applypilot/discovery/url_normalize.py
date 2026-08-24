@@ -27,6 +27,7 @@ a new employer shows up. Verify with::
 
 200/301/302 means the slug is valid; 404 means it isn't.
 """
+
 from __future__ import annotations
 
 import json
@@ -41,26 +42,26 @@ logger = logging.getLogger(__name__)
 # Bare host (no leading "www.") → Greenhouse tenant slug.
 # Verified 2026-04-26 by probing job-boards.greenhouse.io/{slug}/jobs/{id}.
 GREENHOUSE_HOST_SLUGS: dict[str, str] = {
-    "stripe.com":              "stripe",
-    "databricks.com":          "databricks",
-    "pinterestcareers.com":    "pinterest",
-    "careers.airbnb.com":      "airbnb",
-    "jobs.dropbox.com":        "dropbox",
-    "cast.ai":                 "castai",
-    "sproutsocial.com":        "sproutsocial",
-    "samsara.com":             "samsara",
-    "instacart.careers":       "instacart",
-    "hubspot.com":             "hubspot",
-    "kentik.com":              "kentik",
-    "consensys.io":            "consensys",
-    "abnormal.ai":             "abnormalsecurity",
-    "careers.toasttab.com":    "toast",
-    "netskope.com":            "netskope",
-    "upsun.com":               "upsun",
-    "prizepicks.com":          "prizepicks",
-    "fortisgames.com":         "fortisgames",
-    "kaseya.com":              "kaseya",
-    "nebius.com":              "nebius",
+    "stripe.com": "stripe",
+    "databricks.com": "databricks",
+    "pinterestcareers.com": "pinterest",
+    "careers.airbnb.com": "airbnb",
+    "jobs.dropbox.com": "dropbox",
+    "cast.ai": "castai",
+    "sproutsocial.com": "sproutsocial",
+    "samsara.com": "samsara",
+    "instacart.careers": "instacart",
+    "hubspot.com": "hubspot",
+    "kentik.com": "kentik",
+    "consensys.io": "consensys",
+    "abnormal.ai": "abnormalsecurity",
+    "careers.toasttab.com": "toast",
+    "netskope.com": "netskope",
+    "upsun.com": "upsun",
+    "prizepicks.com": "prizepicks",
+    "fortisgames.com": "fortisgames",
+    "kaseya.com": "kaseya",
+    "nebius.com": "nebius",
 }
 
 
@@ -81,6 +82,7 @@ def _runtime_slugs_path() -> Path:
     global _RUNTIME_SLUGS_PATH
     if _RUNTIME_SLUGS_PATH is None:
         from applypilot import config as _cfg
+
         _RUNTIME_SLUGS_PATH = _cfg.APP_DIR / "greenhouse_slugs_runtime.json"
     return _RUNTIME_SLUGS_PATH
 
@@ -132,8 +134,7 @@ def register_runtime_slug(host: str, slug: str) -> bool:
         try:
             path = _runtime_slugs_path()
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(json.dumps(cache, indent=2, sort_keys=True),
-                            encoding="utf-8")
+            path.write_text(json.dumps(cache, indent=2, sort_keys=True), encoding="utf-8")
             logger.info("Registered runtime greenhouse slug: %s → %s", host_lc, slug)
             return True
         except Exception:

@@ -34,6 +34,7 @@ _HEADERS = {
 
 # ── Employer registry ─────────────────────────────────────────────────
 
+
 def load_employers() -> dict:
     """Load Greenhouse employer registry from config/greenhouse_employers.yaml."""
     path = CONFIG_DIR / "greenhouse_employers.yaml"
@@ -53,11 +54,13 @@ def load_employers() -> dict:
 # like <li> bullet preservation only ever needs to happen once. See
 # ats_common.py's module comment for the full incident history.
 
+
 def _strip_html(html: str) -> str:
     return strip_html_to_text(html)
 
 
 # ── Location filter ───────────────────────────────────────────────────
+
 
 def _load_location_filter(search_cfg: dict | None = None):
     if search_cfg is None:
@@ -86,6 +89,7 @@ def _location_ok(location: str | None, accept: list[str]) -> bool:
 
 # ── HTTP fetch ────────────────────────────────────────────────────────
 
+
 def _fetch_json(url: str, timeout: float = 20.0) -> dict:
     req = urllib.request.Request(url, headers=_HEADERS)
     with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -93,6 +97,7 @@ def _fetch_json(url: str, timeout: float = 20.0) -> dict:
 
 
 # ── Per-employer scrape ───────────────────────────────────────────────
+
 
 def scrape_one_employer(
     slug: str,
@@ -106,6 +111,7 @@ def scrape_one_employer(
     non-None if the fetch failed.
     """
     from applypilot.discovery.ats_common import fetch_with_retry
+
     url = GREENHOUSE_API.format(slug=slug) + "?content=true"
     data, err = fetch_with_retry(url, max_retries=max_retries)
     if err:
@@ -132,17 +138,19 @@ def scrape_one_employer(
         # earlier posting date when available.
         posted_at = job.get("first_published") or job.get("updated_at") or None
 
-        out.append({
-            "url": abs_url,
-            "title": job.get("title") or "",
-            "location": location_name or None,
-            "description": description[:500] if description else None,
-            "full_description": description if len(description) > 200 else None,
-            "application_url": abs_url,
-            "employer_name": name,
-            "employer_slug": slug,
-            "posted_at": posted_at,
-        })
+        out.append(
+            {
+                "url": abs_url,
+                "title": job.get("title") or "",
+                "location": location_name or None,
+                "description": description[:500] if description else None,
+                "full_description": description if len(description) > 200 else None,
+                "application_url": abs_url,
+                "employer_name": name,
+                "employer_slug": slug,
+                "posted_at": posted_at,
+            }
+        )
 
     return out, None
 
@@ -151,15 +159,17 @@ def scrape_one_employer(
 # Both sit in ats_common now; thin shims kept here for any external
 # imports (existing tests reference greenhouse._insert_jobs by name).
 
+
 def _insert_jobs(conn: sqlite3.Connection, jobs: list[dict]) -> tuple[int, int]:
     from applypilot.discovery.ats_common import insert_normalized_jobs
+
     return insert_normalized_jobs(conn, jobs, "Greenhouse", "greenhouse_api")
 
 
 def run_greenhouse_discovery(employers: dict | None = None, workers: int = 1) -> dict:
     """Discover jobs from Greenhouse-powered career sites."""
     from applypilot.discovery.ats_common import run_ats_crawl
+
     if employers is None:
         employers = load_employers()
-    return run_ats_crawl("Greenhouse", "Greenhouse", "greenhouse_api",
-                         employers, scrape_one_employer)
+    return run_ats_crawl("Greenhouse", "Greenhouse", "greenhouse_api", employers, scrape_one_employer)

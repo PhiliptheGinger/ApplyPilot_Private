@@ -77,10 +77,21 @@ Public API
       entirely (unreachable model, unparseable response).
 
   _build_compact_local_prompt(profile) -> str
-      DEGRADED-MODE full-resume-generation prompt for small local models.
-      Only used by tailor.py when every cloud model is exhausted -- an
-      emergency fallback, not a substitute for normal cloud finalization.
-      See LOCAL_FULL_GENERATION_IS_DEGRADED below.
+      Compact full-resume-generation prompt for small local models. No
+      longer tailor.py's default DEGRADED MODE path (see
+      compose_degraded_resume_json below, 2026-08-23) -- kept for
+      reference/manual use, not called by the normal pipeline.
+
+  compose_degraded_resume_json(client, resume_text, job, profile, job_schema)
+      -> (dict, dict)
+      The current DEGRADED-MODE path: Python deterministically parses the
+      ORIGINAL resume (scoring/pdf.py) and asks the local model for only a
+      small, schema-bounded REALIZATION step (see _build_realization_prompt)
+      -- short bullet sentences + a summary -- rather than an entire resume.
+      Everything else (headers, dates, company names, skills, education)
+      stays verbatim from the original. Still exactly one LLM call, just a
+      much smaller one than the old full-generation approach. Used by
+      tailor.py's tailor_resume() when every cloud model is exhausted.
 
 Neither capability runs automatically:
   - Set APPLYPILOT_LOCAL_LLM_URL to enable the local model at all (both as a
@@ -95,6 +106,7 @@ import json
 import logging
 import os
 import re
+import time
 
 import httpx
 
@@ -115,6 +127,7 @@ LOCAL_FULL_GENERATION_IS_DEGRADED = True
 # Connectivity probe
 # ---------------------------------------------------------------------------
 
+
 def is_local_available() -> bool:
     """Return True if the configured local LLM endpoint responds.
 
@@ -122,12 +135,14 @@ def is_local_available() -> bool:
     logic isn't duplicated across the two modules.
     """
     from applypilot.llm import local_available
+
     return local_available()
 
 
 # ---------------------------------------------------------------------------
 # Compact system prompt for DEGRADED-MODE full-resume generation
 # ---------------------------------------------------------------------------
+
 
 def _build_compact_local_prompt(profile: dict) -> str:
     """Return a compact (<600-token) system prompt suitable for small local models.
@@ -140,16 +155,10 @@ def _build_compact_local_prompt(profile: dict) -> str:
     from applypilot.scoring.validator import _build_skills_set  # lazy to avoid circular import
 
     resume_facts = profile.get("resume_facts", {})
-    companies = (
-        ", ".join(resume_facts.get("preserved_companies", []))
-        or "same companies as in the original resume"
-    )
+    companies = ", ".join(resume_facts.get("preserved_companies", [])) or "same companies as in the original resume"
     school = resume_facts.get("preserved_school", "keep original exactly")
     metrics_list = resume_facts.get("real_metrics", [])
-    metrics = (
-        ", ".join(metrics_list[:6]) if metrics_list
-        else "only numbers already in the resume; do not invent any"
-    )
+    metrics = ", ".join(metrics_list[:6]) if metrics_list else "only numbers already in the resume; do not invent any"
     allowed = sorted(_build_skills_set(profile))[:30]
     skills_str = ", ".join(allowed) if allowed else "only skills already in the resume"
     full_name = (profile.get("personal") or {}).get("full_name", "")
@@ -167,7 +176,7 @@ def _build_compact_local_prompt(profile: dict) -> str:
         "ALLOWED: reorder bullets, rewrite wording, change role title to match job, "
         "rewrite summary from scratch, drop low-relevance bullets.\n\n"
         "OUTPUT SCHEMA (return exactly this structure, no extra keys):\n"
-        '{\n'
+        "{\n"
         '  "title": "<role title variant matching the job>",\n'
         '  "summary": "<2-3 sentences specific to this job>",\n'
         '  "skills": {"<category>": "<comma-separated items>"},\n'
@@ -248,7 +257,8 @@ _BENEFIT_LINE_RE = re.compile(
     r"\b(?:benefits?|compensation|total\s+rewards?)\s+package\b|"
     r"\bemployee\s+discounts?\b|\bgym\s+membership\b|\bcommuter\s+benefits?\b|"
     r"\bprofessional\s+development\s+(?:budget|stipend|allowance|fund)\b"
-    r")", re.IGNORECASE,
+    r")",
+    re.IGNORECASE,
 )
 
 # Benefit SUBJECTS. Deliberately broad -- on its own this matches plenty of
@@ -264,7 +274,8 @@ _BENEFIT_TOPIC_RE = re.compile(
     r"professional\s+development|retirement|pension|401k?|stock|equity|"
     r"compensation|salary|salaries|wages?|pay|payroll|bonus(?:es)?|"
     r"time\s+off|holidays?|vacation|leave|discounts?|perks?|benefits?|rewards?"
-    r")\b", re.IGNORECASE,
+    r")\b",
+    re.IGNORECASE,
 )
 
 # Benefit FRAMING -- the words employers use when OFFERING something rather
@@ -276,7 +287,8 @@ _BENEFIT_FRAME_RE = re.compile(
     r"discounts?|stipends?|allowances?|savings|purchase|bonus(?:es)?|eligib\w+|"
     r"enrollment|competitive|generous|comprehensive|paid|"
     r"employer[-\s]paid|company[-\s]paid"
-    r")\b", re.IGNORECASE,
+    r")\b",
+    re.IGNORECASE,
 )
 
 # Phrasing that marks a line as something asked OF the candidate. Only
@@ -291,7 +303,8 @@ _CANDIDATE_SIGNAL_RE = re.compile(
     r"background\s+in|understanding\s+of|skilled\s+in|expertise\s+in|"
     r"responsible\s+for|must\s+(?:have|be|possess)|demonstrated\s+\w+|"
     r"track\s+record\s+of"
-    r")\b", re.IGNORECASE,
+    r")\b",
+    re.IGNORECASE,
 )
 
 
@@ -306,30 +319,19 @@ def _is_benefit_line(text: str) -> bool:
     return bool(_BENEFIT_TOPIC_RE.search(text) and _BENEFIT_FRAME_RE.search(text))
 
 
-def _split_requirement_lines(
-    description: str, max_lines: int = 8,
+def _classify_candidate_lines(
+    texts: list[str],
+    max_lines: int,
 ) -> tuple[list[dict], list[str]]:
-    """Same extraction as _extract_requirement_lines, but also returns the
-    benefit/perk lines that were dropped.
-
-    Callers that report on their own behaviour (get_local_tailoring_plan,
-    which notes WHY it skipped the model) need to distinguish "this posting
-    had no bullet lines at all" from "every bullet line was an employer
-    benefit" -- the second is the interesting one.
-    """
-    if not description:
-        return [], []
+    """Shared tail for both extraction strategies below: drop employer-
+    benefit lines, tag required/preferred/unspecified importance, cap at
+    max_lines. `texts` must already be a deduplicated, order-preserved
+    list of candidate strings -- this function makes no structural
+    judgment about whether a candidate is well-formed, only whether it's
+    a benefit line and how it should be tagged."""
     lines: list[dict] = []
     dropped: list[str] = []
-    seen: set[str] = set()
-    for match in _REQUIREMENT_MARKER_RE.finditer(description):
-        text = match.group(1).strip()
-        if not text or len(text) < 8 or len(text) > 220:
-            continue
-        key = text.lower()
-        if key in seen:
-            continue
-        seen.add(key)
+    for text in texts:
         if _is_benefit_line(text):
             dropped.append(text)
             continue
@@ -342,6 +344,163 @@ def _split_requirement_lines(
         lines.append({"text": text, "importance": importance})
         if len(lines) >= max_lines:
             break
+    return lines, dropped
+
+
+def _extract_marker_lines(
+    description: str,
+    max_lines: int = 8,
+) -> tuple[list[dict], list[str]]:
+    """Primary extraction strategy: pull bullet/numbered lines via
+    _REQUIREMENT_MARKER_RE. Unchanged behavior from before this function
+    was split out -- see _split_requirement_lines for the fallback this
+    feeds into."""
+    if not description:
+        return [], []
+    texts: list[str] = []
+    seen: set[str] = set()
+    for match in _REQUIREMENT_MARKER_RE.finditer(description):
+        text = match.group(1).strip()
+        if not text or len(text) < 8 or len(text) > 220:
+            continue
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        texts.append(text)
+    return _classify_candidate_lines(texts, max_lines)
+
+
+# 2026-08-25 (Direction 1 of the extraction audit): some ATS sources flatten
+# genuinely itemized requirements to plain, UNMARKED lines -- confirmed
+# against real postings for three separate NO_SUPPORTED_EVIDENCE incidents
+# (Axon, Twilio, Pinterest/Greenhouse, all single-newline-separated) and
+# against a live Workday posting (blank-line-separated, i.e. two "\n" in a
+# row -- an empty line between each item). Splitting on every physical line
+# handles both shapes uniformly: a blank "paragraph break" line is just an
+# empty string after stripping, which the per-line filter below already
+# discards, so no separate blank-line-vs-single-newline branch is needed.
+#
+# A marker character is itself evidence of intentional itemization, so
+# _extract_marker_lines doesn't need to judge WHAT a marked line says --
+# only that it's not a benefit line. A markerless line has no such signal,
+# so _looks_like_list_item substitutes a structural (not semantic) proxy
+# for "this reads as one discrete item, not a paragraph of flowing prose or
+# a section label": short, no trailing colon (colons mark section headers
+# like "Qualifications:", never a requirement itself), and -- the load-
+# bearing check -- no INTERNAL sentence boundary. A single Workday-style
+# clause ("4+ years in deploying large-scale, complex applications...")
+# ends in exactly one period, at the end, so it passes; a flattened "About
+# us" paragraph ("...to craft personalized customer experiences. Our
+# dedication to remote-first work... Your career at Twilio is in your
+# hands.") contains multiple ". <Capital>" boundaries and is rejected.
+#
+# _PARAGRAPH_FALLBACK_MIN_ITEMS is the other half of the safety margin, and
+# is enforced as a CONTIGUOUS-RUN requirement, not a whole-description
+# count -- see _extract_paragraph_lines. Real postings were observed (via
+# the three named incidents) to also contain a handful of short, structurally-
+# qualifying header/label lines ("Who we are", "Responsibilities", "About
+# the job") scattered through the surrounding prose. Checking a flat count
+# across the whole description let this noise crowd out the real list
+# entirely: on the Axon and Twilio postings, seven of the first eight
+# qualifying lines in document order were section headers, and the actual
+# requirements never got extracted at all under a flat-count design.
+# Structurally, though, these two classes are NOT the same shape: a real
+# requirements list renders as many qualifying lines in a row (one `<li>`/
+# `<p>` after another, nothing else between them), while a section header
+# is always isolated -- immediately followed by a rejected multi-sentence
+# prose paragraph or another header, never by more qualifying lines. Only a
+# RUN of _PARAGRAPH_FALLBACK_MIN_ITEMS consecutive qualifying lines (blank
+# lines tolerated as gaps within a run, since that's exactly Workday's
+# blank-line-per-item formatting; any REJECTED non-blank line breaks the
+# run) is treated as evidence of a genuine list. A single qualifying line
+# surrounded by rejected/prose lines is never, by itself, a list.
+_SENTENCE_BOUNDARY_RE = re.compile(r"[.!?]\s+[A-Z]")
+_PARAGRAPH_FALLBACK_MIN_ITEMS = 3
+_PARAGRAPH_MIN_LEN = 2
+_PARAGRAPH_MAX_LEN = 220
+
+
+def _looks_like_list_item(text: str) -> bool:
+    """Conservative structural proxy for "this markerless line is plausibly
+    one discrete requirement, not flowing prose or a section label" -- see
+    the extraction-fallback comment block above."""
+    if not (_PARAGRAPH_MIN_LEN <= len(text) <= _PARAGRAPH_MAX_LEN):
+        return False
+    if text.endswith(":"):
+        return False
+    return not _SENTENCE_BOUNDARY_RE.search(text)
+
+
+def _extract_paragraph_lines(
+    description: str,
+    max_lines: int = 8,
+) -> tuple[list[dict], list[str]]:
+    """Fallback extraction strategy -- only ever called by
+    _split_requirement_lines when marker-based extraction found ZERO lines,
+    never when it found any (see that function).
+
+    Scans physical lines in order, tracking a running streak of
+    consecutive qualifying (_looks_like_list_item) lines; a streak is only
+    kept once it reaches _PARAGRAPH_FALLBACK_MIN_ITEMS, discarding shorter
+    ones (isolated header/label lines) as they're found. Blank lines are
+    skipped without breaking a streak (Workday's blank-line-per-item
+    format); any REJECTED non-blank line ends the current streak. See the
+    module comment above _SENTENCE_BOUNDARY_RE for the full rationale and
+    the real postings that motivated this design.
+    """
+    if not description:
+        return [], []
+    texts: list[str] = []
+    seen: set[str] = set()
+    streak: list[str] = []
+
+    def _flush_streak() -> None:
+        if len(streak) >= _PARAGRAPH_FALLBACK_MIN_ITEMS:
+            for text in streak:
+                key = text.lower()
+                if key not in seen:
+                    seen.add(key)
+                    texts.append(text)
+        streak.clear()
+
+    for raw_line in description.split("\n"):
+        text = raw_line.strip()
+        if not text:
+            continue  # blank line: tolerated gap, does not break a streak
+        if _looks_like_list_item(text):
+            streak.append(text)
+        else:
+            _flush_streak()
+    _flush_streak()
+
+    if not texts:
+        return [], []
+    return _classify_candidate_lines(texts, max_lines)
+
+
+def _split_requirement_lines(
+    description: str,
+    max_lines: int = 8,
+) -> tuple[list[dict], list[str]]:
+    """Same extraction as _extract_requirement_lines, but also returns the
+    benefit/perk lines that were dropped.
+
+    Callers that report on their own behaviour (get_local_tailoring_plan,
+    which notes WHY it skipped the model) need to distinguish "this posting
+    had no bullet lines at all" from "every bullet line was an employer
+    benefit" -- the second is the interesting one.
+
+    Marker-based extraction (_extract_marker_lines) is always tried first
+    and, if it finds ANYTHING at all, its result is used as-is -- the
+    paragraph fallback (_extract_paragraph_lines) never competes with or
+    overrides it, only fills in for postings where it found nothing.
+    """
+    if not description:
+        return [], []
+    lines, dropped = _extract_marker_lines(description, max_lines=max_lines)
+    if not lines:
+        lines, dropped = _extract_paragraph_lines(description, max_lines=max_lines)
     return lines, dropped
 
 
@@ -408,11 +567,37 @@ def _normalize_term(term: str) -> str:
 ## filtering. That assumption is what let "it"/"technical" through (see
 ## _GENERIC_EVIDENCE_TERMS below): profile.json data, not code, is where
 ## these two originate, but nothing downstream ever questioned them.
-_NAME_TOKEN_STOPWORDS = frozenset({
-    "and", "the", "for", "with", "from", "into", "onto", "your", "you",
-    "our", "their", "his", "her", "its", "this", "that", "these", "those",
-    "are", "was", "were", "has", "have", "had", "not", "but", "can",
-})
+_NAME_TOKEN_STOPWORDS = frozenset(
+    {
+        "and",
+        "the",
+        "for",
+        "with",
+        "from",
+        "into",
+        "onto",
+        "your",
+        "you",
+        "our",
+        "their",
+        "his",
+        "her",
+        "its",
+        "this",
+        "that",
+        "these",
+        "those",
+        "are",
+        "was",
+        "were",
+        "has",
+        "have",
+        "had",
+        "not",
+        "but",
+        "can",
+    }
+)
 
 # A term this generic carries no discriminating signal on its own, no
 # matter which source it came from (name, name-word-split,
@@ -536,10 +721,15 @@ def rank_profile_evidence(job: dict, profile: dict, top_n: int = 6) -> list[dict
             matched = sorted(t for t in _item_terms(item) if _term_in_text(t, haystack))
             if not matched:
                 continue
-            ranked.append({
-                "type": kind, "name": name, "score": len(matched),
-                "matched_terms": matched, "item": item,
-            })
+            ranked.append(
+                {
+                    "type": kind,
+                    "name": name,
+                    "score": len(matched),
+                    "matched_terms": matched,
+                    "item": item,
+                }
+            )
     ranked.sort(key=lambda r: r["score"], reverse=True)
     return ranked[:top_n]
 
@@ -650,7 +840,8 @@ def format_evidence_for_prompt(ranked: list[dict]) -> str:
 # false-negative is observed, narrowly enough that it can't bleed into an
 # unrelated domain.
 _CONCEPT_SYNONYM_PATTERNS: dict[str, re.Pattern] = {
-    term: re.compile(pattern, re.IGNORECASE) for term, pattern in {
+    term: re.compile(pattern, re.IGNORECASE)
+    for term, pattern in {
         "customer service": (
             r"\btelephone\s+inquir\w*\b|"
             r"\bcustomer\s+(?:inquir\w*|feedback|needs?|complaints?|requests?|confidence)\b|"
@@ -699,8 +890,7 @@ def _pair_candidate_evidence(requirement_text: str, ranked_evidence: list[dict])
     scored: list[tuple[int, int]] = []
     for idx, item in enumerate(ranked_evidence, start=1):
         score = sum(
-            1 for t in (item.get("matched_terms") or [])
-            if _term_in_text(t, text_lower) or _synonym_hit(t, text_lower)
+            1 for t in (item.get("matched_terms") or []) if _term_in_text(t, text_lower) or _synonym_hit(t, text_lower)
         )
         if score > 0:
             scored.append((idx, score))
@@ -711,7 +901,8 @@ def _pair_candidate_evidence(requirement_text: str, ranked_evidence: list[dict])
 
 
 def _auto_resolve_requirements(
-    requirement_lines: list[dict], ranked_evidence: list[dict],
+    requirement_lines: list[dict],
+    ranked_evidence: list[dict],
 ) -> tuple[dict[int, list[int]], dict[int, list[int]]]:
     """Run _pair_candidate_evidence for every requirement and sort the
     results into what can be settled without the model vs. what's
@@ -775,8 +966,7 @@ def _merge_model_matches_with_resolved(
                 picked.append(e)
             else:
                 warnings.append(
-                    f"Dropped model-selected evidence {e!r} for R{r}: not in its "
-                    "deterministic candidate tier"
+                    f"Dropped model-selected evidence {e!r} for R{r}: not in its deterministic candidate tier"
                 )
         combined[r] = picked
     matches = [{"r": r, "e": ids} for r, ids in combined.items()]
@@ -866,9 +1056,7 @@ def get_local_tailoring_plan(
 
     top_n = int(os.environ.get("APPLYPILOT_LOCAL_EVIDENCE_TOPN", "6"))
     ranked_evidence = rank_profile_evidence(job, profile, top_n=top_n)
-    requirement_lines, dropped_benefits = _split_requirement_lines(
-        job.get("full_description") or ""
-    )
+    requirement_lines, dropped_benefits = _split_requirement_lines(job.get("full_description") or "")
 
     if not requirement_lines or not ranked_evidence:
         reason = (
@@ -878,11 +1066,9 @@ def get_local_tailoring_plan(
         if not requirement_lines and dropped_benefits:
             reason += (
                 f" All {len(dropped_benefits)} bullet line(s) in this posting were "
-                "employer benefits/perks, not candidate requirements: "
-                + "; ".join(dropped_benefits[:6])
+                "employer benefits/perks, not candidate requirements: " + "; ".join(dropped_benefits[:6])
             )
-        log.debug("Local tailoring plan for %s: %s",
-                  (job.get("title") or "")[:40], reason)
+        log.debug("Local tailoring plan for %s: %s", (job.get("title") or "")[:40], reason)
         plan = validate_local_plan({"matches": []}, requirement_lines, ranked_evidence)
         plan["_warnings"].append(reason)
         return plan
@@ -895,7 +1081,8 @@ def get_local_tailoring_plan(
             "Local tailoring plan for %s: skipped LLM call -- all %d requirement(s) "
             "resolved deterministically via requirement/evidence term overlap "
             "(no requirement had 2+ evidence items tied for top relevance)",
-            (job.get("title") or "")[:40], len(requirement_lines),
+            (job.get("title") or "")[:40],
+            len(requirement_lines),
         )
         combined = {"matches": [{"r": r, "e": ids} for r, ids in resolved.items()]}
         plan = validate_local_plan(combined, requirement_lines, ranked_evidence)
@@ -911,13 +1098,12 @@ def get_local_tailoring_plan(
     timeout = float(os.environ.get("APPLYPILOT_LOCAL_LLM_TIMEOUT", "60"))
 
     company = display_company(job)
-    job_text = (
-        f"TITLE: {job.get('title', '')}\n"
-        f"COMPANY: {company or 'unknown'}"
-    )
+    job_text = f"TITLE: {job.get('title', '')}\nCOMPANY: {company or 'unknown'}"
     evidence_text = format_evidence_for_prompt(ranked_evidence)
     requirements_text = _format_requirement_lines(
-        requirement_lines, candidates=candidates, only_ids=ambiguous_ids,
+        requirement_lines,
+        candidates=candidates,
+        only_ids=ambiguous_ids,
     )
 
     user_msg = (
@@ -950,16 +1136,21 @@ def get_local_tailoring_plan(
         message = data.get("message") or {}
         text = (message.get("content") or "").strip()
         if not text:
-            log.warning("Local tailoring plan for %s: empty message content in response",
-                        (job.get("title") or "")[:40])
+            log.warning("Local tailoring plan for %s: empty message content in response", (job.get("title") or "")[:40])
             return None
         raw_plan = _parse_plan(text)
         if not isinstance(raw_plan, dict):
-            log.warning("Local tailoring plan for %s: parsed JSON was not an object (got %s)",
-                        (job.get("title") or "")[:40], type(raw_plan).__name__)
+            log.warning(
+                "Local tailoring plan for %s: parsed JSON was not an object (got %s)",
+                (job.get("title") or "")[:40],
+                type(raw_plan).__name__,
+            )
             return None
         combined, filter_warnings = _merge_model_matches_with_resolved(
-            raw_plan, resolved, candidates, ambiguous_ids,
+            raw_plan,
+            resolved,
+            candidates,
+            ambiguous_ids,
         )
         sanitized = validate_local_plan(combined, requirement_lines, ranked_evidence)
         sanitized["_warnings"].extend(filter_warnings)
@@ -968,8 +1159,10 @@ def get_local_tailoring_plan(
             "%d/%d requirement(s) sent to the model (rest resolved deterministically)",
             (job.get("title") or "")[:40],
             sum(1 for r in sanitized["requirements"] if r["supported"]),
-            len(sanitized["requirements"]), len(sanitized["_warnings"]),
-            len(ambiguous_ids), len(requirement_lines),
+            len(sanitized["requirements"]),
+            len(sanitized["_warnings"]),
+            len(ambiguous_ids),
+            len(requirement_lines),
         )
         return sanitized
     except httpx.TimeoutException as exc:
@@ -978,12 +1171,33 @@ def get_local_tailoring_plan(
             "Qwen-family models in particular can be slow; raise "
             "APPLYPILOT_LOCAL_LLM_TIMEOUT or use a smaller/faster model if "
             "this persists. (%s)",
-            (job.get("title") or "")[:40], timeout, model, exc,
+            (job.get("title") or "")[:40],
+            timeout,
+            model,
+            exc,
         )
         return None
-    except Exception as exc:
-        log.warning("Local tailoring plan failed for %s: %s: %s",
-                    (job.get("title") or "")[:40], type(exc).__name__, exc)
+    except httpx.ConnectError as exc:
+        # Nothing listening at `url` -- the configured local model endpoint
+        # (APPLYPILOT_LOCAL_LLM_URL) isn't running or isn't reachable.
+        log.warning(
+            "Local tailoring plan for %s: could not reach %s (%s). Falling back to cloud tailoring only.",
+            (job.get("title") or "")[:40],
+            url,
+            exc,
+        )
+        return None
+    except Exception as exc:  # noqa: BLE001 -- final fallback of a documented
+        # "returns None if the local model is unreachable, the response is
+        # empty, or the output can't be parsed" contract (see this
+        # function's docstring); the two specific httpx handlers above
+        # already cover the common cases, this catches anything else
+        # (malformed client state, unexpected library exceptions) so a
+        # local-model glitch degrades to "skip local planning", never
+        # crashes the tailoring pipeline.
+        log.warning(
+            "Local tailoring plan failed for %s: %s: %s", (job.get("title") or "")[:40], type(exc).__name__, exc
+        )
         return None
 
 
@@ -1008,11 +1222,11 @@ def _parse_plan(text: str) -> dict:
             part = part.lstrip("json").strip()
             try:
                 return json.loads(part)
-            except Exception:
+            except json.JSONDecodeError:
                 continue
     start, end = text.find("{"), text.rfind("}")
     if start != -1 and end > start:
-        return json.loads(text[start:end + 1])
+        return json.loads(text[start : end + 1])
     return json.loads(text)
 
 
@@ -1027,8 +1241,11 @@ def _as_list(value) -> list:
 # Grounding / fabrication-safety validation
 # ---------------------------------------------------------------------------
 
+
 def validate_local_plan(
-    raw_plan: dict, requirement_lines: list[dict], ranked_evidence: list[dict],
+    raw_plan: dict,
+    requirement_lines: list[dict],
+    ranked_evidence: list[dict],
 ) -> dict:
     """Deterministically build the full plan from the model's `matches`
     (requirement number -> evidence numbers).
@@ -1107,12 +1324,14 @@ def validate_local_plan(
                 keywords_seen.setdefault(term, None)
         supported = bool(evidence_names)
         importance = line["importance"] if line["importance"] in ("required", "preferred") else "preferred"
-        clean_requirements.append({
-            "requirement": line["text"],
-            "importance": importance,
-            "resume_evidence": evidence_names,
-            "supported": supported,
-        })
+        clean_requirements.append(
+            {
+                "requirement": line["text"],
+                "importance": importance,
+                "resume_evidence": evidence_names,
+                "supported": supported,
+            }
+        )
         if supported:
             any_supported.append(line["text"])
             if importance == "required":
@@ -1140,6 +1359,7 @@ def validate_local_plan(
 # ---------------------------------------------------------------------------
 # Rendering for the cloud prompt
 # ---------------------------------------------------------------------------
+
 
 def format_local_plan_for_cloud(plan: dict | None) -> str:
     """Render a validated plan as compact text for the cloud model's user message.
@@ -1193,6 +1413,7 @@ def format_local_plan_for_cloud(plan: dict | None) -> str:
 # Debug / evaluation helper (used by `applypilot debug-local-plan`)
 # ---------------------------------------------------------------------------
 
+
 def debug_plan_for_job(job: dict, profile: dict) -> dict | None:
     """Resolve the resume for `job` the same way the real pipeline does, then
     fetch and validate a local tailoring plan -- WITHOUT generating or
@@ -1209,6 +1430,7 @@ def debug_plan_for_job(job: dict, profile: dict) -> dict | None:
     used the same functions internally to build the model's prompt.
     """
     from applypilot.scoring.resume_router import load_resume_text_for_job
+
     resume_text, _ = load_resume_text_for_job(job)
     plan = get_local_tailoring_plan(resume_text, job, profile)
     if plan is None:
@@ -1221,4 +1443,476 @@ def debug_plan_for_job(job: dict, profile: dict) -> dict | None:
     }
 
 
+# ---------------------------------------------------------------------------
+# DEGRADED-MODE structured realization (2026-08-23)
+#
+# Replaces the old approach of asking the local model for an entire tailored
+# resume JSON (_build_compact_local_prompt, still defined above for
+# reference but no longer the default DEGRADED MODE path). That approach
+# asked a CPU-bound 1.7B model to reproduce structure it didn't need to
+# touch at all -- section headers, company names, dates, full skills
+# categorization, every bullet in every section -- which is both slow
+# (large output budget) and risky (small models "helpfully" alter text
+# they were told to copy verbatim).
+#
+# New shape: Python already knows, from the schema representation
+# (scoring/schemas.py), exactly which requirements are grounded/supported
+# and what rhetorical shape each one's bullet should take. The local model's
+# ONLY job is a small, bounded REALIZATION step -- turn each schema+evidence
+# pairing into one short sentence, plus one short summary -- never asked to
+# invent structure, headers, or facts. Python then deterministically
+# composes the full resume JSON by parsing the ORIGINAL resume text (via
+# scoring/pdf.py's existing, already-trusted parser) and splicing in the
+# realized bullets/summary, keeping everything else -- headers, dates,
+# company names, skills, education -- verbatim. This is still exactly ONE
+# LLM call (same as before), just a much smaller one.
+# ---------------------------------------------------------------------------
 
+# Cap on how many bullets the local model is asked to realize in one call --
+# keeps the prompt/response small regardless of how many requirements a
+# posting has. Overridable for testing/tuning; not expected to need raising
+# in practice since format_schema_guidance already caps at a similar size.
+_DEGRADED_MAX_REALIZED_BULLETS = 5
+
+_REALIZATION_SYSTEM = (
+    "You write SHORT resume content from pre-verified facts. You are given "
+    "a list of bullet SLOTS to fill and a summary schema. For each slot you "
+    "are given: which evidence it's based on, the rhetorical shape to "
+    "follow (a sequence of slot names, e.g. action -> object -> outcome), "
+    "the underlying fact, a CLAIM CEILING, an AGENCY CEILING, and -- when "
+    "given -- exact terms to use verbatim or a note that this is "
+    "transferable (not identical-domain) experience. Write exactly ONE "
+    "sentence per bullet slot, realizing that shape. Never invent a fact, "
+    "employer, tool, or number beyond what you're given -- never change or "
+    "add a number not already in the fact text. When a slot is marked "
+    "transferable, do not claim the source experience IS the target domain "
+    "-- state the transferable capability. Use ACTIVE voice, candidate as "
+    "subject ('Diagnosed X'), never passive ('X was diagnosed').\n\n"
+    "CLAIM CEILING limits TECHNICAL DEPTH: participation < execution < "
+    "implementation < design < authority (architected). AGENCY CEILING is "
+    "a SEPARATE limit on PEOPLE authority: individual_contributor < owner "
+    "< team_lead (led/managed) < director (directed/spearheaded). Never "
+    "use a verb stronger than either given ceiling.\n\n"
+    "Also write one short (2-3 sentence) professional summary following "
+    "the given summary schema's shape, from the given viewpoint where it "
+    "fits naturally -- the viewpoint changes emphasis, never facts.\n\n"
+    "Output ONLY this JSON, nothing else -- no markdown fences, no prose:\n"
+    '{"summary": "...", "bullets": [{"evidence": "<evidence name exactly '
+    'as given>", "text": "<one sentence>"}]}\n'
+    "Include exactly one bullet entry per slot you were given, using the "
+    "evidence name verbatim so it can be matched back."
+)
+
+
+def _build_realization_prompt(
+    job_schema: dict,
+    max_items: int = _DEGRADED_MAX_REALIZED_BULLETS,
+) -> tuple[str, str] | None:
+    """Build a small system+user prompt asking the local model to realize
+    short text for a bounded set of already schema-assigned requirements,
+    plus one summary. Returns None when the schema representation has
+    nothing supported to realize -- callers should skip the LLM call
+    entirely in that case (nothing useful for the model to add) rather
+    than send an empty request.
+
+    Only ever draws on requirements the deterministic schema layer already
+    marked `supported` (see schemas.build_job_schema_representation) --
+    ambiguous/unsupported requirements never reach this prompt, so the
+    model has no opportunity to turn an uncertain match into a confident
+    sentence. The claim ceiling given here is advisory (a prompt
+    instruction) -- request_local_realization enforces it deterministically
+    afterward via schemas.check_claim_strength, so a model that ignores
+    this instruction still can't produce a claim stronger than the
+    evidence supports.
+    """
+    from applypilot.scoring.schemas import BULLET_SCHEMAS
+
+    supported = [r for r in (job_schema.get("requirements") or []) if r.get("supported") and r.get("schema")][
+        :max_items
+    ]
+    if not supported:
+        return None
+
+    lines = [
+        f"VIEWPOINT: {job_schema.get('viewpoint', 'general')}",
+        f"SUMMARY SCHEMA: {job_schema.get('summary_schema', '')}",
+        "",
+        "BULLET SLOTS TO FILL (one sentence each):",
+    ]
+    for r in supported:
+        bullet = BULLET_SCHEMAS.get(r["schema"]["bullet_schema"], {})
+        if r.get("exact_keywords"):
+            anchor = f" | use these exact terms: {', '.join(r['exact_keywords'])}"
+        elif r.get("synonym_concepts"):
+            anchor = " | TRANSFERABLE experience -- do not claim identical domain"
+        else:
+            anchor = ""
+        force_note = (
+            " | this is a PREVENTION fact -- name the risk and the outcome it avoided, not just the action taken"
+            if r.get("force_relation") == "prevention"
+            else ""
+        )
+        lines.append(
+            f"- evidence: {', '.join(r['resume_evidence'])} | "
+            f"shape: {' -> '.join(bullet.get('slots', []))} | "
+            f"claim ceiling: {r.get('claim_ceiling', 'participation')} | "
+            f"agency ceiling: {r.get('agency_ceiling', 'individual_contributor')} | "
+            f"fact: {r['requirement']}{anchor}{force_note}"
+        )
+    user = "\n".join(lines) + "\n\nReturn the JSON now:"
+    return _REALIZATION_SYSTEM, user
+
+
+def _fuzzy_evidence_match(header: str, evidence_name: str) -> bool:
+    """Best-effort match between a parsed resume entry's header text and a
+    schema representation's evidence name. Not required to be exact --
+    profile.json's inventory `name` and the base resume's rendered header
+    text aren't guaranteed to be byte-identical, so this checks substring
+    containment either direction, case-insensitive. A missed match just
+    means that entry's bullets stay verbatim (always safe), never a crash
+    or a wrong splice."""
+    h = (header or "").strip().lower()
+    e = (evidence_name or "").strip().lower()
+    if not h or not e:
+        return False
+    return e in h or h in e
+
+
+def build_base_resume_model(resume_text: str, profile: dict) -> dict:
+    """Deterministically parse the ORIGINAL resume into a COMPLETE resume
+    model. No LLM call. Always has every key (title/summary/skills/
+    experience/projects/education) with a usable value -- this is the
+    fallback-of-last-resort shape, and it's also exactly what
+    validate_json_fields/assemble_resume_text expect, so "do nothing at
+    all" (no realization available) is always a structurally valid result,
+    never a partial one.
+
+    "experience"/"projects" entries here use scoring/pdf.py's parse_entries
+    shape ({"title", "subtitle", "meta", "bullets"}) rather than the
+    tailor.py JSON contract's {"header", "subtitle", "bullets"} -- see
+    merge_realization, which does that translation at the one place it's
+    needed.
+    """
+    from applypilot.scoring.pdf import parse_entries, parse_resume, parse_skills
+
+    parsed = parse_resume(resume_text or "")
+    sections = parsed.get("sections") or {}
+
+    skills = {cat: val for cat, val in parse_skills(sections.get("TECHNICAL SKILLS", ""))}
+    if not skills:
+        # The resume's TECHNICAL SKILLS section didn't parse (unexpected
+        # format) -- fall back to the profile's own skills_boundary rather
+        # than a structurally-present-but-empty skills dict (validate_
+        # json_fields treats an empty "skills" the same as a missing one).
+        boundary = (profile or {}).get("skills_boundary") or {}
+        for category, items in boundary.items():
+            if isinstance(items, list) and items:
+                skills[category.replace("_", " ").title()] = ", ".join(items)
+
+    return {
+        "title": parsed.get("title") or "",
+        "summary": sections.get("SUMMARY", ""),
+        "skills": skills,
+        "experience": parse_entries(sections.get("EXPERIENCE", "")),
+        "projects": parse_entries(sections.get("PROJECTS", "")),
+        "education": sections.get("EDUCATION", ""),
+    }
+
+
+def request_local_realization(
+    client,
+    job: dict,
+    job_schema: dict,
+    profile: dict | None = None,
+) -> tuple[dict | None, dict]:
+    """The ONE bounded local-model call for DEGRADED MODE. Returns
+    (realization, meta):
+      realization -- {"summary": str | None, "bullets": {evidence_name: text}}
+        or None if there was nothing to realize, or the call/parse failed.
+        ALWAYS partial by contract -- callers must merge this onto a
+        complete base resume model (see merge_realization), never treat it
+        as a resume on its own.
+      meta -- {"llm_called": bool, "realized_bullets": int,
+        "prompt_chars": int, "max_tokens": int} -- prompt_chars/max_tokens
+        are logged so a slow call is diagnosable from the run log without
+        re-instrumenting by hand.
+
+    Never raises: an exception from the call or an unparseable response
+    both result in (None, meta) -- the caller falls back to the verbatim
+    base model.
+    """
+    meta: dict = {
+        "llm_called": False,
+        "realized_bullets": 0,
+        "prompt_chars": 0,
+        "max_tokens": 0,
+        "claim_strength_violations": 0,
+        "passive_voice_warnings": 0,
+    }
+
+    prompt = _build_realization_prompt(job_schema)
+    if prompt is None:
+        log.info(
+            "Degraded-mode realization skipped for %s: no schema-supported "
+            "requirements to realize -- keeping the original resume verbatim.",
+            (job.get("title") or "")[:40],
+        )
+        return None, meta
+
+    system, user = prompt
+    max_tokens = int(os.environ.get("APPLYPILOT_LOCAL_LLM_MAX_TOKENS", "600"))
+    meta["llm_called"] = True
+    meta["prompt_chars"] = len(system) + len(user)
+    meta["max_tokens"] = max_tokens
+    # Rough token estimate (chars/4, the usual ballpark for English text) --
+    # not exact, but enough to sanity-check "this is small" from the log
+    # without pulling in a real tokenizer.
+    approx_tokens = meta["prompt_chars"] // 4
+    log.info(
+        "Degraded-mode realization prompt for %s: %d chars (~%d tokens), max_tokens=%d, %d requirement(s) to realize.",
+        (job.get("title") or "")[:40],
+        meta["prompt_chars"],
+        approx_tokens,
+        max_tokens,
+        user.count("- evidence:"),
+    )
+
+    try:
+        t0 = time.time()
+        raw = client.chat(
+            [{"role": "system", "content": system}, {"role": "user", "content": user}],
+            max_tokens=max_tokens,
+            temperature=0.3,
+        )
+        elapsed = time.time() - t0
+        log.info("Degraded-mode realization call for %s finished in %.1fs", (job.get("title") or "")[:40], elapsed)
+        parsed_realization = _parse_plan(raw)
+    except Exception as exc:  # noqa: BLE001 -- this function's docstring
+        # guarantees "never raises" (an LLMClient.chat() failure and a
+        # _parse_plan() JSON failure must both degrade to (None, meta), not
+        # propagate) -- narrowing this would break that documented contract.
+        log.warning(
+            "Degraded-mode realization call failed for %s: %s: %s",
+            (job.get("title") or "")[:40],
+            type(exc).__name__,
+            exc,
+        )
+        return None, meta
+
+    if not isinstance(parsed_realization, dict):
+        log.warning(
+            "Degraded-mode realization for %s: response did not parse as a "
+            "JSON object -- keeping the original resume verbatim.",
+            (job.get("title") or "")[:40],
+        )
+        return None, meta
+
+    # Deterministic claim-strength enforcement (schemas.py #22): the prompt
+    # ASKS the model to respect each slot's claim ceiling, but a small
+    # model can still ignore instructions -- this is the actual safety
+    # net. Any bullet whose realized text uses a stronger verb than its
+    # evidence supports is dropped outright (never downgraded/rewritten,
+    # which risks producing an ungrammatical patch) -- merge_realization
+    # then falls back to that entry's ORIGINAL bullets, which is always
+    # safe. The advisory ceiling was already shown to the model per-slot
+    # in the prompt; this check doesn't need that context again, only the
+    # evidence-name -> ceiling mapping.
+    from applypilot.scoring.schemas import (
+        AGENCY_TIERS,
+        CLAIM_TIERS,
+        check_agency_strength,
+        check_causal_claim,
+        check_claim_strength,
+        check_metric_fabrication,
+        check_passive_voice,
+    )
+
+    known_metrics = ((profile or {}).get("resume_facts") or {}).get("real_metrics") or []
+
+    ceiling_by_evidence: dict[str, str] = {}
+    agency_ceiling_by_evidence: dict[str, str] = {}
+    provenance_by_evidence: dict[str, str] = {}
+    for r in job_schema.get("requirements") or []:
+        if not r.get("supported"):
+            continue
+        for name in r.get("resume_evidence") or []:
+            ceiling_by_evidence[name] = r.get("claim_ceiling") or "participation"
+            agency_ceiling_by_evidence[name] = r.get("agency_ceiling") or "individual_contributor"
+            provenance = r.get("provenance") or []
+            if provenance:
+                first = provenance[0]
+                provenance_by_evidence[name] = first.get("text", "") if isinstance(first, dict) else str(first)
+
+    bullets: dict[str, str] = {}
+    violations = 0
+    passive_warnings = 0
+    for b in _as_list(parsed_realization.get("bullets")):
+        if not (isinstance(b, dict) and b.get("evidence") and b.get("text")):
+            continue
+        evidence_name = str(b["evidence"]).strip()
+        text = str(b["text"]).strip()
+        evidence_text = provenance_by_evidence.get(evidence_name, "")
+        ceiling = ceiling_by_evidence.get(evidence_name, "participation")
+        strength_check = check_claim_strength(text, ceiling)
+        if not strength_check["passed"]:
+            violations += 1
+            log.warning(
+                "Degraded-mode realization dropped a bullet for %s (%s): %s",
+                (job.get("title") or "")[:40],
+                evidence_name,
+                strength_check["violation"],
+            )
+            continue
+        agency_ceiling = agency_ceiling_by_evidence.get(evidence_name, "individual_contributor")
+        agency_check = check_agency_strength(text, agency_ceiling)
+        if not agency_check["passed"]:
+            violations += 1
+            log.warning(
+                "Degraded-mode realization dropped a bullet for %s (%s): %s",
+                (job.get("title") or "")[:40],
+                evidence_name,
+                agency_check["violation"],
+            )
+            continue
+        causal_check = check_causal_claim(text, evidence_text)
+        if not causal_check["passed"]:
+            violations += 1
+            log.warning(
+                "Degraded-mode realization dropped a bullet for %s (%s): %s",
+                (job.get("title") or "")[:40],
+                evidence_name,
+                causal_check["violation"],
+            )
+            continue
+        metric_check = check_metric_fabrication(text, evidence_text, known_metrics=known_metrics)
+        if not metric_check["passed"]:
+            violations += 1
+            log.warning(
+                "Degraded-mode realization dropped a bullet for %s (%s): %s",
+                (job.get("title") or "")[:40],
+                evidence_name,
+                metric_check["violation"],
+            )
+            continue
+        if not check_passive_voice(text)["passed"]:
+            # Soft signal only -- logged, not dropped. See schemas.py's
+            # check_passive_voice docstring for the false-positive rationale.
+            passive_warnings += 1
+            log.info(
+                "Degraded-mode realization: possible passive voice for %s (%s): %r",
+                (job.get("title") or "")[:40],
+                evidence_name,
+                text,
+            )
+        bullets[evidence_name] = text
+
+    summary = str(parsed_realization.get("summary") or "").strip() or None
+    if summary:
+        # The summary aggregates multiple evidence items -- its ceiling is
+        # the strongest any of THIS job's supported requirements' evidence
+        # actually earns, not an unconstrained one.
+        summary_ceiling = max(
+            ceiling_by_evidence.values(),
+            key=lambda t: CLAIM_TIERS.index(t) if t in CLAIM_TIERS else 0,
+            default="participation",
+        )
+        summary_check = check_claim_strength(summary, summary_ceiling)
+        if summary_check["passed"]:
+            summary_agency_ceiling = max(
+                agency_ceiling_by_evidence.values(),
+                key=lambda t: AGENCY_TIERS.index(t) if t in AGENCY_TIERS else 0,
+                default="individual_contributor",
+            )
+            summary_check = check_agency_strength(summary, summary_agency_ceiling)
+        if not summary_check["passed"]:
+            violations += 1
+            log.warning(
+                "Degraded-mode realization dropped the summary for %s: %s",
+                (job.get("title") or "")[:40],
+                summary_check["violation"],
+            )
+            summary = None
+
+    meta["realized_bullets"] = len(bullets)
+    meta["claim_strength_violations"] = violations
+    meta["passive_voice_warnings"] = passive_warnings
+
+    if not bullets and not summary:
+        return None, meta
+    return {"summary": summary, "bullets": bullets}, meta
+
+
+def merge_realization(base_resume: dict, realization: dict | None, job: dict) -> dict:
+    """Deterministically merge a PARTIAL realization onto the COMPLETE base
+    resume model. Never drops a section the realization didn't touch --
+    realization is None or missing a key means "keep the base model's
+    value for that key", always.
+
+    Returns a dict in tailor.py's JSON contract shape (title/summary/
+    skills/experience/projects/education, with experience/projects entries
+    as {"header", "subtitle", "bullets"}) -- ready for validate_json_fields/
+    assemble_resume_text exactly as-is.
+    """
+    realization = realization or {}
+    bullets_by_evidence: dict[str, str] = realization.get("bullets") or {}
+
+    def _translate(entries: list[dict]) -> list[dict]:
+        out: list[dict] = []
+        for e in entries:
+            header = (e.get("title") or "").strip()
+            bullets = list(e.get("bullets") or [])
+            realized = next(
+                (text for name, text in bullets_by_evidence.items() if _fuzzy_evidence_match(header, name)),
+                None,
+            )
+            if realized:
+                bullets = [realized] + [b for b in bullets if b != realized][:2]
+            subtitle = " | ".join(p for p in (e.get("subtitle", ""), e.get("meta", "")) if p)
+            out.append({"header": header, "subtitle": subtitle, "bullets": bullets[:4]})
+        return out
+
+    return {
+        "title": job.get("title") or base_resume.get("title") or "",
+        "summary": realization.get("summary") or base_resume.get("summary") or "",
+        "skills": base_resume.get("skills") or {},
+        "experience": _translate(base_resume.get("experience") or []),
+        "projects": _translate(base_resume.get("projects") or []),
+        "education": base_resume.get("education") or "",
+    }
+
+
+def compose_degraded_resume_json(
+    client,
+    resume_text: str,
+    job: dict,
+    profile: dict,
+    job_schema: dict,
+) -> tuple[dict, dict]:
+    """Orchestrates DEGRADED MODE: build_base_resume_model (always
+    complete) -> request_local_realization (always partial, the ONE local
+    call) -> merge_realization (deterministic, never drops an untouched
+    section).
+
+    Returns (data, meta):
+      data -- matches tailor.py's normal JSON contract, so
+        validate_json_fields, assemble_resume_text, and
+        judge_tailored_resume all work completely unchanged on the result.
+        ALWAYS structurally complete, even when realization is None.
+      meta -- {"tier": "degraded_structured", "llm_called": bool,
+        "realized_bullets": int, "prompt_chars": int, "max_tokens": int}.
+
+    2026-08-23: tailor.py's tailor_resume() no longer calls this directly
+    -- it calls build_base_resume_model/request_local_realization/
+    merge_realization itself, because it needs to see the RAW realization
+    result (None vs. populated) to distinguish "nothing was safely
+    groundable" / "the local model failed" from "content was genuinely
+    realized", which this function's always-merged return value collapses
+    together. Kept as a standalone, independently useful/tested entry
+    point (e.g. for introspection) -- not dead code, just not on the
+    pipeline's critical path anymore.
+    """
+    base_resume = build_base_resume_model(resume_text, profile)
+    realization, meta = request_local_realization(client, job, job_schema)
+    meta["tier"] = "degraded_structured"
+    data = merge_realization(base_resume, realization, job)
+    return data, meta

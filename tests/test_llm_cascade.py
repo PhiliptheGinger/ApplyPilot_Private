@@ -37,8 +37,7 @@ def _make_client(n_models: int = 2):
 
     # Patch _build_fallback_chain to return fake models so no real API keys needed
     fake_chain = [
-        ModelEntry(f"fake-model-{i}", "openai_compat", "https://fake.api/v1", "fake-key")
-        for i in range(n_models)
+        ModelEntry(f"fake-model-{i}", "openai_compat", "https://fake.api/v1", "fake-key") for i in range(n_models)
     ]
     with patch("applypilot.llm._build_fallback_chain", return_value=fake_chain):
         client = LLMClient(
@@ -131,6 +130,178 @@ class TestModelExhaustion(unittest.TestCase):
         self.assertEqual(result, "success from fallback")
 
 
+class TestConnectionErrorFallsThroughChain(unittest.TestCase):
+    """2026-08-23: a configured local entry (APPLYPILOT_LOCAL_LLM_URL) can
+    genuinely have nothing listening -- httpx.ConnectError was previously
+    uncaught in _try_openai_compat, so it aborted client.chat() entirely
+    instead of falling through to the next provider, even when a perfectly
+    good cloud fallback was next in the chain. These exercise the real
+    _try_openai_compat retry/fallthrough logic (not a mocked _try_entry),
+    with time.sleep patched out so the retry backoff doesn't slow the test
+    down."""
+
+    def _client_with_local_first(self):
+        from applypilot.llm import LLMClient, ModelEntry
+
+        fake_chain = [
+            ModelEntry("qwen3:32b", "local", "http://127.0.0.1:11434/v1", ""),
+            ModelEntry("cloud-fallback", "openai_compat", "https://fake.api/v1", "fake-key"),
+        ]
+        with patch("applypilot.llm._build_fallback_chain", return_value=fake_chain):
+            client = LLMClient(base_url="http://127.0.0.1:11434/v1", model="qwen3:32b", api_key="")
+        return client
+
+    def _success_resp(self, text="cloud reply"):
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = {"choices": [{"message": {"content": text}}]}
+        return resp
+
+    def test_connect_error_falls_through_to_next_provider(self):
+        import httpx
+
+        client = self._client_with_local_first()
+
+        def fake_post(url, **kwargs):
+            if "127.0.0.1:11434" in url:
+                raise httpx.ConnectError("Connection refused")
+            return self._success_resp()
+
+        with patch.object(client._client, "post", side_effect=fake_post), patch("applypilot.llm.time.sleep"):
+            result = client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertEqual(result, "cloud reply")
+
+    def test_connect_error_on_the_only_entry_raises_not_swallowed(self):
+        """A ConnectError on the LAST (or only) entry must still surface --
+        mirrors the existing httpx.TimeoutException behavior on is_last."""
+        import httpx
+
+        from applypilot.llm import LLMClient, ModelEntry
+
+        fake_chain = [ModelEntry("qwen3:32b", "local", "http://127.0.0.1:11434/v1", "")]
+        with patch("applypilot.llm._build_fallback_chain", return_value=fake_chain):
+            client = LLMClient(base_url="http://127.0.0.1:11434/v1", model="qwen3:32b", api_key="")
+
+        with (
+            patch.object(client._client, "post", side_effect=httpx.ConnectError("refused")),
+            patch("applypilot.llm.time.sleep"),
+            self.assertRaises(httpx.ConnectError),
+        ):
+            client.chat([{"role": "user", "content": "hi"}])
+
+    def test_connect_error_log_message_hints_that_local_endpoint_is_down(self):
+        import httpx
+
+        client = self._client_with_local_first()
+
+        def fake_post(url, **kwargs):
+            if "127.0.0.1:11434" in url:
+                raise httpx.ConnectError("Connection refused")
+            return self._success_resp()
+
+        with (
+            patch.object(client._client, "post", side_effect=fake_post),
+            patch("applypilot.llm.time.sleep"),
+            patch("applypilot.llm.log") as mock_log,
+        ):
+            client.chat([{"role": "user", "content": "hi"}])
+
+        warning_messages = [str(call) for call in mock_log.warning.call_args_list]
+        self.assertTrue(
+            any("local model endpoint running" in m.lower() for m in warning_messages),
+            f"expected a local-endpoint-down hint in a warning log; got: {warning_messages}",
+        )
+
+
+class TestEmptyOrWhitespaceContentRejected(unittest.TestCase):
+    """2026-08-25 fix: a real local/qwen3:1.7b call was observed returning
+    HTTP 200 with content == "" (see ~/.applypilot/logs/local_qwen_output.log,
+    a "0 chars" successful-looking response entry). _try_openai_compat only
+    checked `text is None`, so an empty (or whitespace-only) string was
+    treated as a genuine successful response and returned all the way up to
+    score_job(), where _parse_score_response("") produced a fake fit_score=0
+    "success" instead of a retryable failure. Mirrors
+    TestConnectionErrorFallsThroughChain's exact HTTP-mocking approach
+    (exercises the real _try_openai_compat retry/fallthrough logic, not a
+    mocked _try_entry)."""
+
+    def _client_with_local_first(self):
+        from applypilot.llm import LLMClient, ModelEntry
+
+        fake_chain = [
+            ModelEntry("qwen3:1.7b", "local", "http://127.0.0.1:11434/v1", ""),
+            ModelEntry("cloud-fallback", "openai_compat", "https://fake.api/v1", "fake-key"),
+        ]
+        with patch("applypilot.llm._build_fallback_chain", return_value=fake_chain):
+            client = LLMClient(base_url="http://127.0.0.1:11434/v1", model="qwen3:1.7b", api_key="")
+        return client
+
+    def _resp(self, content):
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = {"choices": [{"message": {"content": content, "refusal": None}}]}
+        return resp
+
+    def test_empty_content_falls_through_to_next_provider(self):
+        client = self._client_with_local_first()
+
+        def fake_post(url, **kwargs):
+            if "127.0.0.1:11434" in url:
+                return self._resp("")
+            return self._resp("cloud reply")
+
+        with patch.object(client._client, "post", side_effect=fake_post), patch("applypilot.llm.time.sleep"):
+            result = client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertEqual(result, "cloud reply")
+
+    def test_whitespace_only_content_falls_through_to_next_provider(self):
+        client = self._client_with_local_first()
+
+        def fake_post(url, **kwargs):
+            if "127.0.0.1:11434" in url:
+                return self._resp("   \n\t  ")
+            return self._resp("cloud reply")
+
+        with patch.object(client._client, "post", side_effect=fake_post), patch("applypilot.llm.time.sleep"):
+            result = client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertEqual(result, "cloud reply")
+
+    def test_empty_content_on_the_only_entry_raises_not_returned_as_success(self):
+        """A blank response on the LAST (or only) entry must still surface
+        as a failure -- mirrors the existing null-content/timeout is_last
+        behavior. The critical assertion: chat() must NOT return "" as if
+        it were a successful result."""
+        from applypilot.llm import LLMClient, ModelEntry
+
+        fake_chain = [ModelEntry("qwen3:1.7b", "local", "http://127.0.0.1:11434/v1", "")]
+        with patch("applypilot.llm._build_fallback_chain", return_value=fake_chain):
+            client = LLMClient(base_url="http://127.0.0.1:11434/v1", model="qwen3:1.7b", api_key="")
+
+        with (
+            patch.object(client._client, "post", return_value=self._resp("")),
+            patch("applypilot.llm.time.sleep"),
+            self.assertRaises(RuntimeError),
+        ):
+            client.chat([{"role": "user", "content": "hi"}])
+
+    def test_nonempty_content_is_still_returned_normally(self):
+        """Regression sanity: a real, non-blank response is unaffected."""
+        client = self._client_with_local_first()
+
+        with (
+            patch.object(client._client, "post", return_value=self._resp("a real answer")),
+            patch("applypilot.llm.time.sleep"),
+        ):
+            result = client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertEqual(result, "a real answer")
+
+
 class TestLocalOpenAIBaseURLNormalization(unittest.TestCase):
     """2026-08-22 incident: a real Ollama endpoint configured via
     APPLYPILOT_LOCAL_LLM_URL=http://127.0.0.1:11434 (no /v1) responded 200
@@ -156,6 +327,7 @@ class TestLocalOpenAIBaseURLNormalization(unittest.TestCase):
 
     def test_local_openai_base_url_appends_v1_when_missing(self):
         from applypilot.llm import local_openai_base_url
+
         self.assertEqual(
             local_openai_base_url("http://127.0.0.1:11434"),
             "http://127.0.0.1:11434/v1",
@@ -163,6 +335,7 @@ class TestLocalOpenAIBaseURLNormalization(unittest.TestCase):
 
     def test_local_openai_base_url_strips_trailing_slash_first(self):
         from applypilot.llm import local_openai_base_url
+
         self.assertEqual(
             local_openai_base_url("http://127.0.0.1:11434/"),
             "http://127.0.0.1:11434/v1",
@@ -173,6 +346,7 @@ class TestLocalOpenAIBaseURLNormalization(unittest.TestCase):
         every pre-existing test/example in this codebase uses) must be
         left completely unchanged -- not doubled to .../v1/v1."""
         from applypilot.llm import local_openai_base_url
+
         self.assertEqual(
             local_openai_base_url("http://localhost:11434/v1"),
             "http://localhost:11434/v1",
@@ -186,19 +360,33 @@ class TestLocalOpenAIBaseURLNormalization(unittest.TestCase):
         """The exact regression: APPLYPILOT_LOCAL_LLM_URL configured as the
         bare Ollama root must still produce a local ModelEntry whose
         base_url is usable by _try_openai_compat's {base_url}/chat/completions
-        construction."""
+        construction.
+
+        include_local=True is passed explicitly: this test is about URL
+        normalization, not about the fast/quality routing split (see
+        TestLocalExcludedFromFastTier) -- quality=False chains no longer
+        include local by default (2026-08-23), so without the explicit
+        override there'd be no local entry at all to normalize."""
         from applypilot.llm import _build_fallback_chain
+
         env = {
-            k: v for k, v in __import__("os").environ.items()
-            if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-                         "DEEPSEEK_API_KEY", "LLM_URL",
-                         "APPLYPILOT_LOCAL_LLM_URL", "APPLYPILOT_LOCAL_LLM_MODEL")
+            k: v
+            for k, v in __import__("os").environ.items()
+            if k
+            not in (
+                "GEMINI_API_KEY",
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "DEEPSEEK_API_KEY",
+                "LLM_URL",
+                "APPLYPILOT_LOCAL_LLM_URL",
+                "APPLYPILOT_LOCAL_LLM_MODEL",
+            )
         }
         env["APPLYPILOT_LOCAL_LLM_URL"] = "http://127.0.0.1:11434"  # bare root, no /v1
         env["APPLYPILOT_LOCAL_LLM_MODEL"] = "qwen3:1.7b"
-        with patch.dict("os.environ", env, clear=True), \
-             patch("applypilot.llm._find_claude_cli", return_value=None):
-            chain = _build_fallback_chain("qwen3:1.7b", quality=False)
+        with patch.dict("os.environ", env, clear=True), patch("applypilot.llm._find_claude_cli", return_value=None):
+            chain = _build_fallback_chain("qwen3:1.7b", quality=False, include_local=True)
 
         local_entries = [e for e in chain if e.provider == "local"]
         self.assertEqual(len(local_entries), 1)
@@ -231,7 +419,8 @@ class TestLocalOpenAIBaseURLNormalization(unittest.TestCase):
 
 
 @pytest.mark.skipif(
-    not _local_ollama_reachable(), reason="No local Ollama instance reachable at 127.0.0.1:11434",
+    not _local_ollama_reachable(),
+    reason="No local Ollama instance reachable at 127.0.0.1:11434",
 )
 class TestRealOllamaIntegration(unittest.TestCase):
     """Live regression test against a real, running Ollama instance with
@@ -245,19 +434,33 @@ class TestRealOllamaIntegration(unittest.TestCase):
         raw_url = "http://127.0.0.1:11434"  # bare root, exactly as reported
         model = "qwen3:1.7b"
         env = {
-            k: v for k, v in __import__("os").environ.items()
-            if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-                         "DEEPSEEK_API_KEY", "LLM_URL",
-                         "APPLYPILOT_LOCAL_LLM_URL", "APPLYPILOT_LOCAL_LLM_MODEL")
+            k: v
+            for k, v in __import__("os").environ.items()
+            if k
+            not in (
+                "GEMINI_API_KEY",
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "DEEPSEEK_API_KEY",
+                "LLM_URL",
+                "APPLYPILOT_LOCAL_LLM_URL",
+                "APPLYPILOT_LOCAL_LLM_MODEL",
+            )
         }
         env["APPLYPILOT_LOCAL_LLM_URL"] = raw_url
         env["APPLYPILOT_LOCAL_LLM_MODEL"] = model
-        with patch.dict("os.environ", env, clear=True):
+        pinned_chain = [ModelEntry(model, "local", local_openai_base_url(raw_url), "")]
+        with (
+            patch.dict("os.environ", env, clear=True),
+            patch("applypilot.llm._build_fallback_chain", return_value=pinned_chain),
+        ):
+            # 2026-08-23: quality=False (fast tier) no longer includes local
+            # by default -- _build_fallback_chain is patched here purely so
+            # construction doesn't raise on "no provider configured" with no
+            # cloud keys in this env; the chain is pinned to local-only
+            # either way, mirroring cli.py's test-local command.
             client = LLMClient(raw_url, model, "", quality=False)
-            # Mirrors cli.py's test-local: pin to only the local entry.
-            client._fallback_chain = [
-                ModelEntry(model, "local", local_openai_base_url(raw_url), ""),
-            ]
+            client._fallback_chain = pinned_chain
 
             # max_tokens generously high: qwen3's thinking tokens (visible
             # via Ollama's OpenAI-compat "reasoning" field, separate from
@@ -283,11 +486,15 @@ class TestBuildFallbackChain(unittest.TestCase):
     """_build_fallback_chain returns different model sets for quality vs fast."""
 
     def _build(self, quality: bool) -> list[str]:
-        with patch.dict("os.environ", {
-            "GEMINI_API_KEY": "fake-gemini",
-            "OPENAI_API_KEY": "fake-openai",
-        }):
+        with patch.dict(
+            "os.environ",
+            {
+                "GEMINI_API_KEY": "fake-gemini",
+                "OPENAI_API_KEY": "fake-openai",
+            },
+        ):
             from applypilot.llm import _build_fallback_chain
+
             primary = "gemini-2.5-pro" if quality else "gemini-2.5-flash"
             return [m.name for m in _build_fallback_chain(primary, quality=quality)]
 
@@ -317,15 +524,408 @@ class TestBuildFallbackChain(unittest.TestCase):
     def test_raises_without_api_keys(self):
         """RuntimeError is raised when no API keys or Claude CLI are available."""
         env_without_keys = {
-            k: v for k, v in __import__("os").environ.items()
-            if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-                         "DEEPSEEK_API_KEY", "LLM_URL", "APPLYPILOT_LOCAL_LLM_URL")
+            k: v
+            for k, v in __import__("os").environ.items()
+            if k
+            not in (
+                "GEMINI_API_KEY",
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "DEEPSEEK_API_KEY",
+                "LLM_URL",
+                "APPLYPILOT_LOCAL_LLM_URL",
+            )
         }
         with patch.dict("os.environ", env_without_keys, clear=True):
             import applypilot.llm as llm_mod
-            with patch.object(llm_mod, "_find_claude_cli", return_value=None):
-                with self.assertRaises(RuntimeError):
-                    llm_mod._build_fallback_chain("gemini-2.5-flash", quality=False)
+
+            with (
+                patch.object(llm_mod, "_find_claude_cli", return_value=None),
+                self.assertRaises(RuntimeError),
+            ):
+                llm_mod._build_fallback_chain("gemini-2.5-flash", quality=False)
+
+
+class TestLocalExcludedFromScoringButAvailableForExplicitLocalTasks(unittest.TestCase):
+    """2026-08-23: local (Qwen) must never be part of the scoring/fast-tier
+    fallback chain -- real-job testing found qwen3:1.7b's scoring unreliable
+    (missed obvious SWE experience, scored known-9s as 7). The quality tier
+    (tailor/cover) keeps local as its existing, deliberate last-resort
+    fallback (has_cloud_available()/DEGRADED MODE in tailor.py) -- that is
+    unchanged. Only the fast tier (get_stage_client("score", quality=False))
+    stopped including local.
+
+    These exercise the REAL _build_fallback_chain / LLMClient.chat() /
+    _try_openai_compat routing end to end -- only httpx.Client.post is
+    mocked (and, where noted, only the diagnostic-log call site itself) --
+    not the routing decision under test.
+    """
+
+    def _env(self, **overrides):
+        env = {
+            k: v
+            for k, v in __import__("os").environ.items()
+            if k
+            not in (
+                "GEMINI_API_KEY",
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "DEEPSEEK_API_KEY",
+                "LLM_URL",
+                "APPLYPILOT_LOCAL_LLM_URL",
+                "APPLYPILOT_LOCAL_LLM_MODEL",
+            )
+        }
+        env.update(overrides)
+        return env
+
+    # 1. Normal scoring does not include a local model in its fallback chain.
+    def test_1_score_tier_chain_construction_excludes_local(self):
+        from applypilot.llm import _build_fallback_chain
+
+        env = self._env(
+            GEMINI_API_KEY="fake-gemini-key",
+            APPLYPILOT_LOCAL_LLM_URL="http://localhost:11434/v1",
+            APPLYPILOT_LOCAL_LLM_MODEL="qwen3:1.7b",
+        )
+        with patch.dict("os.environ", env, clear=True), patch("applypilot.llm._find_claude_cli", return_value=None):
+            # Exactly what get_stage_client("score", quality=False) builds.
+            chain = _build_fallback_chain("gemini-3.6-flash", quality=False)
+        self.assertFalse(any(e.provider == "local" for e in chain))
+        self.assertTrue(any(e.provider == "gemini" for e in chain))
+
+    def test_1b_get_stage_client_score_end_to_end_excludes_local(self):
+        """Same proof through the real get_stage_client("score", ...)
+        singleton path scorer.py actually calls -- not just
+        _build_fallback_chain in isolation."""
+        import applypilot.llm as llm_mod
+
+        env = self._env(
+            GEMINI_API_KEY="fake-gemini-key",
+            APPLYPILOT_LOCAL_LLM_URL="http://localhost:11434/v1",
+            APPLYPILOT_LOCAL_LLM_MODEL="qwen3:1.7b",
+        )
+        saved = (llm_mod._instance, llm_mod._quality_instance, dict(llm_mod._stage_instances))
+        llm_mod._instance = None
+        llm_mod._quality_instance = None
+        llm_mod._stage_instances = {}
+        try:
+            with (
+                patch.dict("os.environ", env, clear=True),
+                patch.object(llm_mod, "_find_claude_cli", return_value=None),
+            ):
+                client = llm_mod.get_stage_client("score", quality=False)
+                providers = [e.provider for e in client._fallback_chain]
+        finally:
+            llm_mod._instance, llm_mod._quality_instance = saved[0], saved[1]
+            llm_mod._stage_instances = saved[2]
+        self.assertNotIn("local", providers)
+
+    def test_1c_quality_tier_still_includes_local_unchanged(self):
+        """The quality tier (tailor/cover) must be unaffected -- local
+        remains the existing last-resort fallback there."""
+        from applypilot.llm import _build_fallback_chain
+
+        env = self._env(
+            GEMINI_API_KEY="fake-gemini-key",
+            APPLYPILOT_LOCAL_LLM_URL="http://localhost:11434/v1",
+            APPLYPILOT_LOCAL_LLM_MODEL="qwen3:1.7b",
+        )
+        with patch.dict("os.environ", env, clear=True), patch("applypilot.llm._find_claude_cli", return_value=None):
+            chain = _build_fallback_chain("gemini-3.1-pro-preview", quality=True)
+        self.assertTrue(any(e.provider == "local" for e in chain))
+        self.assertEqual(chain[-1].provider, "local")
+
+    # 2. A cloud scoring failure falls through to another cloud provider,
+    #    never to local.
+    def test_2_cloud_failure_falls_through_to_next_cloud_not_local(self):
+        from applypilot.llm import LLMClient
+
+        env = self._env(
+            GEMINI_API_KEY="fake-gemini-key",
+            OPENAI_API_KEY="fake-openai-key",
+            APPLYPILOT_LOCAL_LLM_URL="http://localhost:11434/v1",
+            APPLYPILOT_LOCAL_LLM_MODEL="qwen3:1.7b",
+        )
+        with patch.dict("os.environ", env, clear=True), patch("applypilot.llm._find_claude_cli", return_value=None):
+            client = LLMClient(
+                base_url="https://generativelanguage.googleapis.com/v1beta/openai",
+                model="gemini-3.6-flash",
+                api_key="fake-gemini-key",
+                quality=False,
+            )
+        self.assertFalse(any(e.provider == "local" for e in client._fallback_chain))
+        self.assertGreaterEqual(len(client._fallback_chain), 2)
+        first_model = client._fallback_chain[0].name
+
+        called_urls = []
+
+        def fake_post(url, **kwargs):
+            called_urls.append(url)
+            if kwargs["json"]["model"] == first_model:
+                resp = MagicMock()
+                resp.status_code = 429
+                resp.text = "rate_limit exceeded, please retry"
+                return resp
+            resp = MagicMock()
+            resp.status_code = 200
+            resp.raise_for_status.return_value = None
+            resp.json.return_value = {"choices": [{"message": {"content": "second cloud reply"}}]}
+            return resp
+
+        with patch.object(client._client, "post", side_effect=fake_post):
+            result = client.chat([{"role": "user", "content": "score this job"}])
+
+        self.assertEqual(result, "second cloud reply")
+        self.assertTrue(all("localhost" not in u and "127.0.0.1" not in u for u in called_urls))
+
+    # 3. An explicitly local task uses Qwen.
+    def test_3_explicit_local_task_reaches_qwen(self):
+        """include_local=True is how an explicitly-local call site opts in
+        regardless of quality tier -- mirrors what a genuine local-only
+        client construction looks like."""
+        from applypilot.llm import LLMClient, _build_fallback_chain
+
+        env = self._env(
+            APPLYPILOT_LOCAL_LLM_URL="http://localhost:11434/v1",
+            APPLYPILOT_LOCAL_LLM_MODEL="qwen3:1.7b",
+        )
+        with patch.dict("os.environ", env, clear=True), patch("applypilot.llm._find_claude_cli", return_value=None):
+            chain = _build_fallback_chain("qwen3:1.7b", quality=False, include_local=True)
+
+        self.assertEqual(len(chain), 1)
+        self.assertEqual(chain[0].provider, "local")
+
+        # Reuse the chain just proven above to build the client, rather than
+        # re-deriving it inside LLMClient.__init__ under a different ambient
+        # env -- the real _build_fallback_chain(include_local=True) call
+        # above is the thing actually under test here.
+        with patch("applypilot.llm._build_fallback_chain", return_value=chain):
+            client = LLMClient(base_url="http://localhost:11434/v1", model="qwen3:1.7b", api_key="", quality=False)
+
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = {"choices": [{"message": {"content": "qwen reply"}}]}
+        with patch.object(client._client, "post", return_value=resp) as mock_post:
+            result = client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertEqual(result, "qwen reply")
+        self.assertIn("localhost:11434", mock_post.call_args[0][0])
+
+    # 4. An explicitly local task does NOT fall through to a cloud provider
+    #    when Qwen fails.
+    def test_4_explicit_local_task_does_not_fall_through_to_cloud_on_failure(self):
+        import httpx as httpx_mod
+
+        from applypilot.llm import LLMClient, ModelEntry
+
+        # Pinned to local-only, exactly like cli.py's `test-local` command
+        # does -- this IS the "explicitly local operation" boundary in this
+        # codebase: the chain structurally contains no cloud entry at all.
+        fake_chain = [ModelEntry("qwen3:1.7b", "local", "http://localhost:11434/v1", "")]
+        with patch("applypilot.llm._build_fallback_chain", return_value=fake_chain):
+            client = LLMClient(base_url="http://localhost:11434/v1", model="qwen3:1.7b", api_key="", quality=False)
+
+        with (
+            patch.object(client._client, "post", side_effect=httpx_mod.ConnectError("refused")),
+            patch("applypilot.llm.time.sleep"),
+            self.assertRaises(httpx_mod.ConnectError),
+        ):
+            client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertEqual([e.provider for e in client._fallback_chain], ["local"])
+
+    # 5 & 6. /no_think keyed on the actually-attempted model (not self.model);
+    #        the caller's original messages list is never mutated.
+    def test_5_and_6_no_think_keyed_on_attempted_model_and_messages_not_mutated(self):
+        import copy
+
+        from applypilot.llm import LLMClient, ModelEntry
+
+        fake_chain = [
+            ModelEntry("gemini-3.6-flash", "gemini", "https://fake.gemini/v1", "fake-key"),
+            ModelEntry("qwen3:1.7b", "local", "http://localhost:11434/v1", ""),
+        ]
+        with patch("applypilot.llm._build_fallback_chain", return_value=fake_chain):
+            client = LLMClient(
+                base_url="https://fake.gemini/v1", model="gemini-3.6-flash", api_key="fake-key", quality=False
+            )
+
+        original_messages = [{"role": "user", "content": "score this job"}]
+        original_snapshot = copy.deepcopy(original_messages)
+        calls = []
+
+        def fake_post(url, **kwargs):
+            calls.append(kwargs["json"])
+            if kwargs["json"]["model"] == "gemini-3.6-flash":
+                resp = MagicMock()
+                resp.status_code = 429
+                resp.text = "rate_limit exceeded, please retry"
+                return resp
+            resp = MagicMock()
+            resp.status_code = 200
+            resp.raise_for_status.return_value = None
+            resp.json.return_value = {"choices": [{"message": {"content": "qwen reply"}}]}
+            return resp
+
+        with patch.object(client._client, "post", side_effect=fake_post):
+            result = client.chat(original_messages)
+
+        self.assertEqual(result, "qwen reply")
+        self.assertEqual(len(calls), 2)
+        gemini_payload, qwen_payload = calls
+        self.assertFalse(gemini_payload["messages"][0]["content"].startswith("/no_think"))
+        self.assertTrue(qwen_payload["messages"][0]["content"].startswith("/no_think"))
+
+        # requirement 6: the caller's original list/dicts are untouched --
+        # not mutated in place, and no /no_think leaked into it even though
+        # a later fallback attempt needed the prefix.
+        self.assertEqual(original_messages, original_snapshot)
+
+    # 7. The local diagnostic log still receives successful local responses
+    #    (and only local responses -- never cloud ones).
+    def test_7_successful_local_response_reaches_the_diagnostic_logger(self):
+        from applypilot.llm import LLMClient, ModelEntry
+
+        fake_chain = [ModelEntry("qwen3:1.7b", "local", "http://localhost:11434/v1", "")]
+        with patch("applypilot.llm._build_fallback_chain", return_value=fake_chain):
+            client = LLMClient(base_url="http://localhost:11434/v1", model="qwen3:1.7b", api_key="", quality=False)
+
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = {"choices": [{"message": {"content": "qwen diagnostic reply"}}]}
+
+        with (
+            patch.object(client._client, "post", return_value=resp),
+            patch("applypilot.llm._log_local_qwen_response") as mock_diag,
+        ):
+            result = client.chat([{"role": "user", "content": "diagnostic probe"}])
+
+        self.assertEqual(result, "qwen diagnostic reply")
+        mock_diag.assert_called_once()
+        called_entry, _called_messages, called_text = mock_diag.call_args[0]
+        self.assertEqual(called_entry.provider, "local")
+        self.assertEqual(called_text, "qwen diagnostic reply")
+
+    def test_7b_cloud_response_does_not_reach_the_local_diagnostic_logger(self):
+        from applypilot.llm import LLMClient, ModelEntry
+
+        fake_chain = [ModelEntry("gemini-3.6-flash", "gemini", "https://fake.gemini/v1", "fake-key")]
+        with patch("applypilot.llm._build_fallback_chain", return_value=fake_chain):
+            client = LLMClient(
+                base_url="https://fake.gemini/v1", model="gemini-3.6-flash", api_key="fake-key", quality=False
+            )
+
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = {"choices": [{"message": {"content": "cloud reply"}}]}
+
+        with (
+            patch.object(client._client, "post", return_value=resp),
+            patch("applypilot.llm._log_local_qwen_response") as mock_diag,
+        ):
+            client.chat([{"role": "user", "content": "hi"}])
+
+        mock_diag.assert_not_called()
+
+
+class TestChatExcludeProviders(unittest.TestCase):
+    """2026-08-23: chat(exclude_providers=...) lets a caller attempt only a
+    subset of the fallback chain for ONE call, without mutating
+    self._fallback_chain (thread-unsafe on a shared singleton client) and
+    without adding any new LLM/network call. Added so tailor.py's heavy
+    cloud-quality prompt can discover "all cloud exhausted" via a fast,
+    cloud-only attempt (each rejection is a ~1-2s 429, not a multi-minute
+    local generation) instead of silently falling through to local with a
+    prompt/max_tokens combination that was never meant for it."""
+
+    def _client(self, chain):
+        from applypilot.llm import LLMClient
+
+        with patch("applypilot.llm._build_fallback_chain", return_value=chain):
+            return LLMClient(base_url="https://fake.cloud/v1", model="cloud-a", api_key="fake-key")
+
+    def test_excluded_provider_is_never_attempted(self):
+        from applypilot.llm import ModelEntry
+
+        chain = [
+            ModelEntry("cloud-a", "gemini", "https://fake.gemini/v1", "fake-key"),
+            ModelEntry("qwen3:1.7b", "local", "http://localhost:11434/v1", ""),
+        ]
+        client = self._client(chain)
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = {"choices": [{"message": {"content": "cloud reply"}}]}
+
+        with patch.object(client._client, "post", return_value=resp) as mock_post:
+            result = client.chat([{"role": "user", "content": "hi"}], exclude_providers=frozenset({"local"}))
+
+        self.assertEqual(result, "cloud reply")
+        self.assertEqual(mock_post.call_count, 1)  # only the gemini entry was ever tried
+
+    def test_all_non_excluded_entries_exhausted_raises_without_trying_excluded_one(self):
+        """The realistic "cloud fully exhausted" case: every non-local
+        entry is on cooldown. Must raise (fast, no local attempt) rather
+        than silently falling through to the excluded local entry."""
+        import time as time_mod
+
+        from applypilot.llm import ModelEntry
+
+        chain = [
+            ModelEntry("cloud-a", "gemini", "https://fake.gemini/v1", "fake-key"),
+            ModelEntry("qwen3:1.7b", "local", "http://localhost:11434/v1", ""),
+        ]
+        client = self._client(chain)
+        client._exhausted["cloud-a"] = time_mod.time() + 86400  # 24h daily-quota exhaustion
+
+        with patch.object(client._client, "post") as mock_post, self.assertRaises(RuntimeError):
+            client.chat([{"role": "user", "content": "hi"}], exclude_providers=frozenset({"local"}))
+
+        mock_post.assert_not_called()  # never even tried the excluded local entry
+
+    def test_excluding_a_provider_does_not_mutate_the_fallback_chain(self):
+        """Must be safe for concurrent callers sharing the same client
+        (e.g. --workers > 1): exclude_providers is a per-call filter, not a
+        mutation of shared state."""
+        from applypilot.llm import ModelEntry
+
+        chain = [
+            ModelEntry("cloud-a", "gemini", "https://fake.gemini/v1", "fake-key"),
+            ModelEntry("qwen3:1.7b", "local", "http://localhost:11434/v1", ""),
+        ]
+        client = self._client(chain)
+        original_chain = list(client._fallback_chain)
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = {"choices": [{"message": {"content": "cloud reply"}}]}
+
+        with patch.object(client._client, "post", return_value=resp):
+            client.chat([{"role": "user", "content": "hi"}], exclude_providers=frozenset({"local"}))
+
+        self.assertEqual(client._fallback_chain, original_chain)
+
+    def test_no_exclude_providers_behaves_exactly_as_before(self):
+        """Backward compatibility: omitting exclude_providers (the default,
+        every existing call site except tailor.py's heavy-prompt call) must
+        not change behavior at all."""
+        from applypilot.llm import ModelEntry
+
+        chain = [ModelEntry("qwen3:1.7b", "local", "http://localhost:11434/v1", "")]
+        client = self._client(chain)
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = {"choices": [{"message": {"content": "local reply"}}]}
+
+        with patch.object(client._client, "post", return_value=resp):
+            result = client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertEqual(result, "local reply")
 
 
 class TestClaudeCliFailureClassification(unittest.TestCase):
@@ -343,6 +943,7 @@ class TestClaudeCliFailureClassification(unittest.TestCase):
 
     def _entry(self):
         from applypilot.llm import ModelEntry
+
         return ModelEntry("sonnet", "claude_cli", "/fake/path/to/claude", "")
 
     def _messages(self):
@@ -350,6 +951,7 @@ class TestClaudeCliFailureClassification(unittest.TestCase):
 
     def _fake_proc(self, returncode, stdout, stderr):
         from types import SimpleNamespace
+
         return SimpleNamespace(returncode=returncode, stdout=stdout, stderr=stderr)
 
     def test_empty_output_nonzero_exit_marks_exhausted_not_raised(self):
@@ -357,8 +959,7 @@ class TestClaudeCliFailureClassification(unittest.TestCase):
         raise RuntimeError, even when this is the last chain entry."""
         client = _make_client(1)
         entry = self._entry()
-        with patch("applypilot.llm.subprocess.run",
-                    return_value=self._fake_proc(1, "", "")):
+        with patch("applypilot.llm.subprocess.run", return_value=self._fake_proc(1, "", "")):
             result = client._try_claude_cli(entry, self._messages(), is_last=True)
         self.assertIsNone(result)
         self.assertIn(entry.name, client._exhausted)
@@ -367,8 +968,7 @@ class TestClaudeCliFailureClassification(unittest.TestCase):
         """Existing substring-match path still works unchanged."""
         client = _make_client(1)
         entry = self._entry()
-        with patch("applypilot.llm.subprocess.run",
-                    return_value=self._fake_proc(1, "", "Error: usage limit reached")):
+        with patch("applypilot.llm.subprocess.run", return_value=self._fake_proc(1, "", "Error: usage limit reached")):
             result = client._try_claude_cli(entry, self._messages(), is_last=True)
         self.assertIsNone(result)
         self.assertIn(entry.name, client._exhausted)
@@ -379,25 +979,23 @@ class TestClaudeCliFailureClassification(unittest.TestCase):
         applies when there's truly nothing to diagnose from."""
         client = _make_client(1)
         entry = self._entry()
-        with patch("applypilot.llm.subprocess.run",
-                    return_value=self._fake_proc(1, "", "invalid --system-prompt argument")):
-            with self.assertRaises(RuntimeError):
-                client._try_claude_cli(entry, self._messages(), is_last=True)
+        with patch(
+            "applypilot.llm.subprocess.run", return_value=self._fake_proc(1, "", "invalid --system-prompt argument")
+        ), self.assertRaises(RuntimeError):
+            client._try_claude_cli(entry, self._messages(), is_last=True)
         self.assertNotIn(entry.name, client._exhausted)
 
     def test_genuine_error_with_text_returns_none_when_not_last(self):
         client = _make_client(1)
         entry = self._entry()
-        with patch("applypilot.llm.subprocess.run",
-                    return_value=self._fake_proc(1, "", "some other error")):
+        with patch("applypilot.llm.subprocess.run", return_value=self._fake_proc(1, "", "some other error")):
             result = client._try_claude_cli(entry, self._messages(), is_last=False)
         self.assertIsNone(result)
 
     def test_success_returns_stripped_stdout(self):
         client = _make_client(1)
         entry = self._entry()
-        with patch("applypilot.llm.subprocess.run",
-                    return_value=self._fake_proc(0, "CLAUDE_TEST\n", "")):
+        with patch("applypilot.llm.subprocess.run", return_value=self._fake_proc(0, "CLAUDE_TEST\n", "")):
             result = client._try_claude_cli(entry, self._messages(), is_last=True)
         self.assertEqual(result, "CLAUDE_TEST")
 
@@ -406,9 +1004,10 @@ class TestClaudeCliFailureClassification(unittest.TestCase):
         'usage limit' -- the original three keywords didn't match it."""
         client = _make_client(1)
         entry = self._entry()
-        with patch("applypilot.llm.subprocess.run",
-                    return_value=self._fake_proc(
-                        1, "You've hit your session limit · resets 4pm (America/New_York)", "")):
+        with patch(
+            "applypilot.llm.subprocess.run",
+            return_value=self._fake_proc(1, "You've hit your session limit · resets 4pm (America/New_York)", ""),
+        ):
             result = client._try_claude_cli(entry, self._messages(), is_last=True)
         self.assertIsNone(result)
         self.assertIn(entry.name, client._exhausted)
@@ -419,10 +1018,10 @@ class TestClaudeCliFailureClassification(unittest.TestCase):
         proc.stderr, so this exact case silently produced an empty error."""
         client = _make_client(1)
         entry = self._entry()
-        with patch("applypilot.llm.subprocess.run",
-                    return_value=self._fake_proc(1, "Error: invalid model configuration", "")):
-            with self.assertRaises(RuntimeError) as ctx:
-                client._try_claude_cli(entry, self._messages(), is_last=True)
+        with patch(
+            "applypilot.llm.subprocess.run", return_value=self._fake_proc(1, "Error: invalid model configuration", "")
+        ), self.assertRaises(RuntimeError) as ctx:
+            client._try_claude_cli(entry, self._messages(), is_last=True)
         self.assertIn("invalid model configuration", str(ctx.exception))
 
     def test_lock_short_circuits_after_concurrent_exhaustion(self):
@@ -450,6 +1049,7 @@ class TestClaudeCliExhaustionReasonAndCapacityProbe(unittest.TestCase):
 
     def _entry(self):
         from applypilot.llm import ModelEntry
+
         return ModelEntry("sonnet", "claude_cli", "/fake/path/to/claude", "")
 
     def _messages(self):
@@ -457,13 +1057,13 @@ class TestClaudeCliExhaustionReasonAndCapacityProbe(unittest.TestCase):
 
     def _fake_proc(self, returncode, stdout, stderr):
         from types import SimpleNamespace
+
         return SimpleNamespace(returncode=returncode, stdout=stdout, stderr=stderr)
 
     def test_reason_is_quota_text_match(self):
         client = _make_client(1)
         entry = self._entry()
-        with patch("applypilot.llm.subprocess.run",
-                    return_value=self._fake_proc(1, "", "Error: usage limit reached")):
+        with patch("applypilot.llm.subprocess.run", return_value=self._fake_proc(1, "", "Error: usage limit reached")):
             result = client._try_claude_cli(entry, self._messages(), is_last=True)
         self.assertIsNone(result)
         self.assertEqual(client.claude_cli_exhaustion_reason(entry.name), "quota_text_match")
@@ -471,8 +1071,7 @@ class TestClaudeCliExhaustionReasonAndCapacityProbe(unittest.TestCase):
     def test_reason_is_empty_output_heuristic(self):
         client = _make_client(1)
         entry = self._entry()
-        with patch("applypilot.llm.subprocess.run",
-                    return_value=self._fake_proc(1, "", "")):
+        with patch("applypilot.llm.subprocess.run", return_value=self._fake_proc(1, "", "")):
             client._try_claude_cli(entry, self._messages(), is_last=True)
         self.assertEqual(client.claude_cli_exhaustion_reason(entry.name), "empty_output_heuristic")
 
@@ -480,16 +1079,14 @@ class TestClaudeCliExhaustionReasonAndCapacityProbe(unittest.TestCase):
         client = _make_client(1)
         entry = self._entry()
         self.assertIsNone(client.claude_cli_exhaustion_reason(entry.name))
-        with patch("applypilot.llm.subprocess.run",
-                    return_value=self._fake_proc(0, "ok", "")):
+        with patch("applypilot.llm.subprocess.run", return_value=self._fake_proc(0, "ok", "")):
             client._try_claude_cli(entry, self._messages(), is_last=True)
         self.assertIsNone(client.claude_cli_exhaustion_reason(entry.name))
 
     def test_reason_cleared_once_exhaustion_window_expires(self):
         client = _make_client(1)
         entry = self._entry()
-        with patch("applypilot.llm.subprocess.run",
-                    return_value=self._fake_proc(1, "", "")):
+        with patch("applypilot.llm.subprocess.run", return_value=self._fake_proc(1, "", "")):
             client._try_claude_cli(entry, self._messages(), is_last=True)
         self.assertIsNotNone(client.claude_cli_exhaustion_reason(entry.name))
         client._exhausted[entry.name] = time.time() - 1  # force-expire
@@ -514,8 +1111,7 @@ class TestClaudeCliExhaustionReasonAndCapacityProbe(unittest.TestCase):
         """Pure read of in-memory state -- must never invoke a network or
         subprocess call just to answer the capacity question."""
         client = _make_client(3)
-        with patch("applypilot.llm.subprocess.run") as mock_run, \
-             patch("applypilot.llm.httpx.Client.post") as mock_post:
+        with patch("applypilot.llm.subprocess.run") as mock_run, patch("applypilot.llm.httpx.Client.post") as mock_post:
             client.has_available_model()
         mock_run.assert_not_called()
         mock_post.assert_not_called()
@@ -535,18 +1131,29 @@ class TestClaudeCliReserveForApply(unittest.TestCase):
 
     def _chain(self, reserve_value: str | None, quality: bool = False):
         import applypilot.llm as llm_mod
+
         env = {
-            k: v for k, v in __import__("os").environ.items()
-            if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-                         "DEEPSEEK_API_KEY", "LLM_URL", "APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY",
-                         "APPLYPILOT_LOCAL_LLM_URL")
+            k: v
+            for k, v in __import__("os").environ.items()
+            if k
+            not in (
+                "GEMINI_API_KEY",
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "DEEPSEEK_API_KEY",
+                "LLM_URL",
+                "APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY",
+                "APPLYPILOT_LOCAL_LLM_URL",
+            )
         }
         env["GEMINI_API_KEY"] = "fake-gemini-key"  # keep the chain non-empty
         if reserve_value is not None:
             env["APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY"] = reserve_value
-        with patch.dict("os.environ", env, clear=True):
-            with patch.object(llm_mod, "_find_claude_cli", return_value="/fake/path/to/claude"):
-                return llm_mod._build_fallback_chain("gemini-3.6-flash", quality=quality)
+        with (
+            patch.dict("os.environ", env, clear=True),
+            patch.object(llm_mod, "_find_claude_cli", return_value="/fake/path/to/claude"),
+        ):
+            return llm_mod._build_fallback_chain("gemini-3.6-flash", quality=quality)
 
     def test_claude_cli_excluded_by_default(self):
         providers = [e.provider for e in self._chain(reserve_value=None)]
@@ -573,16 +1180,27 @@ class TestClaudeCliReserveForApply(unittest.TestCase):
         the resulting RuntimeError should say why rather than just looking
         like no provider was ever configured."""
         import applypilot.llm as llm_mod
+
         env = {
-            k: v for k, v in __import__("os").environ.items()
-            if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-                         "DEEPSEEK_API_KEY", "LLM_URL", "APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY",
-                         "APPLYPILOT_LOCAL_LLM_URL")
+            k: v
+            for k, v in __import__("os").environ.items()
+            if k
+            not in (
+                "GEMINI_API_KEY",
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "DEEPSEEK_API_KEY",
+                "LLM_URL",
+                "APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY",
+                "APPLYPILOT_LOCAL_LLM_URL",
+            )
         }
-        with patch.dict("os.environ", env, clear=True):
-            with patch.object(llm_mod, "_find_claude_cli", return_value="/fake/path/to/claude"):
-                with self.assertRaises(RuntimeError) as ctx:
-                    llm_mod._build_fallback_chain("gemini-3.6-flash", quality=False)
+        with (
+            patch.dict("os.environ", env, clear=True),
+            patch.object(llm_mod, "_find_claude_cli", return_value="/fake/path/to/claude"),
+            self.assertRaises(RuntimeError) as ctx,
+        ):
+            llm_mod._build_fallback_chain("gemini-3.6-flash", quality=False)
         self.assertIn("reserved for auto-apply", str(ctx.exception))
 
 
@@ -604,6 +1222,7 @@ class TestFullCascadeIntegration(unittest.TestCase):
 
     def _fake_response(self, status_code, text="", json_data=None):
         from unittest.mock import MagicMock
+
         resp = MagicMock()
         resp.status_code = status_code
         resp.text = text
@@ -617,6 +1236,7 @@ class TestFullCascadeIntegration(unittest.TestCase):
 
     def _fake_proc(self, returncode=0, stdout="", stderr=""):
         from types import SimpleNamespace
+
         return SimpleNamespace(returncode=returncode, stdout=stdout, stderr=stderr)
 
     def _build_real_client(self, env, quality=False, primary=None, claude_cli_path=None):
@@ -624,24 +1244,37 @@ class TestFullCascadeIntegration(unittest.TestCase):
         names) against a controlled environment. HTTP/subprocess calls are
         mocked by the individual tests, not here."""
         import applypilot.llm as llm_mod
+
         base_env = {
-            k: v for k, v in __import__("os").environ.items()
-            if k not in ("GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-                         "DEEPSEEK_API_KEY", "LLM_URL", "APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY",
-                         "APPLYPILOT_LOCAL_LLM_URL")
+            k: v
+            for k, v in __import__("os").environ.items()
+            if k
+            not in (
+                "GEMINI_API_KEY",
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "DEEPSEEK_API_KEY",
+                "LLM_URL",
+                "APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY",
+                "APPLYPILOT_LOCAL_LLM_URL",
+            )
         }
         base_env.update(env)
         primary = primary or ("gemini-3.1-pro-preview" if quality else "gemini-3.6-flash")
-        with patch.dict("os.environ", base_env, clear=True):
-            with patch.object(llm_mod, "_find_claude_cli", return_value=claude_cli_path):
-                return llm_mod.LLMClient(
-                    "https://fake", primary, base_env.get("GEMINI_API_KEY", ""), quality=quality,
-                )
+        with (
+            patch.dict("os.environ", base_env, clear=True),
+            patch.object(llm_mod, "_find_claude_cli", return_value=claude_cli_path),
+        ):
+            return llm_mod.LLMClient(
+                "https://fake",
+                primary,
+                base_env.get("GEMINI_API_KEY", ""),
+                quality=quality,
+            )
 
     def test_gemini_quota_exhaustion_falls_through_to_openai(self):
         """Gemini exhaustion causes fallback to OpenAI."""
-        client = self._build_real_client(
-            {"GEMINI_API_KEY": "fake-gemini", "OPENAI_API_KEY": "fake-openai"})
+        client = self._build_real_client({"GEMINI_API_KEY": "fake-gemini", "OPENAI_API_KEY": "fake-openai"})
         gemini_names = {e.name for e in client._fallback_chain if e.provider == "gemini"}
         self.assertTrue(gemini_names, "test needs at least one gemini entry in the chain")
 
@@ -681,8 +1314,11 @@ class TestFullCascadeIntegration(unittest.TestCase):
         """Claude CLI is reached when earlier providers are exhausted --
         with the reserve explicitly turned off."""
         client = self._build_real_client(
-            {"GEMINI_API_KEY": "fake-gemini", "OPENAI_API_KEY": "fake-openai",
-             "APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY": "false"},
+            {
+                "GEMINI_API_KEY": "fake-gemini",
+                "OPENAI_API_KEY": "fake-openai",
+                "APPLYPILOT_RESERVE_CLAUDE_FOR_APPLY": "false",
+            },
             claude_cli_path="/fake/claude",
         )
         self.assertTrue(
@@ -693,10 +1329,11 @@ class TestFullCascadeIntegration(unittest.TestCase):
         def fake_post(url, json=None, headers=None):
             return self._fake_response(429, text='{"error": "quota exceeded"}')
 
-        with patch.object(client._client, "post", side_effect=fake_post):
-            with patch("applypilot.llm.subprocess.run",
-                        return_value=self._fake_proc(0, "claude response", "")) as mock_run:
-                result = client.chat([{"role": "user", "content": "hi"}])
+        with (
+            patch.object(client._client, "post", side_effect=fake_post),
+            patch("applypilot.llm.subprocess.run", return_value=self._fake_proc(0, "claude response", "")) as mock_run,
+        ):
+            result = client.chat([{"role": "user", "content": "hi"}])
 
         self.assertEqual(result, "claude response")
         mock_run.assert_called_once()
@@ -715,10 +1352,12 @@ class TestFullCascadeIntegration(unittest.TestCase):
         def fake_post(url, json=None, headers=None):
             return self._fake_response(429, text='{"error": "quota exceeded"}')
 
-        with patch.object(client._client, "post", side_effect=fake_post):
-            with patch("applypilot.llm.subprocess.run") as mock_run:
-                with self.assertRaises(RuntimeError) as ctx:
-                    client.chat([{"role": "user", "content": "hi"}])
+        with (
+            patch.object(client._client, "post", side_effect=fake_post),
+            patch("applypilot.llm.subprocess.run") as mock_run,
+            self.assertRaises(RuntimeError) as ctx,
+        ):
+            client.chat([{"role": "user", "content": "hi"}])
 
         mock_run.assert_not_called()
         message = str(ctx.exception)
@@ -729,8 +1368,7 @@ class TestFullCascadeIntegration(unittest.TestCase):
     def test_unrelated_provider_not_marked_exhausted_on_sibling_failure(self):
         """A non-quota failure on one entry doesn't mark a sibling entry
         (or itself, for a per-request error) exhausted."""
-        client = self._build_real_client(
-            {"GEMINI_API_KEY": "fake-gemini", "OPENAI_API_KEY": "fake-openai"})
+        client = self._build_real_client({"GEMINI_API_KEY": "fake-gemini", "OPENAI_API_KEY": "fake-openai"})
         gemini_first = next(e for e in client._fallback_chain if e.provider == "gemini")
 
         def fake_post(url, json=None, headers=None):
@@ -747,16 +1385,17 @@ class TestFullCascadeIntegration(unittest.TestCase):
     def test_all_exhausted_raises_runtime_error_with_model_list(self):
         """All-model exhaustion still raises the expected RuntimeError,
         naming every model that was attempted."""
-        client = self._build_real_client(
-            {"GEMINI_API_KEY": "fake-gemini", "OPENAI_API_KEY": "fake-openai"})
+        client = self._build_real_client({"GEMINI_API_KEY": "fake-gemini", "OPENAI_API_KEY": "fake-openai"})
         chain_names = [e.name for e in client._fallback_chain]
 
         def fake_post(url, json=None, headers=None):
             return self._fake_response(429, text='{"error": "quota exceeded"}')
 
-        with patch.object(client._client, "post", side_effect=fake_post):
-            with self.assertRaises(RuntimeError) as ctx:
-                client.chat([{"role": "user", "content": "hi"}])
+        with (
+            patch.object(client._client, "post", side_effect=fake_post),
+            self.assertRaises(RuntimeError) as ctx,
+        ):
+            client.chat([{"role": "user", "content": "hi"}])
 
         message = str(ctx.exception)
         self.assertIn("All models exhausted", message)

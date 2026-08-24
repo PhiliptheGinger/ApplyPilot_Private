@@ -1,8 +1,8 @@
 import re
 
 from applypilot import config
-from applypilot.scoring.tailor import assemble_resume_text
 from applypilot.apply import prompt as apply_prompt
+from applypilot.scoring.tailor import assemble_resume_text
 
 
 def test_application_profile_loaded():
@@ -22,7 +22,7 @@ def test_application_profile_not_leaked_into_resume():
         "skills": {"Languages": "Python"},
         "experience": [{"header": "Test Role at Company", "subtitle": "Tech | 2020 - 2021", "bullets": ["Did work"]}],
         "projects": [],
-        "education": []
+        "education": [],
     }
     profile = config.load_profile()
     txt = assemble_resume_text(data, profile)

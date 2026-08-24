@@ -22,6 +22,7 @@ from applypilot import config
 
 logger = logging.getLogger(__name__)
 
+
 def _get_or_create_extension_key() -> str:
     """Return the base64-encoded RSA public key used as manifest.json `key`.
 
@@ -48,13 +49,13 @@ def _get_or_create_extension_key() -> str:
     # functional and tests don't depend on external binaries.
     try:
         privkey_der = _sp.check_output(
-            ["openssl", "genpkey", "-algorithm", "RSA",
-             "-pkeyopt", "rsa_keygen_bits:2048", "-outform", "DER"],
+            ["openssl", "genpkey", "-algorithm", "RSA", "-pkeyopt", "rsa_keygen_bits:2048", "-outform", "DER"],
             stderr=_sp.DEVNULL,
         )
         pubkey_der = _sp.check_output(
             ["openssl", "rsa", "-pubout", "-inform", "DER", "-outform", "DER"],
-            input=privkey_der, stderr=_sp.DEVNULL,
+            input=privkey_der,
+            stderr=_sp.DEVNULL,
         )
     except (subprocess.CalledProcessError, FileNotFoundError, OSError, _sp.TimeoutExpired):
         from cryptography.hazmat.primitives import serialization
@@ -139,9 +140,12 @@ def inject_dry_run_gate(cdp_port: int) -> bool:
 
     try:
         # Browser-level WS endpoint (covers all targets via the dispatcher).
-        info = json.loads(urllib.request.urlopen(
-            f"http://localhost:{cdp_port}/json/version", timeout=3,
-        ).read())
+        info = json.loads(
+            urllib.request.urlopen(
+                f"http://localhost:{cdp_port}/json/version",
+                timeout=3,
+            ).read()
+        )
         browser_ws = info.get("webSocketDebuggerUrl")
         if not browser_ws:
             return False
@@ -180,13 +184,11 @@ def inject_dry_run_gate(cdp_port: int) -> bool:
         # Find every page target so we can inject into each one.
         targets_resp = _send(ws, "Target.getTargets") or {}
         page_targets = [
-            t for t in (targets_resp.get("result", {}).get("targetInfos", []) or [])
-            if t.get("type") == "page"
+            t for t in (targets_resp.get("result", {}).get("targetInfos", []) or []) if t.get("type") == "page"
         ]
         installed = 0
         for tgt in page_targets:
-            attach = _send(ws, "Target.attachToTarget",
-                           {"targetId": tgt["targetId"], "flatten": True})
+            attach = _send(ws, "Target.attachToTarget", {"targetId": tgt["targetId"], "flatten": True})
             if not attach:
                 continue
             sid = attach.get("result", {}).get("sessionId")
@@ -194,12 +196,9 @@ def inject_dry_run_gate(cdp_port: int) -> bool:
                 continue
             try:
                 _send(ws, "Page.enable", session_id=sid)
-                _send(ws, "Page.addScriptToEvaluateOnNewDocument",
-                      {"source": _DRY_RUN_GATE_JS}, session_id=sid)
+                _send(ws, "Page.addScriptToEvaluateOnNewDocument", {"source": _DRY_RUN_GATE_JS}, session_id=sid)
                 # Also evaluate immediately so the current page is gated.
-                _send(ws, "Runtime.evaluate",
-                      {"expression": _DRY_RUN_GATE_JS, "awaitPromise": False},
-                      session_id=sid)
+                _send(ws, "Runtime.evaluate", {"expression": _DRY_RUN_GATE_JS, "awaitPromise": False}, session_id=sid)
                 installed += 1
             finally:
                 # Best-effort detach so we don't leave a session pinned.
@@ -219,6 +218,7 @@ def _patch_manifest_key(manifest_path: Path) -> None:
     is a no-op.
     """
     import json as _json
+
     pubkey_b64 = _get_or_create_extension_key()
     text = manifest_path.read_text(encoding="utf-8")
     data = _json.loads(text)
@@ -243,6 +243,7 @@ def _compute_extension_id(pubkey_b64: str) -> str:
     """
     import base64 as _b64
     import hashlib as _hashlib
+
     raw = _b64.b64decode(pubkey_b64)
     digest = _hashlib.sha256(raw).hexdigest()[:32]
     return "".join(chr(ord("a") + int(c, 16)) for c in digest)
@@ -308,6 +309,8 @@ class _AdoptedChromeProcess:
 
     def wait(self, timeout: float | None = None) -> int:
         return 0  # No-op; we don't manage lifecycle here
+
+
 _chrome_lock = threading.Lock()
 
 # Persistent ATS session storage
@@ -318,19 +321,19 @@ ATS_DOMAINS: dict[str, str] = {
     # --- high-volume (seen in DB) ---
     "myworkdayjobs.com": "workday",
     "greenhouse.io": "greenhouse",
-    "grnh.se": "greenhouse",       # Greenhouse short-link redirector
+    "grnh.se": "greenhouse",  # Greenhouse short-link redirector
     "lever.co": "lever",
-    "ashbyhq.com": "ashby",        # 143 jobs in DB
-    "rippling.com": "rippling",    # 38 jobs in DB (ats.rippling.com)
-    "workable.com": "workable",    # 14 jobs in DB (apply.workable.com)
+    "ashbyhq.com": "ashby",  # 143 jobs in DB
+    "rippling.com": "rippling",  # 38 jobs in DB (ats.rippling.com)
+    "workable.com": "workable",  # 14 jobs in DB (apply.workable.com)
     "recruitee.com": "recruitee",  # 12 jobs in DB
-    "adp.com": "adp",              # 6 jobs in DB (workforcenow.adp.com)
+    "adp.com": "adp",  # 6 jobs in DB (workforcenow.adp.com)
     "icims.com": "icims",
     "jobvite.com": "jobvite",
     "oraclecloud.com": "oracle",
     "smartrecruiters.com": "smartrecruiters",
     "ultipro.com": "ultipro",
-    "ukg.com": "ultipro",          # UKG acquired Ultipro
+    "ukg.com": "ultipro",  # UKG acquired Ultipro
     "taleo.net": "taleo",
     # --- common enterprise / mid-market ---
     "successfactors.com": "successfactors",
@@ -358,6 +361,7 @@ def detect_ats(url: str | None) -> str | None:
     if not url:
         return None
     from urllib.parse import urlparse
+
     host = urlparse(url).hostname or ""
     host = host.lower()
     for domain, slug in ATS_DOMAINS.items():
@@ -422,20 +426,24 @@ def list_ats_sessions() -> list[dict]:
         age_hours = None
         if cookies.exists():
             import os
+
             mtime = os.path.getmtime(cookies)
             age_hours = (time.time() - mtime) / 3600
-        sessions.append({
-            "slug": entry.name,
-            "path": str(entry),
-            "age_hours": age_hours,
-            "has_cookies": cookies.exists(),
-        })
+        sessions.append(
+            {
+                "slug": entry.name,
+                "path": str(entry),
+                "age_hours": age_hours,
+                "has_cookies": cookies.exists(),
+            }
+        )
     return sessions
 
 
 # ---------------------------------------------------------------------------
 # Cross-platform process helpers
 # ---------------------------------------------------------------------------
+
 
 def _kill_process_tree(pid: int) -> None:
     """Kill a process and all its children.
@@ -458,6 +466,7 @@ def _kill_process_tree(pid: int) -> None:
         else:
             # Unix: kill entire process group
             import os
+
             try:
                 os.killpg(os.getpgid(pid), _signal.SIGKILL)
             except (ProcessLookupError, PermissionError):
@@ -479,7 +488,9 @@ def _kill_on_port(port: int) -> None:
         if platform.system() == "Windows":
             result = subprocess.run(
                 ["netstat", "-ano", "-p", "TCP"],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True,
+                text=True,
+                timeout=10,
                 check=False,
             )
             for line in result.stdout.splitlines():
@@ -491,7 +502,9 @@ def _kill_on_port(port: int) -> None:
             # macOS / Linux
             result = subprocess.run(
                 ["lsof", "-ti", f":{port}"],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True,
+                text=True,
+                timeout=10,
                 check=False,
             )
             for pid_str in result.stdout.strip().splitlines():
@@ -517,12 +530,18 @@ _TOP_LEVEL_FILES = ("Local State",)
 
 # Files inside Default/ needed for sessions and auth
 _DEFAULT_FILES = (
-    "Cookies", "Cookies-journal",
-    "Login Data", "Login Data-journal",
-    "Web Data", "Web Data-journal",
-    "Preferences", "Secure Preferences",
-    "Affiliation Database", "Affiliation Database-journal",
-    "Network Action Predictor", "Network Action Predictor-journal",
+    "Cookies",
+    "Cookies-journal",
+    "Login Data",
+    "Login Data-journal",
+    "Web Data",
+    "Web Data-journal",
+    "Preferences",
+    "Secure Preferences",
+    "Affiliation Database",
+    "Affiliation Database-journal",
+    "Network Action Predictor",
+    "Network Action Predictor-journal",
 )
 
 # Directories inside Default/ needed for auth (some sites store tokens here)
@@ -536,8 +555,14 @@ _DEFAULT_DIRS = (
 
 # Session/tab files to NEVER copy (these are huge with many tabs open)
 _NEVER_COPY = {
-    "Current Session", "Current Tabs", "Last Session", "Last Tabs",
-    "Sessions", "SingletonLock", "SingletonSocket", "SingletonCookie",
+    "Current Session",
+    "Current Tabs",
+    "Last Session",
+    "Last Tabs",
+    "Sessions",
+    "SingletonLock",
+    "SingletonSocket",
+    "SingletonCookie",
 }
 
 
@@ -587,7 +612,8 @@ def _copy_auth_files(source: Path, dest: Path) -> int:
         if src.is_dir():
             try:
                 shutil.copytree(
-                    str(src), str(dst_default / dname),
+                    str(src),
+                    str(dst_default / dname),
                     dirs_exist_ok=True,
                 )
                 copied += 1
@@ -625,8 +651,7 @@ def _init_clean_profile(profile_dir: Path) -> None:
     prefs_file.write_text(json.dumps(minimal_prefs), encoding="utf-8")
 
 
-def setup_worker_profile(worker_id: int, refresh_cookies: bool = False,
-                         ats_slug: str | None = None) -> Path:
+def setup_worker_profile(worker_id: int, refresh_cookies: bool = False, ats_slug: str | None = None) -> Path:
     """Create an isolated Chrome profile for a worker.
 
     Profiles are completely clean — no data is copied from the user's real
@@ -667,8 +692,7 @@ def setup_worker_profile(worker_id: int, refresh_cookies: bool = False,
         session_dir = get_ats_session_path(ats_slug)
         if (session_dir / "Default").exists():
             overlay_count = _copy_auth_files(session_dir, profile_dir)
-            logger.info("[worker-%d] Overlaid %d auth files from %s session",
-                        worker_id, overlay_count, ats_slug)
+            logger.info("[worker-%d] Overlaid %d auth files from %s session", worker_id, overlay_count, ats_slug)
 
     # Deploy per-worker extension (copy source + inject per-worker config)
     # NOTE: Extension must live OUTSIDE the user-data-dir — Chrome 75+ ignores
@@ -696,8 +720,7 @@ def setup_worker_profile(worker_id: int, refresh_cookies: bool = False,
             try:
                 _patch_manifest_key(ext_dst / "manifest.json")
             except Exception:
-                logger.debug("[worker-%d] Manifest key patch failed (non-fatal)",
-                             worker_id, exc_info=True)
+                logger.debug("[worker-%d] Manifest key patch failed (non-fatal)", worker_id, exc_info=True)
             logger.debug("[worker-%d] Extension deployed to %s", worker_id, ext_dst)
         except (OSError, shutil.Error) as e:
             logger.warning("[worker-%d] Extension deploy failed (non-fatal): %s", worker_id, e)
@@ -757,30 +780,38 @@ def _suppress_restore_nag(profile_dir: Path, worker_id: int | None = None) -> No
         # --- 2. Disable Google sync and sign-in ---
         # Prevents Chrome from re-syncing extensions/passwords from the user's
         # real Google profile when the copied session cookies re-authenticate.
-        prefs.setdefault("sync", {}).update({
-            "requested": False,
-            "has_setup_completed": False,
-            "suppress_start": True,
-            "keep_everything_synced": False,
-        })
-        prefs.setdefault("signin", {}).update({
-            "allowed": False,
-            "allowed_on_next_startup": False,
-        })
+        prefs.setdefault("sync", {}).update(
+            {
+                "requested": False,
+                "has_setup_completed": False,
+                "suppress_start": True,
+                "keep_everything_synced": False,
+            }
+        )
+        prefs.setdefault("signin", {}).update(
+            {
+                "allowed": False,
+                "allowed_on_next_startup": False,
+            }
+        )
 
         # --- 3. Disable password manager and all autofill ---
         prefs["credentials_enable_service"] = False
         prefs["credentials_enable_autosign"] = False
         prefs.setdefault("profile", {})["password_manager_enabled"] = False
-        prefs.setdefault("password_manager", {}).update({
-            "saving_enabled": False,
-            "autosignin_enabled": False,
-        })
-        prefs.setdefault("autofill", {}).update({
-            "enabled": False,
-            "credit_card_enabled": False,
-            "profile_enabled": False,
-        })
+        prefs.setdefault("password_manager", {}).update(
+            {
+                "saving_enabled": False,
+                "autosignin_enabled": False,
+            }
+        )
+        prefs.setdefault("autofill", {}).update(
+            {
+                "enabled": False,
+                "credit_card_enabled": False,
+                "profile_enabled": False,
+            }
+        )
 
         # --- 4. Extension registration and pinning ---
         # The extension ID is derived from manifest.json's "key" field. Per
@@ -803,9 +834,9 @@ def _suppress_restore_nag(profile_dir: Path, worker_id: int | None = None) -> No
         worker_ext_prefix = str(config.CHROME_WORKER_DIR / "extensions")
         keep_prefixes = ("/opt/google/chrome/", worker_ext_prefix)
         stale = [
-            k for k, v in ext_settings.items()
-            if k != APPLYPILOT_EXT_ID and
-            not any(str(v.get("path", "")).startswith(p) for p in keep_prefixes)
+            k
+            for k, v in ext_settings.items()
+            if k != APPLYPILOT_EXT_ID and not any(str(v.get("path", "")).startswith(p) for p in keep_prefixes)
         ]
         for k in stale:
             del ext_settings[k]
@@ -815,21 +846,23 @@ def _suppress_restore_nag(profile_dir: Path, worker_id: int | None = None) -> No
         if worker_id is not None:
             worker_ext_path = str(config.CHROME_WORKER_DIR / "extensions" / f"worker-{worker_id}")
             entry = ext_settings.get(APPLYPILOT_EXT_ID, {})
-            entry.update({
-                "path": worker_ext_path,
-                "location": 4,          # COMMAND_LINE — trusted, no update check
-                "from_webstore": False,
-                "disable_reasons": 0,   # no disable reasons → extension stays enabled
-                # active_permissions must be present or Chrome treats the extension as
-                # "not yet installed" and blocks access to its resources (ERR_BLOCKED_BY_CLIENT).
-                # These values must exactly match manifest.json permissions/host_permissions.
-                "active_permissions": {
-                    "api": ["activeTab", "alarms", "storage"],
-                    "explicit_host": ["http://localhost/*"],
-                    "manifest_permissions": [],
-                    "scriptable_host": [],
-                },
-            })
+            entry.update(
+                {
+                    "path": worker_ext_path,
+                    "location": 4,  # COMMAND_LINE — trusted, no update check
+                    "from_webstore": False,
+                    "disable_reasons": 0,  # no disable reasons → extension stays enabled
+                    # active_permissions must be present or Chrome treats the extension as
+                    # "not yet installed" and blocks access to its resources (ERR_BLOCKED_BY_CLIENT).
+                    # These values must exactly match manifest.json permissions/host_permissions.
+                    "active_permissions": {
+                        "api": ["activeTab", "alarms", "storage"],
+                        "explicit_host": ["http://localhost/*"],
+                        "manifest_permissions": [],
+                        "scriptable_host": [],
+                    },
+                }
+            )
             ext_settings[APPLYPILOT_EXT_ID] = entry
 
         # Ensure ApplyPilot is pinned (visible in toolbar, not hidden behind puzzle icon).
@@ -840,10 +873,10 @@ def _suppress_restore_nag(profile_dir: Path, worker_id: int | None = None) -> No
             "eloakdpcfbnnadhnohionnmicpmedapk",  # old path-derived source-dir ID (no key)
             "lafmhibgcablhganbgeffcppmpfjlmpn",  # previously computed wrong key-derived ID
             "almfihgbaclbghnagbfecfpppmjfmlnp",  # static manifest-key ID (pre per-install
-                                                  # random key, decision #38). Was hardcoded
-                                                  # as APPLYPILOT_EXT_ID until the runtime
-                                                  # computation fix; existing installs may
-                                                  # have it polluting pinned_extensions.
+            # random key, decision #38). Was hardcoded
+            # as APPLYPILOT_EXT_ID until the runtime
+            # computation fix; existing installs may
+            # have it polluting pinned_extensions.
         }
         # Don't list our actual runtime ID as stale.
         _EXTRA_STALE.discard(APPLYPILOT_EXT_ID)
@@ -852,8 +885,7 @@ def _suppress_restore_nag(profile_dir: Path, worker_id: int | None = None) -> No
         for bad_id in _EXTRA_STALE:
             ext_settings.pop(bad_id, None)
         remove_from_pinned = set(stale) | _EXTRA_STALE
-        pinned = [p for p in ext_dir.get("pinned_extensions", [])
-                  if p not in remove_from_pinned]
+        pinned = [p for p in ext_dir.get("pinned_extensions", []) if p not in remove_from_pinned]
         if APPLYPILOT_EXT_ID not in pinned:
             pinned.append(APPLYPILOT_EXT_ID)
         ext_dir["pinned_extensions"] = pinned
@@ -867,6 +899,7 @@ def _suppress_restore_nag(profile_dir: Path, worker_id: int | None = None) -> No
 # Anti-detection helpers
 # ---------------------------------------------------------------------------
 
+
 def _get_real_user_agent() -> str:
     """Build a realistic Chrome user agent string for macOS.
 
@@ -877,7 +910,9 @@ def _get_real_user_agent() -> str:
         chrome_exe = config.get_chrome_path()
         result = subprocess.run(
             [chrome_exe, "--version"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
             check=False,
         )
         # "Google Chrome 145.0.7632.76" -> "145.0.7632.76"
@@ -893,10 +928,7 @@ def _get_real_user_agent() -> str:
     else:
         os_part = "X11; Linux x86_64"
 
-    return (
-        f"Mozilla/5.0 ({os_part}) AppleWebKit/537.36 "
-        f"(KHTML, like Gecko) Chrome/{version} Safari/537.36"
-    )
+    return f"Mozilla/5.0 ({os_part}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{version} Safari/537.36"
 
 
 # ---------------------------------------------------------------------------
@@ -904,8 +936,13 @@ def _get_real_user_agent() -> str:
 # ---------------------------------------------------------------------------
 
 _VIEWPORT_POOL = [
-    (1920, 1080), (1440, 900), (1536, 864), (1366, 768),
-    (1600, 900), (1280, 800), (1280, 720),
+    (1920, 1080),
+    (1440, 900),
+    (1536, 864),
+    (1366, 768),
+    (1600, 900),
+    (1280, 800),
+    (1280, 720),
 ]
 
 _worker_viewports: dict[int, tuple[int, int]] = {}
@@ -929,8 +966,10 @@ def _get_screen_size() -> tuple[int, int]:
     if platform.system() == "Linux":
         try:
             import gi  # type: ignore
+
             gi.require_version("Gdk", "3.0")
             from gi.repository import Gdk  # type: ignore
+
             d = Gdk.Display.get_default()
             max_w, max_h = 0, 0
             for i in range(d.get_n_monitors()):
@@ -957,7 +996,7 @@ def compute_tile(worker_id: int, total_workers: int) -> tuple[int, int, int, int
     On other OSes the same math applies using the detected screen size.
     """
     sw, sh = _get_screen_size()
-    top  = _PANEL_H
+    top = _PANEL_H
     usable_h = sh - top
 
     if total_workers == 1:
@@ -996,15 +1035,21 @@ def prevent_focus_stealing() -> str | None:
     if platform.system() != "Linux":
         return None
     try:
-        prev = subprocess.run(
-            ["gsettings", "get",
-             "org.gnome.desktop.wm.preferences", "focus-new-windows"],
-            capture_output=True, text=True, timeout=3, check=False,
-        ).stdout.strip().strip("'")
+        prev = (
+            subprocess.run(
+                ["gsettings", "get", "org.gnome.desktop.wm.preferences", "focus-new-windows"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+                check=False,
+            )
+            .stdout.strip()
+            .strip("'")
+        )
         subprocess.run(
-            ["gsettings", "set",
-             "org.gnome.desktop.wm.preferences", "focus-new-windows", "strict"],
-            check=True, timeout=3,
+            ["gsettings", "set", "org.gnome.desktop.wm.preferences", "focus-new-windows", "strict"],
+            check=True,
+            timeout=3,
         )
         logger.info("Focus-steal prevention: set focus-new-windows=strict (was '%s')", prev)
         return prev
@@ -1019,9 +1064,9 @@ def restore_focus_mode(prev: str | None) -> None:
         return
     try:
         subprocess.run(
-            ["gsettings", "set",
-             "org.gnome.desktop.wm.preferences", "focus-new-windows", prev],
-            check=True, timeout=3,
+            ["gsettings", "set", "org.gnome.desktop.wm.preferences", "focus-new-windows", prev],
+            check=True,
+            timeout=3,
         )
         logger.info("Focus mode restored to '%s'", prev)
     except (subprocess.CalledProcessError, FileNotFoundError, OSError, subprocess.TimeoutExpired) as e:
@@ -1042,6 +1087,7 @@ def get_worker_viewport(worker_id: int) -> tuple[int, int]:
 # Chrome launch / kill
 # ---------------------------------------------------------------------------
 
+
 def bring_to_foreground() -> None:
     """Attempt to bring Chrome to the foreground (best-effort).
 
@@ -1051,23 +1097,24 @@ def bring_to_foreground() -> None:
     try:
         if platform.system() == "Darwin":
             subprocess.run(
-                ["osascript", "-e",
-                 'tell application "Google Chrome" to activate'],
-                timeout=3, capture_output=True,
+                ["osascript", "-e", 'tell application "Google Chrome" to activate'],
+                timeout=3,
+                capture_output=True,
                 check=False,
             )
         else:
             # Try wmctrl first (more reliable for window managers)
             result = subprocess.run(
                 ["wmctrl", "-a", "Chrome"],
-                timeout=3, capture_output=True,
+                timeout=3,
+                capture_output=True,
                 check=False,
             )
             if result.returncode != 0:
                 subprocess.run(
-                    ["xdotool", "search", "--name", "Chrome",
-                     "windowactivate", "--sync"],
-                    timeout=3, capture_output=True,
+                    ["xdotool", "search", "--name", "Chrome", "windowactivate", "--sync"],
+                    timeout=3,
+                    capture_output=True,
                     check=False,
                 )
     except (FileNotFoundError, OSError, subprocess.SubprocessError):
@@ -1101,6 +1148,7 @@ def bring_to_foreground_cdp(cdp_port: int) -> bool:
 
     try:
         import websocket  # websocket-client
+
         ws = websocket.WebSocket()
         ws.connect(ws_url, timeout=3, origin="http://localhost")
         ws.send(json.dumps({"id": 1, "method": "Page.bringToFront"}))
@@ -1125,22 +1173,33 @@ def _raise_x11_window(pid: int) -> bool:
         return False
     try:
         import ctypes
+
         X11 = ctypes.CDLL("libX11.so.6")
         X11.XOpenDisplay.restype = ctypes.c_void_p
         X11.XDefaultRootWindow.restype = ctypes.c_ulong
         X11.XInternAtom.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int]
         X11.XInternAtom.restype = ctypes.c_ulong
         X11.XGetWindowProperty.argtypes = [
-            ctypes.c_void_p, ctypes.c_ulong, ctypes.c_ulong,
-            ctypes.c_long, ctypes.c_long, ctypes.c_int,
-            ctypes.c_ulong, ctypes.POINTER(ctypes.c_ulong),
-            ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_ulong),
-            ctypes.POINTER(ctypes.c_ulong), ctypes.POINTER(ctypes.c_void_p),
+            ctypes.c_void_p,
+            ctypes.c_ulong,
+            ctypes.c_ulong,
+            ctypes.c_long,
+            ctypes.c_long,
+            ctypes.c_int,
+            ctypes.c_ulong,
+            ctypes.POINTER(ctypes.c_ulong),
+            ctypes.POINTER(ctypes.c_int),
+            ctypes.POINTER(ctypes.c_ulong),
+            ctypes.POINTER(ctypes.c_ulong),
+            ctypes.POINTER(ctypes.c_void_p),
         ]
         X11.XFree.argtypes = [ctypes.c_void_p]
         X11.XSendEvent.argtypes = [
-            ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int,
-            ctypes.c_long, ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_ulong,
+            ctypes.c_int,
+            ctypes.c_long,
+            ctypes.c_void_p,
         ]
         X11.XFlush.argtypes = [ctypes.c_void_p]
         X11.XCloseDisplay.argtypes = [ctypes.c_void_p]
@@ -1150,11 +1209,11 @@ def _raise_x11_window(pid: int) -> bool:
             return False
         try:
             root = X11.XDefaultRootWindow(dpy)
-            XA_WINDOW   = ctypes.c_ulong(33)
+            XA_WINDOW = ctypes.c_ulong(33)
             XA_CARDINAL = ctypes.c_ulong(6)
             NET_CLIENT_LIST = X11.XInternAtom(dpy, b"_NET_CLIENT_LIST", 0)
-            NET_WM_PID      = X11.XInternAtom(dpy, b"_NET_WM_PID", 0)
-            NET_ACTIVE_WIN  = X11.XInternAtom(dpy, b"_NET_ACTIVE_WINDOW", 0)
+            NET_WM_PID = X11.XInternAtom(dpy, b"_NET_WM_PID", 0)
+            NET_ACTIVE_WIN = X11.XInternAtom(dpy, b"_NET_ACTIVE_WINDOW", 0)
 
             atype = ctypes.c_ulong()
             afmt = ctypes.c_int()
@@ -1164,22 +1223,38 @@ def _raise_x11_window(pid: int) -> bool:
 
             # Fetch all managed windows
             X11.XGetWindowProperty(
-                dpy, root, NET_CLIENT_LIST,
-                0, 0x7FFFFFFF, 0, XA_WINDOW,
-                ctypes.byref(atype), ctypes.byref(afmt),
-                ctypes.byref(nitems), ctypes.byref(bafter), ctypes.byref(data),
+                dpy,
+                root,
+                NET_CLIENT_LIST,
+                0,
+                0x7FFFFFFF,
+                0,
+                XA_WINDOW,
+                ctypes.byref(atype),
+                ctypes.byref(afmt),
+                ctypes.byref(nitems),
+                ctypes.byref(bafter),
+                ctypes.byref(data),
             )
-            wins = list(ctypes.cast(data, ctypes.POINTER(ctypes.c_ulong))[:nitems.value])
+            wins = list(ctypes.cast(data, ctypes.POINTER(ctypes.c_ulong))[: nitems.value])
             X11.XFree(data)
 
             # Find the first window belonging to this PID
             target = None
             for win in wins:
                 X11.XGetWindowProperty(
-                    dpy, win, NET_WM_PID,
-                    0, 1, 0, XA_CARDINAL,
-                    ctypes.byref(atype), ctypes.byref(afmt),
-                    ctypes.byref(nitems), ctypes.byref(bafter), ctypes.byref(data),
+                    dpy,
+                    win,
+                    NET_WM_PID,
+                    0,
+                    1,
+                    0,
+                    XA_CARDINAL,
+                    ctypes.byref(atype),
+                    ctypes.byref(afmt),
+                    ctypes.byref(nitems),
+                    ctypes.byref(bafter),
+                    ctypes.byref(data),
                 )
                 if atype.value == XA_CARDINAL.value and nitems.value:
                     win_pid = ctypes.cast(data, ctypes.POINTER(ctypes.c_ulong))[0]
@@ -1196,25 +1271,27 @@ def _raise_x11_window(pid: int) -> bool:
             # Send _NET_ACTIVE_WINDOW ClientMessage to root
             class _EvData(ctypes.Union):
                 _fields_: ClassVar[list[tuple[str, object]]] = [("l", ctypes.c_long * 5), ("b", ctypes.c_char * 20)]
+
             class _XClientMsg(ctypes.Structure):
                 _fields_ = [
-                    ("type",         ctypes.c_int),
-                    ("serial",       ctypes.c_ulong),
-                    ("send_event",   ctypes.c_int),
-                    ("display",      ctypes.c_void_p),
-                    ("window",       ctypes.c_ulong),
+                    ("type", ctypes.c_int),
+                    ("serial", ctypes.c_ulong),
+                    ("send_event", ctypes.c_int),
+                    ("display", ctypes.c_void_p),
+                    ("window", ctypes.c_ulong),
                     ("message_type", ctypes.c_ulong),
-                    ("format",       ctypes.c_int),
-                    ("data",         _EvData),
+                    ("format", ctypes.c_int),
+                    ("data", _EvData),
                 ]
+
             ev = _XClientMsg()
-            ev.type = 33           # ClientMessage
+            ev.type = 33  # ClientMessage
             ev.window = target
             ev.message_type = NET_ACTIVE_WIN
             ev.format = 32
-            ev.data.l[0] = 2       # source = application
-            ev.data.l[1] = 0       # timestamp (0 = current)
-            ev.data.l[2] = 0       # currently active window
+            ev.data.l[0] = 2  # source = application
+            ev.data.l[1] = 0  # timestamp (0 = current)
+            ev.data.l[2] = 0  # currently active window
 
             # SubstructureRedirectMask | SubstructureNotifyMask
             X11.XSendEvent(dpy, root, 0, (1 << 20) | (1 << 19), ctypes.byref(ev))
@@ -1239,21 +1316,32 @@ def bring_to_foreground_pid(pid: int) -> None:
     try:
         if platform.system() == "Darwin":
             subprocess.run(
-                ["osascript", "-e",
-                 f'tell application "System Events" to set frontmost of (first process whose unix id is {pid}) to true'],
-                timeout=3, capture_output=True, check=False,
+                [
+                    "osascript",
+                    "-e",
+                    f'tell application "System Events" to set frontmost of (first process whose unix id is {pid}) to true',
+                ],
+                timeout=3,
+                capture_output=True,
+                check=False,
             )
             return
         # xdotool
         result = subprocess.run(
             ["xdotool", "search", "--pid", str(pid), "windowactivate", "--sync"],
-            timeout=3, capture_output=True, check=False,
+            timeout=3,
+            capture_output=True,
+            check=False,
         )
         if result.returncode == 0:
             return
         # wmctrl
         lp = subprocess.run(
-            ["wmctrl", "-l", "-p"], timeout=3, capture_output=True, text=True, check=False,
+            ["wmctrl", "-l", "-p"],
+            timeout=3,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         if lp.returncode == 0:
             for line in lp.stdout.splitlines():
@@ -1261,7 +1349,9 @@ def bring_to_foreground_pid(pid: int) -> None:
                 if len(parts) >= 3 and parts[2] == str(pid):
                     subprocess.run(
                         ["wmctrl", "-i", "-a", parts[0]],
-                        timeout=3, capture_output=True, check=False,
+                        timeout=3,
+                        capture_output=True,
+                        check=False,
                     )
                     return
         # X11 ctypes — works on X11/XWayland without external tools
@@ -1317,7 +1407,8 @@ def probe_existing_chrome(port: int, expected_profile_dir: Path) -> int | None:
         if str(expected_profile_dir) not in cmdline:
             logger.debug(
                 "Chrome on port %d (pid %d) uses a different profile — not ours",
-                port, pid,
+                port,
+                pid,
             )
             return None
     except OSError:
@@ -1328,12 +1419,15 @@ def probe_existing_chrome(port: int, expected_profile_dir: Path) -> int | None:
     return pid
 
 
-def launch_chrome(worker_id: int, port: int | None = None,
-                  headless: bool = False,
-                  refresh_cookies: bool = False,
-                  minimized: bool = False,
-                  ats_slug: str | None = None,
-                  total_workers: int = 1) -> subprocess.Popen:
+def launch_chrome(
+    worker_id: int,
+    port: int | None = None,
+    headless: bool = False,
+    refresh_cookies: bool = False,
+    minimized: bool = False,
+    ats_slug: str | None = None,
+    total_workers: int = 1,
+) -> subprocess.Popen:
     """Launch a Chrome instance with remote debugging for a worker.
 
     Args:
@@ -1356,8 +1450,7 @@ def launch_chrome(worker_id: int, port: int | None = None,
     if port is None:
         port = BASE_CDP_PORT + worker_id
 
-    profile_dir = setup_worker_profile(worker_id, refresh_cookies=refresh_cookies,
-                                       ats_slug=ats_slug)
+    profile_dir = setup_worker_profile(worker_id, refresh_cookies=refresh_cookies, ats_slug=ats_slug)
 
     # Kill any zombie Chrome from a previous run on this port
     _kill_on_port(port)
@@ -1443,6 +1536,7 @@ def launch_chrome(worker_id: int, port: int | None = None,
     kwargs: dict = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
     if platform.system() != "Windows":
         import os
+
         kwargs["preexec_fn"] = os.setsid
 
     proc = subprocess.Popen(cmd, **kwargs)
@@ -1451,8 +1545,7 @@ def launch_chrome(worker_id: int, port: int | None = None,
 
     # Give Chrome time to start and open the debug port
     time.sleep(3)
-    logger.info("[worker-%d] Chrome started on port %d (pid %d)",
-                worker_id, port, proc.pid)
+    logger.info("[worker-%d] Chrome started on port %d (pid %d)", worker_id, port, proc.pid)
     return proc
 
 

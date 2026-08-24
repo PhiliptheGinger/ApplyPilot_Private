@@ -11,17 +11,14 @@ Tests written to fail first, pass after implementation.
 
 import sqlite3
 
-import pytest
-
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _transitions_for(conn: sqlite3.Connection, url: str) -> list[dict]:
     rows = conn.execute(
-        "SELECT from_state, to_state, reason, at "
-        "FROM job_state_transitions WHERE job_url = ?",
+        "SELECT from_state, to_state, reason, at FROM job_state_transitions WHERE job_url = ?",
         (url,),
     ).fetchall()
     return [dict(r) for r in rows]
@@ -36,28 +33,34 @@ def _state_of(conn: sqlite3.Connection, url: str) -> str | None:
 # C1 — jobspy.py
 # ---------------------------------------------------------------------------
 
+
 def test_jobspy_insert_creates_initial_transition(tmp_db):
     """Short description => state='discovered', one transition row with from_state=NULL."""
     conn = tmp_db()
-    from applypilot.discovery.jobspy import store_jobspy_results
     import pandas as pd
 
+    from applypilot.discovery.jobspy import store_jobspy_results
+
     short_desc = "x" * 50  # < 200 chars → discovered
-    df = pd.DataFrame([{
-        "job_url": "https://indeed.com/job/1",
-        "title": "Engineer",
-        "company": "Acme",
-        "location": "Remote",
-        "min_amount": None,
-        "max_amount": None,
-        "interval": None,
-        "currency": None,
-        "description": short_desc,
-        "site": "indeed",
-        "is_remote": True,
-        "job_url_direct": None,
-        "date_posted": None,
-    }])
+    df = pd.DataFrame(
+        [
+            {
+                "job_url": "https://indeed.com/job/1",
+                "title": "Engineer",
+                "company": "Acme",
+                "location": "Remote",
+                "min_amount": None,
+                "max_amount": None,
+                "interval": None,
+                "currency": None,
+                "description": short_desc,
+                "site": "indeed",
+                "is_remote": True,
+                "job_url_direct": None,
+                "date_posted": None,
+            }
+        ]
+    )
 
     store_jobspy_results(conn, df, "test-query")
 
@@ -73,25 +76,30 @@ def test_jobspy_insert_creates_initial_transition(tmp_db):
 def test_jobspy_long_description_lands_in_enriched(tmp_db):
     """Description > 200 chars => state='enriched', one transition row."""
     conn = tmp_db()
-    from applypilot.discovery.jobspy import store_jobspy_results
     import pandas as pd
 
+    from applypilot.discovery.jobspy import store_jobspy_results
+
     long_desc = "x" * 300  # > 200 chars → enriched
-    df = pd.DataFrame([{
-        "job_url": "https://linkedin.com/jobs/2",
-        "title": "Staff Engineer",
-        "company": "BigCo",
-        "location": "Seattle, WA",
-        "min_amount": None,
-        "max_amount": None,
-        "interval": None,
-        "currency": None,
-        "description": long_desc,
-        "site": "linkedin",
-        "is_remote": False,
-        "job_url_direct": None,
-        "date_posted": None,
-    }])
+    df = pd.DataFrame(
+        [
+            {
+                "job_url": "https://linkedin.com/jobs/2",
+                "title": "Staff Engineer",
+                "company": "BigCo",
+                "location": "Seattle, WA",
+                "min_amount": None,
+                "max_amount": None,
+                "interval": None,
+                "currency": None,
+                "description": long_desc,
+                "site": "linkedin",
+                "is_remote": False,
+                "job_url_direct": None,
+                "date_posted": None,
+            }
+        ]
+    )
 
     store_jobspy_results(conn, df, "test-query")
 
@@ -107,6 +115,7 @@ def test_jobspy_long_description_lands_in_enriched(tmp_db):
 # ---------------------------------------------------------------------------
 # C2 — hackernews.py
 # ---------------------------------------------------------------------------
+
 
 def test_hackernews_insert_creates_initial_transition(tmp_db):
     """HN jobs store a full description => state='enriched', one transition row."""
@@ -149,10 +158,15 @@ def test_hackernews_captures_posted_at(tmp_db):
         "description": "Building infra. " * 20,
     }
 
-    assert _store_hn_job(
-        conn, job, "Ask HN: Who is Hiring? (June 2026)",
-        posted_at="2026-06-02T17:00:00+00:00",
-    ) is True
+    assert (
+        _store_hn_job(
+            conn,
+            job,
+            "Ask HN: Who is Hiring? (June 2026)",
+            posted_at="2026-06-02T17:00:00+00:00",
+        )
+        is True
+    )
 
     row = conn.execute(
         "SELECT posted_at FROM jobs WHERE url = ?",
@@ -166,19 +180,22 @@ def test_hackernews_captures_posted_at(tmp_db):
 # C3 — costco.py
 # ---------------------------------------------------------------------------
 
+
 def test_costco_insert_creates_initial_transition(tmp_db):
     """Costco jobs with full description => state='enriched', one transition row."""
     conn = tmp_db()
     from applypilot.discovery.costco import _insert_jobs
 
-    jobs = [{
-        "url": "https://careers.costco.com/job/12345",
-        "title": "Software Engineer",
-        "location": "Issaquah, WA",
-        "description": "A great role.",
-        "full_description": "We are looking for a software engineer " * 10,  # > 200 chars
-        "application_url": "https://careers.costco.com/job/12345",
-    }]
+    jobs = [
+        {
+            "url": "https://careers.costco.com/job/12345",
+            "title": "Software Engineer",
+            "location": "Issaquah, WA",
+            "description": "A great role.",
+            "full_description": "We are looking for a software engineer " * 10,  # > 200 chars
+            "application_url": "https://careers.costco.com/job/12345",
+        }
+    ]
 
     new, existing = _insert_jobs(conn, jobs)
     assert new == 1
@@ -198,17 +215,19 @@ def test_costco_captures_posted_date_when_available(tmp_db):
     conn = tmp_db()
     from applypilot.discovery.costco import _insert_jobs
 
-    jobs = [{
-        "url": "https://careers.costco.com/job/99999",
-        "title": "Data Engineer",
-        "location": "Issaquah, WA",
-        "description": "Role summary.",
-        "full_description": "Looking for an experienced data engineer " * 10,
-        "application_url": "https://careers.costco.com/job/99999",
-        "posted_at": "2026-04-15T00:00:00+00:00",
-    }]
+    jobs = [
+        {
+            "url": "https://careers.costco.com/job/99999",
+            "title": "Data Engineer",
+            "location": "Issaquah, WA",
+            "description": "Role summary.",
+            "full_description": "Looking for an experienced data engineer " * 10,
+            "application_url": "https://careers.costco.com/job/99999",
+            "posted_at": "2026-04-15T00:00:00+00:00",
+        }
+    ]
 
-    new, existing = _insert_jobs(conn, jobs)
+    new, _existing = _insert_jobs(conn, jobs)
     assert new == 1
 
     row = conn.execute(
@@ -223,22 +242,29 @@ def test_costco_captures_posted_date_when_available(tmp_db):
 # C4 — smartextract.py
 # ---------------------------------------------------------------------------
 
+
 def test_smartextract_insert_creates_initial_transition(tmp_db):
     """SmartExtract jobs with description => state='enriched', one transition row."""
     conn = tmp_db()
     from applypilot.discovery.smartextract import _store_jobs_filtered
 
-    jobs = [{
-        "url": "https://company.com/jobs/senior-engineer",
-        "title": "Senior Engineer",
-        "location": "Remote",
-        "description": "An amazing opportunity at our company. " * 10,  # > 200 chars
-        "salary": None,
-    }]
+    jobs = [
+        {
+            "url": "https://company.com/jobs/senior-engineer",
+            "title": "Senior Engineer",
+            "location": "Remote",
+            "description": "An amazing opportunity at our company. " * 10,  # > 200 chars
+            "salary": None,
+        }
+    ]
 
-    new, existing = _store_jobs_filtered(
-        conn, jobs, "CompanySite", "json_ld",
-        accept_locs=[], reject_locs=[],
+    new, _existing = _store_jobs_filtered(
+        conn,
+        jobs,
+        "CompanySite",
+        "json_ld",
+        accept_locs=[],
+        reject_locs=[],
     )
     assert new == 1
 
@@ -275,9 +301,13 @@ def test_smartextract_stores_posted_at_when_present(tmp_db):
         },
     ]
 
-    new, existing = _store_jobs_filtered(
-        conn, jobs, "CompanySite", "json_ld",
-        accept_locs=[], reject_locs=[],
+    new, _existing = _store_jobs_filtered(
+        conn,
+        jobs,
+        "CompanySite",
+        "json_ld",
+        accept_locs=[],
+        reject_locs=[],
     )
     assert new == 2
 
@@ -313,8 +343,7 @@ def test_smartextract_json_ld_extracts_dateposted():
             },
         ],
     }
-    plan = {"extraction": {"title": "title", "url": "url",
-                           "salary": None, "description": None, "location": None}}
+    plan = {"extraction": {"title": "title", "url": "url", "salary": None, "description": None, "location": None}}
 
     jobs = execute_json_ld(intel, plan)
     assert len(jobs) == 2
@@ -325,6 +354,7 @@ def test_smartextract_json_ld_extracts_dateposted():
 # ---------------------------------------------------------------------------
 # C5 — workday.py
 # ---------------------------------------------------------------------------
+
 
 def test_workday_stores_posted_at_from_start_date(tmp_db):
     """store_results persists jobPostingInfo.startDate as posted_at."""
@@ -351,7 +381,7 @@ def test_workday_stores_posted_at_from_start_date(tmp_db):
         },
     ]
 
-    new, existing = store_results(conn, jobs, {})
+    new, _existing = store_results(conn, jobs, {})
     assert new == 2
 
     row = conn.execute(

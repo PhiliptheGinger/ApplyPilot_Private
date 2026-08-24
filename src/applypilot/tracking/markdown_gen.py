@@ -30,7 +30,7 @@ STATUS_DISPLAY = {
 
 def _slugify(text: str, max_len: int = 30) -> str:
     """Convert text to a filesystem-safe slug."""
-    slug = re.sub(r'[^a-z0-9]+', '_', text.lower()).strip('_')
+    slug = re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")
     return slug[:max_len]
 
 
@@ -52,7 +52,7 @@ def _read_existing_notes(path: Path) -> str:
         return ""
 
     # Find ## Notes section and extract until next ##
-    match = re.search(r'## Notes\n(.*?)(?=\n## |\Z)', content, re.DOTALL)
+    match = re.search(r"## Notes\n(.*?)(?=\n## |\Z)", content, re.DOTALL)
     if match:
         return match.group(1).strip()
     return ""
@@ -63,7 +63,7 @@ def _fmt_date(iso_str: str | None) -> str:
     if not iso_str:
         return ""
     try:
-        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(iso_str)
         return dt.strftime("%b %d")
     except (ValueError, TypeError):
         return iso_str[:10] if iso_str else ""
@@ -110,11 +110,17 @@ def generate_tracking_doc(job: dict, conn=None) -> str | None:
         "",
         f"**Status:** {status_display}",
         f"**Applied:** {_fmt_date(job.get('applied_at'))}  |  **Score:** {score_str}",
-        f"**Job URL:** [{job['url'][:60]}...]({job['url']})" if len(job['url']) > 60 else f"**Job URL:** [{job['url']}]({job['url']})",
+        f"**Job URL:** [{job['url'][:60]}...]({job['url']})"
+        if len(job["url"]) > 60
+        else f"**Job URL:** [{job['url']}]({job['url']})",
     ]
 
     if job.get("application_url"):
-        lines.append(f"**Application:** [{job['application_url'][:60]}...]({job['application_url']})" if len(job['application_url']) > 60 else f"**Application:** [{job['application_url']}]({job['application_url']})")
+        lines.append(
+            f"**Application:** [{job['application_url'][:60]}...]({job['application_url']})"
+            if len(job["application_url"]) > 60
+            else f"**Application:** [{job['application_url']}]({job['application_url']})"
+        )
 
     lines.extend(["", "---", ""])
 

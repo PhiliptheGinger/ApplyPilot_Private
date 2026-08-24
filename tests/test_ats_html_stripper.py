@@ -38,8 +38,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 # regression) is verified across all of them at once, not just Greenhouse.
 # ---------------------------------------------------------------------------
 
+
 def _all_scraper_strip_fns():
     from applypilot.discovery import amazon, builtin, costco, greenhouse, workday
+
     return [
         ("greenhouse", greenhouse._strip_html),
         ("lever", __import__("applypilot.discovery.lever", fromlist=["_strip_html"])._strip_html),
@@ -70,6 +72,7 @@ def test_every_scraper_wrapper_handles_empty_input(name, fn):
 # ---------------------------------------------------------------------------
 # The canonical implementation itself.
 # ---------------------------------------------------------------------------
+
 
 def test_li_gets_bullet_marker():
     from applypilot.discovery.ats_common import strip_html_to_text
@@ -162,11 +165,7 @@ def test_whitespace_collapsed_around_bullets():
 def test_script_and_style_content_skipped():
     from applypilot.discovery.ats_common import strip_html_to_text
 
-    html = (
-        "<p>Visible text</p>"
-        "<script>var x = 1; document.write('<li>fake</li>');</script>"
-        "<style>.a{color:red}</style>"
-    )
+    html = "<p>Visible text</p><script>var x = 1; document.write('<li>fake</li>');</script><style>.a{color:red}</style>"
     text = strip_html_to_text(html)
     assert text == "Visible text"
     assert "var x" not in text

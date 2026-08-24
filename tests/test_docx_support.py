@@ -9,8 +9,8 @@ Covers:
 - build_prompt uses correct file extensions for docx format
 """
 
-import sys
 import shutil
+import sys
 from pathlib import Path
 from unittest.mock import patch
 
@@ -56,6 +56,7 @@ class TestConvertToDocx:
         txt_file.write_text(SAMPLE_RESUME, encoding="utf-8")
 
         from applypilot.scoring.pdf import convert_to_pdf
+
         result = convert_to_pdf(txt_file, doc_format="docx")
 
         assert result.suffix == ".docx"
@@ -64,6 +65,7 @@ class TestConvertToDocx:
 
         # Verify it's a valid DOCX by opening it
         from docx import Document
+
         doc = Document(str(result))
         full_text = "\n".join(p.text for p in doc.paragraphs)
         assert "John Doe" in full_text
@@ -76,6 +78,7 @@ class TestConvertToDocx:
         custom_out = tmp_path / "custom_name.docx"
 
         from applypilot.scoring.pdf import convert_to_pdf
+
         result = convert_to_pdf(txt_file, output_path=custom_out, doc_format="docx")
 
         assert result == custom_out
@@ -87,6 +90,7 @@ class TestConvertToDocx:
         txt_file.write_text(SAMPLE_RESUME, encoding="utf-8")
 
         from applypilot.scoring.pdf import convert_to_pdf
+
         # Mock render_docx to avoid needing python-docx
         with patch("applypilot.scoring.pdf.render_docx") as mock_render:
             result = convert_to_pdf(txt_file)
@@ -98,8 +102,10 @@ class TestConvertToDocx:
         txt_file = tmp_path / "resume.txt"
         txt_file.write_text(SAMPLE_RESUME, encoding="utf-8")
 
-        from applypilot.scoring.pdf import convert_to_pdf
         import pytest
+
+        from applypilot.scoring.pdf import convert_to_pdf
+
         with pytest.raises(ValueError, match="Invalid doc_format"):
             convert_to_pdf(txt_file, doc_format="odt")
 
@@ -109,6 +115,7 @@ class TestConvertToDocx:
         txt_file.write_text(SAMPLE_RESUME, encoding="utf-8")
 
         from applypilot.scoring.pdf import convert_to_pdf
+
         result = convert_to_pdf(txt_file, html_only=True, doc_format="docx")
 
         assert result.suffix == ".html"
@@ -122,8 +129,9 @@ class TestRenderDocx:
 
     def test_sections_present(self, tmp_path):
         """render_docx includes all resume sections."""
-        from applypilot.scoring.pdf import parse_resume, render_docx
         from docx import Document
+
+        from applypilot.scoring.pdf import parse_resume, render_docx
 
         resume = parse_resume(SAMPLE_RESUME)
         out = tmp_path / "test.docx"
@@ -150,8 +158,9 @@ class TestRenderDocx:
 
     def test_skills_formatting(self, tmp_path):
         """render_docx formats skills with bold category names."""
-        from applypilot.scoring.pdf import parse_resume, render_docx
         from docx import Document
+
+        from applypilot.scoring.pdf import parse_resume, render_docx
 
         resume = parse_resume(SAMPLE_RESUME)
         out = tmp_path / "test.docx"
@@ -169,18 +178,16 @@ class TestRenderDocx:
 
     def test_bullet_points(self, tmp_path):
         """render_docx creates bullet points for experience entries."""
-        from applypilot.scoring.pdf import parse_resume, render_docx
         from docx import Document
+
+        from applypilot.scoring.pdf import parse_resume, render_docx
 
         resume = parse_resume(SAMPLE_RESUME)
         out = tmp_path / "test.docx"
         render_docx(resume, str(out))
 
         doc = Document(str(out))
-        bullet_texts = [
-            p.text for p in doc.paragraphs
-            if p.style and p.style.name == "List Bullet"
-        ]
+        bullet_texts = [p.text for p in doc.paragraphs if p.style and p.style.name == "List Bullet"]
         assert len(bullet_texts) > 0
         assert any("real-time data pipeline" in b for b in bullet_texts)
 
@@ -197,6 +204,7 @@ class TestBatchConvertDocx:
         (tmp_path / "company_job_0_JOB.txt").write_text("Job description", encoding="utf-8")
 
         from applypilot.scoring import pdf
+
         with patch.object(pdf, "TAILORED_DIR", tmp_path):
             count = pdf.batch_convert(doc_format="docx")
 
@@ -214,6 +222,7 @@ class TestBatchConvertDocx:
         (tmp_path / "company_job_2.txt").write_text(SAMPLE_RESUME, encoding="utf-8")
 
         from applypilot.scoring import pdf
+
         with patch.object(pdf, "TAILORED_DIR", tmp_path):
             count = pdf.batch_convert(doc_format="docx")
 
@@ -221,8 +230,10 @@ class TestBatchConvertDocx:
 
     def test_batch_convert_invalid_format(self):
         """batch_convert with invalid format raises ValueError."""
-        from applypilot.scoring.pdf import batch_convert
         import pytest
+
+        from applypilot.scoring.pdf import batch_convert
+
         with pytest.raises(ValueError, match="Invalid doc_format"):
             batch_convert(doc_format="rtf")
 
@@ -279,7 +290,9 @@ class TestBuildPromptDocx:
     def test_build_prompt_signature_has_doc_format(self):
         """build_prompt accepts doc_format parameter with 'pdf' default."""
         import inspect
+
         from applypilot.apply.prompt import build_prompt
+
         sig = inspect.signature(build_prompt)
         assert "doc_format" in sig.parameters
         assert sig.parameters["doc_format"].default == "pdf"
@@ -290,13 +303,16 @@ class TestValidDocFormats:
 
     def test_valid_formats(self):
         from applypilot.scoring.pdf import VALID_DOC_FORMATS
+
         assert "pdf" in VALID_DOC_FORMATS
         assert "docx" in VALID_DOC_FORMATS
 
     def test_docx_is_default(self):
         """Ensure DOCX is the default format in the public API."""
         import inspect
+
         from applypilot.scoring.pdf import convert_to_pdf
+
         sig = inspect.signature(convert_to_pdf)
         assert sig.parameters["doc_format"].default == "docx"
 
@@ -306,6 +322,7 @@ class TestSetDocFormat:
 
     def test_set_and_read(self):
         from applypilot.apply import launcher
+
         original = launcher._doc_format
         try:
             launcher.set_doc_format("docx")

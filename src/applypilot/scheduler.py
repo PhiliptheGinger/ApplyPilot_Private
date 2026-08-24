@@ -24,7 +24,7 @@ import os
 import threading
 import time
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from applypilot import config
 from applypilot.claude_status import (
@@ -39,7 +39,6 @@ from applypilot.claude_status import (
 )
 from applypilot.pipeline import _RUN_STATE_DIR
 
-UTC = timezone.utc
 log = logging.getLogger(__name__)
 
 _SCHEDULER_PID_FILE = _RUN_STATE_DIR / "scheduler.pid"
@@ -108,10 +107,12 @@ def _setup_continuous_file_logging() -> logging.FileHandler:
 
     handler = logging.FileHandler(log_path, encoding="utf-8")
     handler.setLevel(logging.INFO)
-    handler.setFormatter(logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%H:%M:%S",
-    ))
+    handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%H:%M:%S",
+        )
+    )
 
     prev_levels: dict[str, int] = {}
     for name in _CONTINUOUS_LOG_LOGGER_NAMES:
@@ -155,18 +156,18 @@ def _log_decision(logger_: logging.Logger, event: str, **fields) -> None:
 
 @dataclass
 class SchedulerConfig:
-	ready_buffer: int = config.DEFAULTS["ready_buffer"]
-	ready_buffer_unknown: int = config.DEFAULTS["ready_buffer_unknown"]
-	poll_interval: int = config.DEFAULTS["poll_interval"]
-	discover_interval: int = config.DEFAULTS["scheduler_discover_interval"]
-	cache_max_age: float = config.DEFAULTS["scheduler_cache_max_age"]
-	max_batch: int = config.DEFAULTS["scheduler_max_batch"]
-	safety_margin: float = config.DEFAULTS["scheduler_safety_margin"]
-	no_continuous_apply: bool = False
-	min_score: int = config.DEFAULTS["min_score"]
-	max_age_days: int = config.DEFAULTS["max_job_age_days"]
-	doc_format: str = "docx"
-	throughput_window_minutes: int = 60
+    ready_buffer: int = config.DEFAULTS["ready_buffer"]
+    ready_buffer_unknown: int = config.DEFAULTS["ready_buffer_unknown"]
+    poll_interval: int = config.DEFAULTS["poll_interval"]
+    discover_interval: int = config.DEFAULTS["scheduler_discover_interval"]
+    cache_max_age: float = config.DEFAULTS["scheduler_cache_max_age"]
+    max_batch: int = config.DEFAULTS["scheduler_max_batch"]
+    safety_margin: float = config.DEFAULTS["scheduler_safety_margin"]
+    no_continuous_apply: bool = False
+    min_score: int = config.DEFAULTS["min_score"]
+    max_age_days: int = config.DEFAULTS["max_job_age_days"]
+    doc_format: str = "docx"
+    throughput_window_minutes: int = 60
 
 
 # ---------------------------------------------------------------------------
@@ -175,39 +176,40 @@ class SchedulerConfig:
 # so the two don't collide -- they protect different kinds of processes).
 # ---------------------------------------------------------------------------
 
+
 def _pid_alive(pid: int) -> bool:
-	if pid <= 0:
-		return False
+    if pid <= 0:
+        return False
 
-	try:
-		import ctypes
+    try:
+        import ctypes
 
-		PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
-		STILL_ACTIVE = 259
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        STILL_ACTIVE = 259
 
-		handle = ctypes.windll.kernel32.OpenProcess(
-			PROCESS_QUERY_LIMITED_INFORMATION,
-			False,
-			pid,
-		)
-		if not handle:
-			return False
+        handle = ctypes.windll.kernel32.OpenProcess(
+            PROCESS_QUERY_LIMITED_INFORMATION,
+            False,
+            pid,
+        )
+        if not handle:
+            return False
 
-		try:
-			exit_code = ctypes.c_ulong()
-			if not ctypes.windll.kernel32.GetExitCodeProcess(
-				handle,
-				ctypes.byref(exit_code),
-			):
-				return False
+        try:
+            exit_code = ctypes.c_ulong()
+            if not ctypes.windll.kernel32.GetExitCodeProcess(
+                handle,
+                ctypes.byref(exit_code),
+            ):
+                return False
 
-			return exit_code.value == STILL_ACTIVE
-		finally:
-			ctypes.windll.kernel32.CloseHandle(handle)
+            return exit_code.value == STILL_ACTIVE
+        finally:
+            ctypes.windll.kernel32.CloseHandle(handle)
 
-	except Exception:
-		log.debug("Failed to check whether PID %s is alive", pid, exc_info=True)
-		return False
+    except Exception:
+        log.debug("Failed to check whether PID %s is alive", pid, exc_info=True)
+        return False
 
 
 def acquire_scheduler_lock() -> None:
@@ -246,8 +248,10 @@ def release_scheduler_lock() -> None:
 # Pure planning logic
 # ---------------------------------------------------------------------------
 
+
 def count_ready_to_apply(conn=None) -> int:
     from applypilot.database import get_connection
+
     if conn is None:
         conn = get_connection()
     row = conn.execute("SELECT COUNT(*) FROM jobs WHERE state = 'ready_to_apply'").fetchone()
@@ -312,6 +316,7 @@ def _api_capacity_available() -> bool:
     """
     try:
         from applypilot.llm import get_stage_client
+
         client = get_stage_client("tailor", quality=True)
         return client.has_available_model()
     except Exception:
@@ -322,6 +327,7 @@ def _api_capacity_available() -> bool:
 # ---------------------------------------------------------------------------
 # One planning + execution cycle
 # ---------------------------------------------------------------------------
+
 
 def run_once(
     cfg: SchedulerConfig,
@@ -347,10 +353,7 @@ def run_once(
     api_capacity_fn = api_capacity_fn or _api_capacity_available
     now = now or datetime.now(UTC)
 
-    discover_due = (
-        last_discover_at is None
-        or (now - last_discover_at).total_seconds() >= cfg.discover_interval
-    )
+    discover_due = last_discover_at is None or (now - last_discover_at).total_seconds() >= cfg.discover_interval
 
     _log_decision(log, "cycle_start", now=now.isoformat())
 
@@ -364,11 +367,7 @@ def run_once(
         "claude_availability",
         state=avail.state,
         detail=avail.detail,
-        reset_estimate=(
-            avail.reset_estimate.isoformat()
-            if avail.reset_estimate
-            else None
-        ),
+        reset_estimate=(avail.reset_estimate.isoformat() if avail.reset_estimate else None),
         reset_source=avail.reset_source,
         binding_window=avail.binding_window,
         cache_age_seconds=avail.cache_age_seconds,
@@ -399,11 +398,7 @@ def run_once(
             log,
             "discover_skipped",
             reason="interval",
-            last_discover_at=(
-                last_discover_at.isoformat()
-                if last_discover_at is not None
-                else None
-            ),
+            last_discover_at=(last_discover_at.isoformat() if last_discover_at is not None else None),
             interval_seconds=cfg.discover_interval,
         )
 
@@ -440,10 +435,7 @@ def run_once(
     target = _target_for_state(avail.state, cfg)
     minutes_available = None
 
-    if (
-        avail.state == EXHAUSTED_KNOWN_RESET
-        and avail.reset_estimate is not None
-    ):
+    if avail.state == EXHAUSTED_KNOWN_RESET and avail.reset_estimate is not None:
         minutes_available = max(
             0.0,
             (avail.reset_estimate - now).total_seconds() / 60.0,
@@ -472,10 +464,7 @@ def run_once(
     # Anything else (unknown reset, auth failure, transient error):
     # only bother with extra tailor/cover work if the non-Claude
     # providers actually have capacity.
-    do_upstream = (
-        avail.state in (AVAILABLE, EXHAUSTED_KNOWN_RESET)
-        or api_capacity_fn()
-    )
+    do_upstream = avail.state in (AVAILABLE, EXHAUSTED_KNOWN_RESET) or api_capacity_fn()
 
     if do_upstream:
         plan = plan_upstream_work(
@@ -571,8 +560,7 @@ def format_status_block(result: dict) -> str:
         age = avail.cache_age_seconds
         age_str = f"fetched {age / 60:.0f}m ago" if age is not None else "fetch time unknown"
         lines.append(
-            f"Estimated reset: {mins_str} (source: cached utilization, {age_str} "
-            f"-- best-effort, not authoritative)"
+            f"Estimated reset: {mins_str} (source: cached utilization, {age_str} -- best-effort, not authoritative)"
         )
         lines.append(f"Binding window: {avail.binding_window}")
     elif avail.state == EXHAUSTED_UNKNOWN_RESET:
@@ -599,6 +587,7 @@ def format_status_block(result: dict) -> str:
 # ---------------------------------------------------------------------------
 # The continuous loop
 # ---------------------------------------------------------------------------
+
 
 class _UnknownResetBackoff:
     def __init__(self) -> None:
@@ -649,19 +638,23 @@ def run_continuous(cfg: SchedulerConfig) -> None:
         log.info("run-continuous starting (pid=%s) | config=%s", os.getpid(), asdict(cfg))
 
         from applypilot.apply.launcher import _stop_event as apply_stop_event
+
         apply_stop_event.clear()
 
         if not cfg.no_continuous_apply:
             from applypilot.apply.orchestrator import worker_loop
+
             apply_thread = threading.Thread(
                 target=worker_loop,
-                kwargs=dict(worker_id=0, limit=0, min_score=cfg.min_score,
-                            max_age_days=cfg.max_age_days),
-                daemon=True, name="scheduler-apply-worker",
+                kwargs={"worker_id": 0, "limit": 0, "min_score": cfg.min_score, "max_age_days": cfg.max_age_days},
+                daemon=True,
+                name="scheduler-apply-worker",
             )
             apply_thread.start()
-            log.info("Continuous apply worker thread started (worker_id=0). "
-                     "Per-job detail: %s", config.LOG_DIR / "worker-0.log")
+            log.info(
+                "Continuous apply worker thread started (worker_id=0). Per-job detail: %s",
+                config.LOG_DIR / "worker-0.log",
+            )
         else:
             log.info("Continuous apply worker NOT started (--no-continuous-apply)")
 
@@ -687,12 +680,14 @@ def run_continuous(cfg: SchedulerConfig) -> None:
         raise
     finally:
         from applypilot.apply.launcher import _stop_event as apply_stop_event
+
         apply_stop_event.set()
         if apply_thread is not None:
             log.info("Waiting for apply worker thread to stop...")
             apply_thread.join(timeout=30)
-            log.info("Apply worker thread stopped: %s",
-                     "alive (join timed out)" if apply_thread.is_alive() else "clean")
+            log.info(
+                "Apply worker thread stopped: %s", "alive (join timed out)" if apply_thread.is_alive() else "clean"
+            )
         release_scheduler_lock()
         if log_handler is not None:
             log.info("run-continuous: shutdown complete (pid=%s)", os.getpid())

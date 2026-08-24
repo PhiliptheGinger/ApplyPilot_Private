@@ -106,7 +106,13 @@ def load_resume_text_for_job(job: dict) -> tuple[str, Path]:
 def _render_profile_reference(profile: dict) -> str:
     """Render a compact factual reference from the canonical profile."""
     lines: list[str] = ["CANONICAL PROFILE REFERENCE"]
-    for key in ("education", "experience_inventory", "historical_experience_inventory", "qualifications", "project_inventory"):
+    for key in (
+        "education",
+        "experience_inventory",
+        "historical_experience_inventory",
+        "qualifications",
+        "project_inventory",
+    ):
         for item in profile.get(key, []):
             if not isinstance(item, dict) or item.get("private"):
                 continue
