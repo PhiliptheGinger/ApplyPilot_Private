@@ -46,7 +46,11 @@ SENIORITY_TITLE_PATTERN = re.compile(
     # manager/head, "CTO" has essentially no legitimate non-technical
     # meaning in a job title, so this is a narrow, low-risk addition rather
     # than the kind of breadth tradeoff those other words represent.
-    r"cto)\b",
+    r"cto)\b|"
+    # Explicit level-number conventions: III/IV/V/VI and 3/4/5/6.
+    # I/II and 1/2 remain allowed because they can represent entry-level
+    # or early-career roles.
+    r"\b(?:engineer|developer)\s*[-,]?\s*(?:III|IV|V|VI|3|4|5|6)\b",
     re.IGNORECASE,
 )
 

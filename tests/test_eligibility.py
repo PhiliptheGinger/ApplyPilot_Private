@@ -55,6 +55,18 @@ from applypilot.eligibility import seniority_disqualifier
         "Head of Engineering",
         "Distinguished Engineer",
         "Technical Fellow",
+        "Software Engineer III",
+        "Software Engineer IV",
+        "Software Engineer V",
+        "Software Engineer VI",
+        "Software Developer III",
+        "Software Developer IV",
+        "Software Developer V",
+        "Software Developer VI",
+        "Software Engineer 3",
+        "Software Engineer 4",
+        "Software Engineer 5",
+        "Software Engineer 6",
     ],
 )
 def test_senior_titles_disqualified(title):
@@ -87,6 +99,35 @@ def test_disqualifier_reason_identifies_matched_keyword():
     reason = seniority_disqualifier("Staff Software Engineer")
     assert reason is not None
     assert "staff" in reason.lower()
+
+
+def test_engineer_developer_level_i_and_ii_are_not_disqualified():
+    for title in [
+        "Software Engineer I",
+        "Software Engineer II",
+        "Software Developer I",
+        "Software Developer II",
+        "Software Engineer 1",
+        "Software Engineer 2",
+        "Software Developer 1",
+        "Software Developer 2",
+    ]:
+        assert seniority_disqualifier(title) is None, f"{title!r} should remain allowed"
+
+
+def test_engineer_developer_level_three_and_above_are_disqualified():
+    for title in [
+        "Software Engineer III",
+        "Software Engineer IV",
+        "Software Engineer V",
+        "Software Developer III",
+        "Software Developer IV",
+        "Software Developer V",
+        "Software Engineer 3",
+        "Software Engineer 4",
+        "Software Developer 5",
+    ]:
+        assert seniority_disqualifier(title) is not None, f"{title!r} should be disqualified"
 
 
 def test_empty_or_none_title_not_disqualified():
