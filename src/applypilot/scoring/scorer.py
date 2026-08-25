@@ -210,6 +210,59 @@ def _candidate_has_advanced_degree(profile: dict) -> bool:
     return False
 
 
+# Deterministic clearance/defense hard gate. Found via a live example
+# (Workday "Software Development Engineer - ML Ops (US Federal)", 2026-08-25):
+# scored 8 -- the LLM prompt's own "clearance roles are OUT OF SCOPE, score
+# 1-2" instruction was never applied -- and reached apply_failed (a real
+# application attempt) against a role requiring TS/SCI w/CI Poly. Unlike
+# geography and seniority, this candidate-eligibility check had no
+# deterministic backstop at all -- it depended entirely on LLM adherence.
+#
+# TWO DELIBERATELY DIFFERENT TIERS, not one blanket "clearance" keyword:
+#
+# 1. TS_SCI: a bare mention of "TS/SCI" (with or without "CI Poly") is
+#    disqualifying on its own, regardless of "required" / "preferred" /
+#    "ability to obtain" framing. TS/SCI is a specific, rare clearance tier
+#    that in practice requires an existing government sponsor and a
+#    multi-year background investigation -- a posting naming it at all
+#    signals a role this candidate (no defense/federal/IC history) is not
+#    realistically competitive for. This is also the exact pattern that
+#    catches the live regression case above: its own wording is "may
+#    require... at the TS/SCI w/CI Poly level... ability to obtain and
+#    maintain... An active TS/SCI w/CI Poly is preferred" -- soft framing
+#    throughout, so a pattern keyed on "required" language alone would NOT
+#    have caught it. Only the bare TS/SCI token reliably does.
+#
+# 2. CLEARANCE_REQUIRED: generic "clearance" / "Top Secret clearance" /
+#    "Secret clearance" mentions are NOT disqualifying on their own -- those
+#    tiers are commonly described as "must be able to obtain," which many
+#    employers extend to candidates with no prior clearance. Only an
+#    EXPLICIT statement that an active/current clearance is already
+#    required (not merely obtainable) is disqualifying at this tier.
+#    "Ability to obtain a clearance" phrasing is deliberately left alone --
+#    see the module-level ambiguity note below.
+#
+# AMBIGUITY NOT RESOLVED HERE (reported, not silently decided): whether a
+# BARE "Top Secret clearance" / "Secret clearance" mention (no "required"
+# qualifier) should be treated the same as bare TS/SCI is genuinely
+# ambiguous from the existing prompt policy, which only says "roles
+# requiring a security clearance... are OUT OF SCOPE" without addressing
+# obtain-vs-hold framing. Secret-tier clearance is common enough, and often
+# phrased as "ability to obtain," that auto-rejecting every bare mention
+# risked meaningfully diverging from that "ability to obtain is a different
+# case" carve-out -- so this gate stays conservative for Secret/Top Secret
+# and requires an explicit hard-requirement qualifier for those two tiers.
+_TS_SCI_PATTERN = re.compile(r"\bTS[/\s-]?SCI\b", re.IGNORECASE)
+
+_CLEARANCE_REQUIRED_PATTERN = re.compile(
+    r"(?:top\s+secret|secret)\s+clearance\s+(?:is\s+)?required"
+    r"|(?:active|current)\s+security\s+clearance\s+(?:is\s+)?required"
+    r"|must\s+(?:currently\s+)?(?:possess|hold|have)\s+(?:an?\s+)?(?:active|current)\s+(?:security\s+)?clearance"
+    r"|requires?\s+(?:an?\s+)?(?:active|current)\s+(?:security\s+)?clearance",
+    re.IGNORECASE,
+)
+
+
 # Description-level non-US patterns. Scans the full description (capped at
 # 6000 chars by the caller). Patterns intentionally narrow — must explicitly
 # RESTRICT to a non-US country, not merely mention global offices.
@@ -276,6 +329,13 @@ def _check_ineligible(job: dict, profile: dict | None = None) -> str | None:
         m = _ADVANCED_DEGREE_REQUIRED_PATTERN.search(desc_head)
         if m:
             return f"advanced degree required, candidate has none: {m.group(0)[:80]}"
+
+    m = _TS_SCI_PATTERN.search(desc_head)
+    if m:
+        return f"security clearance required: {m.group(0)[:80]}"
+    m = _CLEARANCE_REQUIRED_PATTERN.search(desc_head)
+    if m:
+        return f"security clearance required: {m.group(0)[:80]}"
 
     search_cfg = load_search_config() or {}
     excluded_titles = search_cfg.get("exclude_titles") or []
