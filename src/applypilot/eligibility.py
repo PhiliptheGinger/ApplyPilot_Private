@@ -49,8 +49,24 @@ SENIORITY_TITLE_PATTERN = re.compile(
     r"cto)\b|"
     # Explicit level-number conventions: III/IV/V/VI and 3/4/5/6.
     # I/II and 1/2 remain allowed because they can represent entry-level
-    # or early-career roles.
-    r"\b(?:engineer|developer)\s*[-,]?\s*(?:III|IV|V|VI|3|4|5|6)\b",
+    # or early-career roles. "swe"/"sde" added 2026-08-25 alongside the
+    # bare-"L"/"Level" branches below -- same real-data audit that found
+    # the L-notation gap also found these abbreviated titles ("SWE III",
+    # "SDE 3") using the identical adjacency structure.
+    r"\b(?:engineer|developer|swe|sde)\s*[-,]?\s*(?:III|IV|V|VI|3|4|5|6)\b|"
+    # 2026-08-25: equivalent "L3"/"Level 3"-style leveling notation (Twilio,
+    # Meta-style "Software Engineer, Backend, Level 5", Amazon "SDE III").
+    # Live-data audit found 19 real job titles using this convention with no
+    # other senior keyword present, invisible to the branch above because
+    # the numeral isn't directly adjacent to "engineer"/"developer" (e.g.
+    # "Software Engineer (L4)", "Level 3 Software Engineer"). Deliberately
+    # bare/domain-agnostic -- matches the existing keyword branch above,
+    # which already disqualifies "Senior IT Support Specialist" regardless
+    # of role domain, not just software engineering titles. L1/L2 and
+    # Level 1/2 remain allowed, matching the I/II policy above -- only
+    # 3 and up are disqualifying.
+    r"\bL[3-6]\b|"
+    r"\bLevel\s*[-,]?\s*(?:III|IV|V|VI|3|4|5|6)\b",
     re.IGNORECASE,
 )
 

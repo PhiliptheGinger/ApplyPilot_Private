@@ -135,6 +135,149 @@ def test_empty_or_none_title_not_disqualified():
     assert seniority_disqualifier("") is None
 
 
+# ── Equivalent Level 3+ notation (L3/Level 3/SWE III/SDE III) ────────────
+# 2026-08-25: real-data audit found 19 live job titles using this leveling
+# convention (Twilio "(L3)/(L4)", Meta-style "Software Engineer, Backend,
+# Level 5", Amazon "SDE III") with no other senior keyword present, so they
+# bypassed SENIORITY_TITLE_PATTERN entirely. Policy: L1/L2 and Level 1/2
+# stay allowed (same as Engineer/Developer I/II), L3+/Level 3+/SWE-III+/
+# SDE-III+ are disqualifying, same as Engineer/Developer III+.
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        # 1. existing Engineer/Developer III+ behavior unaffected
+        "Software Engineer III",
+        "Software Developer IV",
+        "Software Engineer 5",
+        "Software Developer 6",
+    ],
+)
+def test_engineer_developer_iii_plus_still_disqualified(title):
+    assert seniority_disqualifier(title) is not None, f"{title!r} should still be disqualified"
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        # 2. Engineer/Developer I/II remain allowed
+        "Software Engineer I",
+        "Software Engineer II",
+        "Software Developer I",
+        "Software Developer II",
+    ],
+)
+def test_engineer_developer_i_ii_still_allowed(title):
+    assert seniority_disqualifier(title) is None, f"{title!r} should remain allowed"
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        # 3. L1/L2 remain allowed
+        "Software Engineer L1",
+        "Software Engineer L2",
+        "Software Engineer (L1)",
+        "Software Engineer (L2)",
+    ],
+)
+def test_l1_l2_allowed(title):
+    assert seniority_disqualifier(title) is None, f"{title!r} should remain allowed"
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        # 4. L3+ rejected
+        "Software Engineer L3",
+        "Software Engineer (L4)",
+        "Software Engineer L5",
+        "Distributed Systems Engineer (L5) - Compute",
+        "Software Engineer L6",
+    ],
+)
+def test_l3_plus_disqualified(title):
+    assert seniority_disqualifier(title) is not None, f"{title!r} should be disqualified"
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        # 5. Level 1/2 remain allowed
+        "Software Engineer, Level 1",
+        "Software Engineer, Level 2",
+        "Level 1 Software Engineer",
+        "Level 2 Software Engineer",
+    ],
+)
+def test_level_1_2_allowed(title):
+    assert seniority_disqualifier(title) is None, f"{title!r} should remain allowed"
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        # 6. Level 3+ rejected
+        "Software Engineer, Level 3",
+        "Level 3 Software Engineer",
+        "Software Engineer, Backend, Level 5",
+        "Software Engineer, iOS, Level 4",
+        "Network Engineer, Level 3",
+    ],
+)
+def test_level_3_plus_disqualified(title):
+    assert seniority_disqualifier(title) is not None, f"{title!r} should be disqualified"
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        # 7. SWE/SDE I/II remain allowed, matching Engineer/Developer I/II policy
+        "SWE I",
+        "SWE II",
+        "SDE I",
+        "SDE II",
+    ],
+)
+def test_swe_sde_i_ii_allowed(title):
+    assert seniority_disqualifier(title) is None, f"{title!r} should remain allowed"
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        # 8. SWE/SDE III+ rejected
+        "SWE III",
+        "SWE 3",
+        "SDE III",
+        "SDE 3",
+        "Senior Robotics SDE III, Amazon Robotics - Vulcan",
+    ],
+)
+def test_swe_sde_iii_plus_disqualified(title):
+    assert seniority_disqualifier(title) is not None, f"{title!r} should be disqualified"
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        # 9. ordinary titles with unrelated numbers must not be accidentally
+        # rejected -- these contain digits/letters adjacent to "L"/numbers
+        # but not the actual leveling notation this change targets.
+        "3M Product Engineer",
+        "Engineer 401k Administrator",
+        "Highway 4 Maintenance Engineer",
+        "Class 3 Driver",
+        "L33t Hacker Engineer",
+        "Software Engineer",
+        "Software Engineer II (Remote)",
+    ],
+)
+def test_unrelated_numbers_not_accidentally_disqualified(title):
+    assert seniority_disqualifier(title) is None, f"{title!r} should NOT be disqualified"
+
+
 # ── Score never compensates for a hard disqualifier ──────────────────────
 
 
