@@ -342,6 +342,57 @@ class TestRevalidateSeniority:
         row = conn.execute("SELECT state FROM jobs WHERE url LIKE '%dry-run-senior%'").fetchone()
         assert row["state"] == "scored"  # untouched while in pre-tailoring state
 
+    def test_tailored_senior_job_is_archived(self, tmp_db, seed_job):
+        """2026-08-25 real-data audit: 12 jobs (PayPal Sr Software Engineer,
+        Twilio Sr Architect, 6 Pinterest Staff roles, etc.) sat in "tailored"
+        with real resumes already generated, invisible to revalidate_seniority
+        because it inherited reject_jobs_by_title_patterns' default
+        protected-states set built for the unrelated --auto-reject-titles
+        flag. "tailored" must not protect a canonical-predicate match --
+        that's the entire point of retroactive revalidation."""
+        from applypilot.eligibility import revalidate_seniority
+
+        conn = tmp_db()
+        seed_job(
+            conn,
+            url_suffix="tailored-senior",
+            title="Sr Software Engineer",
+            fit_score=8,
+            state="tailored",
+            tailored_resume_path="/tmp/r.docx",
+        )
+
+        result = revalidate_seniority(conn)
+
+        assert result["matched"] == 1
+        assert result["updated"] == 1
+        row = conn.execute(
+            "SELECT state, tailored_resume_path FROM jobs WHERE url LIKE '%tailored-senior%'"
+        ).fetchone()
+        assert row["state"] == "archived"
+        # Sunk-cost artifact preserved for audit -- only the state changes.
+        assert row["tailored_resume_path"] == "/tmp/r.docx"
+
+    def test_cover_failed_senior_job_is_archived(self, tmp_db, seed_job):
+        from applypilot.eligibility import revalidate_seniority
+
+        conn = tmp_db()
+        seed_job(
+            conn,
+            url_suffix="cover-failed-senior",
+            title="Staff Software Engineer",
+            fit_score=8,
+            state="cover_failed",
+            tailored_resume_path="/tmp/r.docx",
+        )
+
+        result = revalidate_seniority(conn)
+
+        assert result["matched"] == 1
+        assert result["updated"] == 1
+        row = conn.execute("SELECT state FROM jobs WHERE url LIKE '%cover-failed-senior%'").fetchone()
+        assert row["state"] == "archived"
+
     def test_already_applied_job_never_touched(self, tmp_db, seed_job):
         """Safety: never retroactively archive a job that was already
         submitted, even if its title matches."""
@@ -365,3 +416,191 @@ class TestRevalidateSeniority:
         assert result["matched"] == 0
         row = conn.execute("SELECT state FROM jobs WHERE url LIKE '%already-applied-senior%'").fetchone()
         assert row["state"] == "applied"
+
+
+# ── Stale-score revalidation sweep (independent of title) ────────────────
+
+
+class TestRevalidateStaleScores:
+    """2026-08-25: 8 real jobs (Twilio 'Software Engineer (L2)', Axon 'Site
+    Reliability Engineer II', etc.) were scored 8/10 on 2026-08-17 under the
+    pre-a6f72a6 rubric, correctly archived by the 2026-08-18 requeue sweep,
+    then resurrected back into tailor_failed/cover_failed/tailored by a
+    since-fixed pending_tailor state-filter bug that re-selected already-
+    archived rows for tailoring without re-scoring them. None of their
+    titles match SENIORITY_TITLE_PATTERN ('L2'/'II' are allowed levels), so
+    revalidate_seniority can never catch this class of staleness -- these
+    tests cover the scored_at-based sweep that does."""
+
+    CUTOFF = "2026-08-18T00:00:00+00:00"
+
+    def test_job_scored_before_cutoff_is_archived(self, tmp_db, seed_job):
+        from applypilot.eligibility import revalidate_stale_scores
+
+        conn = tmp_db()
+        seed_job(
+            conn,
+            url_suffix="stale-swe-l2",
+            title="Software Engineer (L2)",
+            fit_score=8,
+            state="tailored",
+            scored_at="2026-08-17T01:56:11.346301+00:00",
+            tailored_resume_path="/tmp/r.docx",
+        )
+
+        result = revalidate_stale_scores(conn, cutoff=self.CUTOFF)
+
+        assert result["matched"] == 1
+        assert result["updated"] == 1
+        row = conn.execute(
+            "SELECT state, fit_score, tailored_resume_path FROM jobs WHERE url LIKE '%stale-swe-l2%'"
+        ).fetchone()
+        assert row["state"] == "archived"
+        # Sunk-cost artifacts preserved for audit -- only state changes.
+        assert row["fit_score"] == 8
+        assert row["tailored_resume_path"] == "/tmp/r.docx"
+
+    def test_job_scored_after_cutoff_not_touched(self, tmp_db, seed_job):
+        from applypilot.eligibility import revalidate_stale_scores
+
+        conn = tmp_db()
+        seed_job(
+            conn,
+            url_suffix="fresh-score",
+            title="Software Engineer (L2)",
+            fit_score=8,
+            state="tailored",
+            scored_at="2026-08-19T00:00:00+00:00",
+        )
+
+        result = revalidate_stale_scores(conn, cutoff=self.CUTOFF)
+
+        assert result["matched"] == 0
+        row = conn.execute("SELECT state FROM jobs WHERE url LIKE '%fresh-score%'").fetchone()
+        assert row["state"] == "tailored"
+
+    def test_unscored_job_not_touched(self, tmp_db, seed_job):
+        """scored_at IS NULL must never match -- there is no stale score to
+        revalidate, only an unscored job."""
+        from applypilot.eligibility import revalidate_stale_scores
+
+        conn = tmp_db()
+        seed_job(
+            conn,
+            url_suffix="never-scored",
+            title="Software Engineer",
+            fit_score=None,
+            state="enriched",
+            scored_at=None,
+        )
+
+        result = revalidate_stale_scores(conn, cutoff=self.CUTOFF)
+
+        assert result["matched"] == 0
+
+    @pytest.mark.parametrize("protected_state", ["applied", "applying", "ready_to_apply", "manual_only", "archived"])
+    def test_protected_states_never_touched(self, tmp_db, seed_job, protected_state):
+        from applypilot.eligibility import revalidate_stale_scores
+
+        conn = tmp_db()
+        seed_job(
+            conn,
+            url_suffix=f"protected-{protected_state}",
+            title="Software Engineer (L2)",
+            fit_score=8,
+            state=protected_state,
+            scored_at="2026-08-17T00:00:00+00:00",
+        )
+
+        result = revalidate_stale_scores(conn, cutoff=self.CUTOFF)
+
+        assert result["matched"] == 0
+        row = conn.execute(f"SELECT state FROM jobs WHERE url LIKE '%protected-{protected_state}%'").fetchone()
+        assert row["state"] == protected_state
+
+    @pytest.mark.parametrize("revalidatable_state", ["scored", "tailored", "tailor_failed", "cover_failed"])
+    def test_each_revalidatable_state_is_archived(self, tmp_db, seed_job, revalidatable_state):
+        from applypilot.eligibility import revalidate_stale_scores
+
+        conn = tmp_db()
+        seed_job(
+            conn,
+            url_suffix=f"stale-{revalidatable_state}",
+            title="Site Reliability Engineer II",
+            fit_score=8,
+            state=revalidatable_state,
+            scored_at="2026-08-17T00:00:00+00:00",
+        )
+
+        result = revalidate_stale_scores(conn, cutoff=self.CUTOFF)
+
+        assert result["matched"] == 1
+        assert result["updated"] == 1
+        row = conn.execute(f"SELECT state FROM jobs WHERE url LIKE '%stale-{revalidatable_state}%'").fetchone()
+        assert row["state"] == "archived"
+
+    def test_idempotent(self, tmp_db, seed_job):
+        from applypilot.eligibility import revalidate_stale_scores
+
+        conn = tmp_db()
+        seed_job(
+            conn,
+            url_suffix="idempotent-stale",
+            title="Software Engineer I, Privacy",
+            fit_score=8,
+            state="cover_failed",
+            scored_at="2026-08-17T00:00:00+00:00",
+        )
+
+        first = revalidate_stale_scores(conn, cutoff=self.CUTOFF)
+        second = revalidate_stale_scores(conn, cutoff=self.CUTOFF)
+
+        assert first["updated"] == 1
+        assert second["matched"] == 0
+        assert second["updated"] == 0
+
+    def test_dry_run_reports_without_modifying(self, tmp_db, seed_job):
+        from applypilot.eligibility import revalidate_stale_scores
+
+        conn = tmp_db()
+        seed_job(
+            conn,
+            url_suffix="dry-run-stale",
+            title="Software Engineer - Video",
+            fit_score=8,
+            state="tailor_failed",
+            scored_at="2026-08-17T00:00:00+00:00",
+        )
+
+        result = revalidate_stale_scores(conn, cutoff=self.CUTOFF, dry_run=True)
+
+        assert result["matched"] == 1
+        assert result["updated"] == 0
+        assert result["sample"][0]["fit_score"] == 8
+        row = conn.execute("SELECT state FROM jobs WHERE url LIKE '%dry-run-stale%'").fetchone()
+        assert row["state"] == "tailor_failed"  # untouched in dry-run
+
+    def test_sample_carries_audit_fields(self, tmp_db, seed_job):
+        """The CLI/report needs enough per-row detail (title/score/scored_at/
+        state) to review matches before a live run -- unlike
+        revalidate_seniority's sample (which only needs url/title/pattern),
+        this sweep's whole point is showing WHEN a job was scored."""
+        from applypilot.eligibility import revalidate_stale_scores
+
+        conn = tmp_db()
+        seed_job(
+            conn,
+            url_suffix="audit-fields",
+            title="Site Reliability Engineer II",
+            fit_score=8,
+            state="cover_failed",
+            scored_at="2026-08-17T02:11:58.584795+00:00",
+        )
+
+        result = revalidate_stale_scores(conn, cutoff=self.CUTOFF, dry_run=True)
+
+        sample = result["sample"][0]
+        assert sample["title"] == "Site Reliability Engineer II"
+        assert sample["fit_score"] == 8
+        assert sample["scored_at"] == "2026-08-17T02:11:58.584795+00:00"
+        assert sample["state"] == "cover_failed"

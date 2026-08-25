@@ -922,12 +922,27 @@ def reset_by_category(category: str, conn: sqlite3.Connection | None = None) -> 
     return cursor.rowcount
 
 
+DEFAULT_TITLE_REJECT_PROTECTED_STATES = frozenset(
+    {
+        "applied",
+        "applying",
+        "cover_writing",
+        "cover_failed",
+        "manual_only",
+        "archived",
+        "ready_to_apply",
+        "tailored",
+    }
+)
+
+
 def reject_jobs_by_title_patterns(
     patterns: list[str],
     conn: sqlite3.Connection | None = None,
     *,
     dry_run: bool = False,
     sample_limit: int = 20,
+    protected_states: frozenset[str] | None = None,
 ) -> dict:
     """Archive jobs whose titles match any reject pattern.
 
@@ -940,6 +955,13 @@ def reject_jobs_by_title_patterns(
         conn: Optional sqlite connection.
         dry_run: When True, report matches only and make no DB writes.
         sample_limit: Number of sample matches to include in return payload.
+        protected_states: States excluded from matching regardless of title.
+            Defaults to DEFAULT_TITLE_REJECT_PROTECTED_STATES (used by the
+            general-purpose --auto-reject-titles CLI flag, which should never
+            discard an already-tailored resume for an arbitrary user-supplied
+            pattern). eligibility.revalidate_seniority passes a narrower set
+            -- see that function for why "tailored"/"cover_failed" must NOT
+            be protected from the canonical seniority predicate specifically.
 
     Returns:
         Dict with keys: matched (int), updated (int), sample (list[dict]).
@@ -978,18 +1000,16 @@ def reject_jobs_by_title_patterns(
     # only if a genuine need to preserve a tailor_failed job's retry
     # window across an --auto-reject-titles pass shows up in practice.
     #
-    # protected_states (enforced directly in the SQL below, not as a
-    # separate Python set): applied, applying, cover_writing, cover_failed,
-    # manual_only, archived, ready_to_apply, tailored.
+    states = protected_states if protected_states is not None else DEFAULT_TITLE_REJECT_PROTECTED_STATES
+    placeholders = ", ".join("?" for _ in states)
     rows = conn.execute(
-        """
+        f"""
         SELECT url, title
         FROM jobs
         WHERE applied_at IS NULL
-          AND COALESCE(state, '') NOT IN ('applied', 'applying', 'cover_writing',
-                                         'cover_failed', 'manual_only', 'archived',
-                                         'ready_to_apply', 'tailored')
-        """
+          AND COALESCE(state, '') NOT IN ({placeholders})
+        """,
+        tuple(states),
     ).fetchall()
 
     matches: list[tuple[str, str, str]] = []

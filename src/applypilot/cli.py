@@ -557,6 +557,53 @@ def revalidate_seniority(
             console.print(f"[dim]...and {len(result['sample']) - 20} more.[/dim]")
 
 
+@app.command()
+def revalidate_stale_scores(
+    cutoff: str = typer.Option(
+        ...,
+        "--cutoff",
+        help="ISO timestamp (e.g. a scoring-rubric-fix commit's date). Jobs scored before this are archived.",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Report matches without archiving anything.",
+    ),
+) -> None:
+    """Archive jobs whose fit_score was assigned before a given cutoff, so a
+    scoring-rubric fix doesn't leave stale-scored rows stranded in the live
+    queue (see applypilot.eligibility.revalidate_stale_scores).
+
+    Safe to run repeatedly -- jobs scored on/after the cutoff are never
+    touched, already-archived matches are a no-op on a second run, and no
+    job record is deleted or has its fit_score/tailored_resume_path/
+    cover_letter_path overwritten; only state changes, so the prior score is
+    preserved for audit.
+    """
+    _bootstrap()
+
+    from applypilot.eligibility import revalidate_stale_scores as _revalidate
+
+    result = _revalidate(cutoff=cutoff, dry_run=dry_run)
+    verb = "Would archive" if dry_run else "Archived"
+    console.print(
+        f"[cyan]Stale-score revalidation (cutoff {cutoff}):[/cyan] "
+        f"{verb} {result['updated']} / {result['matched']} matched job(s)."
+    )
+    if result["sample"]:
+        t = Table(show_header=True, header_style="bold cyan")
+        t.add_column("Title")
+        t.add_column("State")
+        t.add_column("Score")
+        t.add_column("Scored At")
+        t.add_column("URL", overflow="fold")
+        for row in result["sample"][:20]:
+            t.add_row(row["title"], row["state"], str(row["fit_score"]), row["scored_at"], row["url"])
+        console.print(t)
+        if len(result["sample"]) > 20:
+            console.print(f"[dim]...and {len(result['sample']) - 20} more.[/dim]")
+
+
 @app.command("run-continuous")
 def run_continuous(
     ready_buffer: int = typer.Option(

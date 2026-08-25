@@ -75,27 +75,143 @@ def revalidate_seniority(conn=None, *, dry_run: bool = False) -> dict:
     """Re-run the current seniority disqualifier against already-scored rows.
 
     For rule changes made after jobs were already scored (the exact failure
-    mode above): finds any still-pre-tailoring job whose title now matches
+    mode above): finds any pre-submission job whose title now matches
     SENIORITY_TITLE_PATTERN and archives it, regardless of what fit_score it
-    was previously assigned. Jobs that have already reached the protected
-    post-tailoring lifecycle states (tailored / cover_failed / ready_to_apply /
-    applying / applied) are intentionally left alone so the state machine
-    can continue to operate. Safe to call repeatedly -- reuses
-    database.reject_jobs_by_title_patterns(), which already excludes the
-    protected states and archived/manual-only rows, so a second run against
-    already-archived matches is a no-op (idempotent), and rows that don't
-    match are never touched. No job record is deleted; fit_score,
-    score_reasoning, tailored_resume_path, and cover_letter_path are all
-    preserved on the archived row for audit purposes.
+    was previously assigned, INCLUDING jobs already sitting in "tailored" or
+    "cover_failed" -- unlike database.reject_jobs_by_title_patterns' default
+    protected-states set (built for the general-purpose --auto-reject-titles
+    CLI flag, where discarding an arbitrary-pattern match against real
+    generated work is the wrong default), the canonical seniority predicate
+    is a hard categorical disqualifier: a stale pre-predicate score reaching
+    "tailored" or even burning cover_attempts against "cover_failed" is
+    exactly the failure this module exists to catch, not a sunk cost worth
+    protecting. 2026-08-25 real-data audit found 12 such jobs live in the
+    database (PayPal "Sr Software Engineer"/"Sr Machine Learning Engineer",
+    Twilio "Sr Architect", Axon "Sr. Full Stack Member of Technical Staff",
+    6 Pinterest Staff-level roles, etc.) with real .docx resumes already on
+    disk and up to 5 cover_attempts already spent -- confirming
+    revalidate-seniority --dry-run's prior "0/0 matched" result reflected
+    this blind spot, not an actually-clean database. Only states genuinely
+    at or past submission (applied / applying / cover_writing / manual_only
+    / archived / ready_to_apply) remain protected here. Safe to call
+    repeatedly -- reuses database.reject_jobs_by_title_patterns(), so a
+    second run against already-archived matches is a no-op (idempotent),
+    and rows that don't match are never touched. No job record is deleted;
+    fit_score, score_reasoning, tailored_resume_path, and cover_letter_path
+    are all preserved on the archived row for audit purposes.
 
     Returns the same {"matched", "updated", "sample"} dict as
     reject_jobs_by_title_patterns().
     """
     from applypilot.database import reject_jobs_by_title_patterns
 
+    protected_states = frozenset(
+        {"applied", "applying", "cover_writing", "manual_only", "archived", "ready_to_apply"}
+    )
     return reject_jobs_by_title_patterns(
         [SENIORITY_TITLE_PATTERN.pattern],
         conn=conn,
         dry_run=dry_run,
         sample_limit=1000,
+        protected_states=protected_states,
     )
+
+
+# States a stale-score sweep is allowed to touch. Deliberately narrower than
+# "everything scored before cutoff": once a job is at or past submission
+# (applied/applying/ready_to_apply) or already archived/manual_only, a stale
+# score is either moot or a sunk cost not worth re-litigating -- matches the
+# same protected-submission philosophy revalidate_seniority uses above.
+_STALE_SCORE_REVALIDATABLE_STATES = frozenset({"scored", "tailored", "tailor_failed", "cover_failed"})
+
+
+def revalidate_stale_scores(conn=None, *, cutoff: str, dry_run: bool = False) -> dict:
+    """Archive jobs whose fit_score was assigned by an LLM call that predates
+    a scoring-rubric fix, regardless of what score they received.
+
+    2026-08-25 real-data audit: commit a6f72a6 (2026-08-18) added the
+    seniority/experience-check paragraph to SCORE_PROMPT_TEMPLATE, fixing the
+    rubric itself. A one-time requeue swept most stale-scored rows into
+    "archived" that same day, but a since-fixed bug in get_jobs_by_stage's
+    "pending_tailor" query (missing a state filter until commit f2a3fab,
+    2026-08-24 -- see decision on the pending_tailor archived/tailor_failed
+    oscillation) let 63 of those already-archived rows get re-selected for
+    tailoring on 2026-08-20, and tailor.py's _mark_tailor_result force-
+    transitioned them straight from "archived" to "tailor_failed" on failure
+    without ever re-scoring them -- resurrecting their stale, pre-fix
+    fit_score back into the live funnel. 8 of those resurrected rows are
+    still live (e.g. Twilio "Software Engineer (L2)" / "Site Reliability
+    Engineer II" scored 8/10 under the pre-fix rubric despite explicitly
+    requiring 2-5+ years of professional experience and, in one case, a
+    Bachelor's CS degree). None of these titles match SENIORITY_TITLE_PATTERN
+    (they're "L2"/"II"/"I" -- deliberately-allowed levels), so
+    revalidate_seniority's title-based sweep can never catch this class of
+    staleness; the failure mode here is the *scoring date*, not the title.
+
+    Unlike revalidate_seniority, this can't reuse
+    database.reject_jobs_by_title_patterns (title-regex specific) -- it
+    queries scored_at directly and archives via transition_state, following
+    the same "preserve fit_score/tailored_resume_path/cover_letter_path for
+    audit, only change state" convention.
+
+    This is deliberately NOT a general periodic re-scoring system -- just a
+    reusable version of the one-time 2026-08-18 requeue sweep, so a future
+    rubric fix doesn't leave another orphaned cohort the way this one did.
+
+    Args:
+        conn: Optional sqlite connection.
+        cutoff: ISO timestamp (e.g. the rubric-fix commit's date). Jobs with
+            scored_at < cutoff are matched.
+        dry_run: When True, report matches only and make no DB writes.
+
+    Returns:
+        Dict with keys: matched (int), updated (int), sample (list[dict]),
+        each sample row carrying url/title/fit_score/scored_at/state for
+        audit review before a live run.
+    """
+    from applypilot.database import commit_with_retry, get_connection, transition_state
+
+    if conn is None:
+        conn = get_connection()
+
+    placeholders = ", ".join("?" for _ in _STALE_SCORE_REVALIDATABLE_STATES)
+    rows = conn.execute(
+        f"""
+        SELECT url, title, fit_score, scored_at, state
+        FROM jobs
+        WHERE scored_at IS NOT NULL
+          AND scored_at < ?
+          AND COALESCE(state, '') IN ({placeholders})
+        """,
+        (cutoff, *_STALE_SCORE_REVALIDATABLE_STATES),
+    ).fetchall()
+
+    matches = [
+        {
+            "url": row["url"],
+            "title": row["title"] or "",
+            "fit_score": row["fit_score"],
+            "scored_at": row["scored_at"],
+            "state": row["state"],
+        }
+        for row in rows
+    ]
+
+    if dry_run:
+        return {"matched": len(matches), "updated": 0, "sample": matches}
+
+    updated = 0
+    for m in matches:
+        ok = transition_state(
+            conn,
+            m["url"],
+            "archived",
+            reason=f"stale_score_before_{cutoff}",
+            metadata={"prior_fit_score": m["fit_score"], "prior_scored_at": m["scored_at"], "title": m["title"][:120]},
+            force=True,
+        )
+        if ok:
+            updated += 1
+
+    commit_with_retry(conn)
+    return {"matched": len(matches), "updated": updated, "sample": matches}
