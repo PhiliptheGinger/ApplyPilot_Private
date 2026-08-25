@@ -75,13 +75,22 @@ installation, sales), and personal-project-level Python (self-taught, not profes
   CS degree as a hard requirement, even if the candidate's personal Python projects touch some of
   the listed tech stack.
 - 1-2: Any Senior/Staff/Principal/Lead/Architect/Director/Manager/VP/Chief-scoped role, any role
-  requiring 3+ years of professional experience or a completed CS/engineering degree, non-technical
-  roles that don't match the candidate's actual background (recruiting, design, marketing, product
-  management, sales, executive), OR non-US geographic restriction.
+  requiring 3+ years of professional experience or a completed CS/engineering degree, OR non-US
+  geographic restriction.
 
 ADDITIONAL RULES:
 - Distinguish REQUIRED skills from NICE-TO-HAVE. Only penalize for missing required skills, but do
   NOT let a long list of matching keyword buzzwords override the seniority/experience check above.
+- SALES / RECRUITING / MARKETING / CUSTOMER-SUCCESS / ACCOUNT-MANAGEMENT / SOLUTIONS-OR-SALES-
+  ENGINEERING roles: do NOT score these low merely because of occupation. The candidate has real
+  sales and customer-facing work history, technical troubleshooting/installation experience, a
+  CompTIA A+ certification, and self-taught Python. Evaluate these the same way as any other role
+  -- by their actual stated requirements (years of experience, required certifications/degrees,
+  seniority level, quota or commission structure) and whether the candidate is realistically
+  competitive for them, not by title alone. A poor fit under those actual requirements or
+  conditions (unrealistic seniority/experience demands, 100% commission/1099 structure, or other
+  clearly bad conditions) should still score low -- occupation alone is never the reason for a low
+  score, and occupation alone is never a reason to inflate one either.
 - LOCATION: if the description implies onsite in a specific city outside the candidate's stated
   location/relocation area above, and is not remote, cap the score at 6.
 - Roles requiring a security clearance, or roles at defense, weapons, military, or law-enforcement
@@ -125,21 +134,21 @@ _INELIGIBLE_TITLE_PATTERNS = re.compile(
     # intentionally NOT excluded here — this candidate has no professional software
     # engineering experience, so those levels are the actual target, not noise.
     # Internships/co-ops are still excluded via searches.yaml exclude_titles below.
-    # Sales-adjacency (not IC engineering)
-    r"|\bSales Engineer\b"
-    r"|\bSolutions Engineer\b"
-    r"|\bPre[- ]?[Ss]ales\b"
-    r"|\bCustomer Success Engineer\b"
+    # NOTE 2026-08-25: Sales Engineer / Solutions Engineer / Pre-Sales / Customer
+    # Success Engineer / Recruiter / Talent Acquisition / Talent Scout / Talent
+    # Sourcer / Account Manager / Account Executive were REMOVED from this
+    # blacklist -- candidate policy is "take anything in my fields so long as it
+    # pays well and doesn't try to screw me," and this candidate has real
+    # sales/customer-facing work history. These occupations now reach the LLM,
+    # which evaluates them on actual requirements/competitiveness/conditions
+    # (see SCORE_PROMPT_TEMPLATE's sales/recruiting rule above), not title alone.
     # Retail / warehouse / service roles (filter out Costco + similar noise)
     r"|\bCashier\b|\bBaker\b|\bCake Decorator\b|\bButcher\b|\bMeat Cutter\b"
     r"|\bGas Station Attendant\b|\bPharmacy Technician\b|\bHearing Aid Dispenser\b"
     r"|\bStocker\b|\bForklift\b|\bWarehouse Associate\b|\bTruck Driver\b"
     r"|\bBakery Clerk\b|\bDeli Clerk\b|\bProduce Clerk\b|\bMember Service\b"
     r"|\bOptician\b|\bOptical\b"
-    # Non-engineering roles
-    r"|\bRecruiter\b"
-    r"|\bTalent Acquisition\b|\bTalent Scout\b|\bTalent Sourcer\b"
-    r"|\bAccount Manager\b|\bAccount Executive\b"
+    # Non-engineering roles (design remains out of scope for this policy change)
     r"|\bUX Designer\b|\bUI Designer\b|\bProduct Designer\b|\bGraphic Designer\b"
     # Specialist IC roles outside the target stack (mobile, legacy enterprise)
     r"|\bAndroid Engineer\b|\biOS Engineer\b|\bMobile Engineer\b"

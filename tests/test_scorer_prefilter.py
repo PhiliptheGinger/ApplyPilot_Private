@@ -51,22 +51,34 @@ def test_apprentice_title_not_rejected():
     assert _check_ineligible(_job(title="Software Apprentice")) is None
 
 
-# ── Sales-adjacency rejects ─────────────────────────────────────────
+# ── Sales-adjacency: occupation alone no longer blocks (2026-08-25) ──────
+# Candidate policy: "take anything in my fields so long as it pays well and
+# doesn't try to screw me." These occupations now reach the LLM, which
+# evaluates them on actual requirements/competitiveness, not title alone.
 
 
-def test_sales_engineer_rejected():
+def test_sales_engineer_not_blocked_by_title():
+    assert _check_ineligible(_job(title="Sales Engineer")) is None
+
+
+def test_solutions_engineer_not_blocked_by_title():
+    assert _check_ineligible(_job(title="Solutions Engineer")) is None
+
+
+def test_presales_not_blocked_by_title():
+    assert _check_ineligible(_job(title="Presales Engineer")) is None
+
+
+def test_customer_success_engineer_not_blocked_by_title():
+    assert _check_ineligible(_job(title="Customer Success Engineer")) is None
+
+
+def test_senior_sales_titles_still_blocked_by_seniority_not_occupation():
+    """Removing the sales-occupation patterns must not weaken the separate,
+    unrelated seniority gate -- these remain rejected, but via
+    eligibility.seniority_disqualifier, not the (now-removed) sales patterns."""
     assert _check_ineligible(_job(title="Senior Sales Engineer")) is not None
-
-
-def test_solutions_engineer_rejected():
-    assert _check_ineligible(_job(title="Solutions Engineer")) is not None
-
-
-def test_presales_rejected():
     assert _check_ineligible(_job(title="Senior Presales Engineer")) is not None
-
-
-def test_customer_success_engineer_rejected():
     assert _check_ineligible(_job(title="Senior Customer Success Engineer")) is not None
 
 
@@ -78,14 +90,34 @@ def test_graduate_title_not_rejected():
     assert _check_ineligible(_job(title="Graduate Software Engineer")) is None
 
 
-def test_recruiter_title_rejected():
-    assert _check_ineligible(_job(title="Technical Recruiter")) is not None
+def test_recruiter_title_not_blocked_by_occupation():
+    assert _check_ineligible(_job(title="Technical Recruiter")) is None
+    assert _check_ineligible(_job(title="Talent Acquisition Partner")) is None
+    assert _check_ineligible(_job(title="Talent Scout")) is None
+    assert _check_ineligible(_job(title="Talent Sourcer")) is None
+
+
+def test_account_manager_title_not_blocked_by_occupation():
+    assert _check_ineligible(_job(title="Enterprise Account Executive")) is None
+
+
+def test_account_manager_bare_title_still_blocked_via_unrelated_seniority_gate():
+    """"Account Manager" (no modifier) is still rejected -- but NOT via the
+    (now-removed) Account Manager occupational pattern. The separate,
+    deliberately-broad eligibility.SENIORITY_TITLE_PATTERN treats bare
+    "Manager" as senior-scoped (see CLAUDE.md decision #64, which explicitly
+    accepted this breadth -- e.g. "Funeral Director" is likewise "mismatched").
+    Narrowing that pattern is out of scope for this change; documented here as
+    a known collision rather than silently patched."""
+    reason = _check_ineligible(_job(title="Account Manager"))
+    assert reason is not None
+    assert "seniority" in reason.lower()
+
+
+def test_senior_recruiter_and_account_titles_still_blocked_by_seniority():
+    """Same non-weakening guarantee as the sales-adjacency case above."""
     assert _check_ineligible(_job(title="Senior Talent Acquisition Partner")) is not None
-
-
-def test_account_manager_title_rejected():
     assert _check_ineligible(_job(title="Senior Account Manager")) is not None
-    assert _check_ineligible(_job(title="Enterprise Account Executive")) is not None
 
 
 def test_designer_title_rejected():
@@ -118,6 +150,8 @@ def test_senior_backend_python_rejected():
 
 
 def test_latam_in_title_rejected():
+    # Rejected via the LATAM geography token, not the (now-removed) Account
+    # Manager occupation token -- "Account Manager" alone no longer blocks.
     assert _check_ineligible(_job(title="Account Manager, LATAM")) is not None
 
 
@@ -174,6 +208,20 @@ def test_only_hiring_in_title_rejected():
 )
 def test_non_us_country_in_location_rejected(loc):
     assert _check_ineligible(_job(location=loc)) is not None
+
+
+# ── LLM rubric text (2026-08-25 sales/recruiting policy realignment) ─
+# Regression guard: the rubric must not tell the LLM to score sales/
+# recruiting/marketing/etc. low merely because of occupation.
+
+
+def test_prompt_rubric_no_longer_auto_rejects_sales_recruiting_by_occupation():
+    from applypilot.scoring.scorer import SCORE_PROMPT_TEMPLATE
+
+    assert "recruiting, design, marketing, product" not in SCORE_PROMPT_TEMPLATE
+    assert "not by title alone" in SCORE_PROMPT_TEMPLATE
+    assert "SALES" in SCORE_PROMPT_TEMPLATE
+    assert "RECRUITING" in SCORE_PROMPT_TEMPLATE
 
 
 # ── Must NOT reject legit US roles ──────────────────────────────────
