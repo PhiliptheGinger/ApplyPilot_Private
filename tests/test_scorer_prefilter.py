@@ -503,6 +503,153 @@ def test_non_defense_description_not_rejected_by_ethical_filter(monkeypatch):
     assert scorer_mod._check_ineligible(job) is None
 
 
+# ── Ethics config policy-critical fallback (2026-08-27 fix) ─────────────
+# Regression tests for the audit's P0-2 finding: a 2026-08-25 rewrite of the
+# live ~/.applypilot/searches.yaml dropped the exclude_description_keywords
+# key entirely (not an explicit []), silently disabling the whole
+# military/weapons/surveillance/policing exclusion policy end to end (289
+# ethical_exclusion archives on 2026-08-18, none since). load_search_config()
+# only falls back to the packaged example when searches.yaml is *absent*
+# entirely, so a present-but-incomplete file never triggered that fallback.
+
+
+def test_ethics_keywords_fall_back_to_packaged_defaults_when_key_absent(monkeypatch):
+    import applypilot.scoring.scorer as scorer_mod
+
+    # A live config that exists and has other keys, but genuinely omits
+    # exclude_description_keywords -- the exact 2026-08-25 failure mode.
+    monkeypatch.setattr(scorer_mod, "load_search_config", lambda: {"exclude_titles": ["senior"]})
+    monkeypatch.setattr(
+        scorer_mod,
+        "load_packaged_default_search_config",
+        lambda: {"exclude_description_keywords": ["defense contractor", "autonomous weapons"]},
+    )
+    job = _job(title="Software Engineer", description="We are a leading defense contractor.")
+    reason = scorer_mod._check_ineligible(job)
+    assert reason is not None
+    assert "ethical exclusion" in reason.lower()
+
+
+def test_ethics_keywords_explicit_empty_list_is_honored_not_backfilled(monkeypatch):
+    """An explicit exclude_description_keywords: [] means the key IS
+    present -- a deliberate "disable this policy" choice -- and must NOT be
+    treated the same as "key absent" / silently backfilled from packaged
+    defaults."""
+    import applypilot.scoring.scorer as scorer_mod
+
+    monkeypatch.setattr(scorer_mod, "load_search_config", lambda: {"exclude_description_keywords": []})
+    monkeypatch.setattr(
+        scorer_mod,
+        "load_packaged_default_search_config",
+        lambda: {"exclude_description_keywords": ["defense contractor"]},
+    )
+    job = _job(title="Software Engineer", description="We are a leading defense contractor.")
+    assert scorer_mod._check_ineligible(job) is None
+
+
+def test_ethics_keywords_active_through_real_config_loading_path(monkeypatch):
+    """Unmocked load_search_config/load_packaged_default_search_config --
+    proves the fallback is wired through the REAL config-loading functions,
+    not just reachable in isolation. Uses a job title with no other
+    disqualifying signal so only the ethics check can be responsible for
+    the result."""
+    from applypilot.config import load_packaged_default_search_config, load_search_config
+    from applypilot.scoring.scorer import _check_ineligible
+
+    live_cfg = load_search_config() or {}
+    if "exclude_description_keywords" in live_cfg:
+        pytest.skip("live searches.yaml explicitly sets exclude_description_keywords; nothing to fall back from")
+
+    packaged = load_packaged_default_search_config().get("exclude_description_keywords") or []
+    if not packaged:
+        pytest.skip("packaged searches.example.yaml has no exclude_description_keywords to fall back to")
+
+    job = _job(title="Software Engineer", description="We are a leading defense contractor.")
+    reason = _check_ineligible(job)
+    assert reason is not None
+    assert "ethical exclusion" in reason.lower()
+
+
+def test_ethics_keyword_bare_dod_does_not_match_inside_unrelated_word(monkeypatch):
+    """Audit finding: a bare "dod" substring check would match inside
+    unrelated words like "Dodge" (a common vehicle brand -- relevant given
+    this candidate's automotive/warehouse-adjacent work history). Matching
+    must be word-boundary, not substring."""
+    import applypilot.scoring.scorer as scorer_mod
+
+    monkeypatch.setattr(scorer_mod, "load_search_config", lambda: {"exclude_description_keywords": ["dod"]})
+    job = _job(
+        title="Parts Specialist",
+        description="Experience with Dodge, Chrysler, and Jeep vehicles preferred.",
+    )
+    assert scorer_mod._check_ineligible(job) is None
+
+
+def test_ethics_keyword_bare_dod_still_matches_standalone_token(monkeypatch):
+    import applypilot.scoring.scorer as scorer_mod
+
+    monkeypatch.setattr(scorer_mod, "load_search_config", lambda: {"exclude_description_keywords": ["dod"]})
+    job = _job(title="Software Engineer", description="Must have DoD contracting experience.")
+    reason = scorer_mod._check_ineligible(job)
+    assert reason is not None
+    assert "ethical exclusion" in reason.lower()
+
+
+def test_packaged_default_ethics_keywords_do_not_include_bare_military():
+    """2026-08-27 real-data finding, not hypothetical: live-DB measurement
+    against 24,325 described jobs found bare "military" was the ONLY
+    matching ethics keyword on 5,017 rows, and a random sample of those was
+    ~92% ordinary EEO/non-discrimination boilerplate ("...disability
+    status, military veteran status, sexual orientation...") or veteran-
+    hiring language on non-defense postings -- including an ordinary
+    Greensboro, NC "Deskside Support Technician" listing, exactly the class
+    of role this candidate wants preserved. Genuine defense employers
+    remain caught by the many more specific terms (defense industry/
+    contractor, dod, department of defense, missile, warfighter, combat
+    systems, etc.), which showed no comparable false-positive pattern in
+    the same measurement. The packaged default list is the fallback source
+    scorer._check_ineligible uses when a user's searches.yaml omits
+    exclude_description_keywords entirely -- it must not reintroduce this
+    false-positive term."""
+    from applypilot.config import load_packaged_default_search_config
+
+    keywords = [
+        str(k).strip().lower()
+        for k in (load_packaged_default_search_config().get("exclude_description_keywords") or [])
+    ]
+    assert "military" not in keywords
+
+
+def test_eeo_boilerplate_military_veteran_clause_not_ethics_excluded(monkeypatch):
+    """Direct regression for the real Accenture/linkedin boilerplate found
+    in the live DB: a job whose only "military" mention is the standard
+    EEO non-discrimination clause must not be archived as a defense/
+    weapons/surveillance/policing exclusion."""
+    import applypilot.scoring.scorer as scorer_mod
+
+    monkeypatch.setattr(
+        scorer_mod,
+        "load_search_config",
+        lambda: {
+            "exclude_description_keywords": [
+                k for k in scorer_mod.load_packaged_default_search_config()["exclude_description_keywords"]
+            ]
+        },
+    )
+    job = _job(
+        title="Deskside Support Technician - Greensboro, NC",
+        location="Greensboro, NC",
+        description=(
+            "We are an equal opportunity employer. All employment decisions shall be made without "
+            "regard to age, race, creed, color, religion, sex, national origin, ancestry, disability "
+            "status, military veteran status, sexual orientation, gender identity or expression, "
+            "genetic information, marital status, citizenship status or any other basis as protected "
+            "by federal, state, or local law."
+        ),
+    )
+    assert scorer_mod._check_ineligible(job) is None
+
+
 # ── Advanced-degree requirement (candidate has a Bachelor's only) ───────
 # Regression test for the 2026-08-19 incident: a PayPal "Software Engineer"
 # posting (plain title, no seniority signal) required a Master's degree in

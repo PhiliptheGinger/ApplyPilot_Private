@@ -286,21 +286,17 @@ def test_run_scoring_returns_job_urls_for_the_batch_it_selected(
     a = seed_job(conn, url_suffix="a", fit_score=None, full_description="x", state="enriched")
     b = seed_job(conn, url_suffix="b", fit_score=None, full_description="x", state="enriched")
 
-    def fake_score_job(resume_text, job):
+    def fake_score_job(resume_text, job, profile=None):
         return {"score": 9, "keywords": "", "reasoning": ""}
 
     monkeypatch.setattr(scorer_mod, "score_job", fake_score_job)
-    monkeypatch.setattr(scorer_mod, "RESUME_PATH", _FakeResumePath())
+    monkeypatch.setattr(scorer_mod, "load_profile", dict)
+    monkeypatch.setattr(scorer_mod, "render_profile_reference", lambda profile: "Resume text.")
 
     result = scorer_mod.run_scoring(limit=2)
 
     assert set(result["job_urls"]) == {a["url"], b["url"]}
     assert result["scored"] == 2
-
-
-class _FakeResumePath:
-    def read_text(self, encoding="utf-8"):
-        return "Resume text."
 
 
 # ---------------------------------------------------------------------------

@@ -11,10 +11,11 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime, timedelta
 
-from applypilot.config import RESUME_PATH, load_profile, load_search_config
+from applypilot.config import load_packaged_default_search_config, load_profile, load_search_config
 from applypilot.database import get_connection, get_jobs_by_stage, write_with_retry
 from applypilot.eligibility import seniority_disqualifier
 from applypilot.llm import get_stage_client, get_token_limit
+from applypilot.scoring.resume_router import render_profile_reference
 
 log = logging.getLogger(__name__)
 
@@ -374,13 +375,37 @@ def _check_ineligible(job: dict, profile: dict | None = None) -> str | None:
     # see searches.yaml exclude_description_keywords). Checked against title + full
     # description head, not just the location field, since these are about the
     # employer's line of business, not geography.
-    ethical_keywords = [
-        str(k).strip().lower() for k in (search_cfg.get("exclude_description_keywords") or []) if str(k).strip()
-    ]
+    #
+    # 2026-08-27: distinguish "key explicitly set (including to [])" from
+    # "key absent entirely". A 2026-08-25 rewrite of the live searches.yaml
+    # dropped this key outright, silently disabling the whole policy with
+    # no error -- 289 ethical_exclusion archives on 2026-08-18, none since.
+    # If the user's config doesn't mention this key at all, fall back to
+    # the packaged default list (searches.example.yaml) so the policy
+    # cannot silently vanish again just because a config file was
+    # rewritten. An explicit empty list ([]) is still honored as "the user
+    # deliberately disabled this" and does NOT fall back.
+    if "exclude_description_keywords" in search_cfg:
+        raw_ethical_keywords = search_cfg.get("exclude_description_keywords") or []
+    else:
+        raw_ethical_keywords = load_packaged_default_search_config().get("exclude_description_keywords") or []
+        if raw_ethical_keywords:
+            log.warning(
+                "exclude_description_keywords absent from searches.yaml -- falling back to "
+                "%d packaged default terms so the military/weapons/surveillance/policing "
+                "exclusion policy is not silently disabled.",
+                len(raw_ethical_keywords),
+            )
+    ethical_keywords = [str(k).strip().lower() for k in raw_ethical_keywords if str(k).strip()]
     if ethical_keywords:
+        # Word-boundary match, not bare substring -- a bare "dod" substring
+        # check would match inside unrelated words like "Dodge" (a common
+        # vehicle brand in this candidate's automotive-adjacent job pool).
+        # Mirrors the word-boundary fix already applied to exclude_titles
+        # above, for the same reason.
         haystack = f"{title}\n{desc_head}".lower()
         for kw in ethical_keywords:
-            if kw in haystack:
+            if re.search(rf"\b{re.escape(kw)}\b", haystack):
                 return f"ethical exclusion keyword matched: {kw!r}"
 
     return None
@@ -523,7 +548,12 @@ def score_job(resume_text: str, job: dict, profile: dict | None = None) -> dict:
     """Score a single job against the resume.
 
     Args:
-        resume_text: The candidate's full resume text.
+        resume_text: The candidate's truthful, profile-derived reference
+            text -- see resume_router.render_profile_reference. Must NOT be
+            sourced from RESUME_PATH (~/.applypilot/resume.txt): that file
+            is a hand-maintained, drift-prone document unrelated to the
+            canonical profile every other stage (tailor, cover_letter)
+            reads from, and has historically contained fabricated content.
         job: Job dict with keys: title, site, location, full_description.
 
     Returns:
@@ -720,7 +750,17 @@ def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1, max_age
         independently re-querying and picking up unrelated already-eligible
         jobs from earlier runs.
     """
-    resume_text = RESUME_PATH.read_text(encoding="utf-8")
+    # 2026-08-27 fix: this used to read RESUME_PATH (~/.applypilot/resume.txt)
+    # directly -- a hand-maintained file that had drifted into a fabricated
+    # "Senior Software Engineer, Seattle WA" placeholder, contradicting the
+    # truthful system prompt built from profile.json and contaminating
+    # every score with a fictional identity. Every other stage (tailor,
+    # cover_letter) already sources resume text via resume_router, which
+    # correctly prefers the canonical data/profile.json. Loaded once here
+    # (not per job) and profile is threaded into score_job below so it
+    # isn't re-read from disk for every job in the batch.
+    profile = load_profile()
+    resume_text = render_profile_reference(profile)
     conn = get_connection()
 
     if rescore:
@@ -757,7 +797,7 @@ def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1, max_age
 
     def _score_one(job: dict) -> dict:
         try:
-            result = score_job(resume_text, job)
+            result = score_job(resume_text, job, profile=profile)
             result["url"] = job["url"]
         except Exception as exc:
             log.exception("Unexpected error scoring '%s'", (job or {}).get("title") or "?")

@@ -132,7 +132,20 @@ exclude_description_keywords:
   - "defence contractor"
   - "defense industry"
   - "defence industry"
-  - "military"
+  # NOTE: bare "military" deliberately excluded here (2026-08-27). Live-DB
+  # measurement against 24,325 described jobs found 5,454 "military"
+  # matches, of which 5,017 had NO other ethics keyword also matching
+  # (i.e. would ONLY be excluded by this term). A random sample of those
+  # 5,017 was ~92% the standard EEO/non-discrimination boilerplate clause
+  # ("...disability status, military veteran status, sexual orientation...")
+  # or "military-affiliated job seeker" veteran-hiring language -- present
+  # on ordinary non-defense postings (Accenture general IT roles, an
+  # ordinary NC "Deskside Support Technician" listing, etc.), not a signal
+  # of the employer's actual line of business. Genuine defense/weapons
+  # employers are still caught by the many more specific terms below
+  # (defense industry/contractor, dod, department of defense, missile,
+  # warfighter, combat systems, etc.) -- those showed no comparable
+  # false-positive pattern in the same measurement.
   - "armed forces"
   - "department of defense"
   - "department of defence"

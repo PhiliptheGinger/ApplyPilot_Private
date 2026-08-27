@@ -290,6 +290,25 @@ def load_search_config() -> dict:
     return yaml.safe_load(SEARCH_CONFIG_PATH.read_text(encoding="utf-8"))
 
 
+def load_packaged_default_search_config() -> dict:
+    """Load the packaged example search config (searches.example.yaml).
+
+    Unlike load_search_config(), this always reads the packaged example
+    regardless of whether the user's own searches.yaml exists -- used as a
+    fallback source for policy-critical keys (e.g.
+    exclude_description_keywords) that must not silently vanish just
+    because a user's searches.yaml was rewritten without them. See the
+    2026-08-25 incident where a rewritten searches.yaml dropped the ethics
+    exclusion list entirely, with no error or warning.
+    """
+    import yaml
+
+    example = CONFIG_DIR / "searches.example.yaml"
+    if not example.exists():
+        return {}
+    return yaml.safe_load(example.read_text(encoding="utf-8")) or {}
+
+
 def load_sites_config() -> dict:
     """Load sites.yaml configuration (sites list, manual_ats, blocked, etc.)."""
     import yaml

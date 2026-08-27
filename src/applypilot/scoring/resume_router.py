@@ -97,14 +97,20 @@ def load_resume_text_for_job(job: dict) -> tuple[str, Path]:
     performed by tailoring against the canonical profile.
     """
     if PROJECT_PROFILE_PATH.exists():
-        return _render_profile_reference(load_profile()), PROJECT_PROFILE_PATH
+        return render_profile_reference(load_profile()), PROJECT_PROFILE_PATH
 
     path = choose_resume_path_for_job(job)
     return path.read_text(encoding="utf-8"), path
 
 
-def _render_profile_reference(profile: dict) -> str:
-    """Render a compact factual reference from the canonical profile."""
+def render_profile_reference(profile: dict) -> str:
+    """Render a compact factual reference from the canonical profile.
+
+    Public (not job-specific) so callers that need the same truthful
+    reference for every job in a batch -- e.g. scorer.run_scoring, which
+    scores many jobs against one candidate summary -- can render it once
+    instead of calling load_resume_text_for_job(job) per job.
+    """
     lines: list[str] = ["CANONICAL PROFILE REFERENCE"]
     for key in (
         "education",
