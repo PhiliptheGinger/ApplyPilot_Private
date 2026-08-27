@@ -604,6 +604,97 @@ def revalidate_stale_scores(
             console.print(f"[dim]...and {len(result['sample']) - 20} more.[/dim]")
 
 
+@app.command("remediate-contamination")
+def remediate_contamination(
+    min_score: int = typer.Option(
+        7,
+        "--min-score",
+        help="Only consider rows with fit_score >= this value (contamination below this threshold is not operationally consequential).",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Report matches without archiving anything.",
+    ),
+) -> None:
+    """Find scores contaminated by the pre-Phase-1 fabricated resume
+    (see docs/audit-2026-08-27.md and applypilot.scoring.contamination) and
+    archive ONLY the ones in a safe, non-application state.
+
+    Separate from revalidate-stale-scores: this is content-keyed (does the
+    stored reasoning show the fabricated candidate identity was used), not
+    date/state-keyed. Rows in applied, ready_to_apply, applying,
+    apply_failed, manual_only, or needs_human are NEVER archived by this
+    command regardless of --dry-run -- they are always reported only, for a
+    separate, explicit human decision. Already-archived/low_score rows are
+    also reported only (nothing to gain by re-archiving them).
+
+    Safe to run repeatedly -- jobs without a contamination marker are never
+    touched, and no job record is deleted or has its fit_score/
+    tailored_resume_path/cover_letter_path overwritten; only state changes
+    on the narrow auto-remediable subset, so the prior score is preserved
+    for audit.
+    """
+    _bootstrap()
+
+    from applypilot.database import get_connection
+    from applypilot.scoring.contamination import remediate_contaminated_scores
+
+    conn = get_connection()
+    result = remediate_contaminated_scores(conn, min_score=min_score, dry_run=dry_run)
+
+    verb = "Would archive" if dry_run else "Archived"
+    verb_count = result["would_archive"] if dry_run else result["archived"]
+    console.print(
+        f"[cyan]Contamination remediation (min_score={min_score}):[/cyan] "
+        f"matched {result['matched']} contaminated row(s) -- "
+        f"{verb} {verb_count} auto-remediable, "
+        f"{result['needs_review_count']} require manual review, "
+        f"{result['already_terminal_count']} already terminal (archived/low_score)."
+    )
+
+    if result["by_state"]:
+        t = Table(title="Contaminated rows by state", show_header=True, header_style="bold cyan")
+        t.add_column("State")
+        t.add_column("Count")
+        for state, count in sorted(result["by_state"].items(), key=lambda kv: -kv[1]):
+            t.add_row(state or "NULL", str(count))
+        console.print(t)
+
+    if result["by_score"]:
+        t = Table(title="Contaminated rows by score", show_header=True, header_style="bold cyan")
+        t.add_column("Score")
+        t.add_column("Count")
+        for score, count in sorted(result["by_score"].items(), key=lambda kv: -(kv[0] or 0)):
+            t.add_row(str(score), str(count))
+        console.print(t)
+
+    if result["needs_review_sample"]:
+        console.print("[bold red]Rows requiring manual review (never auto-archived):[/bold red]")
+        t = Table(show_header=True, header_style="bold red")
+        t.add_column("State")
+        t.add_column("Score")
+        t.add_column("Markers")
+        t.add_column("Title", max_width=50)
+        t.add_column("URL", overflow="fold")
+        for row in result["needs_review_sample"]:
+            t.add_row(
+                row["state"], str(row["fit_score"]), ",".join(row["markers"]), row["title"], row["url"]
+            )
+        console.print(t)
+
+    if result["sample"]:
+        t = Table(title="Sample of matched rows (auto-remediable + review, first 20)", show_header=True, header_style="bold cyan")
+        t.add_column("State")
+        t.add_column("Score")
+        t.add_column("Markers")
+        t.add_column("Title", max_width=50)
+        t.add_column("URL", overflow="fold")
+        for row in result["sample"]:
+            t.add_row(row["state"], str(row["fit_score"]), ",".join(row["markers"]), row["title"], row["url"])
+        console.print(t)
+
+
 @app.command("run-continuous")
 def run_continuous(
     ready_buffer: int = typer.Option(
