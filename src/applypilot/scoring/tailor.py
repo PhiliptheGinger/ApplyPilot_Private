@@ -1509,11 +1509,34 @@ def _mark_tailor_result(
     Anything other than ``"approved"`` transitions to ``tailor_failed``
     with ``reason=status``, so these remain diagnosable in the DB/audit
     trail without needing new state-machine states.
+
+    Phase 3 state-machine hardening (2026-08-27): the job must still be in
+    'tailoring' -- the in-flight state run_tailoring claims it into before
+    starting the LLM call -- for this completion write to happen at all.
+    The LLM call this result comes from can take minutes; if a concurrent
+    process (title-reject sweep, eligibility revalidation, ...) moved the
+    job out of 'tailoring' in the meantime, this is a stale completion and
+    must not overwrite whatever newer decision was made. Neither the
+    tailored_resume_path/tailor_attempts UPDATE nor the state transition
+    runs in that case -- confirmed live as the mechanism behind PayPal
+    "Sr-Software-Engineer_R0137197" producing a real tailored .docx after
+    already being archived.
     """
     if now is None:
         now = datetime.now(UTC).isoformat()
 
-    from applypilot.database import transition_state
+    from applypilot.database import current_state, transition_state
+
+    current = current_state(conn, url)
+    if current != "tailoring":
+        log.warning(
+            "Skipping stale tailor completion for %s -- expected state 'tailoring', found %r "
+            "(job was likely archived or otherwise reassigned by another process while this "
+            "tailoring call was in flight)",
+            url[:80],
+            current,
+        )
+        return
 
     if status == "approved":
         # Atomic: write path AND increment counter in one UPDATE.
@@ -1531,7 +1554,6 @@ def _mark_tailor_result(
             "tailored",
             reason="tailored OK",
             metadata={"attempts": attempts, "filename": os.path.basename(path) if path else None},
-            force=True,
         )
     else:
         conn.execute(
@@ -1544,7 +1566,6 @@ def _mark_tailor_result(
             "tailor_failed",
             reason=status,
             metadata={"attempts": attempts},
-            force=True,
         )
 
 
@@ -1598,7 +1619,7 @@ def run_tailoring(
     if os.environ.get("APPLYPILOT_LOCAL_PLAN", "").lower() in ("1", "true", "yes"):
         log.info("local-first: enabled -- each job gets a local tailoring plan pass before cloud finalization")
 
-    from applypilot.database import get_connection, get_jobs_by_stage, write_with_retry
+    from applypilot.database import get_connection, get_jobs_by_stage, transition_state, write_with_retry
 
     profile = load_profile()
     conn = get_connection()
@@ -1681,10 +1702,38 @@ def run_tailoring(
         log.info("Tailor cap: skipped %d job(s) where company is at/over %d tailored.", skipped_by_cap, cap)
     jobs = capped_jobs
 
-    # Captured now (this is the final eligible-after-cap batch) so callers
-    # can carry this exact batch's identity into a following `cover` stage
-    # -- see the job_urls note in the docstring above, and run_scoring's
-    # identical pattern for score -> tailor.
+    # Phase 3 state-machine hardening (2026-08-27): claim each candidate
+    # into the 'tailoring' in-flight state before starting the (possibly
+    # multi-minute, especially degraded-mode) LLM call. `pending_tailor`
+    # only requires `state IN ('scored', 'tailor_failed')` at SELECT time,
+    # but the LLM call itself used to run with no DB claim at all -- a
+    # concurrent process (title-reject sweep, eligibility revalidation,
+    # ...) could archive the job while it was mid-flight, and the
+    # completion write in _mark_tailor_result would land regardless
+    # (confirmed live: PayPal "Sr-Software-Engineer_R0137197" produced a
+    # real tailored .docx this way after being archived). transition_state
+    # WITHOUT force=True naturally refuses the claim unless the job's
+    # CURRENT state is still 'scored' or 'tailor_failed' -- the only two
+    # VALID_TRANSITIONS sources for 'tailoring' -- so a job that lost
+    # eligibility between the SELECT above and this claim is dropped here
+    # instead of proceeding. This shrinks the race window from "the entire
+    # LLM call duration" down to the gap between that SELECT and this
+    # UPDATE.
+    claimed_jobs = []
+    for job in jobs:
+        if transition_state(conn, job["url"], "tailoring", reason="claimed for tailoring"):
+            claimed_jobs.append(job)
+        else:
+            log.info(
+                "Skipping tailor candidate no longer claimable (state changed since selection): %s",
+                job["url"][:80],
+            )
+    jobs = claimed_jobs
+
+    # Captured now (this is the final eligible-after-cap, after-claim
+    # batch) so callers can carry this exact batch's identity into a
+    # following `cover` stage -- see the job_urls note in the docstring
+    # above, and run_scoring's identical pattern for score -> tailor.
     job_urls = [j["url"] for j in jobs if j.get("url")]
 
     conn.commit()  # Close read transaction before long LLM phase

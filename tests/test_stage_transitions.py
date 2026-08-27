@@ -30,7 +30,7 @@ def test_tailor_success_transitions_to_tailored(tmp_db, seed_job):
     """Approved tailor result must transition state to 'tailored'."""
     conn = tmp_db()
     url = _seed_with_state(
-        conn, seed_job, "TA1", "scored", fit_score=9, full_description="x" * 300, tailored_resume_path=None
+        conn, seed_job, "TA1", "tailoring", fit_score=9, full_description="x" * 300, tailored_resume_path=None
     )
 
     from applypilot.scoring.tailor import _mark_tailor_result
@@ -45,7 +45,7 @@ def test_tailor_success_writes_audit_row(tmp_db, seed_job):
     """Approved result must appear in the audit log with to_state='tailored'."""
     conn = tmp_db()
     url = _seed_with_state(
-        conn, seed_job, "TA2", "scored", fit_score=9, full_description="x" * 300, tailored_resume_path=None
+        conn, seed_job, "TA2", "tailoring", fit_score=9, full_description="x" * 300, tailored_resume_path=None
     )
 
     from applypilot.scoring.tailor import _mark_tailor_result
@@ -63,7 +63,7 @@ def test_tailor_failed_transitions_to_tailor_failed(tmp_db, seed_job):
     """Any non-approved tailor result must transition to 'tailor_failed'."""
     conn = tmp_db()
     url = _seed_with_state(
-        conn, seed_job, "TA3", "scored", fit_score=9, full_description="x" * 300, tailored_resume_path=None
+        conn, seed_job, "TA3", "tailoring", fit_score=9, full_description="x" * 300, tailored_resume_path=None
     )
 
     from applypilot.scoring.tailor import _mark_tailor_result
@@ -78,7 +78,7 @@ def test_tailor_failed_judge_transitions_to_tailor_failed(tmp_db, seed_job):
     """failed_judge status must also transition to 'tailor_failed'."""
     conn = tmp_db()
     url = _seed_with_state(
-        conn, seed_job, "TA4", "scored", fit_score=9, full_description="x" * 300, tailored_resume_path=None
+        conn, seed_job, "TA4", "tailoring", fit_score=9, full_description="x" * 300, tailored_resume_path=None
     )
 
     from applypilot.scoring.tailor import _mark_tailor_result
@@ -93,7 +93,7 @@ def test_tailor_attempts_increments_even_on_failure(tmp_db, seed_job):
     """tailor_attempts counter must increment even when the tailor fails."""
     conn = tmp_db()
     url = _seed_with_state(
-        conn, seed_job, "TA5", "scored", fit_score=8, full_description="x" * 300, tailored_resume_path=None
+        conn, seed_job, "TA5", "tailoring", fit_score=8, full_description="x" * 300, tailored_resume_path=None
     )
     # Baseline: no attempt yet
     row = conn.execute("SELECT COALESCE(tailor_attempts, 0) FROM jobs WHERE url=?", (url,)).fetchone()
@@ -113,7 +113,7 @@ def test_tailor_attempts_increments_on_success_too(tmp_db, seed_job):
     """tailor_attempts must also increment on approved (after path is written)."""
     conn = tmp_db()
     url = _seed_with_state(
-        conn, seed_job, "TA6", "scored", fit_score=9, full_description="x" * 300, tailored_resume_path=None
+        conn, seed_job, "TA6", "tailoring", fit_score=9, full_description="x" * 300, tailored_resume_path=None
     )
 
     from applypilot.scoring.tailor import _mark_tailor_result
@@ -125,16 +125,27 @@ def test_tailor_attempts_increments_on_success_too(tmp_db, seed_job):
     assert row[0] >= 1, f"Expected tailor_attempts >= 1, got {row[0]}"
 
 
-def test_tailor_retry_path_force_from_tailor_failed(tmp_db, seed_job):
-    """force=True allows re-entering tailor_failed→tailored on retry."""
+def test_tailor_retry_path_from_tailor_failed_via_claim(tmp_db, seed_job):
+    """Retry path: pending_tailor re-selects a 'tailor_failed' row and
+    run_tailoring's claim step legally re-enters 'tailoring' (tailor_failed
+    -> tailoring is a valid VALID_TRANSITIONS source, see decision #65's
+    bounded-retry design) before _mark_tailor_result completes it.
+
+    2026-08-27 (Phase 3 state-machine hardening): _mark_tailor_result now
+    requires state == 'tailoring' at completion time (closes the stale-
+    worker resurrection race -- see PayPal "Sr-Software-Engineer_R0137197"
+    regression), so this test seeds the post-claim state directly rather
+    than the pre-claim 'tailor_failed' state it used to. force=True is no
+    longer needed for this transition since tailoring -> tailored is
+    already a legal VALID_TRANSITIONS destination once claimed.
+    """
     conn = tmp_db()
     url = _seed_with_state(
-        conn, seed_job, "TA7", "tailor_failed", fit_score=9, full_description="x" * 300, tailored_resume_path=None
+        conn, seed_job, "TA7", "tailoring", fit_score=9, full_description="x" * 300, tailored_resume_path=None
     )
 
     from applypilot.scoring.tailor import _mark_tailor_result
 
-    # Retry succeeds; force=True should allow transition from tailor_failed → tailored
     _mark_tailor_result(conn, url, "approved", "/tmp/retry.pdf", attempts=2)
     conn.commit()
 
@@ -150,7 +161,7 @@ def test_cover_success_transitions_to_ready_to_apply(tmp_db, seed_job):
     """Successful cover letter must transition state to 'ready_to_apply'."""
     conn = tmp_db()
     url = _seed_with_state(
-        conn, seed_job, "CL1", "tailored", tailored_resume_path="/tmp/resume.pdf", cover_letter_path=None
+        conn, seed_job, "CL1", "cover_writing", tailored_resume_path="/tmp/resume.pdf", cover_letter_path=None
     )
 
     from applypilot.scoring.cover_letter import _mark_cover_result
@@ -165,7 +176,7 @@ def test_cover_success_writes_audit_row(tmp_db, seed_job):
     """Successful cover result must appear in audit log with 'ready_to_apply'."""
     conn = tmp_db()
     url = _seed_with_state(
-        conn, seed_job, "CL2", "tailored", tailored_resume_path="/tmp/resume.pdf", cover_letter_path=None
+        conn, seed_job, "CL2", "cover_writing", tailored_resume_path="/tmp/resume.pdf", cover_letter_path=None
     )
 
     from applypilot.scoring.cover_letter import _mark_cover_result
@@ -181,7 +192,7 @@ def test_cover_failure_transitions_to_cover_failed(tmp_db, seed_job):
     """Failed cover generation (no path) must transition to 'cover_failed'."""
     conn = tmp_db()
     url = _seed_with_state(
-        conn, seed_job, "CL3", "tailored", tailored_resume_path="/tmp/resume.pdf", cover_letter_path=None
+        conn, seed_job, "CL3", "cover_writing", tailored_resume_path="/tmp/resume.pdf", cover_letter_path=None
     )
 
     from applypilot.scoring.cover_letter import _mark_cover_result
@@ -196,7 +207,7 @@ def test_cover_failure_writes_audit_row(tmp_db, seed_job):
     """Failed cover result must appear in audit log with 'cover_failed'."""
     conn = tmp_db()
     url = _seed_with_state(
-        conn, seed_job, "CL4", "tailored", tailored_resume_path="/tmp/resume.pdf", cover_letter_path=None
+        conn, seed_job, "CL4", "cover_writing", tailored_resume_path="/tmp/resume.pdf", cover_letter_path=None
     )
 
     from applypilot.scoring.cover_letter import _mark_cover_result

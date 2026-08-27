@@ -281,6 +281,41 @@ def _run_mini_task(worker_id: int, cdp_port: int, instructions: str) -> subproce
 # ---------------------------------------------------------------------------
 
 
+def _http_reset_job(conn: sqlite3.Connection, url: str) -> str | None:
+    """Reset a stuck job back to 'ready_to_apply', if its current canonical
+    state is a legitimate stuck-in-flight/failed candidate.
+
+    Backs the extension's local HTTP 'reset' action (_handle_jobs_mark).
+    Extracted to a plain function so the state-restriction guard is
+    directly unit-testable without standing up an HTTP server.
+
+    Phase 3 state-machine hardening (2026-08-27): "reset" is meant to
+    recover a stuck-in-flight job (a worker holding it, a failed apply
+    attempt, or a parked HITL pause), not to resurrect a job the pipeline
+    deliberately archived or routed to manual-only. An arbitrary POST from
+    the extension previously could force ANY url straight to
+    ready_to_apply regardless of current state -- same missing-state-
+    restriction bug as reset_failed()/stale-lock recovery, just reachable
+    per-URL over HTTP instead of in bulk.
+
+    Returns:
+        None if the reset was performed. Otherwise the job's current
+        state (a string), meaning the reset was refused.
+    """
+    from applypilot.database import current_state
+
+    current = current_state(conn, url)
+    if current not in ("applying", "apply_failed", "needs_human"):
+        return current
+    conn.execute(
+        """UPDATE jobs SET apply_status=NULL, apply_category='pending',
+        apply_error=NULL, apply_attempts=0, agent_id=NULL WHERE url=?""",
+        (url,),
+    )
+    transition_state(conn, url, "ready_to_apply", reason="HTTP handler reset", force=True)
+    return None
+
+
 class _ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
     """HTTPServer that handles each connection in a new daemon thread."""
 
@@ -852,12 +887,17 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                     )
                     transition_state(conn, url, "apply_failed", reason="HTTP handler error", force=True)
                 elif action == "reset":
-                    conn.execute(
-                        """UPDATE jobs SET apply_status=NULL, apply_category='pending',
-                        apply_error=NULL, apply_attempts=0, agent_id=NULL WHERE url=?""",
-                        (url,),
-                    )
-                    transition_state(conn, url, "ready_to_apply", reason="HTTP handler reset", force=True)
+                    refused_state = _http_reset_job(conn, url)
+                    if refused_state is not None:
+                        logger.info(
+                            "[W%d] HTTP reset refused for %s: state=%r is not a recoverable "
+                            "in-flight/failed state",
+                            worker_id,
+                            url[:70],
+                            refused_state,
+                        )
+                        self._json_ok({"status": "skipped", "action": action, "reason": f"state={refused_state!r}"})
+                        return
                 commit_with_retry(conn)
                 logger.info("[W%d] Manual mark '%s': %s", worker_id, action, url[:70])
                 self._json_ok({"status": "ok", "action": action})
@@ -1575,20 +1615,52 @@ def acquire_job(
         # 'applying' back to 'ready_to_apply' for each affected job. Pull
         # affected URLs first so we can emit per-row transitions after the
         # bulk UPDATE.
+        #
+        # Phase 3 state-machine hardening (2026-08-27): added `AND state =
+        # 'applying'`. The legacy `apply_status = 'in_progress'` column is
+        # set together with `state = 'applying'` when a job is acquired
+        # (below), but nothing previously required them to still agree at
+        # recovery time -- if a job was independently archived (e.g. a
+        # concurrent eligibility/policy sweep) while its worker crashed
+        # mid-flight, `apply_status` stayed stuck at 'in_progress' forever,
+        # and every subsequent acquire_job() call would force it straight
+        # back to 'ready_to_apply' regardless of the archival. Confirmed
+        # live: this produced the PayPal "Software-Engineer_R0137191"
+        # resurrection (archived -> ready_to_apply on 2026-08-19, several
+        # hours after a scoring-fix sweep had archived it). Requiring
+        # `state = 'applying'` means only a job the state machine still
+        # agrees a worker is holding gets recovered; an archived job's
+        # stray `apply_status` is now inert residue instead of a live
+        # resurrection vector.
+        # datetime(last_attempted_at) normalizes Python's isoformat()
+        # ('...T..+00:00') to SQLite's own 'YYYY-MM-DD HH:MM:SS' before
+        # comparing -- a bare string compare against datetime('now', ...)
+        # is wrong because 'T' (0x54) sorts after ' ' (0x20), so a
+        # same-calendar-day stale timestamp compares as "not stale" (only
+        # accidentally worked when staleness happened to cross a calendar-
+        # day boundary). Same bug class already fixed for pending_detail
+        # in database.py; found here while adding a regression test for
+        # the `state = 'applying'` restriction above -- pre-existing, not
+        # introduced by this change, but fixed alongside it since it sits
+        # in the exact query block being hardened and the state
+        # restriction can't be verified to preserve legitimate recovery
+        # without it.
         stale_urls = [
             r[0]
             for r in conn.execute("""
                 SELECT url FROM jobs
                 WHERE apply_status = 'in_progress'
+                  AND state = 'applying'
                   AND last_attempted_at IS NOT NULL
-                  AND last_attempted_at < datetime('now', '-30 minutes')
+                  AND datetime(last_attempted_at) < datetime('now', '-30 minutes')
             """).fetchall()
         ]
         conn.execute("""
             UPDATE jobs SET apply_status = NULL, agent_id = NULL
             WHERE apply_status = 'in_progress'
+              AND state = 'applying'
               AND last_attempted_at IS NOT NULL
-              AND last_attempted_at < datetime('now', '-30 minutes')
+              AND datetime(last_attempted_at) < datetime('now', '-30 minutes')
         """)
         for stale_url in stale_urls:
             try:
@@ -1603,6 +1675,17 @@ def acquire_job(
                 logger.debug("stale-lock transition failed for %s", stale_url[:60], exc_info=True)
 
         if target_url:
+            # Phase 3 state-machine hardening (2026-08-27): `apply --url` is
+            # a manual trigger for "apply to a job that already passed the
+            # pipeline and is ready" -- not a general eligibility-bypass
+            # override. Previously this required only `state NOT IN
+            # ('archived', 'manual_only')`, a broad negative predicate that
+            # let it select jobs in *any* other state (low_score,
+            # tailor_failed, cover_failed, apply_failed, needs_human, ...),
+            # bypassing whatever gate had kept them out of ready_to_apply.
+            # Now requires the same canonical state the normal autonomous
+            # path requires, so a targeted apply follows the identical
+            # ready-to-apply safety boundary.
             like = f"%{target_url.split('?')[0].rstrip('/')}%"
             row = conn.execute(
                 """
@@ -1612,7 +1695,7 @@ def acquire_job(
                 WHERE (url = ? OR application_url = ? OR application_url LIKE ? OR url LIKE ?)
                   AND tailored_resume_path IS NOT NULL
                   AND (apply_status IS NULL OR apply_status != 'in_progress')
-                  AND (state IS NULL OR state NOT IN ('archived', 'manual_only'))
+                  AND state = 'ready_to_apply'
                 ORDER BY
                     CASE WHEN url = ? OR application_url = ? THEN 0 ELSE 1 END
                 LIMIT 1
@@ -1921,8 +2004,34 @@ def mark_result(
     duration_ms: int | None = None,
     task_id: str | None = None,
 ) -> None:
-    """Update a job's apply status in the database + emit state transition."""
+    """Update a job's apply status in the database + emit state transition.
+
+    Phase 3 state-machine hardening (2026-08-27): the job must still be in
+    'applying' -- the state acquire_job() claims it into -- for this
+    completion write to happen at all. The apply worker (a Claude Code
+    subprocess driving a real browser) can run for minutes; if a
+    concurrent process moved the job out of 'applying' in the meantime
+    (e.g. an eligibility/policy sweep force-archiving it), this is a stale
+    completion and must not overwrite apply_status/apply_error/state with
+    a result for a job the pipeline no longer considers in-flight. This is
+    the highest-severity instance of the pattern found in the
+    investigation -- the completion handler for the actual submission
+    step -- even though no live example was found in the DB.
+    """
+    from applypilot.database import current_state
+
     conn = get_connection()
+    current = current_state(conn, url)
+    if current != "applying":
+        logger.warning(
+            "Skipping stale apply completion (%s) for %s -- expected state 'applying', found %r "
+            "(job was likely archived or otherwise reassigned by another process while this "
+            "apply attempt was in flight)",
+            status,
+            url[:80],
+            current,
+        )
+        return
     now = datetime.now(UTC).isoformat()
     if status == "applied":
         _db_retry_execute(
@@ -2091,33 +2200,36 @@ def mark_job(url: str, status: str, reason: str | None = None) -> None:
 
 
 def reset_failed() -> int:
-    """Reset all failed jobs so they can be retried.
+    """Reset apply_failed jobs so they can be retried.
+
+    Phase 3 state-machine hardening (2026-08-27): the canonical `state`
+    column is now the sole eligibility gate, not the legacy `apply_status`
+    column. The prior predicate selected on `apply_status` alone (`=
+    'failed'`, or anything not in `applied`/`in_progress`/`needs_human`),
+    with no `state` check at all -- a job archived for ANY reason (title
+    reject, ethics, stale-score revalidation, ...) that still carried a
+    stray legacy `apply_status` value (e.g. from an apply attempt made
+    before it was archived) was silently force-resurrected to
+    `ready_to_apply`. Live-measured impact: 23 currently-archived rows
+    would have been resurrected by this function as written. `state =
+    'apply_failed'` is the one legitimate, positively-stated source state
+    for this recovery (matches this function's own name/intent and
+    tests/test_launcher_state_transitions.py's B4 case) -- `manual_only`
+    and `archived` jobs are deliberately excluded, not just incidentally.
 
     Returns:
         Number of jobs reset.
     """
     conn = get_connection()
     # Collect URLs before the bulk UPDATE so we can emit individual transitions.
-    urls_to_reset = [
-        r[0]
-        for r in conn.execute("""
-            SELECT url FROM jobs
-            WHERE apply_status = 'failed'
-              OR (apply_status IS NOT NULL AND apply_status != 'applied'
-                  AND apply_status != 'in_progress'
-                  AND apply_status != 'needs_human')
-        """).fetchall()
-    ]
+    urls_to_reset = [r[0] for r in conn.execute("SELECT url FROM jobs WHERE state = 'apply_failed'").fetchall()]
     cursor = _db_retry_execute(
         conn,
         """
         UPDATE jobs SET apply_status = NULL, apply_error = NULL,
                        apply_attempts = 0, agent_id = NULL,
                        apply_category = NULL
-        WHERE apply_status = 'failed'
-          OR (apply_status IS NOT NULL AND apply_status != 'applied'
-              AND apply_status != 'in_progress'
-              AND apply_status != 'needs_human')
+        WHERE state = 'apply_failed'
     """,
     )
 

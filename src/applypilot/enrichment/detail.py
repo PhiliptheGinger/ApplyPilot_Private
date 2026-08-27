@@ -27,7 +27,7 @@ from bs4 import BeautifulSoup
 from patchright.sync_api import TimeoutError as PatchrightTimeoutError
 from patchright.sync_api import sync_playwright
 
-from applypilot.database import commit_with_retry, init_db, transition_state
+from applypilot.database import commit_with_retry, current_state, init_db, transition_state
 from applypilot.llm import get_client
 
 log = logging.getLogger(__name__)
@@ -680,8 +680,29 @@ def _mark_enrich_result(
     ``category`` and ``next_retry_at`` may be pre-computed by the caller
     (e.g. to log them before writing).  When absent they are derived
     internally via ``_classify_detail_error``.
+
+    Phase 3 state-machine hardening (2026-08-27): the job must still be in
+    'discovered' or 'enrich_failed' -- the only two VALID_TRANSITIONS
+    sources for 'enriched'/'enrich_failed' -- for this completion write to
+    happen at all. A page fetch can take a while; if a concurrent process
+    archived the job in the meantime, none of the description/error
+    bookkeeping columns are written either, so a stale scrape can't
+    resurrect an archived job back into the front of the pipeline
+    (confirmed live as the largest single resurrection count in the
+    investigation: 552 archived->enriched transitions in history).
     """
     assert status in ("ok", "partial", "error"), f"Unexpected status: {status!r}"
+
+    current = current_state(conn, url)
+    if current not in ("discovered", "enrich_failed"):
+        log.warning(
+            "Skipping stale enrichment completion for %s -- expected state 'discovered' or "
+            "'enrich_failed', found %r (job was likely archived or otherwise reassigned by "
+            "another process while this page fetch was in flight)",
+            url[:80],
+            current,
+        )
+        return
 
     if now is None:
         now = datetime.now(UTC).isoformat()
@@ -714,7 +735,6 @@ def _mark_enrich_result(
             "enriched",
             reason="description fetched",
             metadata={"chars": len(full_description or ""), "tier": tier},
-            force=True,
         )
     else:
         error_msg = error or "unknown"
@@ -733,7 +753,6 @@ def _mark_enrich_result(
                 "enrich_failed",
                 reason=category,
                 metadata={"error": error_msg},
-                force=True,
             )
         # retriable: no transition — job stays in 'discovered' for retry loop
 

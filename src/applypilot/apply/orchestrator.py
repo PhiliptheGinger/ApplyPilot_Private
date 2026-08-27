@@ -725,6 +725,58 @@ def _prompt_user_for_qa(console: Console, worker_id: int, questions: list[dict])
     return answers
 
 
+def requeue_needs_human_from_previous_session(conn) -> int:
+    """Re-queue jobs stuck in needs_human from a previous session.
+
+    Called once at launcher startup: a previous session's HITL-paused
+    Chrome windows are gone (killed by _kill_on_port() when workers
+    start), so these jobs need to be reset to NULL / re-queued so they get
+    picked up as normal jobs again.
+
+    Phase 3 state-machine hardening (2026-08-27): requires `state =
+    'needs_human'` in addition to the legacy `apply_status='needs_human'`
+    column. The legacy column alone was not a reliable signal that the
+    canonical state machine still considers this job parked -- a job
+    could have been independently archived while `apply_status` remained
+    stuck at 'needs_human' from an earlier session, which this startup
+    sweep would otherwise force straight back to 'ready_to_apply' with no
+    state check at all (same missing-restriction bug as
+    reset_failed()/stale-lock recovery).
+
+    Returns:
+        Number of jobs re-queued.
+    """
+    # P0.5 leak (d) from decision #31: pull URLs first, then bulk-update,
+    # then emit per-row state transitions back to ready_to_apply.
+    nh_urls = [
+        r[0]
+        for r in conn.execute(
+            "SELECT url FROM jobs WHERE apply_status='needs_human' AND state='needs_human'"
+        ).fetchall()
+    ]
+    if not nh_urls:
+        return 0
+
+    conn.execute(
+        "UPDATE jobs SET apply_status=NULL, apply_category=NULL, "
+        "needs_human_reason=NULL, needs_human_url=NULL, "
+        "needs_human_instructions=NULL WHERE apply_status='needs_human' AND state='needs_human'"
+    )
+    for nh_url in nh_urls:
+        try:
+            transition_state(
+                conn,
+                nh_url,
+                "ready_to_apply",
+                reason="startup re-queue from needs_human",
+                force=True,
+            )
+        except Exception:
+            logger.debug("startup re-queue transition failed for %s", nh_url[:60], exc_info=True)
+    commit_with_retry(conn)
+    return len(nh_urls)
+
+
 # ---------------------------------------------------------------------------
 # Main entry point (called from cli.py)
 # ---------------------------------------------------------------------------
@@ -784,28 +836,8 @@ def main(
     # Their Chrome windows are gone (killed by _kill_on_port() when workers start),
     # so reset them to NULL so they get picked up as normal jobs.
     _boot_conn = get_connection()
-    # P0.5 leak (d) from decision #31: pull URLs first, then bulk-update,
-    # then emit per-row state transitions back to ready_to_apply.
-    _nh_urls = [r[0] for r in _boot_conn.execute("SELECT url FROM jobs WHERE apply_status='needs_human'").fetchall()]
-    _nh_count = len(_nh_urls)
+    _nh_count = requeue_needs_human_from_previous_session(_boot_conn)
     if _nh_count > 0:
-        _boot_conn.execute(
-            "UPDATE jobs SET apply_status=NULL, apply_category=NULL, "
-            "needs_human_reason=NULL, needs_human_url=NULL, "
-            "needs_human_instructions=NULL WHERE apply_status='needs_human'"
-        )
-        for _nh_url in _nh_urls:
-            try:
-                transition_state(
-                    _boot_conn,
-                    _nh_url,
-                    "ready_to_apply",
-                    reason="startup re-queue from needs_human",
-                    force=True,
-                )
-            except Exception:
-                logger.debug("startup re-queue transition failed for %s", _nh_url[:60], exc_info=True)
-        commit_with_retry(_boot_conn)
         console.print(f"[yellow]Re-queued {_nh_count} needs_human job(s) from previous session[/yellow]")
         logger.info("Startup: re-queued %d needs_human jobs from previous session", _nh_count)
 

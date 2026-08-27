@@ -338,11 +338,31 @@ def _mark_cover_result(
 
     Extracted from ``_flush_cover_results`` so tests can call it directly.
     Transitions to ``ready_to_apply`` on success, ``cover_failed`` on failure.
+
+    Phase 3 state-machine hardening (2026-08-27): the job must still be in
+    'cover_writing' -- the in-flight state run_cover_letters claims it
+    into before starting the LLM call -- for this completion write to
+    happen at all. The success path is the most dangerous stale-completion
+    case found in the investigation: it lands directly on 'ready_to_apply'
+    with no intermediate failure state, so a stale worker's write here
+    would otherwise resurrect an archived job one step from being applied
+    to.
     """
     if now is None:
         now = datetime.now(UTC).isoformat()
 
-    from applypilot.database import transition_state
+    from applypilot.database import current_state, transition_state
+
+    current = current_state(conn, url)
+    if current != "cover_writing":
+        log.warning(
+            "Skipping stale cover-letter completion for %s -- expected state 'cover_writing', "
+            "found %r (job was likely archived or otherwise reassigned by another process while "
+            "this cover-letter call was in flight)",
+            url[:80],
+            current,
+        )
+        return
 
     if path:
         conn.execute(
@@ -356,7 +376,6 @@ def _mark_cover_result(
             "ready_to_apply",
             reason="cover letter done",
             metadata={"path": path},
-            force=True,
         )
     else:
         conn.execute(
@@ -369,7 +388,6 @@ def _mark_cover_result(
             "cover_failed",
             reason="cover generation failed",
             metadata={"error": error},
-            force=True,
         )
 
 
@@ -413,7 +431,7 @@ def run_cover_letters(
     if min_score is None:
         min_score = DEFAULTS["min_score"]
 
-    from applypilot.database import get_connection, write_with_retry
+    from applypilot.database import get_connection, transition_state, write_with_retry
 
     profile = load_profile()
     conn = get_connection()
@@ -485,6 +503,28 @@ def run_cover_letters(
     if skipped_by_cap:
         log.info("Cover cap: skipped %d job(s) where company is at/over %d covers.", skipped_by_cap, cap)
     jobs = capped_jobs
+
+    # Phase 3 state-machine hardening (2026-08-27): claim each candidate
+    # into the 'cover_writing' in-flight state before starting the LLM
+    # call -- mirrors run_tailoring's identical claim step. Without this,
+    # a job archived by a concurrent process while cover generation was
+    # mid-flight could have its SUCCESS completion land straight on
+    # 'ready_to_apply' (see _mark_cover_result), the most direct
+    # resurrection path found in the investigation. transition_state
+    # without force=True only succeeds if the job's current state is
+    # still 'tailored' or 'cover_failed' -- the only two VALID_TRANSITIONS
+    # sources for 'cover_writing' -- so a job that lost eligibility
+    # between selection and this claim is dropped here.
+    claimed_jobs = []
+    for job in jobs:
+        if transition_state(conn, job["url"], "cover_writing", reason="claimed for cover writing"):
+            claimed_jobs.append(job)
+        else:
+            log.info(
+                "Skipping cover candidate no longer claimable (state changed since selection): %s",
+                job["url"][:80],
+            )
+    jobs = claimed_jobs
 
     conn.commit()  # Close read transaction before long LLM phase
 
