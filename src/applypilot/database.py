@@ -467,7 +467,8 @@ _COLUMN_RENAMES: dict[str, str] = {
 #   applied          → submission completed
 #   apply_failed     → permanent apply failure
 #   needs_human      → waiting for user intervention (HITL)
-#   manual_only      → user must apply manually (ATS blocks automation)
+#   manual_only      → user must apply manually (ATS blocks automation, or
+#                      no usable application_url was ever discovered)
 #   responded        → confirmation email received
 #   interview        → got an interview
 #   offer            → received an offer
@@ -507,11 +508,11 @@ VALID_TRANSITIONS: dict[str, frozenset[str]] = {
     "discovered": frozenset({"enriched", "enrich_failed", "archived"}),
     "enriched": frozenset({"scored", "low_score", "score_failed", "archived"}),
     "enrich_failed": frozenset({"enriched", "archived"}),  # retriable
-    "scored": frozenset({"low_score", "tailoring", "tailored", "tailor_failed", "archived"}),
+    "scored": frozenset({"low_score", "tailoring", "tailored", "tailor_failed", "manual_only", "archived"}),
     "score_failed": frozenset({"scored", "archived"}),
     "low_score": frozenset({"archived", "tailoring"}),  # manual override
     "tailoring": frozenset({"tailored", "tailor_failed"}),
-    "tailor_failed": frozenset({"tailoring", "tailored", "archived"}),
+    "tailor_failed": frozenset({"tailoring", "tailored", "manual_only", "archived"}),
     "tailored": frozenset({"cover_writing", "ready_to_apply", "archived"}),
     "cover_writing": frozenset({"ready_to_apply", "cover_failed"}),
     "cover_failed": frozenset({"cover_writing", "ready_to_apply", "archived"}),
@@ -660,6 +661,57 @@ def recover_stale_claims(
             )
             recovered.append(url)
     return recovered
+
+
+def redirect_jobs_missing_application_url(
+    conn: sqlite3.Connection,
+    jobs: list[dict],
+    reason: str,
+) -> list[dict]:
+    """Filter ``jobs`` (typically a ``pending_tailor`` result set) down to
+    only those with a usable ``application_url``, diverting the rest to
+    ``manual_only`` so they stop consuming further tailor/cover-letter LLM
+    spend they could never actually be auto-submitted with.
+
+    This is the SAME condition ``apply.launcher.acquire_job`` already
+    handles when it discovers a missing ``application_url`` on an
+    already-``ready_to_apply`` job (``apply_status='manual'``,
+    ``apply_error='no application_url'``, ``apply_category='manual_only'``)
+    -- this function catches it earlier, before tailoring/cover spend is
+    incurred, using the identical column-update convention so both call
+    sites stay consistent and diagnosable the same way in the DB.
+
+    ``manual_only`` is not a dead end: it's a real, non-terminal state
+    (``VALID_TRANSITIONS["manual_only"]`` allows ``applied``/``archived``)
+    that the dashboard already renders as a visible, browsable card (see
+    ``view.py``'s ``_ARCHIVED_CATEGORIES``/``manual_only`` handling) --
+    the job's original listing URL (``row["url"]``, rendered
+    unconditionally there) remains available for a human to apply to
+    manually; only automation is excluded.
+
+    Returns the subset of ``jobs`` that still have a usable
+    application_url, in the same order -- callers should replace their
+    working ``jobs`` list with this return value before proceeding to
+    claim/tailor.
+    """
+    keep: list[dict] = []
+    diverted = 0
+    for job in jobs:
+        if (job.get("application_url") or "").strip():
+            keep.append(job)
+            continue
+        url = job["url"]
+        conn.execute(
+            "UPDATE jobs SET apply_status = 'manual', "
+            "apply_error = 'no application_url', "
+            "apply_category = 'manual_only' WHERE url = ?",
+            (url,),
+        )
+        transition_state(conn, url, "manual_only", reason=reason)
+        diverted += 1
+    if diverted:
+        _log.info("Diverted %d job(s) with no application_url to manual_only (%s)", diverted, reason)
+    return keep
 
 
 def state_history(conn: sqlite3.Connection, job_url: str) -> list[dict]:

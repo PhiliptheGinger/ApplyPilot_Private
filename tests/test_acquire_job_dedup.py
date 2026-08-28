@@ -144,7 +144,14 @@ def test_acquire_does_not_block_self(tmp_db, seed_job, monkeypatch):
 
 def test_acquire_skips_jobs_with_null_application_url(tmp_db, seed_job, monkeypatch):
     """Jobs without an extracted application_url must never be acquired —
-    the agent has nothing to navigate to."""
+    the agent has nothing to navigate to.
+
+    state="ready_to_apply" is pinned explicitly here (rather than relying
+    on this file's local seed_job fixture default) so this test isolates
+    the application_url property alone: without it, a job seeded at the
+    schema's default state='discovered' would already be excluded by the
+    state filter regardless of application_url, and this test could pass
+    for the wrong reason."""
     _setup_apply_env(monkeypatch)
     from applypilot.apply.launcher import acquire_job
 
@@ -153,6 +160,7 @@ def test_acquire_skips_jobs_with_null_application_url(tmp_db, seed_job, monkeypa
         conn,
         url_suffix="no-apply-url",
         url="https://www.linkedin.com/jobs/view/no-apply-url",
+        state="ready_to_apply",
         application_url=None,
         apply_status=None,
         fit_score=10,
@@ -162,6 +170,7 @@ def test_acquire_skips_jobs_with_null_application_url(tmp_db, seed_job, monkeypa
         conn,
         url_suffix="empty-apply-url",
         url="https://www.linkedin.com/jobs/view/empty",
+        state="ready_to_apply",
         application_url="",
         apply_status=None,
         fit_score=10,
@@ -173,7 +182,8 @@ def test_acquire_skips_jobs_with_null_application_url(tmp_db, seed_job, monkeypa
 
 def test_acquire_picks_valid_when_others_are_null(tmp_db, seed_job, monkeypatch):
     """When multiple candidates exist and only one has a valid
-    application_url, that's the one that fires."""
+    application_url, that's the one that fires. state="ready_to_apply" is
+    pinned explicitly for the same isolation reason as the test above."""
     _setup_apply_env(monkeypatch)
     from applypilot.apply.launcher import acquire_job
 
@@ -182,6 +192,7 @@ def test_acquire_picks_valid_when_others_are_null(tmp_db, seed_job, monkeypatch)
         conn,
         url_suffix="bad-1",
         url="https://www.linkedin.com/jobs/view/bad-1",
+        state="ready_to_apply",
         application_url=None,
         apply_status=None,
         fit_score=10,
@@ -191,6 +202,7 @@ def test_acquire_picks_valid_when_others_are_null(tmp_db, seed_job, monkeypatch)
         conn,
         url_suffix="bad-2",
         url="https://www.linkedin.com/jobs/view/bad-2",
+        state="ready_to_apply",
         application_url="",
         apply_status=None,
         fit_score=10,
@@ -200,6 +212,7 @@ def test_acquire_picks_valid_when_others_are_null(tmp_db, seed_job, monkeypatch)
         conn,
         url_suffix="good",
         url="https://www.linkedin.com/jobs/view/good",
+        state="ready_to_apply",
         application_url="https://boards.greenhouse.io/acme/jobs/9",
         apply_status=None,
         fit_score=10,

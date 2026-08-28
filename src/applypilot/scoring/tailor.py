@@ -1624,6 +1624,7 @@ def run_tailoring(
         get_connection,
         get_jobs_by_stage,
         recover_stale_claims,
+        redirect_jobs_missing_application_url,
         transition_state,
         write_with_retry,
     )
@@ -1646,6 +1647,19 @@ def run_tailoring(
     jobs = get_jobs_by_stage(
         conn=conn, stage="pending_tailor", min_score=min_score, max_age_days=max_age_days, limit=limit, urls=job_ids
     )
+
+    # Jobs with no usable application_url (predominantly LinkedIn/Easy
+    # Apply postings where no static apply link exists to extract) can
+    # never reach acquire_job's actual application path -- it already
+    # requires a nonempty application_url. Divert them to 'manual_only'
+    # here, before spending a tailor (and, transitively, cover-letter)
+    # LLM call on a job that could never be auto-submitted. They remain
+    # fully visible/browsable (dashboard, original listing URL) for a
+    # human to apply to manually -- only automation is excluded.
+    before = len(jobs)
+    jobs = redirect_jobs_missing_application_url(conn, jobs, reason="no application_url — excluded before tailoring")
+    if len(jobs) != before:
+        commit_with_retry(conn)
 
     if job_ids is not None:
         log.info(
