@@ -539,11 +539,20 @@ def transition_state(
     metadata: dict | None = None,
     force: bool = False,
 ) -> bool:
-    """Atomically transition a job to a new state and write an audit row.
+    """Transition a job to a new state and write an audit row.
 
     Validates the transition against VALID_TRANSITIONS unless force=True.
-    Uses BEGIN IMMEDIATE so concurrent writers don't race on the state
-    column. Returns True on success, False if the transition is illegal.
+    Returns True on success, False if the transition is illegal.
+
+    2026-08-28 correction: this function does NOT open a transaction of its
+    own -- it's a plain SELECT (read current state) followed by an UPDATE +
+    INSERT, a TOCTOU window on its own. Race-freedom depends entirely on the
+    CALLER already holding a write transaction (e.g. `acquire_job` opens
+    `BEGIN IMMEDIATE` before calling this); calling it outside such a
+    transaction gives no atomicity guarantee at all. (The docstring
+    previously claimed "Uses BEGIN IMMEDIATE so concurrent writers don't
+    race on the state column" -- that was never true of this function's own
+    body; confirmed via full read of the implementation below.)
 
     metadata, when provided, is serialized to JSON and stored.
     """

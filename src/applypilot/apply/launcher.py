@@ -1564,6 +1564,69 @@ def _db_retry_commit(conn: "sqlite3.Connection", timeout: float = 300.0) -> None
             delay = min(delay * 1.5, 30.0)
 
 
+# 2026-08-28: acquire_job's three skip-and-retry paths (retroactive
+# ineligibility, missing application_url, manual ATS) used to recurse into a
+# fresh acquire_job() call after committing the rejected row's state
+# transition. Each site's write permanently removes that row from future
+# `WHERE state = 'ready_to_apply'` selection, so no candidate can ever be
+# revisited/looped on -- recursion depth is bounded by how many
+# ready_to_apply candidates simultaneously satisfy a rejection condition
+# (the bulk path's own `LIMIT 100` caps that at ~100 today), not literally
+# unbounded, but "structurally fragile" (relies entirely on the candidate
+# pool shrinking every call, with no explicit ceiling). This constant is a
+# pathological-loop safety ceiling, not an expected termination mechanism --
+# legitimate skip-then-next-candidate runs are expected to resolve in a
+# handful of iterations at most; 150 (~50% margin over the ~100-row worst
+# case) exists only to guarantee `acquire_job` fails loudly (a warning +
+# `None`) instead of spinning if that invariant is ever violated by a future
+# change (e.g. a raised LIMIT or a rejection condition that doesn't commit
+# its state write first).
+MAX_ACQUIRE_ATTEMPTS = 150
+
+
+def _mark_job_actively_applying(
+    conn: sqlite3.Connection,
+    url: str,
+    worker_id: int | None,
+    reason: str,
+) -> None:
+    """Establish the active-application markers a job needs whenever it
+    enters ``state='applying'`` because a worker is expected to actively
+    resume it -- shared by ``acquire_job`` (normal acquisition) and
+    ``apply.hitl.reset_needs_human`` (HITL resume), so the two can never
+    again drift apart in what they write.
+
+    ``apply_status='in_progress'`` and a fresh ``last_attempted_at`` are set
+    unconditionally: these are exactly what the stale-lock sweep in
+    ``acquire_job`` checks to recover an abandoned row, so they must always
+    be set together with the ``applying`` transition, regardless of whether
+    a real worker identity is known. ``agent_id`` is left NULL when
+    ``worker_id`` is None rather than fabricating one -- it's purely
+    informational (the stale-lock sweep never reads it), so there is
+    nothing to gain from inventing an identity for an unknown worker, and
+    doing so would misrepresent which worker actually holds the job.
+    """
+    now = datetime.now(UTC).isoformat()
+    agent_id = f"worker-{worker_id}" if worker_id is not None else None
+    conn.execute(
+        """
+        UPDATE jobs SET apply_status = 'in_progress',
+                       agent_id = ?,
+                       last_attempted_at = ?
+        WHERE url = ?
+    """,
+        (agent_id, now, url),
+    )
+    transition_state(
+        conn,
+        url,
+        "applying",
+        reason=reason,
+        metadata={"worker_id": worker_id},
+        force=True,
+    )
+
+
 def acquire_job(
     target_url: str | None = None,
     min_score: int | None = None,
@@ -1584,8 +1647,6 @@ def acquire_job(
       - Per-ATS concurrency: at most 1 active worker per ATS family
       - Manual-ATS skip list
     """
-    from datetime import datetime, timedelta
-
     from applypilot import config as _cfg
 
     if min_score is None:
@@ -1593,7 +1654,60 @@ def acquire_job(
     if max_age_days is None:
         max_age_days = _cfg.DEFAULTS["max_job_age_days"]
 
-    conn = get_connection()
+    for _attempt in range(MAX_ACQUIRE_ATTEMPTS):
+        conn = get_connection()
+        # _acquire_job_one_attempt already rolls back and re-raises internally
+        # on any exception (its own try/except, unchanged from the original
+        # body) -- nothing further to add here.
+        row = _acquire_job_one_attempt(
+            conn,
+            target_url=target_url,
+            min_score=min_score,
+            max_score=max_score,
+            max_age_days=max_age_days,
+            worker_id=worker_id,
+        )
+        if row is not _SKIP_CANDIDATE:
+            return row
+
+    logger.warning(
+        "acquire_job: exceeded %d attempts without acquiring a job; giving up",
+        MAX_ACQUIRE_ATTEMPTS,
+    )
+    return None
+
+
+_SKIP_CANDIDATE = object()
+
+
+def _acquire_job_one_attempt(
+    conn: sqlite3.Connection,
+    *,
+    target_url: str | None,
+    min_score: int,
+    max_score: int | None,
+    max_age_days: int,
+    worker_id: int,
+):
+    """One full acquire_job attempt: open a transaction, sweep stale locks,
+    select a candidate, and either return it (acquired), return None (no
+    candidate found -- acquire_job's loop stops immediately on this), or
+    return the ``_SKIP_CANDIDATE`` sentinel (the selected candidate was
+    rejected and its own state transition already committed -- acquire_job's
+    loop tries again from scratch on this).
+
+    2026-08-28: extracted from what used to be acquire_job's own body, with
+    each of its 3 skip-and-retry `return acquire_job(...)` recursive calls
+    replaced by `return _SKIP_CANDIDATE` -- acquire_job's bounded loop calls
+    this once per attempt instead, so every attempt still re-runs the ENTIRE
+    body (fresh BEGIN IMMEDIATE, stale-lock sweep, candidate selection)
+    exactly as a real recursive call did, deliberately not "optimizing" that
+    re-execution away. Nothing else in this function's logic changed.
+    """
+    from datetime import datetime, timedelta
+
+    from applypilot import config as _cfg
+
     try:
         _begin_deadline = time.monotonic() + 300
         _begin_delay = 2.0
@@ -1926,13 +2040,7 @@ def acquire_job(
                 row["url"][:80],
                 ineligible_reason,
             )
-            return acquire_job(
-                target_url=target_url,
-                min_score=min_score,
-                max_score=max_score,
-                max_age_days=max_age_days,
-                worker_id=worker_id,
-            )
+            return _SKIP_CANDIDATE
 
         from applypilot.config import is_manual_ats
 
@@ -1954,13 +2062,7 @@ def acquire_job(
                 "acquire_job: candidate had no application_url; marked manual_only: %s",
                 row["url"][:80],
             )
-            return acquire_job(
-                target_url=target_url,
-                min_score=min_score,
-                max_score=max_score,
-                max_age_days=max_age_days,
-                worker_id=worker_id,
-            )
+            return _SKIP_CANDIDATE
 
         apply_url = row["application_url"]
         if is_manual_ats(apply_url):
@@ -1974,35 +2076,12 @@ def acquire_job(
             transition_state(conn, row["url"], "manual_only", reason="acquire_job: manual ATS", force=True)
             commit_with_retry(conn)
             logger.info("Skipping manual ATS: %s", row["url"][:80])
-            return acquire_job(
-                target_url=target_url,
-                min_score=min_score,
-                max_score=max_score,
-                max_age_days=max_age_days,
-                worker_id=worker_id,
-            )
+            return _SKIP_CANDIDATE
 
-        now = datetime.now(UTC).isoformat()
-        conn.execute(
-            """
-            UPDATE jobs SET apply_status = 'in_progress',
-                           agent_id = ?,
-                           last_attempted_at = ?
-            WHERE url = ?
-        """,
-            (f"worker-{worker_id}", now, row["url"]),
-        )
-
-        # Emit state transition: ready_to_apply → applying (force=True since
-        # the in-flight job may currently be at apply_failed from a prior run).
-        transition_state(
-            conn,
-            row["url"],
-            "applying",
-            reason=f"worker-{worker_id} acquired",
-            metadata={"worker_id": worker_id},
-            force=True,
-        )
+        # Sets apply_status/agent_id/last_attempted_at and emits the
+        # ready_to_apply → applying transition (force=True since the
+        # in-flight job may currently be at apply_failed from a prior run).
+        _mark_job_actively_applying(conn, row["url"], worker_id, reason=f"worker-{worker_id} acquired")
 
         commit_with_retry(conn)
 

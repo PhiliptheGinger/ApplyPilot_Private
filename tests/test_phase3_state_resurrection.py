@@ -137,6 +137,66 @@ def test_stale_lock_recovery_still_recovers_applying_job(tmp_db, seed_job, monke
     assert current_state(conn, url) == "applying"
 
 
+def test_reset_needs_human_then_crash_is_recovered_by_stale_lock_sweep(tmp_db, seed_job, monkeypatch):
+    """End-to-end proof for the 2026-08-28 HITL-resume fix: before it,
+    apply.hitl.reset_needs_human() cleared apply_status to NULL while
+    moving state to 'applying', so a job abandoned (worker/process dies)
+    between the HITL resume and the resumed application finishing could
+    never match this sweep's `WHERE apply_status = 'in_progress'` clause --
+    permanently stuck, exactly the fingerprint of the real live stuck row
+    (simplyhired.com "Software Engineer - AI Trainer", stuck since
+    2026-08-21). Now reset_needs_human sets the same apply_status=
+    'in_progress' + last_attempted_at markers acquire_job's own normal
+    acquisition sets, via the shared _mark_job_actively_applying helper --
+    so a row it leaves behind is recoverable exactly like any other stale
+    'applying' lock, verified here through the REAL reset_needs_human call,
+    not a hand-rolled fixture shaped like its output.
+    """
+    _setup_apply_env(monkeypatch)
+    from applypilot.apply.hitl import reset_needs_human
+    from applypilot.apply.launcher import acquire_job
+
+    conn = tmp_db()
+    row = seed_job(
+        conn,
+        url_suffix="nh-crash-recovery",
+        state="needs_human",
+        apply_status="needs_human",
+        fit_score=10,
+    )
+    url = row["url"]
+
+    # 1. HITL resume: the real code path that used to leave this row
+    # permanently unrecoverable.
+    count = reset_needs_human(url=url, worker_id=4)
+    assert count == 1
+    assert current_state(conn, url) == "applying"
+    row_after_resume = conn.execute("SELECT apply_status, agent_id FROM jobs WHERE url = ?", (url,)).fetchone()
+    assert row_after_resume["apply_status"] == "in_progress"
+    assert row_after_resume["agent_id"] == "worker-4"
+
+    # 2. Simulate the worker/process dying before the resumed application
+    # finishes: time passes with no further progress, so last_attempted_at
+    # (freshly set by reset_needs_human above) ages past the sweep's
+    # 30-minute threshold. Nothing else about the row changes -- this is
+    # exactly what "crashed mid-resume" looks like in the DB.
+    conn.execute(
+        "UPDATE jobs SET last_attempted_at = ? WHERE url = ?",
+        (_stale_timestamp(), url),
+    )
+    conn.commit()
+
+    # 3. The sweep must now recognize and recover it.
+    job = acquire_job(min_score=10, max_age_days=0)
+
+    assert job is not None and job["url"] == url, (
+        "A job abandoned after an HITL resume must be recoverable by the stale-lock "
+        "sweep, not permanently stuck -- this would have failed (job is None) before "
+        "the fix, since apply_status stayed NULL instead of 'in_progress'"
+    )
+    assert current_state(conn, url) == "applying"
+
+
 def test_paypal_r0137191_stale_lock_regression(tmp_db, seed_job, monkeypatch):
     """Reproduces the real historical sequence (anonymized): a job cycles
     through applying/apply_failed a few times, is archived by a concurrent

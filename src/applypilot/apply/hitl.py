@@ -364,16 +364,26 @@ def mark_needs_human(url: str, reason: str, stuck_url: str, instructions: str, d
     _db_retry_commit(conn)
 
 
-def reset_needs_human(url: str | None = None) -> int:
+def reset_needs_human(url: str | None = None, worker_id: int | None = None) -> int:
     """Reset parked jobs (needs_human) back to NULL so they can be retried.
 
     Args:
         url: Reset a specific job URL. If None, resets all parked jobs.
+        worker_id: The worker about to resume the job, if known (``_run_hitl``
+            always has this). Threaded into the same active-application
+            markers ``acquire_job`` sets -- see ``_mark_job_actively_applying``
+            -- so a job resumed here is recoverable by the stale-lock sweep
+            exactly like a normally-acquired job. ``None`` (the bulk
+            ``url=None`` path currently has no real caller, so there's no
+            genuine worker identity to attach) still sets
+            ``apply_status='in_progress'``/refreshes ``last_attempted_at``
+            -- what the sweep actually checks -- it just leaves ``agent_id``
+            NULL rather than fabricating one.
 
     Returns:
         Number of jobs reset.
     """
-    from applypilot.apply.launcher import _db_retry_commit, _db_retry_execute
+    from applypilot.apply.launcher import _db_retry_commit, _db_retry_execute, _mark_job_actively_applying
 
     conn = get_connection()
 
@@ -392,7 +402,7 @@ def reset_needs_human(url: str | None = None) -> int:
             (url,),
         )
         if cursor.rowcount:
-            transition_state(conn, url, "applying", reason="needs_human resolved, re-acquired", force=True)
+            _mark_job_actively_applying(conn, url, worker_id, reason="needs_human resolved, re-acquired")
     else:
         # Fetch URLs before updating so we can emit individual transitions.
         urls_to_reset = [
@@ -411,7 +421,7 @@ def reset_needs_human(url: str | None = None) -> int:
         """,
         )
         for u in urls_to_reset:
-            transition_state(conn, u, "applying", reason="needs_human resolved, re-acquired", force=True)
+            _mark_job_actively_applying(conn, u, worker_id, reason="needs_human resolved, re-acquired")
     _db_retry_commit(conn)
     return cursor.rowcount
 
@@ -700,7 +710,7 @@ def _run_hitl(
         return None
 
     # 9. Reset DB row.
-    reset_needs_human(job["url"])
+    reset_needs_human(job["url"], worker_id=worker_id)
 
     # 9b. Pop the action log POSTed by the extension during the pause and
     # format it for the agent's resume prompt (spec §4.4). If no log was

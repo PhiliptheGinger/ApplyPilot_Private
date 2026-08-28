@@ -176,6 +176,39 @@ def test_eligible_job_still_acquires_normally(tmp_db, seed_job, monkeypatch):
     assert current_state(conn, url) == "applying"
 
 
+def test_eligible_job_acquisition_sets_active_application_markers(tmp_db, seed_job, monkeypatch):
+    """Regression guard for the 2026-08-28 refactor that extracted
+    acquire_job's inline apply_status/agent_id/last_attempted_at write into
+    the shared _mark_job_actively_applying helper (also used by
+    apply.hitl.reset_needs_human) -- normal acquisition must set the exact
+    same markers as before the extraction."""
+    from datetime import UTC, datetime
+
+    _setup_apply_env(monkeypatch)
+    from applypilot.apply.launcher import acquire_job
+
+    conn = tmp_db()
+    row = _ready_job(
+        seed_job,
+        conn,
+        url_suffix="elig-markers",
+        title="Software Engineer",
+        full_description="A normal US-remote backend engineering role.",
+    )
+    url = row["url"]
+
+    job = acquire_job(min_score=9, max_age_days=0, worker_id=7)
+
+    assert job is not None and job["url"] == url
+    stored = conn.execute(
+        "SELECT apply_status, agent_id, last_attempted_at FROM jobs WHERE url = ?", (url,)
+    ).fetchone()
+    assert stored["apply_status"] == "in_progress"
+    assert stored["agent_id"] == "worker-7"
+    age_seconds = (datetime.now(UTC) - datetime.fromisoformat(stored["last_attempted_at"])).total_seconds()
+    assert age_seconds < 5
+
+
 def test_existing_seniority_title_rejection_still_works(tmp_db, seed_job, monkeypatch):
     """Regression guard: the pre-existing _auto_reject_title seniority check
     (independent of this new recheck) must remain intact and still fire

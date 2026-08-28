@@ -14,6 +14,8 @@ by the CLI tests; no separate HTTP integration test is added here
 (see commit message for rationale).
 """
 
+from datetime import UTC, datetime, timedelta
+
 from applypilot.database import current_state, state_history
 
 # ---------------------------------------------------------------------------
@@ -103,6 +105,69 @@ def test_reset_needs_human_transitions_to_applying(tmp_db, seed_job):
     assert any("applying" in (r or "") or "needs_human resolved" in (r or "") for r in reasons), (
         f"Expected transition reason mentioning 'applying' or 'resolved'; got {reasons}"
     )
+
+
+# ---------------------------------------------------------------------------
+# B2b — reset_needs_human establishes the same active-application markers
+# acquire_job does, so a job resumed via HITL and then abandoned (worker/
+# process dies before the resumed application finishes) is recoverable by
+# the existing stale-lock sweep instead of getting permanently stuck. See
+# test_phase3_state_resurrection.py for the end-to-end sweep-recovery proof.
+# ---------------------------------------------------------------------------
+
+
+def test_reset_needs_human_sets_apply_status_in_progress(tmp_db, seed_job):
+    conn = tmp_db()
+    row = _seed_needs_human(conn, seed_job, "nh-markers-1")
+    url = row["url"]
+
+    from applypilot.apply.launcher import reset_needs_human
+
+    reset_needs_human(url=url, worker_id=3)
+
+    stored = conn.execute("SELECT apply_status, agent_id FROM jobs WHERE url = ?", (url,)).fetchone()
+    assert stored["apply_status"] == "in_progress", (
+        "reset_needs_human must set apply_status='in_progress' -- this is exactly what "
+        "acquire_job's stale-lock sweep checks to recover an abandoned row"
+    )
+    assert stored["agent_id"] == "worker-3"
+
+
+def test_reset_needs_human_refreshes_last_attempted_at(tmp_db, seed_job):
+    stale = (datetime.now(UTC) - timedelta(minutes=40)).isoformat()
+    conn = tmp_db()
+    row = _seed_needs_human(conn, seed_job, "nh-markers-2")
+    url = row["url"]
+    conn.execute("UPDATE jobs SET last_attempted_at = ? WHERE url = ?", (stale, url))
+    conn.commit()
+
+    from applypilot.apply.launcher import reset_needs_human
+
+    reset_needs_human(url=url, worker_id=1)
+
+    stored = conn.execute("SELECT last_attempted_at FROM jobs WHERE url = ?", (url,)).fetchone()
+    refreshed = datetime.fromisoformat(stored["last_attempted_at"])
+    age_seconds = (datetime.now(UTC) - refreshed).total_seconds()
+    assert age_seconds < 5, f"Expected last_attempted_at to be freshly refreshed, got age of {age_seconds}s"
+
+
+def test_reset_needs_human_without_worker_id_still_sets_in_progress_but_no_agent_id(tmp_db, seed_job):
+    """The bulk (url=None) path has no real caller today, so there's no
+    genuine worker identity to attach -- but the fix's core invariant
+    (apply_status='in_progress' + fresh last_attempted_at, what the sweep
+    actually checks) must hold regardless. agent_id is left NULL rather
+    than fabricating a worker identity that doesn't exist."""
+    conn = tmp_db()
+    row = _seed_needs_human(conn, seed_job, "nh-markers-3")
+    url = row["url"]
+
+    from applypilot.apply.launcher import reset_needs_human
+
+    reset_needs_human(url=url, worker_id=None)
+
+    stored = conn.execute("SELECT apply_status, agent_id FROM jobs WHERE url = ?", (url,)).fetchone()
+    assert stored["apply_status"] == "in_progress"
+    assert stored["agent_id"] is None
 
 
 # ---------------------------------------------------------------------------
