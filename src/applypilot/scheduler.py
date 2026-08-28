@@ -57,6 +57,22 @@ MIN_OBSERVATIONS_FOR_MEASURED_RATE = 3
 _UNKNOWN_RESET_BACKOFF_STEPS: tuple[int, ...] = (300, 600, 1200, 1800)
 _TRANSIENT_ERROR_BACKOFF_SECONDS = 30
 
+# 2026-08-28: bounded per-cycle failure handling for run_continuous. A whole
+# pipeline cycle (discover/enrich/score/tailor/cover) failing is a distinct
+# condition from the Claude-availability TRANSIENT_ERROR state above, but
+# deserves the same conservative response -- reusing
+# _TRANSIENT_ERROR_BACKOFF_SECONDS directly (not a second, differently-named
+# 30s constant) rather than inventing a parallel backoff policy. 5 was
+# chosen as a conservative, deliberately small ceiling: a genuinely
+# transient failure (brief DB lock, network blip, malformed API response)
+# should clear well within 5 attempts at 30s apart (2.5 minutes worst
+# case); a persistent failure (corrupted DB, a real code bug) should stop
+# burning cycles quickly rather than retrying indefinitely. No
+# SchedulerConfig field was added for this -- it's a fixed safety ceiling,
+# not a tunable knob, matching how _UNKNOWN_RESET_BACKOFF_STEPS and
+# _TRANSIENT_ERROR_BACKOFF_SECONDS above are also plain module constants.
+_MAX_CONSECUTIVE_CYCLE_FAILURES = 5
+
 
 class SchedulerAlreadyRunning(RuntimeError):
     """Raised when a second `run-continuous` instance tries to start while
@@ -661,13 +677,42 @@ def run_continuous(cfg: SchedulerConfig) -> None:
         backoff = _UnknownResetBackoff()
         last_discover_at = None
         cycle = 0
+        consecutive_failures = 0
         while True:
             cycle += 1
             log.info("Cycle %d starting", cycle)
-            result = run_once(
-                cfg,
-                last_discover_at=last_discover_at,
-            )
+            try:
+                result = run_once(
+                    cfg,
+                    last_discover_at=last_discover_at,
+                )
+            except (KeyboardInterrupt, SystemExit):
+                # Never treated as a cycle failure -- must propagate immediately
+                # so the outer handlers below can stop the supervisor cleanly.
+                raise
+            except Exception:
+                consecutive_failures += 1
+                log.exception(
+                    "Cycle %d failed (consecutive failure %d/%d) -- will retry after backoff",
+                    cycle,
+                    consecutive_failures,
+                    _MAX_CONSECUTIVE_CYCLE_FAILURES,
+                )
+                if consecutive_failures >= _MAX_CONSECUTIVE_CYCLE_FAILURES:
+                    log.error(
+                        "run-continuous: %d consecutive cycle failures reached the limit of %d -- stopping",
+                        consecutive_failures,
+                        _MAX_CONSECUTIVE_CYCLE_FAILURES,
+                    )
+                    raise
+                # last_discover_at/backoff are deliberately left untouched here --
+                # the failed cycle produced no result to derive new state from,
+                # so the next attempt retries with exactly the state the last
+                # successful cycle left behind.
+                time.sleep(_TRANSIENT_ERROR_BACKOFF_SECONDS)
+                continue
+
+            consecutive_failures = 0
             last_discover_at = result["last_discover_at"]
             log.info("Cycle %d finished\n%s", cycle, format_status_block(result))
             sleep_s = _next_sleep_seconds(result, cfg, backoff)

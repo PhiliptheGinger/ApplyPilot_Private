@@ -327,10 +327,22 @@ class TestRunContinuousBanner:
         assert "shutdown complete" in text.lower()
 
     def test_unhandled_exception_is_logged_and_reraised(self, monkeypatch):
+        """2026-08-28: a single cycle failure no longer immediately kills
+        run_continuous -- it's caught, logged, and retried after a backoff
+        (see TestRunContinuousCycleFailureHandling below). A PERSISTENT
+        failure (every cycle raises) still eventually surfaces and re-raises
+        once the consecutive-failure ceiling is reached -- this test now
+        proves that end-to-end behavior survives, updated to mock
+        time.sleep so it stays fast/deterministic rather than actually
+        sleeping through every retry's backoff."""
         monkeypatch.setattr(sched, "acquire_scheduler_lock", lambda: None)
         monkeypatch.setattr(sched, "release_scheduler_lock", lambda: None)
+        monkeypatch.setattr(sched.time, "sleep", lambda _seconds: None)
+
+        calls = {"n": 0}
 
         def _boom(cfg, *, last_discover_at=None):
+            calls["n"] += 1
             raise ValueError("boom")
 
         monkeypatch.setattr(sched, "run_once", _boom)
@@ -339,6 +351,7 @@ class TestRunContinuousBanner:
         with pytest.raises(ValueError):
             sched.run_continuous(cfg)
 
+        assert calls["n"] == sched._MAX_CONSECUTIVE_CYCLE_FAILURES
         text = _log_text()
         assert "crashed with an unhandled exception" in text.lower()
         assert "shutdown complete" in text.lower()
@@ -357,3 +370,130 @@ class TestRunContinuousBanner:
 
         text = _log_text()
         assert "NOT started" in text
+
+
+# ── run_continuous bounded per-cycle failure handling ──────────────────────
+#
+# 2026-08-28: previously ANY exception from run_once propagated straight out
+# of the while-loop, killing the entire continuous supervisor on a single
+# transient DB/network/API/malformed-response failure. Now a cycle failure
+# is caught, logged, and retried after a backoff (reusing the existing
+# _TRANSIENT_ERROR_BACKOFF_SECONDS constant); only
+# _MAX_CONSECUTIVE_CYCLE_FAILURES in a row without an intervening success
+# causes a genuine exit. KeyboardInterrupt/SystemExit are explicitly never
+# treated as cycle failures.
+
+
+class TestRunContinuousCycleFailureHandling:
+    def test_transient_failure_is_recovered_and_counter_resets(self, tmp_db, seed_job, monkeypatch):
+        """First cycle raises, second cycle succeeds (proving the counter
+        reset and the normal success path -- log line, _next_sleep_seconds,
+        last_discover_at update -- are unaffected), third cycle stops the
+        loop via KeyboardInterrupt so the test terminates deterministically."""
+        monkeypatch.setattr(sched, "acquire_scheduler_lock", lambda: None)
+        monkeypatch.setattr(sched, "release_scheduler_lock", lambda: None)
+        sleeps: list[float] = []
+        monkeypatch.setattr(sched.time, "sleep", lambda seconds: sleeps.append(seconds))
+
+        conn = tmp_db()
+        cfg = _cfg(no_continuous_apply=True)
+        # A real, fully-shaped result dict (format_status_block/_next_sleep_seconds
+        # read several keys) -- built via the real run_once rather than hand-rolled,
+        # so this test can't drift from that function's actual return shape.
+        good_result = sched.run_once(
+            cfg,
+            conn=conn,
+            run_pipeline_fn=_RecordingPipeline(),
+            availability_fn=lambda **k: _avail(cs.AVAILABLE),
+            api_capacity_fn=lambda: True,
+        )
+
+        calls = {"n": 0}
+
+        def _flaky(cfg, *, last_discover_at=None):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise ValueError("transient boom")
+            if calls["n"] == 2:
+                return good_result
+            raise KeyboardInterrupt
+
+        monkeypatch.setattr(sched, "run_once", _flaky)
+
+        sched.run_continuous(cfg)
+
+        assert calls["n"] == 3
+        assert sched._TRANSIENT_ERROR_BACKOFF_SECONDS in sleeps
+        text = _log_text()
+        assert "consecutive failure 1/5" in text.lower()
+        assert "cycle 2 finished" in text.lower()  # the recovered cycle completed normally
+
+    def test_persistent_failure_stops_after_ceiling_with_backoff(self, monkeypatch):
+        monkeypatch.setattr(sched, "acquire_scheduler_lock", lambda: None)
+        monkeypatch.setattr(sched, "release_scheduler_lock", lambda: None)
+        sleeps: list[float] = []
+        monkeypatch.setattr(sched.time, "sleep", lambda seconds: sleeps.append(seconds))
+
+        calls = {"n": 0}
+
+        def _always_boom(cfg, *, last_discover_at=None):
+            calls["n"] += 1
+            raise ValueError("persistent boom")
+
+        monkeypatch.setattr(sched, "run_once", _always_boom)
+
+        cfg = _cfg(no_continuous_apply=True)
+        with pytest.raises(ValueError, match="persistent boom"):
+            sched.run_continuous(cfg)
+
+        # Retried up to the ceiling, not forever, and not just once.
+        assert calls["n"] == sched._MAX_CONSECUTIVE_CYCLE_FAILURES
+        # A backoff sleep precedes every retry except the final (ceiling-reaching) failure.
+        assert sleeps.count(sched._TRANSIENT_ERROR_BACKOFF_SECONDS) == sched._MAX_CONSECUTIVE_CYCLE_FAILURES - 1
+
+        text = _log_text()
+        assert "reached the limit" in text.lower()
+        assert "crashed with an unhandled exception" in text.lower()
+        assert f"failed (consecutive failure {sched._MAX_CONSECUTIVE_CYCLE_FAILURES}/{sched._MAX_CONSECUTIVE_CYCLE_FAILURES})" in text.lower()
+
+    def test_keyboard_interrupt_is_not_counted_as_a_cycle_failure(self, monkeypatch):
+        monkeypatch.setattr(sched, "acquire_scheduler_lock", lambda: None)
+        monkeypatch.setattr(sched, "release_scheduler_lock", lambda: None)
+        monkeypatch.setattr(sched.time, "sleep", lambda seconds: None)
+
+        calls = {"n": 0}
+
+        def _interrupt(cfg, *, last_discover_at=None):
+            calls["n"] += 1
+            raise KeyboardInterrupt
+
+        monkeypatch.setattr(sched, "run_once", _interrupt)
+
+        cfg = _cfg(no_continuous_apply=True)
+        sched.run_continuous(cfg)  # must exit cleanly, not raise
+
+        assert calls["n"] == 1  # never retried
+        text = _log_text()
+        assert "consecutive failure" not in text.lower()
+        assert "stopped by user" in text.lower()
+
+    def test_system_exit_is_not_counted_as_a_cycle_failure(self, monkeypatch):
+        monkeypatch.setattr(sched, "acquire_scheduler_lock", lambda: None)
+        monkeypatch.setattr(sched, "release_scheduler_lock", lambda: None)
+        monkeypatch.setattr(sched.time, "sleep", lambda seconds: None)
+
+        calls = {"n": 0}
+
+        def _exit(cfg, *, last_discover_at=None):
+            calls["n"] += 1
+            raise SystemExit(1)
+
+        monkeypatch.setattr(sched, "run_once", _exit)
+
+        cfg = _cfg(no_continuous_apply=True)
+        with pytest.raises(SystemExit):
+            sched.run_continuous(cfg)
+
+        assert calls["n"] == 1  # never retried -- SystemExit must propagate immediately
+        text = _log_text()
+        assert "consecutive failure" not in text.lower()
