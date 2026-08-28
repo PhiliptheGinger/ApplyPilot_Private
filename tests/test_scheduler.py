@@ -270,6 +270,46 @@ class TestRunOnce:
             assert "url" not in call
             assert "jobs" not in call
 
+    def test_last_discover_at_reflects_completion_not_cycle_start(self, tmp_db, seed_job):
+        """2026-08-28 fix: a full discover crawl regularly takes multiple
+        hours in practice (live log evidence up to ~11.4h), frequently
+        exceeding discover_interval's default of 1h. Before this fix,
+        `last_discover_at` was stamped with the cycle-start timestamp
+        (captured BEFORE the blocking discover call), so once a single
+        crawl exceeded the interval, the very next cycle's `discover_due`
+        check saw the interval as already elapsed and re-triggered discover
+        immediately again -- effectively no throttling at all. Proven here
+        with real elapsed time (no datetime mocking): the fake discover
+        stage sleeps briefly, and last_discover_at must reflect a moment
+        AFTER that sleep, not the timestamp captured when run_once started."""
+        import time as time_mod
+
+        conn = tmp_db()
+
+        def _slow_pipeline_fn(**kwargs):
+            if kwargs.get("stages") == ["discover"]:
+                time_mod.sleep(0.05)
+            return {"stages": [], "errors": {}, "elapsed": 0.0}
+
+        cfg = self._cfg()
+        before_cycle = datetime.now(UTC)
+
+        result = sched.run_once(
+            cfg,
+            conn=conn,
+            run_pipeline_fn=_slow_pipeline_fn,
+            availability_fn=lambda **k: _avail(AVAILABLE),
+            api_capacity_fn=lambda: True,
+            last_discover_at=None,  # forces discover_due=True unconditionally
+        )
+
+        assert result["discovery_ran"] is True
+        assert result["last_discover_at"] > before_cycle + timedelta(seconds=0.03), (
+            "last_discover_at must be captured AFTER the (slow) discover call completes, "
+            "not at cycle start -- otherwise discover_interval's throttle is defeated the "
+            "moment a single crawl exceeds the interval"
+        )
+
     def test_available_state_targets_ready_buffer(self, tmp_db, seed_job):
         conn = tmp_db()
         pipeline_fn = _RecordingPipeline()

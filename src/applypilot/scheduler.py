@@ -407,7 +407,20 @@ def run_once(
     if discover_due:
         discover_result = run_pipeline_fn(stages=["discover"])
         discovery_ran = True
-        last_discover_at = now
+        # 2026-08-28 fix: record COMPLETION time, not the cycle-start `now`
+        # captured before this (blocking) call. A full crawl regularly
+        # takes multiple hours in practice (live log evidence: durations up
+        # to ~11.4h, frequently exceeding cfg.discover_interval's 1h
+        # default) -- stamping `last_discover_at = now` meant the interval
+        # was measured from BEFORE the long block, so the very next cycle's
+        # `discover_due` check saw the interval as already elapsed and
+        # re-triggered discover immediately again, effectively running
+        # discover back-to-back with no throttling and starving
+        # enrich/score/tailor/cover of the gap `discover_interval` is
+        # supposed to guarantee them. Measuring from completion guarantees
+        # at least `discover_interval` seconds of non-discover cycles
+        # between crawls, regardless of how long any single crawl took.
+        last_discover_at = datetime.now(UTC)
         _log_decision(log, "discover_result", result=discover_result)
     else:
         _log_decision(
