@@ -586,6 +586,82 @@ def current_state(conn: sqlite3.Connection, job_url: str) -> str | None:
     return row["state"] if isinstance(row, sqlite3.Row) else row[0]
 
 
+def recover_stale_claims(
+    conn: sqlite3.Connection,
+    from_state: str,
+    to_state: str,
+    attempts_column: str,
+    stale_after_minutes: int = 30,
+    reason: str | None = None,
+) -> list[str]:
+    """Recover jobs stranded in an in-flight claim state (``tailoring``,
+    ``cover_writing``) because the worker that claimed them died before
+    completing -- ``_mark_tailor_result``/``_mark_cover_result`` never ran,
+    so the job would otherwise sit in ``from_state`` forever (neither
+    ``pending_tailor`` nor ``pending_cover`` selects it).
+
+    No new schema/column is needed: the invariant documented on
+    ``transition_state`` (current ``jobs.state`` always equals the most
+    recent ``job_state_transitions`` row's ``to_state`` for that job) means
+    the *claim* timestamp is simply the ``at`` of the latest transition row
+    for a job currently sitting in ``from_state``. ``job_state_transitions``
+    is already indexed on ``job_url``, so this correlated subquery is cheap.
+
+    Mirrors the stale ``applying``-lock sweep in ``apply.launcher.
+    acquire_job`` (find-stale -> release), but deliberately does not copy
+    its two-step raw-UPDATE-then-per-row-transition shape: that shape exists
+    there to also clear the legacy ``apply_status``/``agent_id`` columns,
+    which have no equivalent for the tailor/cover claim states. Here,
+    ``transition_state`` WITHOUT ``force=True`` is itself the race guard --
+    ``tailoring -> tailor_failed`` and ``cover_writing -> cover_failed`` are
+    both already-legal transitions (see VALID_TRANSITIONS), and
+    ``transition_state`` re-reads the job's current state immediately before
+    writing, so a job that completed normally (or was archived by a
+    concurrent process) between the SELECT below and this call is silently
+    skipped rather than incorrectly recovered. The attempts counter is only
+    incremented for jobs actually recovered, preserving the existing
+    bounded-retry semantics (``tailor_attempts``/``cover_attempts`` < 5)
+    exactly as the normal failure path in ``_mark_tailor_result``/
+    ``_mark_cover_result`` does.
+
+    Returns the list of recovered job URLs.
+    """
+    if reason is None:
+        reason = f"stale {from_state} claim recovered (worker likely crashed)"
+
+    rows = conn.execute(
+        """
+        SELECT j.url FROM jobs j
+        WHERE j.state = ?
+          AND datetime((
+                SELECT t.at FROM job_state_transitions t
+                WHERE t.job_url = j.url
+                ORDER BY t.id DESC LIMIT 1
+              )) < datetime('now', ?)
+        """,
+        (from_state, f"-{stale_after_minutes} minutes"),
+    ).fetchall()
+
+    recovered: list[str] = []
+    for row in rows:
+        url = row["url"] if isinstance(row, sqlite3.Row) else row[0]
+        if transition_state(
+            conn,
+            url,
+            to_state,
+            reason=reason,
+            metadata={"stale_after_minutes": stale_after_minutes},
+        ):
+            # attempts_column is one of two internal constants passed by
+            # this module's own callers (never external input).
+            conn.execute(
+                f"UPDATE jobs SET {attempts_column} = COALESCE({attempts_column}, 0) + 1 WHERE url = ?",
+                (url,),
+            )
+            recovered.append(url)
+    return recovered
+
+
 def state_history(conn: sqlite3.Connection, job_url: str) -> list[dict]:
     """Return all state transitions for a job, newest first."""
     rows = conn.execute(

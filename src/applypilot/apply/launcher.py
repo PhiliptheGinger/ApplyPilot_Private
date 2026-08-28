@@ -1888,6 +1888,52 @@ def acquire_job(
             conn.rollback()
             return None
 
+        # Retry-time deterministic eligibility recheck (Phase 3 defense-in-
+        # depth follow-up, 2026-08-27 audit finding #9): _auto_reject_title
+        # above only re-validates seniority. A job scored before a later
+        # eligibility rule existed (e.g. the TS/SCI clearance gate added in
+        # 652cfb6) can still reach this point via reset_failed(), an HTTP
+        # reset, HITL requeue, or the stale-lock sweep above -- all of which
+        # can resurrect an apply_failed/archived row back to ready_to_apply
+        # without re-running scorer._check_ineligible. This is the single
+        # canonical choke point both the --url and bulk selection paths
+        # converge on before an application attempt, so re-running the same
+        # deterministic (no-LLM) predicate here closes that gap for every
+        # resurrection path at once instead of patching each one
+        # individually. Uses full_description/title/location already
+        # selected above -- no extra query.
+        from applypilot.config import load_profile
+        from applypilot.scoring.scorer import _check_ineligible
+
+        ineligible_reason = _check_ineligible(dict(row), load_profile())
+        if ineligible_reason:
+            conn.execute(
+                "UPDATE jobs SET apply_category='archived_ineligible', "
+                "apply_error=?, last_attempted_at=? WHERE url=?",
+                (f"ineligible_recheck:{ineligible_reason}"[:200], datetime.now(UTC).isoformat(), row["url"]),
+            )
+            transition_state(
+                conn,
+                row["url"],
+                "archived",
+                reason="ineligible_recheck",
+                metadata={"reason": ineligible_reason[:200], "title": (row["title"] or "")[:120]},
+                force=True,
+            )
+            commit_with_retry(conn)
+            logger.info(
+                "Skipping newly-ineligible acquire candidate: %s (%s)",
+                row["url"][:80],
+                ineligible_reason,
+            )
+            return acquire_job(
+                target_url=target_url,
+                min_score=min_score,
+                max_score=max_score,
+                max_age_days=max_age_days,
+                worker_id=worker_id,
+            )
+
         from applypilot.config import is_manual_ats
 
         # Defensive: the SELECT already filters NULL/empty application_urls

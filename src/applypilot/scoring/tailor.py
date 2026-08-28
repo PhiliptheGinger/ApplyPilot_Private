@@ -1619,10 +1619,26 @@ def run_tailoring(
     if os.environ.get("APPLYPILOT_LOCAL_PLAN", "").lower() in ("1", "true", "yes"):
         log.info("local-first: enabled -- each job gets a local tailoring plan pass before cloud finalization")
 
-    from applypilot.database import get_connection, get_jobs_by_stage, transition_state, write_with_retry
+    from applypilot.database import (
+        commit_with_retry,
+        get_connection,
+        get_jobs_by_stage,
+        recover_stale_claims,
+        transition_state,
+        write_with_retry,
+    )
 
     profile = load_profile()
     conn = get_connection()
+
+    # Recover jobs stranded in 'tailoring' by a worker that died mid-call
+    # (see database.recover_stale_claims) before selecting new candidates,
+    # so a just-recovered tailor_failed job is immediately eligible for
+    # pending_tailor below instead of waiting for a later run.
+    recovered = recover_stale_claims(conn, "tailoring", "tailor_failed", "tailor_attempts")
+    if recovered:
+        commit_with_retry(conn)
+        log.info("Recovered %d stale 'tailoring' claim(s) -> tailor_failed", len(recovered))
 
     # Note: get_jobs_by_stage now applies a 14-day discovered_at filter by
     # default (config.DEFAULTS["max_job_age_days"]). Pass max_age_days=0

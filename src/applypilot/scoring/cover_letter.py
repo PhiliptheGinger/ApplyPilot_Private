@@ -431,10 +431,25 @@ def run_cover_letters(
     if min_score is None:
         min_score = DEFAULTS["min_score"]
 
-    from applypilot.database import get_connection, transition_state, write_with_retry
+    from applypilot.database import (
+        commit_with_retry,
+        get_connection,
+        recover_stale_claims,
+        transition_state,
+        write_with_retry,
+    )
 
     profile = load_profile()
     conn = get_connection()
+
+    # Recover jobs stranded in 'cover_writing' by a worker that died
+    # mid-call (see database.recover_stale_claims) before selecting new
+    # candidates, so a just-recovered cover_failed job is immediately
+    # eligible for pending_cover below instead of waiting for a later run.
+    recovered = recover_stale_claims(conn, "cover_writing", "cover_failed", "cover_attempts")
+    if recovered:
+        commit_with_retry(conn)
+        log.info("Recovered %d stale 'cover_writing' claim(s) -> cover_failed", len(recovered))
 
     # Note: get_jobs_by_stage applies a 14-day discovered_at filter by default
     # (config.DEFAULTS["max_job_age_days"]). Pass max_age_days=0 to disable.
