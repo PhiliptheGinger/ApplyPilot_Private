@@ -273,6 +273,62 @@ _CLEARANCE_REQUIRED_PATTERN = re.compile(
 )
 
 
+# Deterministic commission-only compensation hard gate (2026-08-28
+# investigation). No deterministic backstop existed anywhere for this --
+# only prose in SCORE_PROMPT_TEMPLATE telling the LLM to score "100%
+# commission/1099 structure" low, entirely dependent on LLM adherence.
+# Live DB calibration (24,325 described jobs): exactly ONE unambiguous
+# commission-only posting exists today ("New Mortgage Loan Officer Turn
+# Your Network Into Real Income" -- "This is a 100% commission business
+# with real upside and no income caps... NOT for you if you're looking
+# for a salary."), sitting unscored. This gate closes that gap.
+#
+# Deliberately narrow/high-confidence, mirroring _TS_SCI_PATTERN's design:
+# reject only EXPLICIT exclusivity language (100%, only, solely, straight,
+# no base/guaranteed), never bare "commission" itself. Live measurement
+# found 386+ legitimate base+commission mentions that must NOT be rejected
+# ("commission-based": 316 hits, "commission structure": 9, "uncapped
+# commission": 61 -- e.g. "Hourly compensation with incentivized
+# commission structure", "This role will include a 30% commission/
+# variable along with base salary"), plus 1,778 rows where "commission"
+# appears only as a substring of "commissioning" (equipment/system
+# commissioning -- an unrelated engineering term: "Commissioning
+# Engineer", "Facilities Controls Engineer") or refers to someone ELSE's
+# pay (a Payroll/People-Ops job whose duty is "commission processing", a
+# "Senior Commissions Manager" title). The \b...\b word boundaries here
+# are load-bearing -- they are what prevents "commission" from ever
+# matching inside "commissioning" (no boundary exists between the shared
+# "commission" and the following "ing"), so every branch below closes on
+# \b immediately after the literal "commission", not just at the start.
+#
+# 1099 IS DELIBERATELY NOT its own signal, matching this gate's explicit
+# design brief. All 31 live "1099" mentions were AP/payroll/tax subject
+# matter, or legitimate hourly-paid 1099 contractor roles ("Paid hourly
+# while on site... 1099 contractor position"), or explicit "W2 only, not
+# 1099" exclusions -- none were commission-only sales roles. A standalone
+# 1099 branch would misfire on all of those. When 1099 genuinely co-occurs
+# with real commission-only wording (e.g. "1099 commission-only"), the
+# phrase already matches the "commission-only" branch directly below -- no
+# separate 1099-combinator regex is needed or added.
+#
+# AMBIGUITY NOT RESOLVED HERE (reported, not silently decided, matching
+# the clearance gate's own precedent above): "no guaranteed salary" is
+# matched as a literal phrase with no further context-disambiguation -- a
+# hypothetical sentence like "no guaranteed salary increases" would also
+# match. No live example of this framing exists to calibrate against;
+# flagged as a known, accepted, unencountered risk rather than guessed at
+# with more regex.
+_COMMISSION_ONLY_PATTERN = re.compile(
+    r"\b100%\s*commission\b"
+    r"|\bcommission[\s-]only\b"
+    r"|\bstraight\s+commission\b"
+    r"|\b(?:paid\s+)?solely\s+(?:on|by)\s+commission\b"
+    r"|\bno\s+base\s+(?:salary|pay)\b"
+    r"|\bno\s+guaranteed\s+salary\b",
+    re.IGNORECASE,
+)
+
+
 # Description-level non-US patterns. Scans the full description (capped at
 # 6000 chars by the caller). Patterns intentionally narrow — must explicitly
 # RESTRICT to a non-US country, not merely mention global offices.
@@ -346,6 +402,19 @@ def _check_ineligible(job: dict, profile: dict | None = None) -> str | None:
     m = _CLEARANCE_REQUIRED_PATTERN.search(desc_head)
     if m:
         return f"security clearance required: {m.group(0)[:80]}"
+
+    # Scans the FULL description, not desc_head -- compensation/benefits
+    # disclosures are classically placed near the END of a posting. Live
+    # measurement found median description length (5,937 chars) sits
+    # almost exactly at the existing 6,000-char desc_head boundary, so
+    # roughly half of all postings have content this check would
+    # otherwise never see (max live length is 29,094 chars; a regex scan
+    # over that is still sub-millisecond, so there is no cost to scanning
+    # the whole thing here even though the other checks above don't).
+    full_desc = job.get("full_description") or ""
+    m = _COMMISSION_ONLY_PATTERN.search(full_desc)
+    if m:
+        return f"commission-only compensation: {m.group(0)[:80]}"
 
     search_cfg = load_search_config() or {}
     excluded_titles = search_cfg.get("exclude_titles") or []
