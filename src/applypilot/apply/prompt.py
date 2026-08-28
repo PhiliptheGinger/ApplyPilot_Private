@@ -259,25 +259,149 @@ Decision tree:
 6. Hourly rate? -> Divide your annual answer by 2080. ({hourly_line})"""
 
 
+def _build_relocation_line(app_prof: dict, city: str) -> str:
+    """Derive the relocation screening line from the real profile fields.
+
+    Never invents a relocation constraint -- willing_to_relocate is only
+    ever asserted as True/False when the profile actually says so; when
+    the field is absent, the agent is told to answer truthfully from the
+    profile rather than defaulting to an assumed answer in either
+    direction (2026-08-28 fix: the previous version hardcoded "cannot
+    relocate" unconditionally, contradicting a real profile with
+    willing_to_relocate=True)."""
+    loc_prof = app_prof.get("location", {})
+    willing = loc_prof.get("willing_to_relocate")
+    preference = loc_prof.get("relocation_preference")
+
+    if willing is True:
+        if preference:
+            return f"lives in {city}; willing to relocate (preference: {preference})"
+        return f"lives in {city}; willing to relocate"
+    if willing is False:
+        return f"lives in {city}; not willing to relocate"
+    return f"lives in {city}; relocation willingness not recorded -- answer truthfully from the profile, do not assume either way"
+
+
+def _build_experience_line(exp: dict, personal: dict) -> str:
+    """Derive the role/years-of-experience screening line.
+
+    2026-08-28 fix: exp.get(key, default) only falls back when the key is
+    ABSENT, not when it's present-but-empty -- the real profile has both
+    years_of_experience_total and target_role present as "", which used
+    to render the literal malformed sentence "This candidate is a  with
+    years experience." `or` (falsy-aware) fixes the fallback; the
+    sentence itself is now built conditionally so a missing/empty value
+    never leaves a grammatically broken gap, and the neutral case never
+    asserts an unearned professional title the profile doesn't support."""
+    years = exp.get("years_of_experience_total") or ""
+    target_role = exp.get("target_role") or personal.get("current_job_title") or ""
+
+    if target_role and years:
+        return f"This candidate's role/experience: {target_role}, {years} years of experience."
+    if target_role:
+        return f"This candidate's target role/most recent title: {target_role}."
+    if years:
+        return f"This candidate has {years} years of relevant experience."
+    return "Answer role/experience-level questions truthfully from the APPLICANT PROFILE above -- do not assume a specific title or years of experience that isn't stated there."
+
+
+def _build_work_auth_line(work_auth: dict) -> str:
+    """Derive the work-authorization screening line from the real profile
+    schema (application_profile.work_authorization.authorized_to_work_us /
+    .requires_sponsorship), preserving the legacy key names as a fallback
+    for other profile shapes. 2026-08-28 fix: the previous version read
+    `legally_authorized_to_work`, a key that doesn't exist in the real
+    profile schema, so it always rendered the useless literal fallback
+    string "see profile" -- the agent had no grounded answer at all for a
+    legally significant question. If neither the current nor legacy keys
+    are present, this degrades to a neutral truthful-answer instruction
+    rather than failing or inventing an answer -- a future/alternate
+    profile representation lacking these exact fields must not break the
+    apply flow."""
+    authorized = work_auth.get("authorized_to_work_us")
+    if authorized is None:
+        authorized = work_auth.get("legally_authorized_to_work")  # legacy key
+    requires_sponsorship = work_auth.get("requires_sponsorship")
+    if requires_sponsorship is None:
+        requires_sponsorship = work_auth.get("require_sponsorship")  # legacy misspelling
+
+    if authorized is None and requires_sponsorship is None:
+        return "answer truthfully from the profile"
+
+    parts = []
+    if authorized is not None:
+        parts.append(f"authorized to work in the US: {authorized}")
+    if requires_sponsorship is not None:
+        parts.append(f"requires sponsorship: {requires_sponsorship}")
+    return "; ".join(parts)
+
+
+def _build_skills_tools_rule(profile: dict) -> str:
+    """Build the skills/tools screening rule directly from skills_inventory,
+    replacing the previous blanket "same-domain tool -> answer YES"
+    instruction (2026-08-28 fix -- that instruction told the agent to
+    fabricate professional experience with any unlisted-but-adjacent tool,
+    the exact anti-fabrication violation the tailoring prompt already
+    guards against, just never closed at the apply stage).
+
+    resume_allowed is the profile's own authoritative signal for "safe to
+    present as real skill" (e.g. Python: proficiency=learning_developing
+    but resume_allowed=true is still claimable; APIs/REST/JSON/Scripting/
+    Docker: proficiency=learning, resume_allowed=false must be described
+    as familiarity/exposure, not professional experience) -- this
+    deliberately defers to that field rather than re-deriving the same
+    judgment from proficiency text.
+    """
+    inventory = profile.get("skills_inventory") or []
+    professional = [item.get("name") for item in inventory if item.get("resume_allowed") and item.get("name")]
+    familiar_only = [item.get("name") for item in inventory if not item.get("resume_allowed") and item.get("name")]
+
+    lines = [
+        (
+            "Skills and tools -> answer based on the candidate's actual skills_inventory below, not "
+            "assumptions about what a similar role typically requires. Never claim professional "
+            "experience with a tool/technology that isn't listed."
+        )
+    ]
+    if professional:
+        lines.append(f"  - Safe to claim professional/demonstrated experience with: {', '.join(professional)}.")
+    if familiar_only:
+        lines.append(
+            f"  - Familiarity/personal-project exposure only, NOT professional experience: "
+            f"{', '.join(familiar_only)}. If asked 'Do you have experience with X?' for one of these, "
+            f"answer that you have familiarity/exposure, not professional experience."
+        )
+    lines.append(
+        "  - For any tool/technology not listed above at all, answer NO / not experienced -- domain "
+        "adjacency (e.g. 'this is backend/DevOps/cloud work') does not by itself imply experience."
+    )
+    return "\n".join(lines)
+
+
 def _build_screening_section(profile: dict) -> str:
     """Build the screening questions guidance section."""
     personal = profile["personal"]
     exp = profile.get("experience", {})
     app_prof = profile.get("application_profile", {})
     city = personal.get("city", "their city")
-    years = exp.get("years_of_experience_total", "multiple")
-    target_role = exp.get("target_role", personal.get("current_job_title", "software engineer"))
     work_auth = app_prof.get("work_authorization", profile.get("work_authorization", {}))
+
+    relocation_line = _build_relocation_line(app_prof, city)
+    experience_line = _build_experience_line(exp, personal)
+    work_auth_line = _build_work_auth_line(work_auth)
+    skills_tools_rule = _build_skills_tools_rule(profile)
 
     return f"""== SCREENING QUESTIONS (be strategic) ==
 Hard facts -> answer truthfully from the profile. No guessing. This includes:
-  - Location/relocation: lives in {city}, cannot relocate
-  - Work authorization: {work_auth.get("legally_authorized_to_work", "see profile")}
+  - Location/relocation: {relocation_line}
+  - Work authorization: {work_auth_line}
   - Citizenship, clearance, licenses, certifications: answer from profile only
   - Criminal/background: answer from profile only
   - Languages: ONLY claim proficiency in languages listed in the APPLICANT PROFILE above. If asked about ANY other language (German, Mandarin, Japanese, etc.), answer NO / Not proficient. Never fabricate language skills.
 
-Skills and tools -> be confident about TECHNICAL skills. This candidate is a {target_role} with {years} years experience. If the question asks "Do you have experience with [tool]?" and it's in the same domain (DevOps, backend, ML, cloud, automation), answer YES. Software engineers learn tools fast. Don't sell short. But NEVER claim fluency in human languages not listed in the profile.
+{experience_line}
+
+{skills_tools_rule}
 
 Open-ended questions ("Why do you want this role?", "Tell us about yourself", "What interests you?") -> Write 2-3 sentences. Be specific to THIS job. Reference something from the job description. Connect it to a real achievement from the resume. No generic fluff. No "I am passionate about..." -- sound like a real person.
 
@@ -1149,10 +1273,9 @@ RESULT:FAILED:reason -- any other failure (brief reason)
 - WHICH OFFICE / ROLE LOCATION selector (dropdown or radio — "where are you applying to work?"):
   These ask which physical or remote location you are applying for.
   Selection priority order: {location_accept_priority}, Remote.
-  Strategy: (1) snapshot the available options, (2) pick the FIRST acceptable match from the priority list.
-  If "Seattle" is an option → select it. If not, try Bellevue, Kirkland, Redmond in order. If none match, try "Remote" if offered.
+  Strategy: (1) snapshot the available options, (2) pick the FIRST acceptable match from the priority list above, in order.
   If NONE of the acceptable locations are offered and it is a required field → output RESULT:FAILED:not_eligible_location.
-  NEVER select locations outside the acceptable list (e.g. Everett, Bothell, Renton, Tacoma, or any non-US city) even if they are the only options — those roles are not eligible.
+  NEVER select a location outside the acceptable priority list above (or any non-US city) even if it's the only option offered — that role is not eligible.
 - LINKEDIN EASY APPLY — button visibility, location, email, and first name fields:
   The LinkedIn Easy Apply flow has several non-standard behaviors — treat them specially.
 
