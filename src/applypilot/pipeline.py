@@ -472,29 +472,31 @@ class _StageTracker:
             return dict(self._results)
 
 
-# SQL to count pending work for each stage.
-# The `?` params are: (min_score, age_cutoff_iso_offset) when both present;
-# scroll through _count_pending to see the binding order.
+# 2026-08-28 fix: "enrich"/"score"/"tailor"/"cover" used to have their own
+# independently-maintained SQL here (a second, drifted-from-database.py
+# definition of "pending" -- see git history for the old `_PENDING_SQL`
+# entries). They now delegate to `database.count_jobs_by_stage`, which
+# shares the exact same WHERE clause `get_jobs_by_stage` uses for real
+# selection, via `_CANONICAL_PENDING_STAGE` below.
+#
+# "pdf" is the deliberate exception: its selection criterion
+# (`tailored_resume_path LIKE '%.txt'`) isn't a state-machine concept and
+# has no equivalent `get_jobs_by_stage` stage to share -- inventing one
+# would be scope creep with no demonstrated divergence to fix. It stays on
+# its own simple, standalone query below.
 _PENDING_SQL: dict[str, str] = {
-    "enrich": ("SELECT COUNT(*) FROM jobs WHERE detail_scraped_at IS NULL"),
-    "score": ("SELECT COUNT(*) FROM jobs WHERE full_description IS NOT NULL AND fit_score IS NULL"),
-    "tailor": (
-        "SELECT COUNT(*) FROM jobs WHERE fit_score >= ? "
-        "AND full_description IS NOT NULL "
-        "AND tailored_resume_path IS NULL "
-        "AND COALESCE(tailor_attempts, 0) < 5"
-    ),
-    "cover": (
-        "SELECT COUNT(*) FROM jobs WHERE fit_score >= ? "
-        "AND tailored_resume_path IS NOT NULL "
-        "AND (cover_letter_path IS NULL OR cover_letter_path = '') "
-        "AND COALESCE(cover_attempts, 0) < 5"
-    ),
-    "pdf": ("SELECT COUNT(*) FROM jobs WHERE tailored_resume_path IS NOT NULL AND tailored_resume_path LIKE '%.txt'"),
+    "pdf": "SELECT COUNT(*) FROM jobs WHERE tailored_resume_path IS NOT NULL AND tailored_resume_path LIKE '%.txt'",
 }
 
-# Stages whose SQL takes a ? for min_score.
-_PENDING_SQL_TAKES_MIN_SCORE = {"tailor", "cover"}
+# Maps a pipeline stage name to its canonical `get_jobs_by_stage`/
+# `count_jobs_by_stage` stage name, for stages whose "pending" definition
+# is shared with the real selector rather than kept in `_PENDING_SQL` above.
+_CANONICAL_PENDING_STAGE: dict[str, str] = {
+    "enrich": "pending_detail",
+    "score": "pending_score",
+    "tailor": "pending_tailor",
+    "cover": "pending_cover",
+}
 
 # How long to sleep between polling loops in streaming mode (seconds)
 _STREAM_POLL_INTERVAL = 10
@@ -582,22 +584,33 @@ def _wait_or_stop(stop_event: threading.Event, timeout: float) -> bool:
 
 
 def _count_pending(stage: str, min_score: int | None = None, max_age_days: int | None = None) -> int:
-    """Count pending work items for a stage, honoring min_score and max_age_days."""
+    """Count pending work items for a stage, honoring min_score and max_age_days.
+
+    "enrich"/"score"/"tailor"/"cover" delegate to `database.count_jobs_by_stage`
+    (see `_CANONICAL_PENDING_STAGE`) so this can never again silently diverge
+    from what the real stage runners (via `get_jobs_by_stage`) can select --
+    e.g. a permanently `archived` job used to keep counting as pending forever
+    here even though it could never be re-selected, which could stall
+    `--stream` mode's zero-pending termination check indefinitely. "pdf" has
+    no canonical equivalent and stays on the standalone `_PENDING_SQL` query.
+    """
     from applypilot.config import DEFAULTS
+    from applypilot.database import count_jobs_by_stage
 
     if min_score is None:
         min_score = DEFAULTS["min_score"]
     if max_age_days is None:
         max_age_days = DEFAULTS["max_job_age_days"]
 
+    canonical_stage = _CANONICAL_PENDING_STAGE.get(stage)
+    if canonical_stage is not None:
+        return count_jobs_by_stage(get_connection(), canonical_stage, min_score=min_score, max_age_days=max_age_days)
+
     sql = _PENDING_SQL.get(stage)
     if sql is None:
         return 0
 
     params: list = []
-    if stage in _PENDING_SQL_TAKES_MIN_SCORE:
-        params.append(min_score)
-
     if max_age_days and max_age_days > 0:
         sql += " AND discovered_at > datetime('now', ?)"
         params.append(f"-{max_age_days} days")

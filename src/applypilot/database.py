@@ -1853,6 +1853,165 @@ def delete_account(domain: str, conn: sqlite3.Connection | None = None) -> int:
     return cursor.rowcount
 
 
+# Per-stage WHERE-clause fragments shared by get_jobs_by_stage (full-row
+# selection) and count_jobs_by_stage (cheap COUNT(*)) -- the single source
+# of truth for "what counts as pending/selectable for stage X". A static
+# module-level constant, not rebuilt per call: none of these fragments embed
+# min_score/max_age_days directly, they use `?` placeholders bound later by
+# _build_stage_where, so there's nothing parameter-dependent to recompute.
+#
+# 2026-08-28 fix: before this, `pipeline._count_pending` had its own,
+# independently-maintained `_PENDING_SQL` dict for "score"/"tailor"/"cover"/
+# "enrich" that never gained the state/eligibility gates below when they were
+# added here on 2026-08-25 (see the per-stage comments) -- so pending counts
+# included permanently `archived` phantom rows the real stage runners could
+# never select, which could stall `--stream` mode's zero-pending termination
+# check forever. `_count_pending` now delegates those four stages to
+# `count_jobs_by_stage`, which shares this exact dict, so the two can never
+# diverge again.
+_STAGE_CONDITIONS: dict[str, str] = {
+    "discovered": "1=1",
+    "pending_detail": (
+        "detail_scraped_at IS NULL "
+        "OR (detail_error_category = 'retriable' "
+        # datetime(col) normalizes Python's isoformat() ('...T..+00:00')
+        # to SQLite's own 'YYYY-MM-DD HH:MM:SS' before comparing -- a bare
+        # string compare against datetime('now') is wrong because 'T'
+        # (0x54) sorts after ' ' (0x20), so every retry timestamp looks
+        # "in the future" forever and retries never fire.
+        "    AND (enrich_next_retry_at IS NULL OR datetime(enrich_next_retry_at) <= datetime('now')))"
+    ),
+    "enriched": "full_description IS NOT NULL",
+    # 2026-08-25 fix (same class of bug as "pending_tailor" below, found
+    # by the LLM-architecture audit): this condition previously had NO
+    # `state` check at all -- an archived job (title-reject, non_us_only,
+    # any other exclusion reason) with fit_score still NULL stayed
+    # selectable forever, since archiving doesn't set fit_score/
+    # score_error. Live-measured impact before this fix: 2,080 archived
+    # rows were wrongly re-selectable, 46 of which would have reached a
+    # real (wasted) cloud LLM call, and ALL 2,080 would have had their
+    # archived fit_score/score_reasoning/eligibility silently overwritten
+    # by _flush_score_batch's unconditional UPDATE (see that function's
+    # 2026-08-25 comment for the paired fix). Positive-selects the two
+    # states VALID_TRANSITIONS actually permits progression from:
+    # "enriched" -> "scored"/"low_score" is the primary path; "score_
+    # failed" -> "scored" is the existing give-up-after-5-attempts state,
+    # which VALID_TRANSITIONS legally allows to be re-scored (e.g. after
+    # a schema/config fix) but no query previously re-selected. Confirmed
+    # empirically zero current rows have fit_score IS NULL with a NULL
+    # state, so no legacy-NULL carve-out is needed (same precedent as
+    # "pending_tailor").
+    "pending_score": (
+        "full_description IS NOT NULL AND COALESCE(state, '') IN ('enriched', 'score_failed') AND ("
+        "  (fit_score IS NULL AND score_error IS NULL) "
+        "  OR (score_error IS NOT NULL AND score_attempts < 5 "
+        "      AND (score_next_retry_at IS NULL OR datetime(score_next_retry_at) <= datetime('now')))"
+        ")"
+    ),
+    "scored": "fit_score IS NOT NULL",
+    # 2026-04-30: gate every paid stage on eligibility.
+    # `non_us_only` rows are terminal-archived by the scorer and must
+    # never enter tailor/cover/apply. `eligibility IS NULL` covers
+    # legacy rows scored before the column existed (they pre-date the
+    # filter and pass through unchanged).
+    #
+    # 2026-08-25 fix: this condition previously had NO `state` check at
+    # all -- any archived job (title-reject, revalidate-seniority,
+    # non_us_only, or any other exclusion reason) stayed selectable
+    # forever as long as fit_score/attempts/eligibility still matched,
+    # since none of those columns change when a job is archived. Traced
+    # via VALID_TRANSITIONS (database.py's own state machine):
+    # `"archived": frozenset()` -- archived is the one true terminal
+    # state with ZERO legal outgoing transitions, so it must never be
+    # reachable from this query. `"tailor_failed"` legally transitions
+    # back to `"tailoring"` (`tailor_failed: frozenset({"tailoring",
+    # "tailored", "archived"})`), matching the existing
+    # `tailor_attempts < 5` bounded-retry design -- so unlike archived,
+    # a tailor_failed job MUST remain selectable (this is how a
+    # validation/judge/transient failure gets a second attempt on a
+    # later run). Positive-selects the two states genuinely eligible
+    # for autonomous progression to tailoring, mirroring the same
+    # `COALESCE(state, '') IN (...)` idiom `pending_cover` already uses
+    # below -- confirmed empirically zero current rows have fit_score
+    # set with a NULL state, so no legacy-NULL carve-out is needed to
+    # match that precedent exactly.
+    "pending_tailor": (
+        "fit_score >= ? AND full_description IS NOT NULL "
+        "AND tailored_resume_path IS NULL AND COALESCE(tailor_attempts, 0) < 5 "
+        "AND COALESCE(state, '') IN ('scored', 'tailor_failed') "
+        "AND (eligibility IS NULL OR eligibility = 'eligible')"
+    ),
+    "pending_cover": (
+        "fit_score >= ? AND tailored_resume_path IS NOT NULL "
+        "AND full_description IS NOT NULL "
+        "AND COALESCE(state, '') IN ('tailored', 'cover_failed') "
+        "AND (cover_letter_path IS NULL OR cover_letter_path = '') "
+        "AND COALESCE(cover_attempts, 0) < 5 "  # keep in sync with cover_letter.MAX_ATTEMPTS
+        "AND (eligibility IS NULL OR eligibility = 'eligible')"
+    ),
+    "tailored": "tailored_resume_path IS NOT NULL",
+    "pending_apply": (
+        "tailored_resume_path IS NOT NULL AND applied_at IS NULL "
+        "AND application_url IS NOT NULL "
+        "AND (eligibility IS NULL OR eligibility = 'eligible')"
+    ),
+    "applied": "applied_at IS NOT NULL",
+}
+
+
+def _build_stage_where(stage: str, min_score: int, max_age_days: int) -> tuple[str, list]:
+    """Build the WHERE clause + bound params for `stage`, shared by
+    get_jobs_by_stage and count_jobs_by_stage. `min_score`/`max_age_days`
+    must already be resolved (no None -- callers apply config.DEFAULTS
+    first, matching both functions' existing default-resolution behavior).
+    """
+    where = _STAGE_CONDITIONS.get(stage, "1=1")
+    params: list = []
+
+    if "?" in where:
+        params.append(min_score)
+
+    if stage in ("scored", "tailored", "applied") and "fit_score" not in where:
+        where += " AND fit_score >= ?"
+        params.append(min_score)
+
+    # Age filter: only active when max_age_days > 0.
+    # NULL discovered_at is excluded because `col > val` is NULL (→ falsy in WHERE).
+    if max_age_days > 0:
+        where += " AND discovered_at > datetime('now', ?)"
+        params.append(f"-{max_age_days} days")
+
+    return where, params
+
+
+def count_jobs_by_stage(
+    conn: sqlite3.Connection | None = None,
+    stage: str = "discovered",
+    min_score: int | None = None,
+    max_age_days: int | None = None,
+) -> int:
+    """Count jobs selectable for `stage`, using the exact same WHERE clause
+    get_jobs_by_stage uses -- a cheap `SELECT COUNT(*)`, deliberately never
+    routed through get_jobs_by_stage itself (which does `SELECT *` through a
+    ROW_NUMBER() window function over the full matched set; fine for a
+    bounded-`limit` fetch, wasteful for a poll-loop count against a
+    multi-thousand-row backlog).
+    """
+    from applypilot.config import DEFAULTS
+
+    if conn is None:
+        conn = get_connection()
+
+    if min_score is None:
+        min_score = DEFAULTS["min_score"]
+    if max_age_days is None:
+        max_age_days = DEFAULTS["max_job_age_days"]
+
+    where, params = _build_stage_where(stage, min_score, max_age_days)
+    row = conn.execute(f"SELECT COUNT(*) FROM jobs WHERE {where}", params).fetchone()
+    return row[0] if row else 0
+
+
 def get_jobs_by_stage(
     conn: sqlite3.Connection | None = None,
     stage: str = "discovered",
@@ -1902,110 +2061,7 @@ def get_jobs_by_stage(
     if max_age_days is None:
         max_age_days = DEFAULTS["max_job_age_days"]
 
-    conditions = {
-        "discovered": "1=1",
-        "pending_detail": (
-            "detail_scraped_at IS NULL "
-            "OR (detail_error_category = 'retriable' "
-            # datetime(col) normalizes Python's isoformat() ('...T..+00:00')
-            # to SQLite's own 'YYYY-MM-DD HH:MM:SS' before comparing -- a bare
-            # string compare against datetime('now') is wrong because 'T'
-            # (0x54) sorts after ' ' (0x20), so every retry timestamp looks
-            # "in the future" forever and retries never fire.
-            "    AND (enrich_next_retry_at IS NULL OR datetime(enrich_next_retry_at) <= datetime('now')))"
-        ),
-        "enriched": "full_description IS NOT NULL",
-        # 2026-08-25 fix (same class of bug as "pending_tailor" below, found
-        # by the LLM-architecture audit): this condition previously had NO
-        # `state` check at all -- an archived job (title-reject, non_us_only,
-        # any other exclusion reason) with fit_score still NULL stayed
-        # selectable forever, since archiving doesn't set fit_score/
-        # score_error. Live-measured impact before this fix: 2,080 archived
-        # rows were wrongly re-selectable, 46 of which would have reached a
-        # real (wasted) cloud LLM call, and ALL 2,080 would have had their
-        # archived fit_score/score_reasoning/eligibility silently overwritten
-        # by _flush_score_batch's unconditional UPDATE (see that function's
-        # 2026-08-25 comment for the paired fix). Positive-selects the two
-        # states VALID_TRANSITIONS actually permits progression from:
-        # "enriched" -> "scored"/"low_score" is the primary path; "score_
-        # failed" -> "scored" is the existing give-up-after-5-attempts state,
-        # which VALID_TRANSITIONS legally allows to be re-scored (e.g. after
-        # a schema/config fix) but no query previously re-selected. Confirmed
-        # empirically zero current rows have fit_score IS NULL with a NULL
-        # state, so no legacy-NULL carve-out is needed (same precedent as
-        # "pending_tailor").
-        "pending_score": (
-            "full_description IS NOT NULL AND COALESCE(state, '') IN ('enriched', 'score_failed') AND ("
-            "  (fit_score IS NULL AND score_error IS NULL) "
-            "  OR (score_error IS NOT NULL AND score_attempts < 5 "
-            "      AND (score_next_retry_at IS NULL OR datetime(score_next_retry_at) <= datetime('now')))"
-            ")"
-        ),
-        "scored": "fit_score IS NOT NULL",
-        # 2026-04-30: gate every paid stage on eligibility.
-        # `non_us_only` rows are terminal-archived by the scorer and must
-        # never enter tailor/cover/apply. `eligibility IS NULL` covers
-        # legacy rows scored before the column existed (they pre-date the
-        # filter and pass through unchanged).
-        #
-        # 2026-08-25 fix: this condition previously had NO `state` check at
-        # all -- any archived job (title-reject, revalidate-seniority,
-        # non_us_only, or any other exclusion reason) stayed selectable
-        # forever as long as fit_score/attempts/eligibility still matched,
-        # since none of those columns change when a job is archived. Traced
-        # via VALID_TRANSITIONS (database.py's own state machine):
-        # `"archived": frozenset()` -- archived is the one true terminal
-        # state with ZERO legal outgoing transitions, so it must never be
-        # reachable from this query. `"tailor_failed"` legally transitions
-        # back to `"tailoring"` (`tailor_failed: frozenset({"tailoring",
-        # "tailored", "archived"})`), matching the existing
-        # `tailor_attempts < 5` bounded-retry design -- so unlike archived,
-        # a tailor_failed job MUST remain selectable (this is how a
-        # validation/judge/transient failure gets a second attempt on a
-        # later run). Positive-selects the two states genuinely eligible
-        # for autonomous progression to tailoring, mirroring the same
-        # `COALESCE(state, '') IN (...)` idiom `pending_cover` already uses
-        # below -- confirmed empirically zero current rows have fit_score
-        # set with a NULL state, so no legacy-NULL carve-out is needed to
-        # match that precedent exactly.
-        "pending_tailor": (
-            "fit_score >= ? AND full_description IS NOT NULL "
-            "AND tailored_resume_path IS NULL AND COALESCE(tailor_attempts, 0) < 5 "
-            "AND COALESCE(state, '') IN ('scored', 'tailor_failed') "
-            "AND (eligibility IS NULL OR eligibility = 'eligible')"
-        ),
-        "pending_cover": (
-            "fit_score >= ? AND tailored_resume_path IS NOT NULL "
-            "AND full_description IS NOT NULL "
-            "AND COALESCE(state, '') IN ('tailored', 'cover_failed') "
-            "AND (cover_letter_path IS NULL OR cover_letter_path = '') "
-            "AND COALESCE(cover_attempts, 0) < 5 "  # keep in sync with cover_letter.MAX_ATTEMPTS
-            "AND (eligibility IS NULL OR eligibility = 'eligible')"
-        ),
-        "tailored": "tailored_resume_path IS NOT NULL",
-        "pending_apply": (
-            "tailored_resume_path IS NOT NULL AND applied_at IS NULL "
-            "AND application_url IS NOT NULL "
-            "AND (eligibility IS NULL OR eligibility = 'eligible')"
-        ),
-        "applied": "applied_at IS NOT NULL",
-    }
-
-    where = conditions.get(stage, "1=1")
-    params: list = []
-
-    if "?" in where:
-        params.append(min_score)
-
-    if stage in ("scored", "tailored", "applied") and "fit_score" not in where:
-        where += " AND fit_score >= ?"
-        params.append(min_score)
-
-    # Age filter: only active when max_age_days > 0.
-    # NULL discovered_at is excluded because `col > val` is NULL (→ falsy in WHERE).
-    if max_age_days > 0:
-        where += " AND discovered_at > datetime('now', ?)"
-        params.append(f"-{max_age_days} days")
+    where, params = _build_stage_where(stage, min_score, max_age_days)
 
     if urls is not None:
         where += f" AND url IN ({','.join('?' * len(urls))})"
