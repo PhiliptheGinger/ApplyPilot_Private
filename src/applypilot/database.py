@@ -564,6 +564,22 @@ def transition_state(
         raise ValueError(f"Job not found: {job_url}")
     from_state = row["state"] if isinstance(row, sqlite3.Row) else row[0]
 
+    # 2026-08-29 fix: a self-transition was already implicitly legal (the
+    # non-force branch below never rejects `to_state == from_state`), but
+    # fell through to unconditionally UPDATE + INSERT an audit row anyway --
+    # a pure no-op write every time. Live measurement: 4,485 of 46,967
+    # job_state_transitions rows (~9.5%) were exactly this, e.g. archived ->
+    # archived (2,960) from repeated eligibility/title sweeps re-processing
+    # already-archived rows. No caller relies on a row actually being
+    # inserted for this case -- every caller that checks the return value
+    # either can't structurally produce a self-transition (claim/recovery
+    # paths always target a different state) or already treats `True` as
+    # success regardless (force=True counters). Short-circuiting here is
+    # a pure no-op from every caller's perspective, just without the
+    # wasted write.
+    if to_state == from_state:
+        return True
+
     if not force:
         allowed = VALID_TRANSITIONS.get(from_state, frozenset())
         if to_state not in allowed and to_state != from_state:
