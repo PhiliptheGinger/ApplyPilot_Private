@@ -192,6 +192,133 @@ class TestRenderDocx:
         assert any("real-time data pipeline" in b for b in bullet_texts)
 
 
+# 2026-08-28 fix: cover letters were previously run through the resume-
+# shaped parse_resume/render_docx/build_html path used above. Since a
+# cover letter never contains a literal "SUMMARY" header line,
+# parse_resume's header-scanning loop never broke, so every line after the
+# first blank line got joined into a single "subtitle" paragraph -- all
+# paragraph breaks lost, and the rest of the letter's content silently
+# dropped because the section-splitting loop never found an ALL-CAPS
+# header either. Confirmed via a real generated cover letter fixture shape
+# (greeting line, several single-line paragraphs, closing name -- see
+# ~/.applypilot/cover_letters/*_CL.txt for the real format this mirrors).
+SAMPLE_COVER_LETTER = """\
+Dear Hiring Manager,
+
+I built a tool that automates data extraction from scanned documents using Python and OCR, which reduced manual review time significantly for a real client project.
+
+At my previous role, I worked directly with customers to diagnose and resolve technical issues, building the kind of clear communication skills this position requires.
+
+I would welcome the chance to discuss how my background fits this role.
+
+Philip"""
+
+
+class TestCoverLetterPlainTextRendering:
+    """render_plain_text_docx / build_plain_text_html / convert_to_pdf's
+    content_type='cover_letter' path -- must preserve every source
+    paragraph verbatim and in order, never route through resume parsing."""
+
+    def test_split_into_paragraphs_preserves_order_and_content_verbatim(self):
+        from applypilot.scoring.pdf import _split_into_paragraphs
+
+        paragraphs = _split_into_paragraphs(SAMPLE_COVER_LETTER)
+        expected = [
+            "Dear Hiring Manager,",
+            (
+                "I built a tool that automates data extraction from scanned documents "
+                "using Python and OCR, which reduced manual review time significantly "
+                "for a real client project."
+            ),
+            (
+                "At my previous role, I worked directly with customers to diagnose and "
+                "resolve technical issues, building the kind of clear communication "
+                "skills this position requires."
+            ),
+            "I would welcome the chance to discuss how my background fits this role.",
+            "Philip",
+        ]
+        assert paragraphs == expected
+
+    def test_render_plain_text_docx_preserves_paragraphs_verbatim_and_in_order(self, tmp_path):
+        from docx import Document
+
+        from applypilot.scoring.pdf import _split_into_paragraphs, render_plain_text_docx
+
+        out = tmp_path / "cover_letter.docx"
+        render_plain_text_docx(SAMPLE_COVER_LETTER, str(out))
+
+        doc = Document(str(out))
+        actual = [p.text for p in doc.paragraphs]
+        expected = _split_into_paragraphs(SAMPLE_COVER_LETTER)
+
+        assert actual == expected, (
+            f"Expected {len(expected)} paragraphs preserved verbatim and in order, got {actual!r} "
+            "-- before the fix this would collapse to far fewer paragraphs with content joined/dropped"
+        )
+
+    def test_build_plain_text_html_preserves_paragraphs_verbatim_and_in_order(self):
+        import re as _re
+
+        from applypilot.scoring.pdf import _split_into_paragraphs, build_plain_text_html
+
+        html = build_plain_text_html(SAMPLE_COVER_LETTER)
+        found = _re.findall(r"<p>(.*?)</p>", html, flags=_re.DOTALL)
+        expected = _split_into_paragraphs(SAMPLE_COVER_LETTER)
+
+        assert found == expected, f"Expected {len(expected)} <p> tags preserved verbatim and in order, got {found!r}"
+
+    def test_convert_to_pdf_cover_letter_content_type_produces_matching_paragraph_count(self, tmp_path):
+        """End-to-end integration through the real cover_letter.py call
+        shape: convert_to_pdf(..., content_type='cover_letter', doc_format='docx')."""
+        from docx import Document
+
+        from applypilot.scoring.pdf import _split_into_paragraphs, convert_to_pdf
+
+        txt_file = tmp_path / "cover_letter.txt"
+        txt_file.write_text(SAMPLE_COVER_LETTER, encoding="utf-8")
+
+        result = convert_to_pdf(txt_file, doc_format="docx", content_type="cover_letter")
+
+        assert result.suffix == ".docx"
+        doc = Document(str(result))
+        actual = [p.text for p in doc.paragraphs]
+        expected = _split_into_paragraphs(SAMPLE_COVER_LETTER)
+        assert actual == expected
+
+    def test_convert_to_pdf_resume_content_type_is_unchanged(self, tmp_path):
+        """Regression guard: content_type='resume' (the default, used by
+        every existing resume call site) must behave identically to before
+        this fix -- still section-parsed, not routed through the new
+        plain-text path."""
+        from docx import Document
+
+        from applypilot.scoring.pdf import convert_to_pdf
+
+        txt_file = tmp_path / "resume.txt"
+        txt_file.write_text(SAMPLE_RESUME, encoding="utf-8")
+
+        result = convert_to_pdf(txt_file, doc_format="docx")  # content_type defaults to "resume"
+
+        doc = Document(str(result))
+        full_text = "\n".join(p.text for p in doc.paragraphs)
+        assert "SUMMARY" in full_text
+        assert "TECHNICAL SKILLS" in full_text
+        assert "EXPERIENCE" in full_text
+        assert "Acme Corp" in full_text
+
+    def test_convert_to_pdf_invalid_content_type_raises(self, tmp_path):
+        import pytest
+
+        from applypilot.scoring.pdf import convert_to_pdf
+
+        txt_file = tmp_path / "x.txt"
+        txt_file.write_text(SAMPLE_COVER_LETTER, encoding="utf-8")
+
+        with pytest.raises(ValueError, match="Invalid content_type"):
+            convert_to_pdf(txt_file, content_type="bogus")
+
+
 class TestBatchConvertDocx:
     """Tests for batch_convert with doc_format parameter."""
 

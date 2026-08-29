@@ -313,7 +313,7 @@ def _cover_one_job(job: dict, resume_text: str | None, profile: dict, doc_format
                 f"Cover letter for: {job_title}\nSource: {site}\nDate: {datetime.now(UTC).strftime('%Y-%m-%d')}"
             ),
         }
-        doc_path = str(convert_to_pdf(cl_path, doc_format=doc_format, metadata=cl_metadata))
+        doc_path = str(convert_to_pdf(cl_path, doc_format=doc_format, metadata=cl_metadata, content_type="cover_letter"))
     except Exception:
         log.debug("Document generation failed for %s", cl_path, exc_info=True)
 
