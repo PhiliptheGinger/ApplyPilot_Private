@@ -1229,9 +1229,20 @@ def get_stats(conn: sqlite3.Connection | None = None) -> dict:
     # Scoring stage
     stats["scored"] = conn.execute("SELECT COUNT(*) FROM jobs WHERE fit_score IS NOT NULL").fetchone()[0]
 
-    stats["unscored"] = conn.execute(
-        "SELECT COUNT(*) FROM jobs WHERE full_description IS NOT NULL AND fit_score IS NULL"
-    ).fetchone()[0]
+    # 2026-08-28 fix: this used to be a raw, unreconciled COUNT(*) with no
+    # `state` filter -- a third independently-maintained "pending score"
+    # definition alongside pipeline._count_pending's old (now-fixed, see
+    # 727567a) predicate. It counted permanently-`archived` rows the real
+    # score stage could never select (live: 14,558 raw vs. 11,770 actually
+    # selectable), and this field is directly user-facing -- `applypilot
+    # status` displays it as "Pending scoring". Delegating to
+    # count_jobs_by_stage shares the exact same WHERE clause
+    # get_jobs_by_stage uses for real selection, so this can't drift again.
+    # max_age_days=0 preserves this field's existing semantics exactly: the
+    # old query never applied an age filter, and _build_stage_where only
+    # adds one when max_age_days > 0. min_score is irrelevant here --
+    # "pending_score"'s condition has no `?` placeholder to bind it to.
+    stats["unscored"] = count_jobs_by_stage(conn, "pending_score", max_age_days=0)
 
     # Score distribution
     dist_rows = conn.execute(

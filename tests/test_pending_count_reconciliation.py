@@ -356,3 +356,61 @@ def test_count_jobs_by_stage_issues_select_count_not_select_star(tmp_db, seed_jo
     sql = select_statements[0].strip().upper()
     assert sql.startswith("SELECT COUNT(*)")
     assert "ROW_NUMBER" not in sql
+
+
+# ── get_stats()['unscored'] reconciliation ──────────────────────────────────
+#
+# 2026-08-28: get_stats()'s "unscored" field was a THIRD independently-
+# maintained "pending score" predicate (`full_description IS NOT NULL AND
+# fit_score IS NULL`, no `state` filter) -- the same phantom-archived-row
+# bug this whole module's fix already closed for pipeline._count_pending,
+# just a separate, unreconciled copy. It's user-facing: `applypilot status`
+# displays it as "Pending scoring". Fixed by delegating to
+# count_jobs_by_stage(conn, "pending_score", max_age_days=0) -- the
+# max_age_days=0 preserves the field's pre-existing no-age-filtering
+# semantics exactly.
+
+
+def test_get_stats_unscored_matches_canonical_pending_score(tmp_db, seed_job):
+    """Parity test across a realistic mixed pool: get_stats()['unscored']
+    must equal count_jobs_by_stage(conn, "pending_score") exactly, on a
+    fixture that includes the exact historical phantom-row shape (an
+    archived job with fit_score still NULL) alongside genuinely pending
+    rows -- reproducing the live 14,558-vs-11,770 divergence at test scale."""
+    from applypilot.database import count_jobs_by_stage, get_stats
+
+    conn = tmp_db()
+    # Archived phantom -- the exact bug. Must NOT be counted.
+    seed_job(conn, url_suffix="stats-archived", fit_score=None, full_description="x", state="archived")
+    # Genuinely pending (enriched, never scored). Must be counted.
+    seed_job(conn, url_suffix="stats-enriched", fit_score=None, full_description="x", state="enriched")
+    # score_failed within retry budget. Must be counted.
+    seed_job(
+        conn,
+        url_suffix="stats-retry",
+        fit_score=None,
+        full_description="x",
+        state="score_failed",
+        score_error="LLM error: boom",
+        score_attempts=1,
+    )
+    # score_failed exhausted. Must NOT be counted.
+    seed_job(
+        conn,
+        url_suffix="stats-exhausted",
+        fit_score=None,
+        full_description="x",
+        state="score_failed",
+        score_error="LLM error: boom",
+        score_attempts=5,
+    )
+    # Already scored. Must NOT be counted.
+    seed_job(conn, url_suffix="stats-scored", fit_score=9, full_description="x", state="scored")
+
+    stats = get_stats(conn)
+    canonical = count_jobs_by_stage(conn, "pending_score", max_age_days=0)
+
+    assert stats["unscored"] == canonical == 2, (
+        f"get_stats()['unscored']={stats['unscored']} vs canonical={canonical} -- "
+        "these must never diverge again; expected exactly the 2 genuinely-pending rows"
+    )
