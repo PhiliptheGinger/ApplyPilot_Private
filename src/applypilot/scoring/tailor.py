@@ -602,6 +602,7 @@ EDUCATION: Copy every school from the ORIGINAL RESUME's education section — on
 - Preserved companies: {companies_str} -- names stay as-is
 - Preserved school: {school}
 - Must fit 1 page.
+- Each experience/project "subtitle" is "Tech | Dates": use the REAL dates from the ORIGINAL RESUME's matching entry. If the original genuinely has no dates for that entry, omit the "| Dates" portion entirely -- output just the tech stack. Never write placeholder text like "Dates not specified", "Dates N/A", "Dates Unspecified", or similar in place of a real date.
 
 ## OUTPUT: Return ONLY valid JSON. No markdown fences. No commentary. No "here is" preamble.
 

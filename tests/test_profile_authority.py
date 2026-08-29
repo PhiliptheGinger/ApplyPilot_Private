@@ -14,12 +14,15 @@ the concrete known-bad regression cases named in the task:
 
 import json
 
+import pytest
+
 from applypilot.scoring.tailor import (
     _build_canonical_inventory_block,
     classify_seniority_mismatch,
     tailor_resume,
 )
 from applypilot.scoring.validator import (
+    check_date_placeholder_fabrication,
     check_title_inflation,
     check_unsupported_technical_skills,
     validate_cover_letter,
@@ -300,6 +303,99 @@ class TestFabricationWatchlistUngroundedTechnologies:
         }
         result = validate_json_fields(data, profile)
         assert not any("fabricated skill: 'kubernetes'" in e.lower() for e in result["errors"])
+
+
+# ---------------------------------------------------------------------------
+# check_date_placeholder_fabrication -- subtitle date-placeholder fabrication
+# ---------------------------------------------------------------------------
+
+
+class TestDatePlaceholderFabrication:
+    """2026-08-28: `subtitle` ("Tech | Dates" per entry) was never validated
+    at all. Live measurement against all 354 real generated resumes found
+    the exact prompt-schema example ("Tech | Dates") never leaks verbatim,
+    but the LLM regularly invents its OWN placeholder text when it lacks
+    real dates -- affecting 271/354 (76%) of real output. These are the 5
+    real observed variants plus a negative control."""
+
+    @pytest.mark.parametrize(
+        "subtitle",
+        [
+            "Python, SQL | Dates not specified",
+            "Python, SQL | Dates N/A",
+            "Python, SQL | Dates Not Specified",
+            "Python, SQL | Dates Unspecified",
+            "Python, SQL | Dates Not Provided",
+            "Python, SQL | dates not provided",  # case-insensitive
+        ],
+    )
+    def test_known_bad_variants_are_rejected(self, subtitle):
+        data = {"experience": [{"header": "Role at Company", "subtitle": subtitle}]}
+        errors = check_date_placeholder_fabrication(data)
+        assert errors
+        assert "Role at Company" in errors[0]
+
+    def test_real_dates_pass(self):
+        data = {"experience": [{"header": "Role at Company", "subtitle": "Python, SQL | 2021 - 2023"}]}
+        assert check_date_placeholder_fabrication(data) == []
+
+    def test_omitted_dates_pass(self):
+        """The prompt now instructs omitting the date portion entirely
+        when genuinely unknown -- this must never be flagged, only
+        INVENTED filler text should be."""
+        data = {"experience": [{"header": "Role at Company", "subtitle": "Python, SQL"}]}
+        assert check_date_placeholder_fabrication(data) == []
+
+    def test_projects_section_also_checked(self):
+        data = {"projects": [{"header": "Side Project", "subtitle": "React | Dates not specified"}]}
+        errors = check_date_placeholder_fabrication(data)
+        assert errors
+        assert "Side Project" in errors[0]
+
+    def test_missing_subtitle_key_does_not_crash(self):
+        data = {"experience": [{"header": "Role at Company"}]}
+        assert check_date_placeholder_fabrication(data) == []
+
+    def test_non_list_sections_do_not_crash(self):
+        assert check_date_placeholder_fabrication({}) == []
+        assert check_date_placeholder_fabrication({"experience": None, "projects": "not a list"}) == []
+
+
+class TestValidateJsonFieldsRejectsDatePlaceholder:
+    def test_validate_json_fields_rejects_fabricated_date_placeholder(self):
+        data = {
+            "title": "Technical Support & Customer Service",
+            "summary": "Support and troubleshooting background.",
+            "skills": {"Languages": "Python"},
+            "experience": [
+                {
+                    "header": "Packaging Associate / Warehouse Associate at UPS",
+                    "subtitle": "Logistics | Dates not specified",
+                    "bullets": ["Package handling."],
+                }
+            ],
+            "education": "University of North Carolina at Greensboro",
+        }
+        result = validate_json_fields(data, _profile())
+        assert not result["passed"]
+        assert any("fabricated date placeholder" in e.lower() for e in result["errors"])
+
+    def test_validate_json_fields_accepts_real_dates(self):
+        data = {
+            "title": "Technical Support & Customer Service",
+            "summary": "Support and troubleshooting background.",
+            "skills": {"Languages": "Python"},
+            "experience": [
+                {
+                    "header": "Packaging Associate / Warehouse Associate at UPS",
+                    "subtitle": "Logistics | 2019 - 2021",
+                    "bullets": ["Package handling."],
+                }
+            ],
+            "education": "University of North Carolina at Greensboro",
+        }
+        result = validate_json_fields(data, _profile())
+        assert not any("fabricated date placeholder" in e.lower() for e in result["errors"])
 
 
 # ---------------------------------------------------------------------------

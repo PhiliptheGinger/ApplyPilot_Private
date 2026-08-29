@@ -448,6 +448,8 @@ def validate_json_fields(data: dict, profile: dict, standup_decision: str | None
     if title_inflation:
         errors.append(title_inflation)
 
+    errors.extend(check_date_placeholder_fabrication(data))
+
     found_leaks = [p for p in LLM_LEAK_PHRASES if p in all_text]
     if found_leaks:
         errors.append(f"LLM self-talk: '{found_leaks[0]}'")
@@ -678,6 +680,42 @@ def validate_factual_anchors(tailored_data: dict, profile: dict) -> dict:
             break  # matched a known employer; don't also check other entries
 
     return {"errors": errors, "warnings": warnings}
+
+
+# 2026-08-28: `subtitle` ("Tech | Dates" per experience/project entry) was
+# never validated at all -- confirmed by reading validate_json_fields: it
+# collects summary/bullets/header/title into checks but never touches
+# subtitle. Live measurement against all 354 real generated resumes: the
+# literal prompt-schema example "Tech | Dates" never leaks verbatim, but
+# the LLM regularly invents its OWN placeholder text when it lacks real
+# dates -- "Dates not specified" (1492 occurrences/196 files), "Dates N/A"
+# (259/36), "Dates Not Specified" (146), "Dates Unspecified" (133), "Dates
+# Not Provided" (18/7) -- affecting 271/354 (76%) of real output. The
+# prompt now explicitly instructs omitting the date portion instead of
+# inventing filler text (see tailor.py's HARD RULES); this is the
+# deterministic backstop, same ERROR-tier/retry pattern as
+# check_title_inflation below.
+_DATE_PLACEHOLDER_RE = re.compile(r"dates?\s+(?:not\s+(?:specified|provided)|n/?a|unspecified)", re.IGNORECASE)
+
+
+def check_date_placeholder_fabrication(data: dict) -> list[str]:
+    """Return one error string per experience/project entry whose
+    `subtitle` contains invented placeholder date text (e.g. "Dates not
+    specified") instead of either a real date or an omitted date portion.
+    Empty list when nothing is flagged."""
+    errors: list[str] = []
+    for section in ("experience", "projects"):
+        entries = data.get(section)
+        if not isinstance(entries, list):
+            continue
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            subtitle = str(entry.get("subtitle") or "")
+            if _DATE_PLACEHOLDER_RE.search(subtitle):
+                header = str(entry.get("header") or "")[:80]
+                errors.append(f"Fabricated date placeholder in subtitle for '{header}': '{subtitle}'")
+    return errors
 
 
 # 2026-08-25: companion to validate_factual_anchors' per-employer title
