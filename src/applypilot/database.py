@@ -1259,15 +1259,19 @@ def get_stats(conn: sqlite3.Connection | None = None) -> dict:
         "SELECT COUNT(*) FROM jobs WHERE COALESCE(tailor_auto_approved, 0) = 1"
     ).fetchone()[0]
 
-    from applypilot.config import DEFAULTS as _DEFAULTS
-
-    stats["untailored_eligible"] = conn.execute(
-        "SELECT COUNT(*) FROM jobs "
-        "WHERE fit_score >= ? AND full_description IS NOT NULL "
-        "AND tailored_resume_path IS NULL "
-        "AND (eligibility IS NULL OR eligibility = 'eligible')",
-        (_DEFAULTS["min_score"],),
-    ).fetchone()[0]
+    # 2026-08-29 fix: same divergence class as "unscored" above (fixed
+    # 2026-08-28) -- this was a raw predicate missing BOTH the `state IN
+    # ('scored', 'tailor_failed')` gate and the `tailor_attempts < 5` gate
+    # that `_STAGE_CONDITIONS["pending_tailor"]` requires. Live measurement
+    # found 100% phantom: 71 raw vs. 0 actually selectable, entirely
+    # `state='archived'` rows (69 of which were ALSO already
+    # tailor-attempts-exhausted, i.e. double-counted with the
+    # `tailor_exhausted` stat below). User-facing via `applypilot status`'s
+    # "Pending tailoring (7+)" line. Delegating to count_jobs_by_stage
+    # closes both gaps at once by construction. max_age_days=0 preserves
+    # this field's pre-existing no-age-filtering semantics exactly (same
+    # precedent as "unscored").
+    stats["untailored_eligible"] = count_jobs_by_stage(conn, "pending_tailor", max_age_days=0)
 
     stats["tailor_exhausted"] = conn.execute(
         "SELECT COUNT(*) FROM jobs WHERE COALESCE(tailor_attempts, 0) >= 5 AND tailored_resume_path IS NULL"

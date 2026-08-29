@@ -414,3 +414,73 @@ def test_get_stats_unscored_matches_canonical_pending_score(tmp_db, seed_job):
         f"get_stats()['unscored']={stats['unscored']} vs canonical={canonical} -- "
         "these must never diverge again; expected exactly the 2 genuinely-pending rows"
     )
+
+
+# ── get_stats()['untailored_eligible'] reconciliation ───────────────────────
+#
+# 2026-08-29: get_stats()'s "untailored_eligible" field was a raw predicate
+# missing BOTH the `state IN ('scored', 'tailor_failed')` gate and the
+# `tailor_attempts < 5` gate that `_STAGE_CONDITIONS["pending_tailor"]`
+# requires -- the same divergence class as "unscored" (fixed 2026-08-28),
+# just on the tailoring stage. Live measurement found 100% phantom: 71 raw
+# vs. 0 actually selectable, entirely `state='archived'` rows. User-facing:
+# `applypilot status` displays it as "Pending tailoring (7+)". Fixed by
+# delegating to count_jobs_by_stage(conn, "pending_tailor", max_age_days=0).
+
+
+def test_get_stats_untailored_eligible_matches_canonical_pending_tailor(tmp_db, seed_job):
+    """Parity test across a realistic mixed pool: get_stats()
+    ['untailored_eligible'] must equal count_jobs_by_stage(conn,
+    "pending_tailor") exactly, on a fixture that includes the exact
+    historical phantom-row shape (an archived job with fit_score still set
+    and no tailored_resume_path) alongside genuinely pending rows --
+    reproducing the live 71-vs-0 divergence at test scale."""
+    from applypilot.database import count_jobs_by_stage, get_stats
+
+    conn = tmp_db()
+    # Archived phantom, never attempted -- the exact bug. Must NOT be counted.
+    seed_job(
+        conn, url_suffix="tail-archived-fresh", fit_score=9, tailored_resume_path=None, state="archived"
+    )
+    # Archived phantom, ALSO attempts-exhausted (the dominant live shape:
+    # 69 of 71 real phantom rows were both archived AND exhausted). Must
+    # NOT be counted here (nor in tailor_exhausted's tailored_resume_path
+    # check, but that's a separate stat not under test).
+    seed_job(
+        conn,
+        url_suffix="tail-archived-exhausted",
+        fit_score=9,
+        tailored_resume_path=None,
+        state="archived",
+        tailor_attempts=5,
+    )
+    # Genuinely pending (scored, never tailored). Must be counted.
+    seed_job(conn, url_suffix="tail-scored", fit_score=9, tailored_resume_path=None, state="scored")
+    # tailor_failed within retry budget. Must be counted.
+    seed_job(
+        conn,
+        url_suffix="tail-retry",
+        fit_score=9,
+        tailored_resume_path=None,
+        state="tailor_failed",
+        tailor_attempts=2,
+    )
+    # tailor_failed exhausted (not archived). Must NOT be counted.
+    seed_job(
+        conn,
+        url_suffix="tail-exhausted",
+        fit_score=9,
+        tailored_resume_path=None,
+        state="tailor_failed",
+        tailor_attempts=5,
+    )
+    # Already tailored. Must NOT be counted.
+    seed_job(conn, url_suffix="tail-done", fit_score=9, tailored_resume_path="/tmp/done.docx", state="tailored")
+
+    stats = get_stats(conn)
+    canonical = count_jobs_by_stage(conn, "pending_tailor", max_age_days=0)
+
+    assert stats["untailored_eligible"] == canonical == 2, (
+        f"get_stats()['untailored_eligible']={stats['untailored_eligible']} vs canonical={canonical} -- "
+        "these must never diverge again; expected exactly the 2 genuinely-pending rows"
+    )
