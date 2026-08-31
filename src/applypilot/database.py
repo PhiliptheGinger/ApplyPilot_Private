@@ -115,6 +115,24 @@ def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
     conn = sqlite3.connect(path, timeout=30)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA busy_timeout=30000")
+    # 2026-08-30 fix: `synchronous` was never set here, so every connection
+    # ran on SQLite's compiled-in default (FULL) -- confirmed live via
+    # `PRAGMA synchronous` on the real DB. FULL fsyncs on every WAL write,
+    # which on this machine's mechanical HDD is a real, non-cached
+    # platter-flush per commit. SQLite's own documentation guarantees WAL
+    # mode + synchronous=NORMAL "cannot result in a corrupt database" --
+    # the only risk is that the most recent commit(s) can be rolled back on
+    # an OS crash or power loss (never on an ordinary process kill/terminate,
+    # which still lets the OS flush its own write buffers). ApplyPilot
+    # already tolerates exactly that: `recover_stale_claims` and the
+    # `applying`-lock sweep in `acquire_job` both exist specifically to
+    # recover a job whose last transition was never observed, by re-running
+    # it rather than trusting a single irrecoverable write. No test or
+    # source in this repo asserted/depended on FULL (grepped for
+    # "synchronous" repo-wide -- zero references before this change), so
+    # this isn't overriding a documented durability decision, just filling
+    # in a pragma that was silently defaulting to the more expensive option.
+    conn.execute("PRAGMA synchronous=NORMAL")
     conn.row_factory = sqlite3.Row
     _local.connections[path] = conn
     return conn
@@ -423,6 +441,24 @@ def ensure_columns(conn: sqlite3.Connection | None = None) -> list[str]:
     conn.execute("CREATE INDEX IF NOT EXISTS idx_jst_job ON job_state_transitions(job_url)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_jst_at ON job_state_transitions(at)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_state ON jobs(state)")
+
+    # 2026-08-30 fix: run_tailoring's and run_cover_letters' per-company cap
+    # queries (tailor.py/cover_letter.py) filter on tailored_resume_path/
+    # cover_letter_path IS NOT NULL and run on EVERY streaming stage pass
+    # (as often as every ~10s for the life of a long-running `--stream`
+    # run) -- confirmed live via EXPLAIN QUERY PLAN that this was a full
+    # `SCAN jobs` (24,653 rows / 236 MB on this machine's real DB, and
+    # growing). Only a small minority of jobs are ever tailored/covered, so
+    # a partial index on exactly that predicate lets SQLite narrow to those
+    # rows directly instead of scanning the whole table on every pass.
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_jobs_tailored_cap "
+        "ON jobs(discovered_at) WHERE tailored_resume_path IS NOT NULL"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_jobs_cover_cap "
+        "ON jobs(discovered_at) WHERE cover_letter_path IS NOT NULL"
+    )
 
     if changed:
         commit_with_retry(conn)

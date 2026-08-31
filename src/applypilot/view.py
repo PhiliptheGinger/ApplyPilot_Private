@@ -46,6 +46,13 @@ STAGE_META = {
     "blocked_technical": ("Technical Issue", "#f97316", "#ffedd5"),
     "archived_ineligible": ("Ineligible", "#6b7280", "#e5e7eb"),
     "non_us_only": ("Non-US Only", "#6b7280", "#e5e7eb"),
+    # 2026-08-29: scorer.py's eligibility-labeling fix -- jobs.eligibility can
+    # now be any of scorer.DETERMINISTIC_INELIGIBLE_VALUES, not just
+    # "non_us_only". Same gray "quietly archived, not actionable" styling as
+    # non_us_only/archived_ineligible above; only the label differs.
+    "seniority_mismatch": ("Seniority Mismatch", "#6b7280", "#e5e7eb"),
+    "title_excluded": ("Title Excluded", "#6b7280", "#e5e7eb"),
+    "ineligible_other": ("Ineligible", "#6b7280", "#e5e7eb"),
     "archived_expired": ("Expired", "#6b7280", "#e5e7eb"),
     "archived_platform": ("Platform Blocked", "#ef4444", "#fecaca"),
     "archived_no_url": ("No URL", "#6b7280", "#e5e7eb"),
@@ -137,10 +144,15 @@ def _classify_job(row) -> tuple[str, str]:
         if category == "manual_only":
             return "manual_only", "archive"
 
-    # Eligibility gate: non-US-only roles are terminal-archived by the
-    # scorer — never show them as actionable, regardless of fit_score.
-    if _safe_get(row, "eligibility") == "non_us_only":
-        return "non_us_only", "archive"
+    # Eligibility gate: any deterministic-ineligible category (geography,
+    # seniority, title-pattern, or the low-volume "other" catch-all -- see
+    # scorer.DETERMINISTIC_INELIGIBLE_VALUES) is terminal-archived by the
+    # scorer -- never show them as actionable, regardless of fit_score.
+    # Mirrored locally rather than imported so view.py doesn't gain a new
+    # dependency on scoring.scorer for four string literals.
+    eligibility_value = _safe_get(row, "eligibility")
+    if eligibility_value in ("non_us_only", "seniority_mismatch", "title_excluded", "ineligible_other"):
+        return eligibility_value, "archive"
 
     # Pre-apply pipeline stages (no category set)
     if row["cover_letter_path"] and not row["apply_error"]:
@@ -365,6 +377,19 @@ def _safe_get(row, key, default=None):
         return default
 
 
+def _cheap_compensation_status(job: dict) -> str:
+    """Classification-only ("stated"/"unknown"/"explicitly_absent") compensation
+    status for one dashboard row -- lazy import + conn=None so this never
+    adds an import-time dependency on scoring.compensation for view.py's
+    many callers that don't render job cards, and never issues a DB query
+    per row (dashboard renders every job on every generation -- see the
+    call site's comment for why estimation is intentionally skipped here).
+    """
+    from applypilot.scoring.compensation import classify_compensation
+
+    return classify_compensation(job, conn=None)["status"]
+
+
 def _build_tracking_html(row) -> str:
     """Build tracking info HTML for a job card (status, next action, contacts)."""
     parts = []
@@ -516,6 +541,25 @@ def generate_dashboard(output_path: str | None = None) -> str:
         ]
         if salary:
             meta_parts.append(f'<span class="meta-tag salary">{salary}</span>')
+        else:
+            # 2026-08-30: cheap, classification-only compensation badge
+            # (no DB query, no estimation -- see scoring.compensation
+            # module docstring) so a job with genuinely no pay information
+            # is visually distinguishable from one whose pay just isn't in
+            # the `salary` column but IS in the description text. Only
+            # rendered when `salary` is empty since a populated `salary`
+            # tag above already communicates "stated" for that common case.
+            # Deliberately conn=None: estimation needs a DB query per row,
+            # which is too expensive to run for every card on every
+            # dashboard render (thousands of rows) -- an "estimated" status
+            # is still visible for scored jobs via the reasoning text
+            # below, which already carries the estimate range/confidence
+            # baked in at scoring time.
+            comp_status = _cheap_compensation_status(dict(row))
+            if comp_status == "explicitly_absent":
+                meta_parts.append('<span class="meta-tag comp-unknown">commission-only</span>')
+            elif comp_status == "unknown":
+                meta_parts.append('<span class="meta-tag comp-unknown">pay not stated</span>')
         if location:
             meta_parts.append(f'<span class="meta-tag location">{location[:40]}</span>')
         meta_html = " ".join(meta_parts)

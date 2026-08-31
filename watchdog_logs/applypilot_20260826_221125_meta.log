@@ -1,0 +1,5 @@
+Run started: 2026-08-26 22:11:26
+Command: python -u -m applypilot run discover --workers 1 --quiet
+ApplyPilot PID: 22704
+2-hour limit reached: stopping process tree at 2026-08-27 00:11:26
+Sleep command issued at 2026-08-27 00:11:27

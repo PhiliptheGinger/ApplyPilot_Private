@@ -1,0 +1,293 @@
+2026-08-30 10:29:14.938367 Ollama not running -- nothing to stop.
+2026-08-30 10:29:14.941393 Ollama running but only using 400.0 MB (< 500 MB threshold) -- leaving it alone, not implicated in this emergency.
+2026-08-30 10:29:14.949869 Ollama using 2500.0 MB -- stopping it as a contributing factor.
+2026-08-30 10:29:14.951882 Terminating Ollama PID 999 (2500.0 MB)
+2026-08-30 10:29:14.957949 Ollama using 2500.0 MB -- stopping it as a contributing factor.
+2026-08-30 10:29:14.959582 Terminating Ollama PID 999 (2500.0 MB)
+2026-08-30 10:29:14.963082 Force-killing Ollama PID 999
+2026-08-30 10:29:16.812323 Top processes by RAM:
+2026-08-30 10:29:16.812323        533.4 MB  PID   2888  MemCompression
+2026-08-30 10:29:16.812323        462.4 MB  PID  15372  claude.exe
+2026-08-30 10:29:16.812323        344.1 MB  PID  25056  msedge.exe
+2026-08-30 10:29:16.833272 === ApplyPilot watchdog starting ===
+2026-08-30 10:29:16.833272 Project: C:\Users\phili\Projects\resume-agent
+2026-08-30 10:29:16.835281 Command: applypilot run discover --workers 1 --quiet
+2026-08-30 10:29:16.835281 Log file: C:\Users\phili\Projects\resume-agent\watchdog_logs\watchdog_20260830_100833.log
+2026-08-30 10:29:16.835281 Thresholds: disk active>=99% AND latency>=1000ms, OR RAM available<1400MB -- sustained 10 consecutive samples (20s) before acting.
+2026-08-30 10:29:16.837791 ApplyPilot PID: 999999
+2026-08-30 10:29:16.837791 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:16.839801 WARNING: disk-stat query failed/timed out: Command 'powershell.exe' timed out after 5 seconds
+2026-08-30 10:29:16.839801 WARNING: Could not obtain Disk 0 performance data.
+2026-08-30 10:29:16.839801 WARNING: severe pressure (RAM) (1/10)
+2026-08-30 10:29:18.590093 Top processes by RAM:
+2026-08-30 10:29:18.591892        533.5 MB  PID   2888  MemCompression
+2026-08-30 10:29:18.593591        462.4 MB  PID  15372  claude.exe
+2026-08-30 10:29:18.593591        343.6 MB  PID  25056  msedge.exe
+2026-08-30 10:29:18.593591        322.6 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:18.593591        308.4 MB  PID  15516  msedge.exe
+2026-08-30 10:29:18.593591        222.7 MB  PID  24872  Code.exe
+2026-08-30 10:29:18.593591        202.0 MB  PID   8368  explorer.exe
+2026-08-30 10:29:18.593591        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:18.593591 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:18.593591 WARNING: severe pressure (RAM) (2/10)
+2026-08-30 10:29:20.348462 Top processes by RAM:
+2026-08-30 10:29:20.348462        534.0 MB  PID   2888  MemCompression
+2026-08-30 10:29:20.348462        462.4 MB  PID  15372  claude.exe
+2026-08-30 10:29:20.348462        343.9 MB  PID  25056  msedge.exe
+2026-08-30 10:29:20.363340        322.8 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:20.364351        308.6 MB  PID  15516  msedge.exe
+2026-08-30 10:29:20.364351        222.8 MB  PID  24872  Code.exe
+2026-08-30 10:29:20.364351        202.0 MB  PID   8368  explorer.exe
+2026-08-30 10:29:20.364351        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:20.364351 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:20.364351 WARNING: severe pressure (RAM) (3/10)
+2026-08-30 10:29:22.109796 Top processes by RAM:
+2026-08-30 10:29:22.109796        534.6 MB  PID   2888  MemCompression
+2026-08-30 10:29:22.109796        462.5 MB  PID  15372  claude.exe
+2026-08-30 10:29:22.109796        343.7 MB  PID  25056  msedge.exe
+2026-08-30 10:29:22.125666        322.6 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:22.125666        308.6 MB  PID  15516  msedge.exe
+2026-08-30 10:29:22.125666        222.9 MB  PID  24872  Code.exe
+2026-08-30 10:29:22.125666        202.0 MB  PID   8368  explorer.exe
+2026-08-30 10:29:22.125666        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:22.125666 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:22.125666 WARNING: severe pressure (RAM) (4/10)
+2026-08-30 10:29:23.973291 Top processes by RAM:
+2026-08-30 10:29:24.023183        540.9 MB  PID   2888  MemCompression
+2026-08-30 10:29:24.023183        462.5 MB  PID  15372  claude.exe
+2026-08-30 10:29:24.026379        343.8 MB  PID  25056  msedge.exe
+2026-08-30 10:29:24.027524        323.8 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:24.027524        308.6 MB  PID  15516  msedge.exe
+2026-08-30 10:29:24.027524        222.9 MB  PID  24872  Code.exe
+2026-08-30 10:29:24.027524        202.0 MB  PID   8368  explorer.exe
+2026-08-30 10:29:24.027524        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:24.027524 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:24.027524 WARNING: severe pressure (RAM) (5/10)
+2026-08-30 10:29:25.940077 Top processes by RAM:
+2026-08-30 10:29:25.942092        535.7 MB  PID   2888  MemCompression
+2026-08-30 10:29:25.944107        462.5 MB  PID  15372  claude.exe
+2026-08-30 10:29:25.944107        343.7 MB  PID  25056  msedge.exe
+2026-08-30 10:29:25.946119        324.4 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:25.946119        310.4 MB  PID  15516  msedge.exe
+2026-08-30 10:29:25.946119        223.0 MB  PID  24872  Code.exe
+2026-08-30 10:29:25.950023        201.1 MB  PID   8368  explorer.exe
+2026-08-30 10:29:25.951807        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:25.951807 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:25.951807 WARNING: disk-stat query failed/timed out: Command 'powershell.exe' timed out after 5 seconds
+2026-08-30 10:29:25.951807 WARNING: Could not obtain Disk 0 performance data.
+2026-08-30 10:29:25.951807 WARNING: severe pressure (RAM) (6/10)
+2026-08-30 10:29:27.753096 Top processes by RAM:
+2026-08-30 10:29:27.753096        535.8 MB  PID   2888  MemCompression
+2026-08-30 10:29:27.765982        462.5 MB  PID  15372  claude.exe
+2026-08-30 10:29:27.767994        343.8 MB  PID  25056  msedge.exe
+2026-08-30 10:29:27.768948        323.3 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:27.769970        311.9 MB  PID  15516  msedge.exe
+2026-08-30 10:29:27.769970        223.0 MB  PID  24872  Code.exe
+2026-08-30 10:29:27.769970        201.1 MB  PID   8368  explorer.exe
+2026-08-30 10:29:27.769970        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:27.769970 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:27.769970 WARNING: severe pressure (RAM) (7/10)
+2026-08-30 10:29:29.469960 Top processes by RAM:
+2026-08-30 10:29:29.469960        540.9 MB  PID   2888  MemCompression
+2026-08-30 10:29:29.469960        462.5 MB  PID  15372  claude.exe
+2026-08-30 10:29:29.469960        343.9 MB  PID  25056  msedge.exe
+2026-08-30 10:29:29.485927        323.8 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:29.485927        311.8 MB  PID  15516  msedge.exe
+2026-08-30 10:29:29.485927        223.1 MB  PID  24872  Code.exe
+2026-08-30 10:29:29.485927        201.1 MB  PID   8368  explorer.exe
+2026-08-30 10:29:29.485927        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:29.485927 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:29.485927 WARNING: severe pressure (RAM) (8/10)
+2026-08-30 10:29:31.124164 Top processes by RAM:
+2026-08-30 10:29:31.128201        541.0 MB  PID   2888  MemCompression
+2026-08-30 10:29:31.130225        462.6 MB  PID  15372  claude.exe
+2026-08-30 10:29:31.132244        343.8 MB  PID  25056  msedge.exe
+2026-08-30 10:29:31.133762        323.3 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:31.137169        312.1 MB  PID  15516  msedge.exe
+2026-08-30 10:29:31.139190        221.4 MB  PID  24872  Code.exe
+2026-08-30 10:29:31.141204        201.0 MB  PID   8368  explorer.exe
+2026-08-30 10:29:31.141204        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:31.143229 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:31.145246 WARNING: severe pressure (RAM) (9/10)
+2026-08-30 10:29:32.883715 Top processes by RAM:
+2026-08-30 10:29:32.883715        540.9 MB  PID   2888  MemCompression
+2026-08-30 10:29:32.883715        462.6 MB  PID  15372  claude.exe
+2026-08-30 10:29:32.883715        344.5 MB  PID  25056  msedge.exe
+2026-08-30 10:29:32.883715        323.3 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:32.883715        312.2 MB  PID  15516  msedge.exe
+2026-08-30 10:29:32.893444        221.5 MB  PID  24872  Code.exe
+2026-08-30 10:29:32.895458        201.0 MB  PID   8368  explorer.exe
+2026-08-30 10:29:32.895458        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:32.895458 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:32.895458 WARNING: severe pressure (RAM) (10/10)
+2026-08-30 10:29:34.746422 Top processes by RAM:
+2026-08-30 10:29:34.746422        540.0 MB  PID   2888  MemCompression
+2026-08-30 10:29:34.746422        462.6 MB  PID  15372  claude.exe
+2026-08-30 10:29:34.759999        344.1 MB  PID  25056  msedge.exe
+2026-08-30 10:29:34.761020        322.3 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:34.762746        312.2 MB  PID  15516  msedge.exe
+2026-08-30 10:29:34.762746        221.6 MB  PID  24872  Code.exe
+2026-08-30 10:29:34.762746        201.0 MB  PID   8368  explorer.exe
+2026-08-30 10:29:34.762746        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:34.762746 !!! EMERGENCY CONDITION TRIGGERED !!!
+2026-08-30 10:29:34.762746 Sustained severe pressure for 20s (disk_bad=False, ram_bad=True).
+2026-08-30 10:29:34.762746 Final process snapshot before shutdown:
+2026-08-30 10:29:36.562630 Top processes by RAM:
+2026-08-30 10:29:36.562630        539.9 MB  PID   2888  MemCompression
+2026-08-30 10:29:36.562630        462.6 MB  PID  15372  claude.exe
+2026-08-30 10:29:36.562630        344.2 MB  PID  25056  msedge.exe
+2026-08-30 10:29:36.562630        322.4 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:36.562630        312.2 MB  PID  15516  msedge.exe
+2026-08-30 10:29:36.562630        221.7 MB  PID  24872  Code.exe
+2026-08-30 10:29:36.562630        201.0 MB  PID   8368  explorer.exe
+2026-08-30 10:29:36.562630        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:36.562630        193.7 MB  PID  10364  Taskmgr.exe
+2026-08-30 10:29:36.572561        163.8 MB  PID   2764  svchost.exe
+2026-08-30 10:29:36.572561        141.8 MB  PID  38808  python.exe
+2026-08-30 10:29:36.572561        128.1 MB  PID  10636  PhoneExperienceHost.exe
+2026-08-30 10:29:36.572561        119.9 MB  PID  31140  claude.exe
+2026-08-30 10:29:36.572561         94.6 MB  PID  17196  StartMenuExperienceHost.exe
+2026-08-30 10:29:36.572561         90.8 MB  PID  21240  msedge.exe
+2026-08-30 10:29:36.572561 Stopping ApplyPilot process tree...
+2026-08-30 10:29:36.572561 Attempting to put Windows to sleep...
+2026-08-30 10:29:36.572561 Sleep command issued.
+2026-08-30 10:29:36.572561 === ApplyPilot watchdog starting ===
+2026-08-30 10:29:36.588452 Project: C:\Users\phili\Projects\resume-agent
+2026-08-30 10:29:36.588452 Command: applypilot run discover --workers 1 --quiet
+2026-08-30 10:29:36.588452 Log file: C:\Users\phili\Projects\resume-agent\watchdog_logs\watchdog_20260830_100833.log
+2026-08-30 10:29:36.590466 Thresholds: disk active>=99% AND latency>=1000ms, OR RAM available<1400MB -- sustained 10 consecutive samples (20s) before acting.
+2026-08-30 10:29:36.590466 ApplyPilot PID: 999999
+2026-08-30 10:29:36.592480 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:36.592480 WARNING: Could not obtain Disk 0 performance data.
+2026-08-30 10:29:36.593491 WARNING: severe pressure (RAM) (1/10)
+2026-08-30 10:29:38.334100 Top processes by RAM:
+2026-08-30 10:29:38.334100        539.7 MB  PID   2888  MemCompression
+2026-08-30 10:29:38.347536        462.6 MB  PID  15372  claude.exe
+2026-08-30 10:29:38.347536        344.2 MB  PID  25056  msedge.exe
+2026-08-30 10:29:38.347536        322.4 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:38.347536        312.2 MB  PID  15516  msedge.exe
+2026-08-30 10:29:38.347536        220.8 MB  PID  24872  Code.exe
+2026-08-30 10:29:38.347536        201.0 MB  PID   8368  explorer.exe
+2026-08-30 10:29:38.347536        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:38.347536 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:38.347536 WARNING: severe pressure (RAM) (2/10)
+2026-08-30 10:29:40.099964 Top processes by RAM:
+2026-08-30 10:29:40.099964        539.6 MB  PID   2888  MemCompression
+2026-08-30 10:29:40.099964        462.7 MB  PID  15372  claude.exe
+2026-08-30 10:29:40.099964        343.9 MB  PID  25056  msedge.exe
+2026-08-30 10:29:40.099964        322.4 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:40.099964        312.2 MB  PID  15516  msedge.exe
+2026-08-30 10:29:40.107729        221.0 MB  PID  24872  Code.exe
+2026-08-30 10:29:40.107729        201.0 MB  PID   8368  explorer.exe
+2026-08-30 10:29:40.107729        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:40.112827 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:40.114852 WARNING: severe pressure (RAM) (3/10)
+2026-08-30 10:29:41.837824 Top processes by RAM:
+2026-08-30 10:29:41.837824        539.3 MB  PID   2888  MemCompression
+2026-08-30 10:29:41.840152        462.7 MB  PID  15372  claude.exe
+2026-08-30 10:29:41.840152        344.0 MB  PID  25056  msedge.exe
+2026-08-30 10:29:41.842160        322.6 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:41.842160        312.2 MB  PID  15516  msedge.exe
+2026-08-30 10:29:41.842160        221.0 MB  PID  24872  Code.exe
+2026-08-30 10:29:41.842160        201.0 MB  PID   8368  explorer.exe
+2026-08-30 10:29:41.842160        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:41.842160 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:41.842160 WARNING: severe pressure (RAM) (4/10)
+2026-08-30 10:29:43.671334 Top processes by RAM:
+2026-08-30 10:29:43.671334        539.3 MB  PID   2888  MemCompression
+2026-08-30 10:29:43.671334        462.7 MB  PID  15372  claude.exe
+2026-08-30 10:29:43.671334        344.2 MB  PID  25056  msedge.exe
+2026-08-30 10:29:43.671334        322.4 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:43.671334        312.2 MB  PID  15516  msedge.exe
+2026-08-30 10:29:43.671334        220.9 MB  PID  24872  Code.exe
+2026-08-30 10:29:43.671334        201.0 MB  PID   8368  explorer.exe
+2026-08-30 10:29:43.671334        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:43.671334 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:43.671334 WARNING: severe pressure (RAM) (5/10)
+2026-08-30 10:29:45.531814 Top processes by RAM:
+2026-08-30 10:29:45.533576        539.2 MB  PID   2888  MemCompression
+2026-08-30 10:29:45.533576        462.7 MB  PID  15372  claude.exe
+2026-08-30 10:29:45.533576        344.2 MB  PID  25056  msedge.exe
+2026-08-30 10:29:45.533576        322.7 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:45.533576        312.7 MB  PID  15516  msedge.exe
+2026-08-30 10:29:45.533576        221.1 MB  PID  24872  Code.exe
+2026-08-30 10:29:45.533576        201.0 MB  PID   8368  explorer.exe
+2026-08-30 10:29:45.533576        200.1 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:45.533576 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:45.533576 WARNING: Could not obtain Disk 0 performance data.
+2026-08-30 10:29:45.533576 WARNING: severe pressure (RAM) (6/10)
+2026-08-30 10:29:47.418467 Top processes by RAM:
+2026-08-30 10:29:47.418467        539.2 MB  PID   2888  MemCompression
+2026-08-30 10:29:47.418467        462.7 MB  PID  15372  claude.exe
+2026-08-30 10:29:47.418467        345.7 MB  PID  25056  msedge.exe
+2026-08-30 10:29:47.418467        328.5 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:47.418467        312.8 MB  PID  15516  msedge.exe
+2026-08-30 10:29:47.418467        221.1 MB  PID  24872  Code.exe
+2026-08-30 10:29:47.418467        201.0 MB  PID   8368  explorer.exe
+2026-08-30 10:29:47.418467        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:47.418467 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:47.418467 WARNING: severe pressure (RAM) (7/10)
+2026-08-30 10:29:49.162749 Top processes by RAM:
+2026-08-30 10:29:49.176629        539.1 MB  PID   2888  MemCompression
+2026-08-30 10:29:49.176629        462.8 MB  PID  15372  claude.exe
+2026-08-30 10:29:49.178641        345.7 MB  PID  25056  msedge.exe
+2026-08-30 10:29:49.178641        328.5 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:49.178641        312.8 MB  PID  15516  msedge.exe
+2026-08-30 10:29:49.181302        221.1 MB  PID  24872  Code.exe
+2026-08-30 10:29:49.182320        201.0 MB  PID   8368  explorer.exe
+2026-08-30 10:29:49.182320        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:49.182320 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:49.182320 WARNING: severe pressure (RAM) (8/10)
+2026-08-30 10:29:50.832975 Top processes by RAM:
+2026-08-30 10:29:50.835011        539.1 MB  PID   2888  MemCompression
+2026-08-30 10:29:50.835011        462.8 MB  PID  15372  claude.exe
+2026-08-30 10:29:50.835011        344.1 MB  PID  25056  msedge.exe
+2026-08-30 10:29:50.835011        328.6 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:50.835011        307.7 MB  PID  15516  msedge.exe
+2026-08-30 10:29:50.835011        221.2 MB  PID  24872  Code.exe
+2026-08-30 10:29:50.835011        201.0 MB  PID   8368  explorer.exe
+2026-08-30 10:29:50.835011        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:50.841837 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:50.841837 WARNING: severe pressure (RAM) (9/10)
+2026-08-30 10:29:52.411210 Top processes by RAM:
+2026-08-30 10:29:52.411210        539.1 MB  PID   2888  MemCompression
+2026-08-30 10:29:52.411210        462.8 MB  PID  15372  claude.exe
+2026-08-30 10:29:52.411210        343.9 MB  PID  25056  msedge.exe
+2026-08-30 10:29:52.411210        328.5 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:52.411210        307.7 MB  PID  15516  msedge.exe
+2026-08-30 10:29:52.411210        221.2 MB  PID  24872  Code.exe
+2026-08-30 10:29:52.411210        201.0 MB  PID   8368  explorer.exe
+2026-08-30 10:29:52.411210        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:52.427635 RAM available=1300 MB used=95.0%
+2026-08-30 10:29:52.427635 WARNING: severe pressure (RAM) (10/10)
+2026-08-30 10:29:53.982290 Top processes by RAM:
+2026-08-30 10:29:53.983802        539.1 MB  PID   2888  MemCompression
+2026-08-30 10:29:53.985042        462.8 MB  PID  15372  claude.exe
+2026-08-30 10:29:53.986050        344.0 MB  PID  25056  msedge.exe
+2026-08-30 10:29:53.988051        328.5 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:53.989275        307.7 MB  PID  15516  msedge.exe
+2026-08-30 10:29:53.990857        221.3 MB  PID  24872  Code.exe
+2026-08-30 10:29:53.990857        201.0 MB  PID   8368  explorer.exe
+2026-08-30 10:29:53.993399        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:53.993399 !!! EMERGENCY CONDITION TRIGGERED !!!
+2026-08-30 10:29:53.993399 Sustained severe pressure for 20s (disk_bad=False, ram_bad=True).
+2026-08-30 10:29:53.993399 Final process snapshot before shutdown:
+2026-08-30 10:29:55.522136 Top processes by RAM:
+2026-08-30 10:29:55.533658        539.1 MB  PID   2888  MemCompression
+2026-08-30 10:29:55.533658        462.9 MB  PID  15372  claude.exe
+2026-08-30 10:29:55.533658        343.9 MB  PID  25056  msedge.exe
+2026-08-30 10:29:55.533658        328.5 MB  PID   5580  MsMpEng.exe
+2026-08-30 10:29:55.533658        307.7 MB  PID  15516  msedge.exe
+2026-08-30 10:29:55.533658        221.3 MB  PID  24872  Code.exe
+2026-08-30 10:29:55.533658        201.0 MB  PID   8368  explorer.exe
+2026-08-30 10:29:55.533658        200.0 MB  PID  14752  CrossDeviceService.exe
+2026-08-30 10:29:55.533658        194.5 MB  PID  10364  Taskmgr.exe
+2026-08-30 10:29:55.541722        165.1 MB  PID   2764  svchost.exe
+2026-08-30 10:29:55.542746        141.8 MB  PID  38808  python.exe
+2026-08-30 10:29:55.542746        128.1 MB  PID  10636  PhoneExperienceHost.exe
+2026-08-30 10:29:55.542746        119.9 MB  PID  31140  claude.exe
+2026-08-30 10:29:55.542746         94.6 MB  PID  17196  StartMenuExperienceHost.exe
+2026-08-30 10:29:55.542746         90.4 MB  PID  21240  msedge.exe
+2026-08-30 10:29:55.542746 Stopping ApplyPilot process tree...
+2026-08-30 10:29:55.542746 Attempting to put Windows to sleep...
+2026-08-30 10:29:55.542746 Sleep command issued.

@@ -64,6 +64,13 @@ def _setup_file_logging(stages: list[str]) -> logging.FileHandler | None:
 
 STAGE_ORDER = ("discover", "enrich", "score", "tailor", "cover", "pdf")
 
+# Stages whose worker function actually accepts/consumes min_score
+# (_run_tailor, _run_cover -- both filter pending_tailor/pending_cover on
+# `fit_score >= ?`). _run_score/_run_enrich/discover/pdf have no min_score
+# parameter at all. Used only to decide whether the run banner's "Min
+# score" line is relevant to the requested stages -- see run_pipeline.
+_MIN_SCORE_STAGES = frozenset({"tailor", "cover"})
+
 STAGE_META: dict[str, dict] = {
     "discover": {"desc": "Job discovery (JobSpy + Workday + smart extract + HN)"},
     "enrich": {"desc": "Detail enrichment (full descriptions + apply URLs)"},
@@ -292,8 +299,17 @@ def _run_enrich(workers: int = 1) -> dict:
     try:
         from applypilot.enrichment.detail import run_enrichment
 
-        run_enrichment(workers=workers)
-        return {"status": "ok"}
+        # 2026-08-30 fix: used to discard run_enrichment()'s real stats dict
+        # (its own docstring: "processed, ok, partial, error, tiers") and
+        # return a placeholder {"status": "ok"} instead. _run_stage_streaming's
+        # progress-detection sums specific keys out of whatever this returns
+        # to decide whether to back off 10s between polls -- the placeholder
+        # has none of those keys, so every successful enrich pass in
+        # streaming mode looked like zero progress and triggered a needless
+        # 10s backoff regardless of how many jobs were actually enriched.
+        stats = run_enrichment(workers=workers)
+        stats.setdefault("status", "ok")
+        return stats
     except Exception as e:
         log.exception("Enrichment failed")
         return {"status": f"error: {e}"}
@@ -313,7 +329,24 @@ def _run_score(workers: int = 1, max_age_days: int | None = None, limit: int = 0
         # following `tailor` stage in the same sequential run can restrict
         # itself to these jobs instead of independently re-querying (see
         # _run_sequential and run_tailoring's job_ids parameter).
-        return {"status": "ok", "job_ids": result.get("job_urls") or []}
+        #
+        # 2026-08-30 fix: this used to return ONLY {"status": "ok",
+        # "job_ids": [...]}, discarding run_scoring()'s real "scored"/
+        # "errors" counts entirely -- confirmed live: a real streaming run
+        # logged "Stage 'score' pass N had pending=X but progress=0;
+        # backing off 10s" on EVERY pass, including ones that had just
+        # successfully scored a job, because _stage_progress (see
+        # _PROGRESS_KEYS above) never got to see the real numbers -- this
+        # wrapper threw them away first. Forwarding them is what actually
+        # fixes the false backoff; the _PROGRESS_KEYS list alone was
+        # necessary but not sufficient. Same bug, same fix, as
+        # _run_enrich/_run_tailor/_run_cover below.
+        return {
+            "status": "ok",
+            "job_ids": result.get("job_urls") or [],
+            "scored": result.get("scored", 0),
+            "errors": result.get("errors", 0),
+        }
     except Exception as e:
         log.exception("Scoring failed")
         return {"status": f"error: {e}"}
@@ -355,7 +388,18 @@ def _run_tailor(
         # restrict itself to these jobs instead of independently
         # re-querying (see _run_sequential and run_cover_letters's job_ids
         # parameter). Mirrors _run_score's identical pattern.
-        return {"status": "ok", "job_ids": result.get("job_urls") or []}
+        #
+        # 2026-08-30 fix: see _run_score's identical fix above -- this used
+        # to discard run_tailoring()'s real "approved"/"failed"/"errors"
+        # counts, causing the same false progress=0 streaming backoff for
+        # the tailor stage.
+        return {
+            "status": "ok",
+            "job_ids": result.get("job_urls") or [],
+            "approved": result.get("approved", 0),
+            "failed": result.get("failed", 0),
+            "errors": result.get("errors", 0),
+        }
     except Exception as e:
         log.exception("Tailoring failed")
         return {"status": f"error: {e}"}
@@ -384,7 +428,7 @@ def _run_cover(
     try:
         from applypilot.scoring.cover_letter import run_cover_letters
 
-        run_cover_letters(
+        result = run_cover_letters(
             min_score=min_score,
             max_age_days=max_age_days,
             limit=limit,
@@ -392,7 +436,16 @@ def _run_cover(
             doc_format=doc_format,
             job_ids=job_ids,
         )
-        return {"status": "ok"}
+        # 2026-08-30 fix: this used to discard run_cover_letters()'s return
+        # value entirely (didn't even assign it to a variable), causing the
+        # same false progress=0 streaming backoff for the cover stage --
+        # see _run_score's identical fix above.
+        return {
+            "status": "ok",
+            "generated": result.get("generated", 0),
+            "rejected": result.get("rejected", 0),
+            "errors": result.get("errors", 0),
+        }
     except Exception as e:
         log.exception("Cover letter generation failed")
         return {"status": f"error: {e}"}
@@ -403,8 +456,15 @@ def _run_pdf(doc_format: str = "docx") -> dict:
     try:
         from applypilot.scoring.pdf import batch_convert
 
-        batch_convert(doc_format=doc_format)
-        return {"status": "ok"}
+        # 2026-08-30 fix: same bug class as _run_enrich/_run_score/_run_tailor/
+        # _run_cover above -- this discarded batch_convert()'s real int count
+        # of files converted and returned a bare {"status": "ok"} placeholder,
+        # which _stage_progress (see _PROGRESS_KEYS) always reads as zero
+        # progress. A "pdf" stage in a --stream run (e.g. `run all --stream`)
+        # would log a false "progress=0; backing off 10s" after every
+        # successful pass, no matter how many files it actually converted.
+        processed = batch_convert(doc_format=doc_format)
+        return {"status": "ok", "processed": processed}
     except Exception as e:
         log.exception("Document conversion failed")
         return {"status": f"error: {e}"}
@@ -619,6 +679,42 @@ def _count_pending(stage: str, min_score: int | None = None, max_age_days: int |
     return conn.execute(sql, params).fetchone()[0]
 
 
+# Keys summed to decide whether a streaming pass made real progress (vs. a
+# cap-blocked/all-filtered no-op pass that should back off before retrying).
+#
+# 2026-08-30 fix: this list must cover every real runner's own success-count
+# key(s), not just whichever ones happened to be added first. Confirmed by
+# reading each runner's actual return dict: run_scoring returns "scored"
+# (was missing -- every successful score pass in streaming mode logged
+# "progress=0" and took a needless 10s backoff regardless of how many jobs
+# were actually scored); run_cover_letters returns "generated"/"rejected"
+# (also missing -- same bug for cover); run_tailoring's "approved"/"failed"
+# were already covered. "rejected" counts as progress the same way "failed"
+# already does for tailor -- a rejected-by-validation cover letter still
+# consumed a real LLM call and produced a real terminal state
+# (cover_failed), it did not "do nothing".
+_PROGRESS_KEYS = (
+    "approved",
+    "failed",
+    "errors",
+    "processed",
+    "ok",
+    "partial",
+    "error",
+    "new",
+    "scored",
+    "generated",
+    "rejected",
+)
+
+
+def _stage_progress(result: dict) -> int:
+    """Sum of every recognized progress-count key present in a stage
+    runner's result dict. 0 means the pass produced no real work (distinct
+    from an error, which is checked separately by the caller)."""
+    return sum(int(result.get(k, 0) or 0) for k in _PROGRESS_KEYS)
+
+
 def _run_stage_streaming(
     stage: str,
     tracker: _StageTracker,
@@ -698,10 +794,7 @@ def _run_stage_streaming(
                 # we don't hot-loop logging the same "no jobs" message every
                 # millisecond — let upstream produce real new work first.
                 elif isinstance(result, dict):
-                    progress = sum(
-                        int(result.get(k, 0) or 0)
-                        for k in ("approved", "failed", "errors", "processed", "ok", "partial", "error", "new")
-                    )
+                    progress = _stage_progress(result)
                     if progress == 0:
                         log.info(
                             "Stage '%s' pass %d had pending=%d but progress=0; backing off %ds",
@@ -967,15 +1060,21 @@ def run_pipeline(
             border_style="blue",
         )
     )
-    console.print(f"  Min score: {min_score}")
     console.print(f"  Max age:   {max_age_days}d")
     console.print(f"  Limit:     {effective_limit} jobs/batch")
     console.print(f"  Workers:   {workers}")
     console.print(f"  Stages:    {' -> '.join(ordered)}")
+    # 2026-08-30 fix: min_score is only ever consumed by _run_tailor/
+    # _run_cover (pending_tailor/pending_cover's `fit_score >= ?` filter) --
+    # _run_score has no min_score parameter at all and never applies one.
+    # The banner used to print "Min score: N" unconditionally, which reads
+    # as if it governs whatever stages were requested even for a
+    # score-only run where it's a complete no-op. Only show it when a
+    # stage that actually consumes it is part of this run.
+    if _MIN_SCORE_STAGES & set(ordered):
+        console.print(f"  Min score: {min_score}")
     if sources:
         console.print(f"  Sources:   {', '.join(sources)}")
-
-    # Pre-run stats
     pre_stats = get_stats()
     console.print(f"  DB:        {pre_stats['total']} jobs, {pre_stats['pending_detail']} pending enrichment")
 

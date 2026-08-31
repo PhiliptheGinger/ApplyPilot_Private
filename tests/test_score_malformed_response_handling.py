@@ -72,14 +72,25 @@ def test_score_job_malformed_score_value_returns_none_score_with_error():
 
 def test_score_job_legitimate_score_has_no_error_key():
     """Contrast case: a real, well-formed response must not gain a spurious
-    "error" key -- the key's presence now means exactly "score is None"."""
+    "error" key -- the key's presence now means exactly "score is None".
+
+    Job description states explicit compensation (2026-08-30 compensation
+    layer): this test's own point is the "error" key contract, not
+    compensation, so the fixture is given stated pay to keep the
+    compensation adjustment a no-op and preserve the original exact-score
+    assertion -- an unstated-compensation job would legitimately (and
+    correctly, per the new feature) score below 8 here, which would be
+    testing the wrong thing for this test's stated purpose."""
     import applypilot.scoring.scorer as scorer_mod
+
+    job = _job()
+    job["full_description"] += " Pay: $90,000-$110,000 annually."
 
     with patch.object(scorer_mod, "get_stage_client") as mock_get_client:
         mock_get_client.return_value.chat.return_value = (
             "ELIGIBILITY: eligible\nSCORE: 8\nKEYWORDS: python\nREASONING: solid match."
         )
-        result = scorer_mod.score_job("Resume text.", _job(), {"education": []})
+        result = scorer_mod.score_job("Resume text.", job, {"education": []})
     assert result["score"] == 8
     assert "error" not in result
 

@@ -1,0 +1,569 @@
+2026-08-30 10:54:09.597457 === ApplyPilot watchdog starting ===
+2026-08-30 10:54:09.597457 Project: C:\Users\phili\Projects\resume-agent
+2026-08-30 10:54:09.597457 Command: applypilot run score --stream --limit 5
+2026-08-30 10:54:09.597457 Log file: C:\Users\phili\Projects\resume-agent\watchdog_logs\watchdog_20260830_105409.log
+2026-08-30 10:54:09.597457 Thresholds: disk active>=99% AND latency>=1000ms, OR RAM available<1400MB -- sustained 10 consecutive samples (20s) before acting.
+2026-08-30 10:54:09.625176 ApplyPilot PID: 6728
+2026-08-30 10:54:11.630363 RAM available=2883 MB used=76.1%
+2026-08-30 10:54:16.954919 WARNING: disk-stat query failed/timed out: Command '['powershell.exe', '-NoProfile', '-Command', "Get-CimInstance Win32_PerfFormattedData_PerfDisk_PhysicalDisk | Where-Object { $_.Name -eq '0 C:' } | Select-Object PercentDiskTime, AvgDiskSecPerTransfer, DiskReadBytesPerSec, DiskWriteBytesPerSec | ConvertTo-Json -Compress"]' timed out after 5 seconds
+2026-08-30 10:54:16.964790 WARNING: Could not obtain Disk 0 performance data.
+2026-08-30 10:54:18.966023 RAM available=2978 MB used=75.3%
+2026-08-30 10:54:20.967372 RAM available=2978 MB used=75.3%
+2026-08-30 10:54:22.969193 RAM available=2983 MB used=75.3%
+2026-08-30 10:54:24.970866 RAM available=2956 MB used=75.5%
+2026-08-30 10:54:26.973135 RAM available=2967 MB used=75.4%
+2026-08-30 10:54:32.031550 WARNING: disk-stat query failed/timed out: Command '['powershell.exe', '-NoProfile', '-Command', "Get-CimInstance Win32_PerfFormattedData_PerfDisk_PhysicalDisk | Where-Object { $_.Name -eq '0 C:' } | Select-Object PercentDiskTime, AvgDiskSecPerTransfer, DiskReadBytesPerSec, DiskWriteBytesPerSec | ConvertTo-Json -Compress"]' timed out after 5 seconds
+2026-08-30 10:54:32.031550 WARNING: Could not obtain Disk 0 performance data.
+2026-08-30 10:54:34.035764 RAM available=2928 MB used=75.7%
+2026-08-30 10:54:36.037825 RAM available=2916 MB used=75.8%
+2026-08-30 10:54:38.039864 RAM available=2908 MB used=75.9%
+2026-08-30 10:54:40.041615 RAM available=2910 MB used=75.9%
+2026-08-30 10:54:42.043151 RAM available=2904 MB used=75.9%
+2026-08-30 10:54:47.079287 WARNING: disk-stat query failed/timed out: Command '['powershell.exe', '-NoProfile', '-Command', "Get-CimInstance Win32_PerfFormattedData_PerfDisk_PhysicalDisk | Where-Object { $_.Name -eq '0 C:' } | Select-Object PercentDiskTime, AvgDiskSecPerTransfer, DiskReadBytesPerSec, DiskWriteBytesPerSec | ConvertTo-Json -Compress"]' timed out after 5 seconds
+2026-08-30 10:54:47.079287 WARNING: Could not obtain Disk 0 performance data.
+2026-08-30 10:54:49.086700 RAM available=2884 MB used=76.1%
+2026-08-30 10:54:51.088404 RAM available=2862 MB used=76.3%
+2026-08-30 10:54:53.090450 RAM available=2848 MB used=76.4%
+2026-08-30 10:54:55.092355 RAM available=2845 MB used=76.4%
+2026-08-30 10:54:57.094898 RAM available=2900 MB used=76.0%
+2026-08-30 10:55:00.206460 Disk0 active=101.0% read=1.19 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 10:55:02.215004 RAM available=2870 MB used=76.2%
+2026-08-30 10:55:04.216695 RAM available=2882 MB used=76.1%
+2026-08-30 10:55:06.218505 RAM available=2884 MB used=76.1%
+2026-08-30 10:55:08.220177 RAM available=2883 MB used=76.1%
+2026-08-30 10:55:10.221782 RAM available=2834 MB used=76.5%
+2026-08-30 10:55:11.465108 Disk0 active=81.0% read=0.46 MB/s write=0.68 MB/s latency=0.0 ms
+2026-08-30 10:55:13.471110 RAM available=2779 MB used=77.0%
+2026-08-30 10:55:15.473016 RAM available=2776 MB used=77.0%
+2026-08-30 10:55:17.474906 RAM available=2779 MB used=77.0%
+2026-08-30 10:55:19.476344 RAM available=2778 MB used=77.0%
+2026-08-30 10:55:21.477979 RAM available=2773 MB used=77.0%
+2026-08-30 10:55:22.478877 Disk0 active=95.0% read=0.44 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 10:55:24.481365 RAM available=2776 MB used=77.0%
+2026-08-30 10:55:26.483120 RAM available=2797 MB used=76.8%
+2026-08-30 10:55:28.484818 RAM available=2840 MB used=76.5%
+2026-08-30 10:55:30.486751 RAM available=2797 MB used=76.8%
+2026-08-30 10:55:32.490800 RAM available=2810 MB used=76.7%
+2026-08-30 10:55:33.722312 Disk0 active=72.0% read=3.90 MB/s write=0.07 MB/s latency=0.0 ms
+2026-08-30 10:55:35.724309 RAM available=2781 MB used=77.0%
+2026-08-30 10:55:37.726977 RAM available=2777 MB used=77.0%
+2026-08-30 10:55:39.728821 RAM available=2783 MB used=76.9%
+2026-08-30 10:55:41.730300 RAM available=2773 MB used=77.0%
+2026-08-30 10:55:43.731685 RAM available=2770 MB used=77.1%
+2026-08-30 10:55:44.765222 Disk0 active=13.0% read=0.12 MB/s write=1.05 MB/s latency=0.0 ms
+2026-08-30 10:55:46.767115 RAM available=2751 MB used=77.2%
+2026-08-30 10:55:48.769109 RAM available=2767 MB used=77.1%
+2026-08-30 10:55:50.770743 RAM available=2771 MB used=77.0%
+2026-08-30 10:55:52.772719 RAM available=2810 MB used=76.7%
+2026-08-30 10:55:54.774691 RAM available=2812 MB used=76.7%
+2026-08-30 10:55:55.773432 Disk0 active=0.0% read=0.00 MB/s write=0.07 MB/s latency=0.0 ms
+2026-08-30 10:55:57.776787 RAM available=2803 MB used=76.8%
+2026-08-30 10:55:59.778372 RAM available=2807 MB used=76.7%
+2026-08-30 10:56:01.780349 RAM available=2802 MB used=76.8%
+2026-08-30 10:56:03.782017 RAM available=2793 MB used=76.9%
+2026-08-30 10:56:05.783343 RAM available=2796 MB used=76.8%
+2026-08-30 10:56:06.776156 Disk0 active=5.0% read=0.25 MB/s write=0.03 MB/s latency=0.0 ms
+2026-08-30 10:56:08.779440 RAM available=2778 MB used=77.0%
+2026-08-30 10:56:10.780929 RAM available=2776 MB used=77.0%
+2026-08-30 10:56:12.782630 RAM available=2771 MB used=77.0%
+2026-08-30 10:56:14.784757 RAM available=2766 MB used=77.1%
+2026-08-30 10:56:16.786327 RAM available=2771 MB used=77.0%
+2026-08-30 10:56:17.896267 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 10:56:19.906097 RAM available=2812 MB used=76.7%
+2026-08-30 10:56:21.907745 RAM available=2811 MB used=76.7%
+2026-08-30 10:56:23.909314 RAM available=2774 MB used=77.0%
+2026-08-30 10:56:25.910985 RAM available=2804 MB used=76.8%
+2026-08-30 10:56:27.912772 RAM available=2804 MB used=76.8%
+2026-08-30 10:56:28.960513 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 10:56:30.962071 RAM available=2797 MB used=76.8%
+2026-08-30 10:56:32.963769 RAM available=2776 MB used=77.0%
+2026-08-30 10:56:34.966125 RAM available=2778 MB used=77.0%
+2026-08-30 10:56:36.967594 RAM available=2730 MB used=77.4%
+2026-08-30 10:56:38.970089 RAM available=2805 MB used=76.8%
+2026-08-30 10:56:40.143581 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 10:56:42.146029 RAM available=2804 MB used=76.8%
+2026-08-30 10:56:44.147907 RAM available=2801 MB used=76.8%
+2026-08-30 10:56:46.149597 RAM available=2795 MB used=76.8%
+2026-08-30 10:56:48.151376 RAM available=2798 MB used=76.8%
+2026-08-30 10:56:50.153345 RAM available=2843 MB used=76.4%
+2026-08-30 10:56:51.136576 Disk0 active=15.0% read=0.85 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 10:56:53.138333 RAM available=2836 MB used=76.5%
+2026-08-30 10:56:55.139963 RAM available=2840 MB used=76.5%
+2026-08-30 10:56:57.141702 RAM available=2828 MB used=76.6%
+2026-08-30 10:56:59.143944 RAM available=2830 MB used=76.6%
+2026-08-30 10:57:01.145864 RAM available=2821 MB used=76.6%
+2026-08-30 10:57:02.150986 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 10:57:04.153416 RAM available=2816 MB used=76.7%
+2026-08-30 10:57:06.155031 RAM available=2812 MB used=76.7%
+2026-08-30 10:57:08.156563 RAM available=2799 MB used=76.8%
+2026-08-30 10:57:10.158153 RAM available=2799 MB used=76.8%
+2026-08-30 10:57:12.160107 RAM available=2772 MB used=77.0%
+2026-08-30 10:57:13.174064 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 10:57:15.183961 RAM available=2790 MB used=76.9%
+2026-08-30 10:57:17.185994 RAM available=2821 MB used=76.6%
+2026-08-30 10:57:19.188011 RAM available=2791 MB used=76.9%
+2026-08-30 10:57:21.190400 RAM available=2818 MB used=76.7%
+2026-08-30 10:57:23.192095 RAM available=2820 MB used=76.6%
+2026-08-30 10:57:24.224194 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 10:57:26.241712 RAM available=2790 MB used=76.9%
+2026-08-30 10:57:28.243772 RAM available=2798 MB used=76.8%
+2026-08-30 10:57:30.245124 RAM available=2811 MB used=76.7%
+2026-08-30 10:57:32.246748 RAM available=2810 MB used=76.7%
+2026-08-30 10:57:34.248810 RAM available=2808 MB used=76.7%
+2026-08-30 10:57:35.287934 Disk0 active=0.0% read=0.00 MB/s write=0.06 MB/s latency=0.0 ms
+2026-08-30 10:57:37.290612 RAM available=2796 MB used=76.8%
+2026-08-30 10:57:39.292149 RAM available=2792 MB used=76.9%
+2026-08-30 10:57:41.293622 RAM available=2799 MB used=76.8%
+2026-08-30 10:57:43.295181 RAM available=2792 MB used=76.9%
+2026-08-30 10:57:45.296719 RAM available=2786 MB used=76.9%
+2026-08-30 10:57:46.432110 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 10:57:48.452271 RAM available=2832 MB used=76.5%
+2026-08-30 10:57:50.454996 RAM available=2839 MB used=76.5%
+2026-08-30 10:57:52.457025 RAM available=2833 MB used=76.5%
+2026-08-30 10:57:54.458781 RAM available=2829 MB used=76.6%
+2026-08-30 10:57:56.460512 RAM available=2828 MB used=76.6%
+2026-08-30 10:57:57.475407 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 10:57:59.486110 RAM available=2818 MB used=76.7%
+2026-08-30 10:58:01.487942 RAM available=2804 MB used=76.8%
+2026-08-30 10:58:03.489338 RAM available=2806 MB used=76.7%
+2026-08-30 10:58:05.491493 RAM available=2773 MB used=77.0%
+2026-08-30 10:58:07.493401 RAM available=2803 MB used=76.8%
+2026-08-30 10:58:08.643177 Disk0 active=0.0% read=0.00 MB/s write=0.19 MB/s latency=0.0 ms
+2026-08-30 10:58:10.644707 RAM available=2762 MB used=77.1%
+2026-08-30 10:58:12.646731 RAM available=2760 MB used=77.1%
+2026-08-30 10:58:14.648593 RAM available=2788 MB used=76.9%
+2026-08-30 10:58:16.650567 RAM available=2832 MB used=76.5%
+2026-08-30 10:58:18.652518 RAM available=2830 MB used=76.5%
+2026-08-30 10:58:19.629709 Disk0 active=0.0% read=0.00 MB/s write=0.18 MB/s latency=0.0 ms
+2026-08-30 10:58:21.631839 RAM available=2825 MB used=76.6%
+2026-08-30 10:58:23.633801 RAM available=2831 MB used=76.5%
+2026-08-30 10:58:25.635550 RAM available=2826 MB used=76.6%
+2026-08-30 10:58:27.637266 RAM available=2818 MB used=76.6%
+2026-08-30 10:58:29.639078 RAM available=2816 MB used=76.7%
+2026-08-30 10:58:30.633583 Disk0 active=16.0% read=0.76 MB/s write=0.07 MB/s latency=0.0 ms
+2026-08-30 10:58:32.635590 RAM available=2809 MB used=76.7%
+2026-08-30 10:58:34.637620 RAM available=2815 MB used=76.7%
+2026-08-30 10:58:36.638798 RAM available=2806 MB used=76.8%
+2026-08-30 10:58:38.640780 RAM available=2809 MB used=76.7%
+2026-08-30 10:58:40.642232 RAM available=2800 MB used=76.8%
+2026-08-30 10:58:41.669123 Disk0 active=0.0% read=0.00 MB/s write=0.03 MB/s latency=0.0 ms
+2026-08-30 10:58:43.671258 RAM available=2790 MB used=76.9%
+2026-08-30 10:58:45.673158 RAM available=2851 MB used=76.4%
+2026-08-30 10:58:47.675011 RAM available=2822 MB used=76.6%
+2026-08-30 10:58:49.676456 RAM available=2803 MB used=76.8%
+2026-08-30 10:58:51.678084 RAM available=2796 MB used=76.8%
+2026-08-30 10:58:52.956467 Disk0 active=215.0% read=1.24 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 10:58:54.958896 RAM available=2748 MB used=77.2%
+2026-08-30 10:58:56.960546 RAM available=2746 MB used=77.3%
+2026-08-30 10:58:58.962123 RAM available=2726 MB used=77.4%
+2026-08-30 10:59:00.963947 RAM available=2799 MB used=76.8%
+2026-08-30 10:59:02.966003 RAM available=2795 MB used=76.8%
+2026-08-30 10:59:04.029350 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 10:59:06.030759 RAM available=2772 MB used=77.0%
+2026-08-30 10:59:08.032692 RAM available=2752 MB used=77.2%
+2026-08-30 10:59:10.035586 RAM available=2753 MB used=77.2%
+2026-08-30 10:59:12.037467 RAM available=2790 MB used=76.9%
+2026-08-30 10:59:14.039389 RAM available=2798 MB used=76.8%
+2026-08-30 10:59:14.984886 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 10:59:16.994033 RAM available=2799 MB used=76.8%
+2026-08-30 10:59:18.996057 RAM available=2783 MB used=76.9%
+2026-08-30 10:59:20.998295 RAM available=2782 MB used=77.0%
+2026-08-30 10:59:22.999970 RAM available=2785 MB used=76.9%
+2026-08-30 10:59:25.001853 RAM available=2755 MB used=77.2%
+2026-08-30 10:59:26.015379 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 10:59:28.028341 RAM available=2707 MB used=77.6%
+2026-08-30 10:59:30.029945 RAM available=2692 MB used=77.7%
+2026-08-30 10:59:32.031355 RAM available=2687 MB used=77.7%
+2026-08-30 10:59:34.033047 RAM available=2681 MB used=77.8%
+2026-08-30 10:59:36.034767 RAM available=2684 MB used=77.8%
+2026-08-30 10:59:36.978615 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 10:59:38.990600 RAM available=2675 MB used=77.8%
+2026-08-30 10:59:40.992328 RAM available=2715 MB used=77.5%
+2026-08-30 10:59:42.994233 RAM available=2720 MB used=77.5%
+2026-08-30 10:59:44.996048 RAM available=2682 MB used=77.8%
+2026-08-30 10:59:46.998435 RAM available=2704 MB used=77.6%
+2026-08-30 10:59:48.102463 Disk0 active=221.0% read=1.67 MB/s write=0.48 MB/s latency=0.0 ms
+2026-08-30 10:59:50.117200 RAM available=2700 MB used=77.6%
+2026-08-30 10:59:52.119086 RAM available=2687 MB used=77.7%
+2026-08-30 10:59:54.120509 RAM available=2729 MB used=77.4%
+2026-08-30 10:59:56.122805 RAM available=2746 MB used=77.2%
+2026-08-30 10:59:58.124515 RAM available=2749 MB used=77.2%
+2026-08-30 10:59:59.303595 Disk0 active=714.0% read=0.72 MB/s write=1.08 MB/s latency=0.0 ms
+2026-08-30 11:00:01.306512 RAM available=2687 MB used=77.7%
+2026-08-30 11:00:03.308435 RAM available=2719 MB used=77.5%
+2026-08-30 11:00:05.310169 RAM available=2717 MB used=77.5%
+2026-08-30 11:00:07.312010 RAM available=2705 MB used=77.6%
+2026-08-30 11:00:09.313536 RAM available=2706 MB used=77.6%
+2026-08-30 11:00:12.070386 Disk0 active=183.0% read=0.67 MB/s write=1.24 MB/s latency=0.0 ms
+2026-08-30 11:00:14.072303 RAM available=2756 MB used=77.2%
+2026-08-30 11:00:16.073916 RAM available=2748 MB used=77.2%
+2026-08-30 11:00:18.075479 RAM available=2738 MB used=77.3%
+2026-08-30 11:00:20.077236 RAM available=2739 MB used=77.3%
+2026-08-30 11:00:22.081692 RAM available=2714 MB used=77.5%
+2026-08-30 11:00:23.402379 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 11:00:25.403801 RAM available=2734 MB used=77.3%
+2026-08-30 11:00:27.405344 RAM available=2727 MB used=77.4%
+2026-08-30 11:00:29.407201 RAM available=2770 MB used=77.0%
+2026-08-30 11:00:31.409070 RAM available=2748 MB used=77.2%
+2026-08-30 11:00:33.410673 RAM available=2762 MB used=77.1%
+2026-08-30 11:00:34.523506 Disk0 active=47.0% read=0.47 MB/s write=1.25 MB/s latency=0.0 ms
+2026-08-30 11:00:36.526513 RAM available=2764 MB used=77.1%
+2026-08-30 11:00:38.528293 RAM available=2774 MB used=77.0%
+2026-08-30 11:00:40.530680 RAM available=2797 MB used=76.8%
+2026-08-30 11:00:42.532667 RAM available=2800 MB used=76.8%
+2026-08-30 11:00:44.535012 RAM available=2791 MB used=76.9%
+2026-08-30 11:00:45.519196 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 11:00:47.526997 RAM available=2792 MB used=76.9%
+2026-08-30 11:00:49.528546 RAM available=2765 MB used=77.1%
+2026-08-30 11:00:51.530353 RAM available=2762 MB used=77.1%
+2026-08-30 11:00:53.532046 RAM available=2720 MB used=77.5%
+2026-08-30 11:00:55.534327 RAM available=2722 MB used=77.4%
+2026-08-30 11:00:56.679433 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 11:00:58.681286 RAM available=2784 MB used=76.9%
+2026-08-30 11:01:00.683111 RAM available=2772 MB used=77.0%
+2026-08-30 11:01:02.684982 RAM available=2767 MB used=77.1%
+2026-08-30 11:01:04.687955 RAM available=2768 MB used=77.1%
+2026-08-30 11:01:06.689743 RAM available=2765 MB used=77.1%
+2026-08-30 11:01:07.783686 Disk0 active=0.0% read=0.00 MB/s write=0.03 MB/s latency=0.0 ms
+2026-08-30 11:01:09.785670 RAM available=2815 MB used=76.7%
+2026-08-30 11:01:11.787945 RAM available=2801 MB used=76.8%
+2026-08-30 11:01:13.789603 RAM available=2784 MB used=76.9%
+2026-08-30 11:01:15.791950 RAM available=2783 MB used=76.9%
+2026-08-30 11:01:17.794175 RAM available=2712 MB used=77.5%
+2026-08-30 11:01:18.981294 Disk0 active=0.0% read=0.00 MB/s write=0.09 MB/s latency=0.0 ms
+2026-08-30 11:01:20.984117 RAM available=2772 MB used=77.0%
+2026-08-30 11:01:22.985519 RAM available=2759 MB used=77.1%
+2026-08-30 11:01:24.988268 RAM available=2762 MB used=77.1%
+2026-08-30 11:01:26.990295 RAM available=2762 MB used=77.1%
+2026-08-30 11:01:28.992303 RAM available=2785 MB used=76.9%
+2026-08-30 11:01:30.307859 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 11:01:32.312114 RAM available=2768 MB used=77.1%
+2026-08-30 11:01:34.315377 RAM available=2797 MB used=76.8%
+2026-08-30 11:01:36.317085 RAM available=2815 MB used=76.7%
+2026-08-30 11:01:38.319195 RAM available=2785 MB used=76.9%
+2026-08-30 11:01:40.321219 RAM available=2803 MB used=76.8%
+2026-08-30 11:01:41.360723 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 11:01:43.368344 RAM available=2734 MB used=77.4%
+2026-08-30 11:01:45.369873 RAM available=2793 MB used=76.9%
+2026-08-30 11:01:47.371635 RAM available=2782 MB used=77.0%
+2026-08-30 11:01:49.373643 RAM available=2780 MB used=77.0%
+2026-08-30 11:01:51.375200 RAM available=2787 MB used=76.9%
+2026-08-30 11:01:52.338959 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 11:01:54.342156 RAM available=2815 MB used=76.7%
+2026-08-30 11:01:56.343545 RAM available=2819 MB used=76.6%
+2026-08-30 11:01:58.345277 RAM available=2813 MB used=76.7%
+2026-08-30 11:02:00.346845 RAM available=2814 MB used=76.7%
+2026-08-30 11:02:02.348372 RAM available=2805 MB used=76.8%
+2026-08-30 11:02:03.410239 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 11:02:05.413091 RAM available=2805 MB used=76.8%
+2026-08-30 11:02:07.414908 RAM available=2806 MB used=76.8%
+2026-08-30 11:02:09.416790 RAM available=2760 MB used=77.1%
+2026-08-30 11:02:11.418894 RAM available=2744 MB used=77.3%
+2026-08-30 11:02:13.421041 RAM available=2741 MB used=77.3%
+2026-08-30 11:02:14.834522 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 11:02:16.836722 RAM available=2766 MB used=77.1%
+2026-08-30 11:02:18.838716 RAM available=2771 MB used=77.0%
+2026-08-30 11:02:20.841170 RAM available=2769 MB used=77.1%
+2026-08-30 11:02:22.844253 RAM available=2806 MB used=76.8%
+2026-08-30 11:02:24.846331 RAM available=2806 MB used=76.8%
+2026-08-30 11:02:25.981920 Disk0 active=6.0% read=0.01 MB/s write=0.03 MB/s latency=0.0 ms
+2026-08-30 11:02:27.987274 RAM available=2797 MB used=76.8%
+2026-08-30 11:02:29.989167 RAM available=2798 MB used=76.8%
+2026-08-30 11:02:31.991729 RAM available=2774 MB used=77.0%
+2026-08-30 11:02:33.993531 RAM available=2772 MB used=77.0%
+2026-08-30 11:02:35.995339 RAM available=2825 MB used=76.6%
+2026-08-30 11:02:37.183553 Disk0 active=11.0% read=0.02 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 11:02:39.189660 RAM available=2791 MB used=76.9%
+2026-08-30 11:02:41.191435 RAM available=2795 MB used=76.8%
+2026-08-30 11:02:43.192930 RAM available=2789 MB used=76.9%
+2026-08-30 11:02:45.194775 RAM available=2753 MB used=77.2%
+2026-08-30 11:02:47.196952 RAM available=2715 MB used=77.5%
+2026-08-30 11:02:48.372403 Disk0 active=19.0% read=0.06 MB/s write=0.35 MB/s latency=0.0 ms
+2026-08-30 11:02:50.375246 RAM available=2765 MB used=77.1%
+2026-08-30 11:02:52.377670 RAM available=2688 MB used=77.7%
+2026-08-30 11:02:54.379424 RAM available=2716 MB used=77.5%
+2026-08-30 11:02:56.381367 RAM available=2737 MB used=77.3%
+2026-08-30 11:02:58.383012 RAM available=2722 MB used=77.5%
+2026-08-30 11:02:59.664252 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 11:03:01.667619 RAM available=2683 MB used=77.8%
+2026-08-30 11:03:03.671535 RAM available=2695 MB used=77.7%
+2026-08-30 11:03:05.673878 RAM available=2651 MB used=78.0%
+2026-08-30 11:03:07.676314 RAM available=2671 MB used=77.9%
+2026-08-30 11:03:09.679140 RAM available=2665 MB used=77.9%
+2026-08-30 11:03:10.877526 Disk0 active=32.0% read=0.11 MB/s write=54.72 MB/s latency=0.0 ms
+2026-08-30 11:03:12.917635 RAM available=2713 MB used=77.5%
+2026-08-30 11:03:14.927381 RAM available=2862 MB used=76.3%
+2026-08-30 11:03:16.929125 RAM available=2815 MB used=76.7%
+2026-08-30 11:03:18.931562 RAM available=2818 MB used=76.7%
+2026-08-30 11:03:20.933604 RAM available=2781 MB used=77.0%
+2026-08-30 11:03:22.299977 Disk0 active=329.0% read=0.12 MB/s write=54.23 MB/s latency=0.0 ms
+2026-08-30 11:03:24.301850 RAM available=2810 MB used=76.7%
+2026-08-30 11:03:26.303729 RAM available=2862 MB used=76.3%
+2026-08-30 11:03:28.305450 RAM available=2862 MB used=76.3%
+2026-08-30 11:03:30.307508 RAM available=2839 MB used=76.5%
+2026-08-30 11:03:32.309914 RAM available=2777 MB used=77.0%
+2026-08-30 11:03:33.607747 Disk0 active=0.0% read=0.00 MB/s write=0.47 MB/s latency=0.0 ms
+2026-08-30 11:03:35.624225 RAM available=2848 MB used=76.4%
+2026-08-30 11:03:37.625883 RAM available=2775 MB used=77.0%
+2026-08-30 11:03:39.628086 RAM available=2785 MB used=76.9%
+2026-08-30 11:03:41.631508 RAM available=2814 MB used=76.7%
+2026-08-30 11:03:43.633089 RAM available=2866 MB used=76.3%
+2026-08-30 11:03:44.668975 Disk0 active=103.0% read=2.49 MB/s write=5.20 MB/s latency=0.0 ms
+2026-08-30 11:03:46.671468 RAM available=2773 MB used=77.0%
+2026-08-30 11:03:48.673673 RAM available=2640 MB used=78.1%
+2026-08-30 11:03:50.675483 RAM available=2571 MB used=78.7%
+2026-08-30 11:03:52.677570 RAM available=2457 MB used=79.6%
+2026-08-30 11:03:54.679218 RAM available=2355 MB used=80.5%
+2026-08-30 11:03:55.959898 Disk0 active=141.0% read=1.02 MB/s write=53.12 MB/s latency=0.0 ms
+2026-08-30 11:03:57.968400 RAM available=1825 MB used=84.9%
+2026-08-30 11:03:59.970285 RAM available=1349 MB used=88.8%
+2026-08-30 11:03:59.970285 WARNING: severe pressure (RAM) (1/10)
+2026-08-30 11:04:02.208383 Top processes by RAM:
+2026-08-30 11:04:02.208383       1896.1 MB  PID  32836  Code.exe
+2026-08-30 11:04:02.222260        473.5 MB  PID   2888  MemCompression
+2026-08-30 11:04:02.225241        360.4 MB  PID  36404  Code.exe
+2026-08-30 11:04:02.227839        343.3 MB  PID   5580  MsMpEng.exe
+2026-08-30 11:04:02.227839        341.2 MB  PID  15372  claude.exe
+2026-08-30 11:04:02.233145        309.1 MB  PID  25056  msedge.exe
+2026-08-30 11:04:02.234417        300.5 MB  PID  14948  Code.exe
+2026-08-30 11:04:02.237944        289.0 MB  PID  24872  Code.exe
+2026-08-30 11:04:04.240030 RAM available=1708 MB used=85.8%
+2026-08-30 11:04:06.243901 RAM available=1642 MB used=86.4%
+2026-08-30 11:04:08.246060 RAM available=1330 MB used=89.0%
+2026-08-30 11:04:09.755248 Disk0 active=40.0% read=0.25 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 11:04:09.757250 WARNING: severe pressure (RAM) (1/10)
+2026-08-30 11:04:11.576649 Top processes by RAM:
+2026-08-30 11:04:11.579148       2937.6 MB  PID  32836  Code.exe
+2026-08-30 11:04:11.581163        473.7 MB  PID   2888  MemCompression
+2026-08-30 11:04:11.583198        360.0 MB  PID  36404  Code.exe
+2026-08-30 11:04:11.584456        341.2 MB  PID  15372  claude.exe
+2026-08-30 11:04:11.585926        337.3 MB  PID   5580  MsMpEng.exe
+2026-08-30 11:04:11.588125        309.3 MB  PID  25056  msedge.exe
+2026-08-30 11:04:11.589511        300.5 MB  PID  14948  Code.exe
+2026-08-30 11:04:11.590513        262.3 MB  PID  24872  Code.exe
+2026-08-30 11:04:13.593380 RAM available=553 MB used=95.4%
+2026-08-30 11:04:13.595133 WARNING: severe pressure (RAM) (2/10)
+2026-08-30 11:04:15.316002 Top processes by RAM:
+2026-08-30 11:04:15.317021       3199.4 MB  PID  32836  Code.exe
+2026-08-30 11:04:15.318022        386.5 MB  PID   2888  MemCompression
+2026-08-30 11:04:15.319368        358.7 MB  PID  36404  Code.exe
+2026-08-30 11:04:15.320368        341.2 MB  PID  15372  claude.exe
+2026-08-30 11:04:15.322366        317.8 MB  PID   5580  MsMpEng.exe
+2026-08-30 11:04:15.323369        309.3 MB  PID  25056  msedge.exe
+2026-08-30 11:04:15.324618        300.7 MB  PID  14948  Code.exe
+2026-08-30 11:04:15.325634        263.9 MB  PID  24872  Code.exe
+2026-08-30 11:04:17.328081 RAM available=1650 MB used=86.3%
+2026-08-30 11:04:19.329815 RAM available=1692 MB used=86.0%
+2026-08-30 11:04:21.331808 RAM available=1673 MB used=86.1%
+2026-08-30 11:04:23.333386 RAM available=1686 MB used=86.0%
+2026-08-30 11:04:28.302558 Disk0 active=1847.0% read=36.92 MB/s write=0.11 MB/s latency=0.0 ms
+2026-08-30 11:04:30.308933 RAM available=1588 MB used=86.8%
+2026-08-30 11:04:32.316087 RAM available=1548 MB used=87.2%
+2026-08-30 11:04:34.317865 RAM available=1547 MB used=87.2%
+2026-08-30 11:04:36.319358 RAM available=1517 MB used=87.4%
+2026-08-30 11:04:38.321152 RAM available=1529 MB used=87.3%
+2026-08-30 11:04:39.743164 Disk0 active=42.0% read=0.07 MB/s write=0.70 MB/s latency=0.0 ms
+2026-08-30 11:04:41.746676 RAM available=1505 MB used=87.5%
+2026-08-30 11:04:43.748644 RAM available=1450 MB used=88.0%
+2026-08-30 11:04:45.750967 RAM available=1523 MB used=87.4%
+2026-08-30 11:04:47.753392 RAM available=1497 MB used=87.6%
+2026-08-30 11:04:49.755215 RAM available=1508 MB used=87.5%
+2026-08-30 11:04:50.927539 Disk0 active=39.0% read=0.05 MB/s write=79.67 MB/s latency=0.0 ms
+2026-08-30 11:04:52.930150 RAM available=1480 MB used=87.7%
+2026-08-30 11:04:54.931982 RAM available=1488 MB used=87.7%
+2026-08-30 11:04:56.933507 RAM available=1480 MB used=87.7%
+2026-08-30 11:04:58.937372 RAM available=1385 MB used=88.5%
+2026-08-30 11:04:58.938806 WARNING: severe pressure (RAM) (1/10)
+2026-08-30 11:05:00.331931 Top processes by RAM:
+2026-08-30 11:05:00.333322       2355.1 MB  PID  32836  Code.exe
+2026-08-30 11:05:00.334436        388.4 MB  PID   2888  MemCompression
+2026-08-30 11:05:00.335615        358.9 MB  PID  36404  Code.exe
+2026-08-30 11:05:00.336735        341.2 MB  PID  15372  claude.exe
+2026-08-30 11:05:00.338882        314.0 MB  PID   5580  MsMpEng.exe
+2026-08-30 11:05:00.339950        310.2 MB  PID  25056  msedge.exe
+2026-08-30 11:05:00.341631        301.3 MB  PID  14948  Code.exe
+2026-08-30 11:05:00.342727        266.3 MB  PID  24872  Code.exe
+2026-08-30 11:05:02.344288 RAM available=1453 MB used=88.0%
+2026-08-30 11:05:03.819830 Disk0 active=230.0% read=1.85 MB/s write=1.42 MB/s latency=0.0 ms
+2026-08-30 11:05:05.822027 RAM available=1429 MB used=88.2%
+2026-08-30 11:05:07.823985 RAM available=1419 MB used=88.2%
+2026-08-30 11:05:09.826910 RAM available=1343 MB used=88.9%
+2026-08-30 11:05:09.828710 WARNING: severe pressure (RAM) (1/10)
+2026-08-30 11:05:11.460950 Top processes by RAM:
+2026-08-30 11:05:11.460950       2393.0 MB  PID  32836  Code.exe
+2026-08-30 11:05:11.463551        391.2 MB  PID   2888  MemCompression
+2026-08-30 11:05:11.463551        360.2 MB  PID  36404  Code.exe
+2026-08-30 11:05:11.463551        341.2 MB  PID  15372  claude.exe
+2026-08-30 11:05:11.468551        313.6 MB  PID   5580  MsMpEng.exe
+2026-08-30 11:05:11.470056        310.2 MB  PID  25056  msedge.exe
+2026-08-30 11:05:11.471116        300.8 MB  PID  14948  Code.exe
+2026-08-30 11:05:11.473470        263.9 MB  PID  24872  Code.exe
+2026-08-30 11:05:13.487534 RAM available=1396 MB used=88.4%
+2026-08-30 11:05:13.489661 WARNING: severe pressure (RAM) (2/10)
+2026-08-30 11:05:15.180426 Top processes by RAM:
+2026-08-30 11:05:15.180426       2236.4 MB  PID  32836  Code.exe
+2026-08-30 11:05:15.188284        391.5 MB  PID   2888  MemCompression
+2026-08-30 11:05:15.188284        360.0 MB  PID  36404  Code.exe
+2026-08-30 11:05:15.188284        341.2 MB  PID  15372  claude.exe
+2026-08-30 11:05:15.188284        315.0 MB  PID   5580  MsMpEng.exe
+2026-08-30 11:05:15.193288        310.2 MB  PID  25056  msedge.exe
+2026-08-30 11:05:15.195278        300.8 MB  PID  14948  Code.exe
+2026-08-30 11:05:15.196297        264.8 MB  PID  24872  Code.exe
+2026-08-30 11:05:17.198525 RAM available=1533 MB used=87.3%
+2026-08-30 11:05:18.428380 Disk0 active=0.0% read=0.00 MB/s write=0.02 MB/s latency=0.0 ms
+2026-08-30 11:05:20.432246 RAM available=1537 MB used=87.3%
+2026-08-30 11:05:22.434328 RAM available=1547 MB used=87.2%
+2026-08-30 11:05:24.435636 RAM available=1516 MB used=87.4%
+2026-08-30 11:05:26.437450 RAM available=1506 MB used=87.5%
+2026-08-30 11:05:28.439541 RAM available=1476 MB used=87.8%
+2026-08-30 11:05:29.564909 Disk0 active=84.0% read=0.00 MB/s write=72.62 MB/s latency=0.0 ms
+2026-08-30 11:05:31.566921 RAM available=1461 MB used=87.9%
+2026-08-30 11:05:33.569187 RAM available=1482 MB used=87.7%
+2026-08-30 11:05:35.571046 RAM available=1507 MB used=87.5%
+2026-08-30 11:05:37.572565 RAM available=1505 MB used=87.5%
+2026-08-30 11:05:39.574572 RAM available=1541 MB used=87.2%
+2026-08-30 11:05:41.404181 Disk0 active=69.0% read=0.57 MB/s write=40.66 MB/s latency=0.0 ms
+2026-08-30 11:05:43.406198 RAM available=1516 MB used=87.4%
+2026-08-30 11:05:45.408185 RAM available=1431 MB used=88.1%
+2026-08-30 11:05:47.409954 RAM available=1489 MB used=87.7%
+2026-08-30 11:05:49.412062 RAM available=1485 MB used=87.7%
+2026-08-30 11:05:51.413912 RAM available=1480 MB used=87.7%
+2026-08-30 11:05:52.551533 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 11:05:54.553658 RAM available=1458 MB used=87.9%
+2026-08-30 11:05:56.555212 RAM available=1455 MB used=87.9%
+2026-08-30 11:05:58.557452 RAM available=1497 MB used=87.6%
+2026-08-30 11:06:00.559453 RAM available=1474 MB used=87.8%
+2026-08-30 11:06:02.561144 RAM available=1477 MB used=87.8%
+2026-08-30 11:06:03.739280 Disk0 active=13.0% read=0.12 MB/s write=0.60 MB/s latency=0.0 ms
+2026-08-30 11:06:05.741698 RAM available=1265 MB used=89.5%
+2026-08-30 11:06:05.741698 WARNING: severe pressure (RAM) (1/10)
+2026-08-30 11:06:08.081608 Top processes by RAM:
+2026-08-30 11:06:08.081608       2744.3 MB  PID  32836  Code.exe
+2026-08-30 11:06:08.085374        393.1 MB  PID   2888  MemCompression
+2026-08-30 11:06:08.087679        360.9 MB  PID  36404  Code.exe
+2026-08-30 11:06:08.089292        341.3 MB  PID  15372  claude.exe
+2026-08-30 11:06:08.091102        318.7 MB  PID   5580  MsMpEng.exe
+2026-08-30 11:06:08.093104        309.4 MB  PID  25056  msedge.exe
+2026-08-30 11:06:08.095103        307.3 MB  PID  24872  Code.exe
+2026-08-30 11:06:08.097130        301.6 MB  PID  14948  Code.exe
+2026-08-30 11:06:10.099584 RAM available=725 MB used=94.0%
+2026-08-30 11:06:10.099584 WARNING: severe pressure (RAM) (2/10)
+2026-08-30 11:06:12.338817 Top processes by RAM:
+2026-08-30 11:06:12.342336       3596.8 MB  PID  32836  Code.exe
+2026-08-30 11:06:12.342336        386.3 MB  PID   2888  MemCompression
+2026-08-30 11:06:12.344351        360.8 MB  PID  36404  Code.exe
+2026-08-30 11:06:12.346366        333.9 MB  PID  15372  claude.exe
+2026-08-30 11:06:12.346366        306.0 MB  PID  25056  msedge.exe
+2026-08-30 11:06:12.348379        301.6 MB  PID   5580  MsMpEng.exe
+2026-08-30 11:06:12.350390        294.5 MB  PID  14948  Code.exe
+2026-08-30 11:06:12.350390        270.2 MB  PID  24872  Code.exe
+2026-08-30 11:06:14.354017 RAM available=308 MB used=97.4%
+2026-08-30 11:06:14.358533 WARNING: severe pressure (RAM) (3/10)
+2026-08-30 11:06:15.896472 Top processes by RAM:
+2026-08-30 11:06:15.931631       3073.6 MB  PID  32836  Code.exe
+2026-08-30 11:06:15.937323        443.9 MB  PID   2888  MemCompression
+2026-08-30 11:06:15.941347        361.4 MB  PID  36404  Code.exe
+2026-08-30 11:06:15.946391        333.9 MB  PID  15372  claude.exe
+2026-08-30 11:06:15.953081        306.0 MB  PID  25056  msedge.exe
+2026-08-30 11:06:15.955092        299.9 MB  PID   5580  MsMpEng.exe
+2026-08-30 11:06:15.958579        293.7 MB  PID  14948  Code.exe
+2026-08-30 11:06:15.961643        270.7 MB  PID  24872  Code.exe
+2026-08-30 11:06:17.965660 RAM available=869 MB used=92.8%
+2026-08-30 11:06:17.967583 WARNING: severe pressure (RAM) (4/10)
+2026-08-30 11:06:20.480684 Top processes by RAM:
+2026-08-30 11:06:20.483067       3036.4 MB  PID  32836  Code.exe
+2026-08-30 11:06:20.485115        454.1 MB  PID   2888  MemCompression
+2026-08-30 11:06:20.485115        361.1 MB  PID  36404  Code.exe
+2026-08-30 11:06:20.485115        333.9 MB  PID  15372  claude.exe
+2026-08-30 11:06:20.485115        306.0 MB  PID  25056  msedge.exe
+2026-08-30 11:06:20.485115        300.2 MB  PID   5580  MsMpEng.exe
+2026-08-30 11:06:20.485115        293.7 MB  PID  14948  Code.exe
+2026-08-30 11:06:20.493173        263.6 MB  PID  24872  Code.exe
+2026-08-30 11:06:22.494478 RAM available=831 MB used=93.1%
+2026-08-30 11:06:31.485268 WARNING: disk-stat query failed/timed out: Command '['powershell.exe', '-NoProfile', '-Command', "Get-CimInstance Win32_PerfFormattedData_PerfDisk_PhysicalDisk | Where-Object { $_.Name -eq '0 C:' } | Select-Object PercentDiskTime, AvgDiskSecPerTransfer, DiskReadBytesPerSec, DiskWriteBytesPerSec | ConvertTo-Json -Compress"]' timed out after 5 seconds
+2026-08-30 11:06:31.487285 WARNING: Could not obtain Disk 0 performance data.
+2026-08-30 11:06:31.487285 WARNING: severe pressure (RAM) (5/10)
+2026-08-30 11:06:32.834426 Top processes by RAM:
+2026-08-30 11:06:32.835438       3040.4 MB  PID  32836  Code.exe
+2026-08-30 11:06:32.839462        368.3 MB  PID   2888  MemCompression
+2026-08-30 11:06:32.840666        360.3 MB  PID  36404  Code.exe
+2026-08-30 11:06:32.843559        334.0 MB  PID  15372  claude.exe
+2026-08-30 11:06:32.844433        306.0 MB  PID  25056  msedge.exe
+2026-08-30 11:06:32.844433        301.1 MB  PID   5580  MsMpEng.exe
+2026-08-30 11:06:32.847600        293.7 MB  PID  14948  Code.exe
+2026-08-30 11:06:32.848462        271.5 MB  PID  24872  Code.exe
+2026-08-30 11:06:34.852700 RAM available=3840 MB used=68.2%
+2026-08-30 11:06:36.854431 RAM available=4303 MB used=64.3%
+2026-08-30 11:06:38.856670 RAM available=4367 MB used=63.8%
+2026-08-30 11:06:40.858150 RAM available=4373 MB used=63.8%
+2026-08-30 11:06:42.859776 RAM available=4378 MB used=63.7%
+2026-08-30 11:06:47.896108 WARNING: disk-stat query failed/timed out: Command '['powershell.exe', '-NoProfile', '-Command', "Get-CimInstance Win32_PerfFormattedData_PerfDisk_PhysicalDisk | Where-Object { $_.Name -eq '0 C:' } | Select-Object PercentDiskTime, AvgDiskSecPerTransfer, DiskReadBytesPerSec, DiskWriteBytesPerSec | ConvertTo-Json -Compress"]' timed out after 5 seconds
+2026-08-30 11:06:47.897707 WARNING: Could not obtain Disk 0 performance data.
+2026-08-30 11:06:49.899692 RAM available=4396 MB used=63.6%
+2026-08-30 11:06:51.901341 RAM available=4396 MB used=63.6%
+2026-08-30 11:06:53.902929 RAM available=4399 MB used=63.6%
+2026-08-30 11:06:55.904708 RAM available=4402 MB used=63.5%
+2026-08-30 11:06:57.906263 RAM available=4406 MB used=63.5%
+2026-08-30 11:07:02.930368 WARNING: disk-stat query failed/timed out: Command '['powershell.exe', '-NoProfile', '-Command', "Get-CimInstance Win32_PerfFormattedData_PerfDisk_PhysicalDisk | Where-Object { $_.Name -eq '0 C:' } | Select-Object PercentDiskTime, AvgDiskSecPerTransfer, DiskReadBytesPerSec, DiskWriteBytesPerSec | ConvertTo-Json -Compress"]' timed out after 5 seconds
+2026-08-30 11:07:02.930368 WARNING: Could not obtain Disk 0 performance data.
+2026-08-30 11:07:04.938777 RAM available=4396 MB used=63.6%
+2026-08-30 11:07:06.940260 RAM available=4397 MB used=63.6%
+2026-08-30 11:07:08.941880 RAM available=4403 MB used=63.5%
+2026-08-30 11:07:10.943661 RAM available=4406 MB used=63.5%
+2026-08-30 11:07:12.945355 RAM available=4411 MB used=63.5%
+2026-08-30 11:07:17.986005 WARNING: disk-stat query failed/timed out: Command '['powershell.exe', '-NoProfile', '-Command', "Get-CimInstance Win32_PerfFormattedData_PerfDisk_PhysicalDisk | Where-Object { $_.Name -eq '0 C:' } | Select-Object PercentDiskTime, AvgDiskSecPerTransfer, DiskReadBytesPerSec, DiskWriteBytesPerSec | ConvertTo-Json -Compress"]' timed out after 5 seconds
+2026-08-30 11:07:17.986005 WARNING: Could not obtain Disk 0 performance data.
+2026-08-30 11:07:19.990130 RAM available=4416 MB used=63.4%
+2026-08-30 11:07:21.991545 RAM available=4412 MB used=63.4%
+2026-08-30 11:07:23.993232 RAM available=4374 MB used=63.8%
+2026-08-30 11:07:25.995061 RAM available=4465 MB used=63.0%
+2026-08-30 11:07:27.996481 RAM available=4473 MB used=62.9%
+2026-08-30 11:07:31.626751 Disk0 active=93.0% read=1.51 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 11:07:33.630610 RAM available=4466 MB used=63.0%
+2026-08-30 11:07:35.632036 RAM available=4465 MB used=63.0%
+2026-08-30 11:07:37.633524 RAM available=4465 MB used=63.0%
+2026-08-30 11:07:39.635366 RAM available=4466 MB used=63.0%
+2026-08-30 11:07:41.636911 RAM available=4468 MB used=63.0%
+2026-08-30 11:07:42.740625 Disk0 active=1745.0% read=10.21 MB/s write=0.09 MB/s latency=0.0 ms
+2026-08-30 11:07:44.747647 RAM available=4456 MB used=63.1%
+2026-08-30 11:07:46.749242 RAM available=4461 MB used=63.0%
+2026-08-30 11:07:48.751118 RAM available=4409 MB used=63.5%
+2026-08-30 11:07:50.753261 RAM available=4388 MB used=63.6%
+2026-08-30 11:07:52.755081 RAM available=4432 MB used=63.3%
+2026-08-30 11:07:53.957699 Disk0 active=1431.0% read=1.55 MB/s write=6.59 MB/s latency=0.0 ms
+2026-08-30 11:07:55.966207 RAM available=4386 MB used=63.7%
+2026-08-30 11:07:57.968413 RAM available=4390 MB used=63.6%
+2026-08-30 11:07:59.969996 RAM available=4430 MB used=63.3%
+2026-08-30 11:08:01.973335 RAM available=4450 MB used=63.1%
+2026-08-30 11:08:03.975912 RAM available=4464 MB used=63.0%
+2026-08-30 11:08:05.159400 Disk0 active=924.0% read=1.90 MB/s write=82.64 MB/s latency=0.0 ms
+2026-08-30 11:08:07.169929 RAM available=4444 MB used=63.2%
+2026-08-30 11:08:09.171601 RAM available=4448 MB used=63.1%
+2026-08-30 11:08:11.173744 RAM available=4450 MB used=63.1%
+2026-08-30 11:08:13.175695 RAM available=4405 MB used=63.5%
+2026-08-30 11:08:15.177411 RAM available=4434 MB used=63.3%
+2026-08-30 11:08:16.315532 Disk0 active=25.0% read=0.00 MB/s write=84.81 MB/s latency=0.0 ms
+2026-08-30 11:08:18.319111 RAM available=4364 MB used=63.8%
+2026-08-30 11:08:20.320706 RAM available=4379 MB used=63.7%
+2026-08-30 11:08:22.322268 RAM available=4437 MB used=63.2%
+2026-08-30 11:08:24.324229 RAM available=4413 MB used=63.4%
+2026-08-30 11:08:26.327076 RAM available=4345 MB used=64.0%
+2026-08-30 11:08:28.094503 Disk0 active=4794.0% read=4.11 MB/s write=0.10 MB/s latency=0.0 ms
+2026-08-30 11:08:30.097572 RAM available=4382 MB used=63.7%
+2026-08-30 11:08:32.099352 RAM available=4339 MB used=64.0%
+2026-08-30 11:08:34.100753 RAM available=4379 MB used=63.7%
+2026-08-30 11:08:36.102276 RAM available=4383 MB used=63.7%
+2026-08-30 11:08:38.104555 RAM available=4217 MB used=65.1%
+2026-08-30 11:08:39.570394 Disk0 active=594.0% read=5.58 MB/s write=10.83 MB/s latency=0.0 ms
+2026-08-30 11:08:41.576868 RAM available=4219 MB used=65.0%
+2026-08-30 11:08:43.579170 RAM available=4292 MB used=64.4%
+2026-08-30 11:08:45.580979 RAM available=4179 MB used=65.4%
+2026-08-30 11:08:47.583368 RAM available=4121 MB used=65.9%
+2026-08-30 11:08:49.585290 RAM available=4225 MB used=65.0%
+2026-08-30 11:08:51.239746 Disk0 active=6626.0% read=2.26 MB/s write=0.94 MB/s latency=0.0 ms
+2026-08-30 11:08:53.241335 RAM available=4230 MB used=65.0%
+2026-08-30 11:08:55.243447 RAM available=4230 MB used=65.0%
+2026-08-30 11:08:57.245410 RAM available=4234 MB used=64.9%
+2026-08-30 11:08:59.247500 RAM available=4191 MB used=65.3%
+2026-08-30 11:09:01.249470 RAM available=4134 MB used=65.7%
+2026-08-30 11:09:03.365599 WARNING: Could not obtain Disk 0 performance data.

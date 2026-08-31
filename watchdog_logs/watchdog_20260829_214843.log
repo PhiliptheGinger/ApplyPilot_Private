@@ -1,0 +1,11 @@
+2026-08-29 21:48:43.167199 Ollama not running -- nothing to stop.
+2026-08-29 21:48:43.167199 Ollama running but only using 400.0 MB (< 500 MB threshold) -- leaving it alone, not implicated in this emergency.
+2026-08-29 21:48:43.167199 Ollama using 2500.0 MB -- stopping it as a contributing factor.
+2026-08-29 21:48:43.167199 Terminating Ollama PID 999 (2500.0 MB)
+2026-08-29 21:48:43.167199 Ollama using 2500.0 MB -- stopping it as a contributing factor.
+2026-08-29 21:48:43.183177 Terminating Ollama PID 999 (2500.0 MB)
+2026-08-29 21:48:43.183839 Force-killing Ollama PID 999
+2026-08-29 21:48:44.922846 Top processes by RAM:
+2026-08-29 21:48:44.924817       1082.7 MB  PID   2888  MemCompression
+2026-08-29 21:48:44.927461        379.7 MB  PID  15372  claude.exe
+2026-08-29 21:48:44.927461        316.5 MB  PID  25056  msedge.exe

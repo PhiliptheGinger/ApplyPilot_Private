@@ -1,0 +1,23 @@
+2026-08-30 10:06:41.625490 === ApplyPilot watchdog starting ===
+2026-08-30 10:06:41.625490 Project: C:\Users\phili\Projects\resume-agent
+2026-08-30 10:06:41.625490 Command: applypilot run score --stream --limit 3
+2026-08-30 10:06:41.625490 Log file: C:\Users\phili\Projects\resume-agent\watchdog_logs\watchdog_20260830_100641.log
+2026-08-30 10:06:41.632257 Thresholds: disk active>=99% AND latency>=1000ms, OR RAM available<1400MB -- sustained 10 consecutive samples (20s) before acting.
+2026-08-30 10:06:41.648996 ApplyPilot PID: 37924
+2026-08-30 10:06:43.652343 RAM available=2342 MB used=80.6%
+2026-08-30 10:06:44.916128 Disk0 active=113.0% read=0.23 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 10:06:46.917849 RAM available=2352 MB used=80.5%
+2026-08-30 10:06:48.919862 RAM available=2333 MB used=80.7%
+2026-08-30 10:06:50.921498 RAM available=2271 MB used=81.2%
+2026-08-30 10:06:52.923658 RAM available=2301 MB used=80.9%
+2026-08-30 10:06:54.926112 RAM available=2298 MB used=81.0%
+2026-08-30 10:06:55.896830 Disk0 active=292.0% read=0.14 MB/s write=0.23 MB/s latency=0.0 ms
+2026-08-30 10:06:57.898970 RAM available=2289 MB used=81.0%
+2026-08-30 10:06:59.901230 RAM available=2282 MB used=81.1%
+2026-08-30 10:07:01.902789 RAM available=2284 MB used=81.1%
+2026-08-30 10:07:04.002265 RAM available=2295 MB used=81.0%
+2026-08-30 10:07:06.387130 RAM available=2261 MB used=81.3%
+2026-08-30 10:07:07.505075 Disk0 active=697.0% read=0.22 MB/s write=1.14 MB/s latency=0.0 ms
+2026-08-30 10:07:09.506591 RAM available=2309 MB used=80.9%
+2026-08-30 10:07:09.508270 ApplyPilot exited normally with code 1
+2026-08-30 10:07:09.509373 === Watchdog finished ===

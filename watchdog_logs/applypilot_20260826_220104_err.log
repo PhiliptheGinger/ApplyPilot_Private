@@ -1,0 +1,7 @@
+22:01:10 - WARNING - Dropping board(s) not supported by the installed jobspy version: google. Remove from searches.yaml's `boards` list to silence this.
+2026-08-26 22:01:10,652 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:01:10,767 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:01:10,813 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:01:10,822 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:01:10,823 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:01:10,825 - JobSpy - ERROR - Indeed response status code 403

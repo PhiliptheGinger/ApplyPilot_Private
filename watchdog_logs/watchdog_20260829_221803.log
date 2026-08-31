@@ -1,0 +1,192 @@
+2026-08-29 22:18:03.449730 === ApplyPilot watchdog starting ===
+2026-08-29 22:18:03.449730 Project: C:\Users\phili\Projects\resume-agent
+2026-08-29 22:18:03.449730 Command: applypilot run score tailor cover --stream --limit 1
+2026-08-29 22:18:03.449730 Log file: C:\Users\phili\Projects\resume-agent\watchdog_logs\watchdog_20260829_221803.log
+2026-08-29 22:18:03.449730 Thresholds: disk active>=99% AND latency>=1000ms, OR RAM available<1400MB -- sustained 10 consecutive samples (20s) before acting.
+2026-08-29 22:18:03.465811 ApplyPilot PID: 5476
+2026-08-29 22:18:05.478267 RAM available=3252 MB used=73.1%
+2026-08-29 22:18:15.524127 Monitoring error: Command '['powershell.exe', '-NoProfile', '-Command', "Get-CimInstance Win32_PerfFormattedData_PerfDisk_PhysicalDisk | Where-Object { $_.Name -eq '0 C:' } | Select-Object PercentDiskTime, AvgDiskSecPerTransfer, DiskReadBytesPerSec, DiskWriteBytesPerSec | ConvertTo-Json -Compress"]' timed out after 10 seconds
+2026-08-29 22:18:17.526684 RAM available=3226 MB used=73.3%
+2026-08-29 22:18:27.560946 Monitoring error: Command '['powershell.exe', '-NoProfile', '-Command', "Get-CimInstance Win32_PerfFormattedData_PerfDisk_PhysicalDisk | Where-Object { $_.Name -eq '0 C:' } | Select-Object PercentDiskTime, AvgDiskSecPerTransfer, DiskReadBytesPerSec, DiskWriteBytesPerSec | ConvertTo-Json -Compress"]' timed out after 10 seconds
+2026-08-29 22:18:29.564621 RAM available=3195 MB used=73.5%
+2026-08-29 22:18:39.591458 Monitoring error: Command '['powershell.exe', '-NoProfile', '-Command', "Get-CimInstance Win32_PerfFormattedData_PerfDisk_PhysicalDisk | Where-Object { $_.Name -eq '0 C:' } | Select-Object PercentDiskTime, AvgDiskSecPerTransfer, DiskReadBytesPerSec, DiskWriteBytesPerSec | ConvertTo-Json -Compress"]' timed out after 10 seconds
+2026-08-29 22:18:41.593427 RAM available=3214 MB used=73.4%
+2026-08-29 22:18:51.638025 Monitoring error: Command '['powershell.exe', '-NoProfile', '-Command', "Get-CimInstance Win32_PerfFormattedData_PerfDisk_PhysicalDisk | Where-Object { $_.Name -eq '0 C:' } | Select-Object PercentDiskTime, AvgDiskSecPerTransfer, DiskReadBytesPerSec, DiskWriteBytesPerSec | ConvertTo-Json -Compress"]' timed out after 10 seconds
+2026-08-29 22:18:53.645453 RAM available=3205 MB used=73.4%
+2026-08-29 22:18:57.463337 Disk0 active=412.0% read=0.90 MB/s write=0.93 MB/s latency=0.0 ms
+2026-08-29 22:18:59.477498 RAM available=3206 MB used=73.4%
+2026-08-29 22:19:00.554447 Disk0 active=128.0% read=2.89 MB/s write=0.28 MB/s latency=0.0 ms
+2026-08-29 22:19:02.557173 RAM available=3186 MB used=73.6%
+2026-08-29 22:19:03.535518 Disk0 active=89.0% read=3.01 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:19:05.548130 RAM available=3202 MB used=73.5%
+2026-08-29 22:19:06.477477 Disk0 active=98.0% read=2.04 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:19:08.485989 RAM available=3203 MB used=73.5%
+2026-08-29 22:19:09.461574 Disk0 active=100.0% read=11.78 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:19:11.462933 RAM available=3200 MB used=73.5%
+2026-08-29 22:19:12.527866 Disk0 active=114.0% read=3.52 MB/s write=0.08 MB/s latency=0.0 ms
+2026-08-29 22:19:14.532712 RAM available=3185 MB used=73.6%
+2026-08-29 22:19:15.556917 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:19:17.558564 RAM available=3189 MB used=73.6%
+2026-08-29 22:19:18.557141 Disk0 active=19.0% read=0.30 MB/s write=0.62 MB/s latency=0.0 ms
+2026-08-29 22:19:20.559167 RAM available=3178 MB used=73.7%
+2026-08-29 22:19:21.879179 Disk0 active=419.0% read=5.09 MB/s write=14.20 MB/s latency=0.0 ms
+2026-08-29 22:19:23.883153 RAM available=3191 MB used=73.6%
+2026-08-29 22:19:24.878382 Disk0 active=3.0% read=0.00 MB/s write=1.11 MB/s latency=0.0 ms
+2026-08-29 22:19:26.887853 RAM available=3180 MB used=73.7%
+2026-08-29 22:19:27.881308 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:19:29.884998 RAM available=3173 MB used=73.7%
+2026-08-29 22:19:30.817247 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:19:32.822928 RAM available=3162 MB used=73.8%
+2026-08-29 22:19:33.800962 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:19:35.805347 RAM available=3171 MB used=73.7%
+2026-08-29 22:19:36.750757 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:19:38.753057 RAM available=3197 MB used=73.5%
+2026-08-29 22:19:39.699087 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:19:41.701005 RAM available=3197 MB used=73.5%
+2026-08-29 22:19:42.770470 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:19:44.772818 RAM available=3224 MB used=73.3%
+2026-08-29 22:19:45.834571 Disk0 active=209.0% read=0.02 MB/s write=58.21 MB/s latency=0.0 ms
+2026-08-29 22:19:47.837210 RAM available=3244 MB used=73.1%
+2026-08-29 22:19:48.834338 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:19:50.836941 RAM available=3299 MB used=72.7%
+2026-08-29 22:19:51.871267 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:19:53.873573 RAM available=3301 MB used=72.7%
+2026-08-29 22:19:54.823073 Disk0 active=24.0% read=0.27 MB/s write=0.95 MB/s latency=0.0 ms
+2026-08-29 22:19:56.826363 RAM available=3315 MB used=72.5%
+2026-08-29 22:19:57.750642 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:19:59.767798 RAM available=3274 MB used=72.9%
+2026-08-29 22:20:00.750825 Disk0 active=164.0% read=3.92 MB/s write=17.88 MB/s latency=0.0 ms
+2026-08-29 22:20:02.752718 RAM available=3319 MB used=72.5%
+2026-08-29 22:20:03.767455 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:20:05.779962 RAM available=3215 MB used=73.4%
+2026-08-29 22:20:07.316100 Disk0 active=1298.0% read=6.04 MB/s write=1.34 MB/s latency=0.0 ms
+2026-08-29 22:20:09.327692 RAM available=3189 MB used=73.6%
+2026-08-29 22:20:10.707831 Disk0 active=131.0% read=3.62 MB/s write=0.11 MB/s latency=0.0 ms
+2026-08-29 22:20:12.710509 RAM available=3200 MB used=73.5%
+2026-08-29 22:20:13.815011 Disk0 active=0.0% read=0.00 MB/s write=0.07 MB/s latency=0.0 ms
+2026-08-29 22:20:15.835979 RAM available=3186 MB used=73.6%
+2026-08-29 22:20:16.948682 Disk0 active=73.0% read=0.49 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:20:18.959469 RAM available=3170 MB used=73.7%
+2026-08-29 22:20:20.347069 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:20:22.352613 RAM available=3184 MB used=73.6%
+2026-08-29 22:20:23.490181 Disk0 active=54.0% read=0.18 MB/s write=1.18 MB/s latency=0.0 ms
+2026-08-29 22:20:25.493263 RAM available=3188 MB used=73.6%
+2026-08-29 22:20:26.527876 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:20:28.531644 RAM available=3251 MB used=73.1%
+2026-08-29 22:20:29.597681 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:20:31.600450 RAM available=3256 MB used=73.0%
+2026-08-29 22:20:33.186630 Disk0 active=3.0% read=0.00 MB/s write=3.17 MB/s latency=0.0 ms
+2026-08-29 22:20:35.188613 RAM available=3205 MB used=73.4%
+2026-08-29 22:20:36.265147 Disk0 active=143.0% read=0.74 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:20:38.267937 RAM available=3224 MB used=73.3%
+2026-08-29 22:20:39.326333 Disk0 active=71.0% read=1.49 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:20:41.329942 RAM available=3219 MB used=73.3%
+2026-08-29 22:20:42.527172 Disk0 active=33.0% read=1.44 MB/s write=0.90 MB/s latency=0.0 ms
+2026-08-29 22:20:44.530831 RAM available=3281 MB used=72.8%
+2026-08-29 22:20:45.890536 Disk0 active=17.0% read=0.06 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:20:47.902333 RAM available=3298 MB used=72.7%
+2026-08-29 22:20:48.985715 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:20:50.992427 RAM available=3283 MB used=72.8%
+2026-08-29 22:20:52.191720 Disk0 active=1.0% read=0.00 MB/s write=0.45 MB/s latency=0.0 ms
+2026-08-29 22:20:54.194007 RAM available=3266 MB used=72.9%
+2026-08-29 22:20:55.362254 Disk0 active=27.0% read=0.00 MB/s write=22.15 MB/s latency=0.0 ms
+2026-08-29 22:20:57.369087 RAM available=3264 MB used=73.0%
+2026-08-29 22:20:58.417659 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:21:00.420920 RAM available=3262 MB used=73.0%
+2026-08-29 22:21:01.459622 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:21:03.469109 RAM available=3285 MB used=72.8%
+2026-08-29 22:21:04.489656 Disk0 active=2.0% read=0.21 MB/s write=0.93 MB/s latency=0.0 ms
+2026-08-29 22:21:06.495982 RAM available=3285 MB used=72.8%
+2026-08-29 22:21:07.559003 Disk0 active=59.0% read=0.24 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:21:09.561306 RAM available=3270 MB used=72.9%
+2026-08-29 22:21:10.693918 Disk0 active=0.0% read=0.00 MB/s write=0.07 MB/s latency=0.0 ms
+2026-08-29 22:21:12.695593 RAM available=3253 MB used=73.0%
+2026-08-29 22:21:13.712280 Disk0 active=4.0% read=0.00 MB/s write=0.07 MB/s latency=0.0 ms
+2026-08-29 22:21:15.713968 RAM available=3266 MB used=72.9%
+2026-08-29 22:21:16.743841 Disk0 active=136.0% read=0.41 MB/s write=0.94 MB/s latency=0.0 ms
+2026-08-29 22:21:18.747961 RAM available=3279 MB used=72.8%
+2026-08-29 22:21:19.938811 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:21:21.941363 RAM available=3263 MB used=73.0%
+2026-08-29 22:21:22.953338 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:21:24.955949 RAM available=3253 MB used=73.1%
+2026-08-29 22:21:25.963144 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:21:27.965162 RAM available=3229 MB used=73.2%
+2026-08-29 22:21:29.040945 Disk0 active=254.0% read=2.60 MB/s write=0.79 MB/s latency=0.0 ms
+2026-08-29 22:21:31.044157 RAM available=3205 MB used=73.4%
+2026-08-29 22:21:32.278526 Disk0 active=56.0% read=0.67 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:21:34.281323 RAM available=3182 MB used=73.6%
+2026-08-29 22:21:35.364227 Disk0 active=459.0% read=0.06 MB/s write=90.36 MB/s latency=0.0 ms
+2026-08-29 22:21:37.366281 RAM available=3181 MB used=73.6%
+2026-08-29 22:21:38.424732 Disk0 active=234.0% read=0.27 MB/s write=0.16 MB/s latency=0.0 ms
+2026-08-29 22:21:40.428314 RAM available=3175 MB used=73.7%
+2026-08-29 22:21:41.554161 Disk0 active=138.0% read=1.70 MB/s write=2.08 MB/s latency=0.0 ms
+2026-08-29 22:21:43.560182 RAM available=3168 MB used=73.8%
+2026-08-29 22:21:44.748519 Disk0 active=76.0% read=0.80 MB/s write=0.10 MB/s latency=0.0 ms
+2026-08-29 22:21:46.756831 RAM available=3183 MB used=73.6%
+2026-08-29 22:21:47.883799 Disk0 active=41.0% read=0.31 MB/s write=0.10 MB/s latency=0.0 ms
+2026-08-29 22:21:49.885915 RAM available=3265 MB used=72.9%
+2026-08-29 22:21:51.401238 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:21:53.403220 RAM available=3253 MB used=73.1%
+2026-08-29 22:21:54.482229 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:21:56.484258 RAM available=3250 MB used=73.1%
+2026-08-29 22:21:57.520652 Disk0 active=0.0% read=0.00 MB/s write=0.17 MB/s latency=0.0 ms
+2026-08-29 22:21:59.522580 RAM available=3251 MB used=73.1%
+2026-08-29 22:22:00.590261 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:22:02.598261 RAM available=3252 MB used=73.1%
+2026-08-29 22:22:03.644402 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:22:05.647253 RAM available=3247 MB used=73.1%
+2026-08-29 22:22:07.053180 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:22:09.057359 RAM available=3256 MB used=73.0%
+2026-08-29 22:22:10.404263 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:22:12.409220 RAM available=3228 MB used=73.3%
+2026-08-29 22:22:13.427645 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:22:15.429058 RAM available=3227 MB used=73.3%
+2026-08-29 22:22:16.468576 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:22:18.523990 RAM available=3241 MB used=73.1%
+2026-08-29 22:22:19.636511 Disk0 active=53.0% read=0.12 MB/s write=0.39 MB/s latency=0.0 ms
+2026-08-29 22:22:21.640120 RAM available=3235 MB used=73.2%
+2026-08-29 22:22:22.717114 Disk0 active=209.0% read=0.00 MB/s write=68.49 MB/s latency=0.0 ms
+2026-08-29 22:22:24.719876 RAM available=3249 MB used=73.1%
+2026-08-29 22:22:25.779500 Disk0 active=149.0% read=0.00 MB/s write=0.16 MB/s latency=0.0 ms
+2026-08-29 22:22:27.781353 RAM available=3248 MB used=73.1%
+2026-08-29 22:22:28.880908 Disk0 active=28.0% read=0.00 MB/s write=0.76 MB/s latency=0.0 ms
+2026-08-29 22:22:30.885174 RAM available=3235 MB used=73.2%
+2026-08-29 22:22:32.044079 Disk0 active=83.0% read=2.66 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:22:34.046564 RAM available=3221 MB used=73.3%
+2026-08-29 22:22:35.219148 Disk0 active=0.0% read=0.00 MB/s write=0.02 MB/s latency=0.0 ms
+2026-08-29 22:22:37.221164 RAM available=3175 MB used=73.7%
+2026-08-29 22:22:38.363746 Disk0 active=523.0% read=19.29 MB/s write=16.72 MB/s latency=0.0 ms
+2026-08-29 22:22:40.376334 RAM available=3184 MB used=73.6%
+2026-08-29 22:22:41.534607 Disk0 active=113.0% read=52.73 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:22:43.537271 RAM available=3154 MB used=73.9%
+2026-08-29 22:22:44.915514 Disk0 active=137.0% read=38.51 MB/s write=0.07 MB/s latency=0.0 ms
+2026-08-29 22:22:46.918042 RAM available=3257 MB used=73.0%
+2026-08-29 22:22:48.022578 Disk0 active=1.0% read=0.00 MB/s write=0.65 MB/s latency=0.0 ms
+2026-08-29 22:22:50.028923 RAM available=3274 MB used=72.9%
+2026-08-29 22:22:51.148682 Disk0 active=20.0% read=0.00 MB/s write=26.39 MB/s latency=0.0 ms
+2026-08-29 22:22:53.156664 RAM available=3277 MB used=72.9%
+2026-08-29 22:22:54.830263 Disk0 active=3.0% read=0.00 MB/s write=0.07 MB/s latency=0.0 ms
+2026-08-29 22:22:56.835485 RAM available=3259 MB used=73.0%
+2026-08-29 22:22:58.047328 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:23:00.049355 RAM available=3305 MB used=72.6%
+2026-08-29 22:23:01.268605 Disk0 active=104.0% read=0.62 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:23:03.271614 RAM available=3304 MB used=72.6%
+2026-08-29 22:23:04.380263 Disk0 active=35.0% read=0.00 MB/s write=0.11 MB/s latency=0.0 ms
+2026-08-29 22:23:06.382523 RAM available=3285 MB used=72.8%
+2026-08-29 22:23:07.767951 Disk0 active=1107.0% read=4.74 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:23:09.770977 RAM available=3268 MB used=72.9%
+2026-08-29 22:23:10.929726 Disk0 active=0.0% read=0.00 MB/s write=0.10 MB/s latency=0.0 ms
+2026-08-29 22:23:12.933410 RAM available=3291 MB used=72.7%
+2026-08-29 22:23:14.002412 Disk0 active=3.0% read=0.00 MB/s write=0.74 MB/s latency=0.0 ms
+2026-08-29 22:23:16.008862 RAM available=3279 MB used=72.8%
+2026-08-29 22:23:17.342301 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:23:19.345774 RAM available=3275 MB used=72.9%
+2026-08-29 22:23:20.350593 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:23:22.356083 RAM available=3287 MB used=72.8%
+2026-08-29 22:23:23.463615 Disk0 active=3.0% read=0.00 MB/s write=1.57 MB/s latency=0.0 ms
+2026-08-29 22:23:25.466878 RAM available=3252 MB used=73.1%
+2026-08-29 22:23:26.817161 Disk0 active=0.0% read=0.00 MB/s write=0.07 MB/s latency=0.0 ms
+2026-08-29 22:23:28.819269 RAM available=3306 MB used=72.6%
+2026-08-29 22:23:30.144762 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-29 22:23:30.144762 ApplyPilot exited normally with code 1
+2026-08-29 22:23:30.144762 === Watchdog finished ===

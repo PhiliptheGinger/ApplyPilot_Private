@@ -71,28 +71,91 @@ SENIORITY_TITLE_PATTERN = re.compile(
 )
 
 
+# 2026-08-25: narrow exception for four title families that are
+# near-universally individual-contributor, customer-facing roles in
+# industry convention despite containing the bare word "manager" --
+# NOT a general "manager" exemption. Investigated after the sales/
+# recruiting/solutions occupational-blacklist removal (commit 4b888af):
+# a live-DB audit found 1,213 rows blocked by SENIORITY_TITLE_PATTERN's
+# bare "manager" branch alone, and a real posting (Zillow/Aryeo,
+# "Technical Customer Success Manager, API") explicitly reads "you will
+# own a portfolio of... customers" with zero team-management language
+# and only a 2+ year requirement -- exactly the kind of case-by-case
+# judgment the LLM scorer exists to make, which a title-only block never
+# lets it reach.
+#
+# Deliberately the EXACT four families, not a broader heuristic (per the
+# investigation's own "prefer the exact four-title approach" guidance):
+# "Engineering Manager", "Product Manager", "Project Manager", "Program
+# Manager", "Operations Manager", and every other manager-titled role
+# are intentionally NOT covered and remain fully disqualifying.
+# Business-segment/region modifiers (Regional, Strategic, Enterprise,
+# Channel, Commercial, Named, Key Accounts, etc.) do not imply seniority
+# and are deliberately left unfiltered -- "Regional Sales Manager" and
+# "Enterprise Account Manager" match this pattern the same as the bare
+# family name. Genuine seniority modifiers (Senior, Lead, Director, Head,
+# Principal, Staff, VP, Chief, ...) are NOT special-cased here at all --
+# they don't need to be: seniority_disqualifier() below only consults
+# this exemption when EVERY SENIORITY_TITLE_PATTERN match in the title is
+# the bare "manager" token, so "Senior Account Manager" / "Lead Technical
+# Account Manager" / "Director of Account Management" / "Head of Customer
+# Success" all still disqualify via their own independent token exactly
+# as before this change.
+#
+# Known, accepted residual risk: title-only matching cannot see body-level
+# people-management language a stored title doesn't reveal. Live-data
+# review found this cuts both ways -- "Manager, Software Technical Account
+# Managers" (a real people-management posting) stays correctly blocked
+# only because its title uses the PLURAL "Account Managers" (no \b match
+# on the singular family pattern below, an incidental but verified-correct
+# side effect), while a plain-titled "Technical Account Manager" (Brady
+# Corp, Charlotte NC) that opens its body with "you will lead and manage a
+# team" would now reach the scorer with nothing in the title to stop it --
+# and a live sample of the "Sales Manager" family specifically found 3/14
+# postings with explicit body-level team-lead language ("lead a team",
+# "hire, coach and develop"), a higher rate than the other three families
+# (0/32, 2/26, 0/19). This is not a new gap this exemption introduces --
+# no title-only heuristic here has ever been able to see body text for ANY
+# title -- it's the reason this exemption routes these four families to
+# the real LLM scorer (which does read the full description) instead of
+# leaving them permanently unreachable.
+_IC_CUSTOMER_FACING_MANAGER_TITLES = re.compile(
+    r"\b(?:account manager|customer success manager|technical account manager|sales manager)\b",
+    re.IGNORECASE,
+)
+
+
 def seniority_disqualifier(title: str | None) -> str | None:
     """Return a disqualification reason if the title signals a seniority
     level this candidate has no professional experience to legitimately
     claim, else None.
 
     Deterministic, no LLM call, no profile lookup needed -- seniority-by-
-    title is purely a function of the title string.
+    title is purely a function of the title string. See
+    _IC_CUSTOMER_FACING_MANAGER_TITLES above for the one narrow exception:
+    Account Manager / Customer Success Manager / Technical Account Manager
+    / Sales Manager are not senior-disqualifying on the bare word "manager"
+    alone, but any OTHER seniority token anywhere in the title (Senior,
+    Lead, Director, Head, Staff, Principal, VP, Chief, ...) still
+    disqualifies exactly as it did before this exception existed.
     """
     if not title:
         return None
-    m = SENIORITY_TITLE_PATTERN.search(title)
-    if m:
-        return f"seniority title match: {m.group(0)!r} in {title!r}"
-    return None
+    matches = list(SENIORITY_TITLE_PATTERN.finditer(title))
+    if not matches:
+        return None
+    if all(m.group(0).lower() == "manager" for m in matches) and _IC_CUSTOMER_FACING_MANAGER_TITLES.search(title):
+        return None
+    m = matches[0]
+    return f"seniority title match: {m.group(0)!r} in {title!r}"
 
 
 def revalidate_seniority(conn=None, *, dry_run: bool = False) -> dict:
     """Re-run the current seniority disqualifier against already-scored rows.
 
     For rule changes made after jobs were already scored (the exact failure
-    mode above): finds any pre-submission job whose title now matches
-    SENIORITY_TITLE_PATTERN and archives it, regardless of what fit_score it
+    mode above): finds any pre-submission job whose title still triggers
+    seniority_disqualifier() and archives it, regardless of what fit_score it
     was previously assigned, INCLUDING jobs already sitting in "tailored" or
     "cover_failed" -- unlike database.reject_jobs_by_title_patterns' default
     protected-states set (built for the general-purpose --auto-reject-titles
@@ -110,27 +173,80 @@ def revalidate_seniority(conn=None, *, dry_run: bool = False) -> dict:
     this blind spot, not an actually-clean database. Only states genuinely
     at or past submission (applied / applying / cover_writing / manual_only
     / archived / ready_to_apply) remain protected here. Safe to call
-    repeatedly -- reuses database.reject_jobs_by_title_patterns(), so a
-    second run against already-archived matches is a no-op (idempotent),
-    and rows that don't match are never touched. No job record is deleted;
-    fit_score, score_reasoning, tailored_resume_path, and cover_letter_path
-    are all preserved on the archived row for audit purposes.
+    repeatedly -- rows that don't match are never touched, and a second run
+    against already-archived matches is a no-op (idempotent). No job record
+    is deleted; fit_score, score_reasoning, tailored_resume_path, and
+    cover_letter_path are all preserved on the archived row for audit
+    purposes.
 
-    Returns the same {"matched", "updated", "sample"} dict as
-    reject_jobs_by_title_patterns().
+    2026-08-25 follow-up (IC-manager-title exception): this used to delegate
+    to database.reject_jobs_by_title_patterns([SENIORITY_TITLE_PATTERN.pattern],
+    ...) -- a second, independent regex evaluation of the raw pattern string
+    that bypassed seniority_disqualifier()'s Python-level exemption logic
+    entirely (see _IC_CUSTOMER_FACING_MANAGER_TITLES above). That would have
+    made this sweep the fourth drifted copy the 2026-08-21 incident this
+    module was built to prevent -- running `applypilot revalidate-seniority`
+    would have silently re-archived every "Account Manager"/"Customer
+    Success Manager"/"Technical Account Manager"/"Sales Manager" job the
+    exemption had just unblocked. Now iterates rows directly and calls
+    seniority_disqualifier(title) per row, so this can never drift from the
+    canonical predicate again regardless of future changes to it. Mirrors
+    revalidate_stale_scores' row-iteration shape below (also in this
+    module) rather than reject_jobs_by_title_patterns' shared regex-list
+    matcher, which stays untouched -- it's also used by the unrelated
+    --auto-reject-titles CLI flag's arbitrary user-supplied patterns.
+    Behavior difference from the old delegation: apply_category/apply_error
+    are no longer set on the archived row (only state, via transition_state)
+    -- the same, already-shipped precedent revalidate_stale_scores uses.
+
+    Returns a {"matched", "updated", "sample"} dict; each sample row carries
+    url/title/reason (reason replaces the old delegated-call's "pattern" key
+    -- unused by any consumer, which only reads url/title).
     """
-    from applypilot.database import reject_jobs_by_title_patterns
+    from applypilot.database import commit_with_retry, get_connection, transition_state
+
+    if conn is None:
+        conn = get_connection()
 
     protected_states = frozenset(
         {"applied", "applying", "cover_writing", "manual_only", "archived", "ready_to_apply"}
     )
-    return reject_jobs_by_title_patterns(
-        [SENIORITY_TITLE_PATTERN.pattern],
-        conn=conn,
-        dry_run=dry_run,
-        sample_limit=1000,
-        protected_states=protected_states,
-    )
+    placeholders = ", ".join("?" for _ in protected_states)
+    rows = conn.execute(
+        f"""
+        SELECT url, title
+        FROM jobs
+        WHERE applied_at IS NULL
+          AND COALESCE(state, '') NOT IN ({placeholders})
+        """,
+        tuple(protected_states),
+    ).fetchall()
+
+    matches = []
+    for row in rows:
+        title = row["title"] or ""
+        reason = seniority_disqualifier(title)
+        if reason:
+            matches.append({"url": row["url"], "title": title, "reason": reason})
+
+    if dry_run:
+        return {"matched": len(matches), "updated": 0, "sample": matches[:1000]}
+
+    updated = 0
+    for m in matches:
+        ok = transition_state(
+            conn,
+            m["url"],
+            "archived",
+            reason=f"revalidate_seniority: {m['reason']}",
+            metadata={"title": m["title"][:120]},
+            force=True,
+        )
+        if ok:
+            updated += 1
+
+    commit_with_retry(conn)
+    return {"matched": len(matches), "updated": updated, "sample": matches[:1000]}
 
 
 # States a stale-score sweep is allowed to touch. Deliberately narrower than

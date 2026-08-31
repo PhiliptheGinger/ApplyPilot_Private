@@ -1,0 +1,11 @@
+2026-08-30 13:47:04.188574 === ApplyPilot watchdog starting ===
+2026-08-30 13:47:04.188574 Project: C:\Users\phili\Projects\resume-agent
+2026-08-30 13:47:04.188574 Command: applypilot status
+2026-08-30 13:47:04.188574 Log file: C:\Users\phili\Projects\resume-agent\watchdog_logs\watchdog_20260830_134704.log
+2026-08-30 13:47:04.188574 Thresholds: disk active>=99% AND latency>=1000ms, OR RAM available<1400MB -- sustained 10 consecutive samples (20s) before acting.
+2026-08-30 13:47:04.249357 ApplyPilot PID: 10212
+2026-08-30 13:47:06.252309 RAM available=4654 MB used=61.4%
+2026-08-30 13:47:11.329538 WARNING: disk-stat query failed/timed out: Command '['powershell.exe', '-NoProfile', '-Command', "Get-CimInstance Win32_PerfFormattedData_PerfDisk_PhysicalDisk | Where-Object { $_.Name -eq '0 C:' } | Select-Object PercentDiskTime, AvgDiskSecPerTransfer, DiskReadBytesPerSec, DiskWriteBytesPerSec | ConvertTo-Json -Compress"]' timed out after 5 seconds
+2026-08-30 13:47:11.331606 WARNING: Could not obtain Disk 0 performance data.
+2026-08-30 13:47:11.333414 ApplyPilot exited normally with code 0
+2026-08-30 13:47:11.333897 === Watchdog finished ===

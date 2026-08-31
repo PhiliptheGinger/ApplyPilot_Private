@@ -115,6 +115,27 @@ log = logging.getLogger(__name__)
 _DEFAULT_LOCAL_URL = "http://localhost:11434"
 _DEFAULT_LOCAL_MODEL = "llama3.2"
 
+
+def _ollama_native_base_url(raw_url: str) -> str:
+    """Normalize APPLYPILOT_LOCAL_LLM_URL for Ollama's NATIVE /api/chat.
+
+    The env var is documented for -- and, via llm.py's
+    local_openai_base_url(), always normalized to -- the OpenAI-compatible
+    /v1 convention (what `applypilot test-local` and the cloud-fallback
+    chain's local entry both want). This module's get_local_tailoring_plan()
+    posts straight to Ollama's native endpoint instead, which lives at the
+    bare server root, not under /v1. A URL configured the documented way
+    (WITH /v1 -- e.g. copied verbatim from the test-local setup instructions)
+    previously produced .../v1/api/chat here, a route Ollama doesn't serve
+    (404) -- reproduced live 2026-08-31 running `debug-local-plan` against
+    a real Ollama instance with APPLYPILOT_LOCAL_LLM_URL=http://localhost:11434/v1.
+    Strip a trailing /v1 so both configured forms (with or without it) work.
+    """
+    url = raw_url.rstrip("/")
+    if url.endswith("/v1"):
+        url = url[: -len("/v1")]
+    return url
+
 # The compact-prompt full-generation path (see _build_compact_local_prompt)
 # is an emergency degraded mode: it's only reached when every cloud tailoring
 # model is exhausted AND a local model is configured. It is NOT equivalent to
@@ -771,6 +792,162 @@ def format_evidence_for_prompt(ranked: list[dict]) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Semantic-retrieval evidence text (2026-08-31, additive-only enhancement)
+#
+# The 2026-08-31 semantic-retrieval experiment (5 real jobs, 40 requirement
+# lines) found several experience_inventory entries have an empty
+# `description` -- the real content lives in role_title/role_type/
+# relevance_categories instead (e.g. Alex Prosperity Group / UST Logistics'
+# `description` is null, but role_title is "Moving Specialist / Installation
+# Tech", which is exactly what let semantic retrieval correctly surface it
+# for a "PC hardware installation" requirement). Embedding description
+# alone would silently embed an empty string for those entries. This
+# builds the same richer per-type text the experiment validated, reusing
+# only fields that already exist in the profile schema -- nothing invented,
+# no parallel evidence representation.
+# ---------------------------------------------------------------------------
+
+
+def _evidence_semantic_text(kind: str, item: dict) -> str:
+    """Canonical text representation of one evidence item for semantic
+    embedding. Deliberately similar in spirit to format_evidence_for_prompt
+    (same per-type field selection), but fuller -- format_evidence_for_prompt
+    truncates description to 200 chars for a token-budget-conscious LLM
+    prompt; embedding wants the fullest faithful representation available."""
+    parts: list[str] = []
+
+    def add(value) -> None:
+        if isinstance(value, str) and value.strip():
+            parts.append(value.strip())
+        elif isinstance(value, list):
+            parts.extend(v.strip() for v in value if isinstance(v, str) and v.strip())
+
+    add(item.get("name"))
+    if kind == "experience":
+        add(item.get("role_title"))
+        add(item.get("role_type"))
+        add(item.get("description"))
+        add(item.get("relevance_categories"))
+    elif kind == "project":
+        add(item.get("description"))
+        add(item.get("factual_concepts"))
+        add(item.get("relevance_categories"))
+    elif kind == "skill":
+        add(item.get("evidence_level"))
+        add(item.get("proficiency"))
+        add(item.get("relevance_categories"))
+    elif kind == "certification":
+        add(item.get("official_credential_description"))
+        add(item.get("relevance_categories"))
+    return " ".join(parts)
+
+
+def _build_full_evidence_corpus(profile: dict) -> list[dict]:
+    """Every resume_allowed=True evidence item across all four inventories,
+    WITHOUT rank_profile_evidence's literal-term-overlap filter.
+
+    Semantic retrieval's whole purpose is finding items literal matching's
+    word-boundary check missed entirely (score=0 against the job as a
+    whole -- e.g. CompTIA A+ and UPS in the 2026-08-31 experiment both
+    scored zero literal overlap against jobs they were later found
+    genuinely relevant to), so it needs the FULL candidate pool, not the
+    already-literal-filtered one rank_profile_evidence returns. Same
+    resume_allowed=False exclusion rank_profile_evidence already applies.
+    """
+    sources = (
+        ("experience", profile.get("experience_inventory") or []),
+        ("project", profile.get("project_inventory") or []),
+        ("skill", profile.get("skills_inventory") or []),
+        ("certification", profile.get("certifications") or []),
+    )
+    corpus: list[dict] = []
+    for kind, items in sources:
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict) or item.get("resume_allowed") is False:
+                continue
+            name = item.get("name")
+            if not isinstance(name, str) or not name.strip():
+                continue
+            text = _evidence_semantic_text(kind, item)
+            if not text:
+                continue
+            corpus.append({"type": kind, "name": name, "item": item, "text": text})
+    return corpus
+
+
+def _semantic_expand_evidence(
+    requirement_lines: list[dict],
+    ranked_evidence: list[dict],
+    profile: dict,
+) -> tuple[list[dict], dict[int, list[int]]]:
+    """Best-effort semantic candidate expansion. Returns (possibly extended
+    ranked_evidence, {requirement_number: [new evidence ids]}).
+
+    Never raises, and any failure -- disabled, Ollama unreachable,
+    malformed response, empty corpus -- returns the ORIGINAL ranked_evidence
+    unchanged and an empty candidate map. Semantic retrieval can therefore
+    only ever ADD candidates, never remove or alter literal ones, and a
+    failure here is indistinguishable from "no semantic recall this run":
+    the existing literal-only local-plan behavior is exactly what runs.
+
+    New evidence items found only via semantic similarity are appended to
+    `ranked_evidence` (giving them a real E-number so format_evidence_for_prompt
+    can show them to the model) tagged `"provenance": "semantic"` and
+    `"matched_terms": []` -- the empty matched_terms is what keeps
+    _pair_candidate_evidence's own literal/synonym re-check from ever
+    selecting them on its own; they can only ever reach a requirement via
+    the returned candidate map, which _auto_resolve_requirements treats as
+    admission-only (see that function's docstring).
+    """
+    from applypilot.scoring import semantic_match
+
+    if not semantic_match.is_semantic_match_enabled():
+        return ranked_evidence, {}
+
+    full_corpus = _build_full_evidence_corpus(profile)
+    if not full_corpus:
+        return ranked_evidence, {}
+
+    existing_names = {(e["type"], e["name"]) for e in ranked_evidence}
+    novel_corpus = [c for c in full_corpus if (c["type"], c["name"]) not in existing_names]
+    if not novel_corpus:
+        return ranked_evidence, {}
+
+    corpus_embeddings = semantic_match.embed_texts([c["text"] for c in novel_corpus])
+    if corpus_embeddings is None:
+        return ranked_evidence, {}
+
+    req_texts = [line["text"] for line in requirement_lines]
+    req_embeddings = semantic_match.embed_texts(req_texts)
+    if req_embeddings is None:
+        return ranked_evidence, {}
+
+    extended = list(ranked_evidence)
+    novel_start_idx = len(extended)  # 0-based; E-number = index + 1
+    for c in novel_corpus:
+        extended.append(
+            {
+                "type": c["type"],
+                "name": c["name"],
+                "score": 0,
+                "matched_terms": [],
+                "item": c["item"],
+                "provenance": "semantic",
+            }
+        )
+
+    semantic_candidates_by_requirement: dict[int, list[int]] = {}
+    for i, req_vec in enumerate(req_embeddings, start=1):
+        ranked = semantic_match.rank_semantic_candidates(req_vec, corpus_embeddings)
+        if ranked:
+            semantic_candidates_by_requirement[i] = [novel_start_idx + local_idx + 1 for local_idx, _score in ranked]
+
+    return extended, semantic_candidates_by_requirement
+
+
+# ---------------------------------------------------------------------------
 # Deterministic requirement <-> evidence PAIR scoring
 #
 # rank_profile_evidence already tells us WHY each evidence item matched the
@@ -903,6 +1080,7 @@ def _pair_candidate_evidence(requirement_text: str, ranked_evidence: list[dict])
 def _auto_resolve_requirements(
     requirement_lines: list[dict],
     ranked_evidence: list[dict],
+    semantic_candidates_by_requirement: dict[int, list[int]] | None = None,
 ) -> tuple[dict[int, list[int]], dict[int, list[int]]]:
     """Run _pair_candidate_evidence for every requirement and sort the
     results into what can be settled without the model vs. what's
@@ -910,24 +1088,61 @@ def _auto_resolve_requirements(
 
     Returns (resolved, candidates):
       resolved   -- requirement number -> evidence ids, for every
-                    requirement with 0 or 1 top-tier candidate (nothing
-                    for the model to decide).
-      candidates -- requirement number -> top-tier evidence ids, for
-                    EVERY requirement (including resolved ones, where it's
-                    just their 0/1-length entry). Used to (a) build the
-                    "(candidates: ...)" hint shown to the model for the
-                    still-ambiguous requirements and (b) hard-filter
-                    whatever the model answers afterward, so it can never
-                    select an evidence id outside this deterministic tier
-                    even if it ignores the hint.
+                    requirement with 0 or 1 top-tier LITERAL candidate
+                    (nothing for the model to decide). This privilege is
+                    earned by literal matching's precision and is NEVER
+                    extended to semantic-only candidates -- see below.
+      candidates -- requirement number -> top-tier evidence ids (literal
+                    candidates plus any semantic ones), for EVERY
+                    requirement. Used to (a) build the "(candidates: ...)"
+                    hint shown to the model for the still-ambiguous
+                    requirements and (b) hard-filter whatever the model
+                    answers afterward, so it can never select an evidence
+                    id outside this tier even if it ignores the hint.
+
+    semantic_candidates_by_requirement: optional {requirement_number:
+        [evidence ids]} from local_tailor._semantic_expand_evidence,
+        already excluding ids the literal path found on its own. Backward
+        compatible -- omitting it (or passing None) reproduces the
+        original literal-only behavior exactly, unchanged.
+
+        2026-08-31 semantic-retrieval enhancement: a semantic candidate is
+        added to `candidates` for arbitration but is architecturally
+        BARRED from `resolved` -- real-data validation (the 2026-08-31
+        experiment plus arbitration_test.py) found raw cosine similarity
+        cannot reliably distinguish genuine evidence from high-scoring
+        false positives, and that the existing Qwen3 arbitration prompt
+        also cannot be trusted to do so on its own (qwen3:1.7b accepted a
+        known false positive alongside the correct answer; qwen3:8b
+        accepted ONLY the false positive and rejected the correct one).
+        So: if a requirement's ONLY evidence is semantic (literal found
+        zero), it is deliberately NOT auto-resolved as "unsupported" the
+        way a genuine zero-literal-candidate requirement is -- it's routed
+        to the ambiguous/arbitration path instead, candidates and all,
+        even when there's exactly one semantic candidate (never infer
+        support from semantic candidate count alone). If literal ALREADY
+        resolved the requirement (0 or 1 literal candidates), that
+        resolution is left completely untouched regardless of what
+        semantic retrieval separately finds -- the existing literal
+        auto-resolve privilege is preserved exactly, never revisited by a
+        semantic addition.
     """
+    semantic_candidates_by_requirement = semantic_candidates_by_requirement or {}
     resolved: dict[int, list[int]] = {}
     candidates: dict[int, list[int]] = {}
     for i, line in enumerate(requirement_lines, start=1):
-        cands = _pair_candidate_evidence(line["text"], ranked_evidence)
-        candidates[i] = cands
-        if len(cands) <= 1:
-            resolved[i] = cands
+        literal_cands = _pair_candidate_evidence(line["text"], ranked_evidence)
+        semantic_extra = [idx for idx in semantic_candidates_by_requirement.get(i, []) if idx not in literal_cands]
+
+        candidates[i] = list(literal_cands) + semantic_extra
+
+        if len(literal_cands) <= 1 and (literal_cands or not semantic_extra):
+            # Literal's own 0/1-candidate privilege, exactly as before --
+            # untouched by whatever semantic retrieval separately proposed.
+            resolved[i] = literal_cands
+        # else: ambiguous. Either literal itself was already a tie (2+),
+        # or literal found nothing and semantic proposed the requirement's
+        # ONLY evidence -- both go to arbitration, never auto-resolved.
     return resolved, candidates
 
 
@@ -1073,7 +1288,14 @@ def get_local_tailoring_plan(
         plan["_warnings"].append(reason)
         return plan
 
-    resolved, candidates = _auto_resolve_requirements(requirement_lines, ranked_evidence)
+    # 2026-08-31: semantic candidate-recall expansion. Best-effort and
+    # additive only -- see _semantic_expand_evidence's docstring for the
+    # full safety contract. Any failure (disabled, Ollama unreachable,
+    # malformed response) leaves ranked_evidence/semantic_candidates
+    # exactly as if this call were never made.
+    ranked_evidence, semantic_candidates = _semantic_expand_evidence(requirement_lines, ranked_evidence, profile)
+
+    resolved, candidates = _auto_resolve_requirements(requirement_lines, ranked_evidence, semantic_candidates)
     ambiguous_ids = {i for i in range(1, len(requirement_lines) + 1) if i not in resolved}
 
     if not ambiguous_ids:
@@ -1093,7 +1315,7 @@ def get_local_tailoring_plan(
         )
         return plan
 
-    url = os.environ.get("APPLYPILOT_LOCAL_LLM_URL", _DEFAULT_LOCAL_URL).rstrip("/")
+    url = _ollama_native_base_url(os.environ.get("APPLYPILOT_LOCAL_LLM_URL", _DEFAULT_LOCAL_URL))
     model = os.environ.get("APPLYPILOT_LOCAL_LLM_MODEL", _DEFAULT_LOCAL_MODEL)
     timeout = float(os.environ.get("APPLYPILOT_LOCAL_LLM_TIMEOUT", "60"))
 

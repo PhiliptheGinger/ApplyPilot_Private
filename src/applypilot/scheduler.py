@@ -184,6 +184,19 @@ class SchedulerConfig:
     max_age_days: int = config.DEFAULTS["max_job_age_days"]
     doc_format: str = "docx"
     throughput_window_minutes: int = 60
+    # 2026-08-29: per-stage exclusion flags for run_once, so run-continuous
+    # can be pointed at an existing backlog without also continuously
+    # discovering more (or, if useful, without running any other single
+    # stage). No `enable_apply` field -- the continuous apply worker is
+    # already independently gated by `no_continuous_apply` above (started
+    # or not in run_continuous, entirely separate from run_once's stages),
+    # so a second apply-disabling flag here would just duplicate it.
+    enable_discover: bool = True
+    enable_enrich: bool = True
+    enable_score: bool = True
+    enable_tailor: bool = True
+    enable_cover: bool = True
+
 
 
 # ---------------------------------------------------------------------------
@@ -404,7 +417,7 @@ def run_once(
     discover_result = None
     discovery_ran = False
 
-    if discover_due:
+    if cfg.enable_discover and discover_due:
         discover_result = run_pipeline_fn(stages=["discover"])
         discovery_ran = True
         # 2026-08-28 fix: record COMPLETION time, not the cycle-start `now`
@@ -426,13 +439,16 @@ def run_once(
         _log_decision(
             log,
             "discover_skipped",
-            reason="interval",
+            reason="disabled" if not cfg.enable_discover else "interval",
             last_discover_at=(last_discover_at.isoformat() if last_discover_at is not None else None),
             interval_seconds=cfg.discover_interval,
         )
 
-    enrich_result = run_pipeline_fn(stages=["enrich"])
-    _log_decision(log, "enrich_result", result=enrich_result)
+    if cfg.enable_enrich:
+        enrich_result = run_pipeline_fn(stages=["enrich"])
+        _log_decision(log, "enrich_result", result=enrich_result)
+    else:
+        _log_decision(log, "enrich_skipped", reason="disabled")
 
     pending_score = pipeline_mod._count_pending(
         "score",
@@ -447,7 +463,7 @@ def run_once(
         pending=pending_score,
     )
 
-    if score_limit > 0:
+    if cfg.enable_score and score_limit > 0:
         score_result = run_pipeline_fn(
             stages=["score"],
             limit=score_limit,
@@ -460,6 +476,8 @@ def run_once(
             limit=score_limit,
             result=score_result,
         )
+    elif not cfg.enable_score:
+        _log_decision(log, "score_skipped", reason="disabled", pending=pending_score)
 
     target = _target_for_state(avail.state, cfg)
     minutes_available = None
@@ -524,7 +542,7 @@ def run_once(
         cover_throughput=cover_throughput,
     )
 
-    if plan["tailor"] > 0:
+    if cfg.enable_tailor and plan["tailor"] > 0:
         tailor_result = run_pipeline_fn(
             stages=["tailor"],
             limit=plan["tailor"],
@@ -538,8 +556,10 @@ def run_once(
             limit=plan["tailor"],
             result=tailor_result,
         )
+    elif not cfg.enable_tailor and plan["tailor"] > 0:
+        _log_decision(log, "tailor_skipped", reason="disabled", planned=plan["tailor"])
 
-    if plan["cover"] > 0:
+    if cfg.enable_cover and plan["cover"] > 0:
         cover_result = run_pipeline_fn(
             stages=["cover"],
             limit=plan["cover"],
@@ -553,6 +573,8 @@ def run_once(
             limit=plan["cover"],
             result=cover_result,
         )
+    elif not cfg.enable_cover and plan["cover"] > 0:
+        _log_decision(log, "cover_skipped", reason="disabled", planned=plan["cover"])
 
     result = {
         "availability": avail,

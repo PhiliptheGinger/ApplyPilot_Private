@@ -186,5 +186,9 @@ def test_workday_ml_ops_regression_never_reaches_llm():
 
     mock_get_client.assert_not_called()
     assert result["score"] == 2
-    assert result["eligibility"] == "non_us_only"  # reused generic reject signal, same as seniority
+    # 2026-08-29 eligibility-labeling fix: security-clearance rejections are
+    # not one of the 3 dedicated categories (non_us_only/seniority_mismatch/
+    # title_excluded), so they fall into the ineligible_other catch-all --
+    # previously mislabeled "non_us_only" by the old generic-signal design.
+    assert result["eligibility"] == "ineligible_other"
     assert "clearance" in result["reasoning"].lower()

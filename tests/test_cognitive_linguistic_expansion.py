@@ -186,6 +186,32 @@ class TestCategoryTier(unittest.TestCase):
     def test_unknown_match_is_unsupported(self):
         self.assertEqual(schemas.classify_category_tier("unknown", 0), "unsupported")
 
+    def test_semantic_match_is_unsupported_never_prototype_or_peripheral(self):
+        """2026-08-31: embedding-similarity provenance must never receive
+        the same category tier as a literal or curated-synonym match --
+        real-data validation found raw cosine similarity unreliable at
+        distinguishing genuine matches from false positives."""
+        self.assertEqual(schemas.classify_category_tier("semantic", 0), "unsupported")
+        self.assertEqual(schemas.classify_category_tier("semantic", 5), "unsupported")  # keyword count irrelevant
+
+
+class TestMatchKindSemanticProvenance(unittest.TestCase):
+    def test_semantic_provenance_with_no_term_overlap_classified_semantic(self):
+        item = {"matched_terms": [], "provenance": "semantic"}
+        self.assertEqual(schemas._match_kind("Install PC hardware.", item), "semantic")
+
+    def test_no_provenance_marker_falls_back_to_unknown(self):
+        item = {"matched_terms": []}
+        self.assertEqual(schemas._match_kind("Install PC hardware.", item), "unknown")
+
+    def test_literal_overlap_wins_over_semantic_provenance(self):
+        """An item _auto_resolve_requirements added via semantic recall
+        that ALSO happens to share a literal term with this specific
+        requirement line is classified by the stronger signal, not
+        weakened to "semantic"."""
+        item = {"matched_terms": ["python"], "provenance": "semantic"}
+        self.assertEqual(schemas._match_kind("Use python for automation.", item), "literal")
+
 
 # ---------------------------------------------------------------------------
 # 4. Claim-strength lattice: detection, ceiling derivation, and the

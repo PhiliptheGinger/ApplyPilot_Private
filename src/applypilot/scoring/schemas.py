@@ -475,12 +475,25 @@ CATEGORY_TIERS = ("prototype", "near_prototype", "peripheral", "unsupported")
 
 def classify_category_tier(match_kind: str, exact_keyword_count: int) -> str:
     """Deterministic category-membership tier for one requirement/evidence
-    pairing. match_kind is local_tailor's own literal/synonym/unknown
-    classification (see _match_kind below)."""
+    pairing. match_kind is local_tailor's own literal/synonym/semantic/
+    unknown classification (see _match_kind below)."""
     if match_kind == "literal":
         return "prototype" if exact_keyword_count >= 2 else "near_prototype"
     if match_kind == "synonym":
         return "peripheral"
+    if match_kind == "semantic":
+        # 2026-08-31: raw embedding-similarity provenance (local_tailor's
+        # semantic_match.py) is deliberately never eligible for prototype/
+        # near_prototype (literal) OR peripheral (curated synonym) --
+        # real-data validation found both raw cosine similarity and the
+        # existing Qwen3 arbitration prompt unreliable at distinguishing
+        # genuine semantic matches from false positives (see
+        # local_tailor._auto_resolve_requirements' docstring for the
+        # specific evidence). Stays "unsupported" -- the same conservative
+        # outcome an unrecognized match_kind already got -- until some
+        # future, explicitly-verified confirmation step exists to promote
+        # it no higher than "peripheral", never "prototype"/"near_prototype".
+        return "unsupported"
     return "unsupported"
 
 
@@ -938,13 +951,19 @@ def _match_kind(requirement_text: str, evidence_item: dict) -> str:
     """Classify HOW an already-resolved requirement/evidence pair matched:
     "literal" (an exact term from the evidence appears in the requirement
     text), "synonym" (matched only via local_tailor.py's curated paraphrase
-    table), or "unknown" (matched some other way -- treated conservatively,
-    same as synonym, by callers).
+    table), "semantic" (evidence_item carries local_tailor.py's
+    semantic_match.py provenance marker and has no literal/synonym term
+    overlap), or "unknown" (matched some other way -- treated
+    conservatively, same as synonym, by callers).
 
     Read-only classification for rendering/schema-selection purposes only --
     never used to decide whether a match is valid; that decision was already
     made by local_tailor.py's _auto_resolve_requirements before this
-    function is ever called.
+    function is ever called. Note: literal/synonym are checked FIRST and
+    take priority even for a semantically-provenanced item -- an item
+    _auto_resolve_requirements added via semantic recall that also happens
+    to share a literal/curated term with this specific requirement line is
+    classified by that stronger signal, not weakened to "semantic".
     """
     text_lower = requirement_text.lower()
     terms = evidence_item.get("matched_terms") or []
@@ -952,6 +971,8 @@ def _match_kind(requirement_text: str, evidence_item: dict) -> str:
         return "literal"
     if any(_synonym_hit(t, text_lower) for t in terms):
         return "synonym"
+    if evidence_item.get("provenance") == "semantic":
+        return "semantic"
     return "unknown"
 
 

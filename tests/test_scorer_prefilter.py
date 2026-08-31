@@ -7,6 +7,8 @@ are the actual target level, not noise to reject. Internships/co-ops remain
 excluded via searches.yaml exclude_titles (candidate wants full-time work).
 """
 
+from unittest.mock import patch
+
 import pytest
 
 from applypilot.scoring.scorer import _check_ineligible
@@ -101,17 +103,119 @@ def test_account_manager_title_not_blocked_by_occupation():
     assert _check_ineligible(_job(title="Enterprise Account Executive")) is None
 
 
-def test_account_manager_bare_title_still_blocked_via_unrelated_seniority_gate():
-    """"Account Manager" (no modifier) is still rejected -- but NOT via the
-    (now-removed) Account Manager occupational pattern. The separate,
-    deliberately-broad eligibility.SENIORITY_TITLE_PATTERN treats bare
-    "Manager" as senior-scoped (see CLAUDE.md decision #64, which explicitly
-    accepted this breadth -- e.g. "Funeral Director" is likewise "mismatched").
-    Narrowing that pattern is out of scope for this change; documented here as
-    a known collision rather than silently patched."""
-    reason = _check_ineligible(_job(title="Account Manager"))
-    assert reason is not None
-    assert "seniority" in reason.lower()
+# ── IC/customer-facing manager-title exception (2026-08-25 follow-up) ────
+# The broad bare-"manager" seniority rule (decision #64) was investigated
+# specifically for four industry-standard IC/customer-facing title families:
+# Account Manager, Customer Success Manager, Technical Account Manager,
+# Sales Manager. A real posting (Zillow/Aryeo "Technical Customer Success
+# Manager, API") explicitly reads "you will own a portfolio of... customers"
+# with no team-management language and only a 2+ year requirement -- exactly
+# the case-by-case judgment the LLM scorer exists to make. See
+# eligibility._IC_CUSTOMER_FACING_MANAGER_TITLES for the exact, deliberately
+# narrow (not a general "manager" exemption) implementation.
+#
+# These tests mock load_search_config() to isolate the code-level exemption
+# from this machine's live ~/.applypilot/searches.yaml, which independently
+# ALSO lists "manager" in its own user-editable exclude_titles (a genuinely
+# separate mechanism from eligibility.SENIORITY_TITLE_PATTERN -- see
+# test_config_exclude_titles_is_a_separate_mechanism_not_touched_by_this_change
+# below for the unmocked, live-environment-coupled proof that this second
+# gate still exists and was deliberately left untouched, since modifying a
+# user's config file is out of scope for this change).
+
+
+def _cfg_no_manager_exclusion(exclude_titles=None):
+    return {
+        "exclude_titles": exclude_titles
+        if exclude_titles is not None
+        else ["senior", "sr.", "staff", "principal", "lead", "head", "director", "vp ", "chief", "intern", "co-op"]
+    }
+
+
+@patch("applypilot.scoring.scorer.load_search_config")
+def test_account_manager_reaches_scoring(mock_cfg):
+    """Proves the exception reaches the actual production scoring path
+    (_check_ineligible), not just the eligibility.seniority_disqualifier
+    regex in isolation -- per the explicit instruction that a title
+    reaching scoring must not be silently re-rejected by another prefilter."""
+    mock_cfg.return_value = _cfg_no_manager_exclusion()
+    assert _check_ineligible(_job(title="Account Manager")) is None
+
+
+@patch("applypilot.scoring.scorer.load_search_config")
+def test_customer_success_manager_reaches_scoring(mock_cfg):
+    mock_cfg.return_value = _cfg_no_manager_exclusion()
+    assert _check_ineligible(_job(title="Customer Success Manager")) is None
+
+
+@patch("applypilot.scoring.scorer.load_search_config")
+def test_technical_account_manager_reaches_scoring(mock_cfg):
+    mock_cfg.return_value = _cfg_no_manager_exclusion()
+    assert _check_ineligible(_job(title="Technical Account Manager")) is None
+
+
+@patch("applypilot.scoring.scorer.load_search_config")
+def test_sales_manager_reaches_scoring(mock_cfg):
+    mock_cfg.return_value = _cfg_no_manager_exclusion()
+    assert _check_ineligible(_job(title="Sales Manager")) is None
+
+
+@patch("applypilot.scoring.scorer.load_search_config")
+def test_business_segment_modifiers_do_not_defeat_the_exemption(mock_cfg):
+    """Regional/Strategic/Enterprise/Channel prefixes are not seniority
+    signals -- the exact-four-family approach deliberately does not try to
+    infer seniority from them (per the investigation's own guidance)."""
+    mock_cfg.return_value = _cfg_no_manager_exclusion()
+    assert _check_ineligible(_job(title="Regional Sales Manager")) is None
+    assert _check_ineligible(_job(title="Enterprise Account Manager")) is None
+    assert _check_ineligible(_job(title="Strategic Account Manager")) is None
+
+
+@patch("applypilot.scoring.scorer.load_search_config")
+def test_independently_senior_modifiers_still_block_the_exempt_families(mock_cfg):
+    """The exemption only suppresses the bare "manager" token -- any OTHER
+    SENIORITY_TITLE_PATTERN token anywhere in the title still disqualifies
+    exactly as before, so a genuinely senior variant of an otherwise-exempt
+    family is never let through."""
+    mock_cfg.return_value = _cfg_no_manager_exclusion()
+    assert _check_ineligible(_job(title="Senior Account Manager")) is not None
+    assert _check_ineligible(_job(title="Senior Customer Success Manager")) is not None
+    assert _check_ineligible(_job(title="Lead Technical Account Manager")) is not None
+    assert _check_ineligible(_job(title="Director of Account Management")) is not None
+    assert _check_ineligible(_job(title="Head of Customer Success")) is not None
+
+
+@patch("applypilot.scoring.scorer.load_search_config")
+def test_non_exempt_manager_families_remain_blocked(mock_cfg):
+    """The exemption is exactly four families, not a general "manager"
+    exemption -- Engineering/Product/Project/Program/Operations Manager
+    (and bare "Manager" alone) remain fully disqualifying."""
+    mock_cfg.return_value = _cfg_no_manager_exclusion()
+    assert _check_ineligible(_job(title="Engineering Manager")) is not None
+    assert _check_ineligible(_job(title="Product Manager")) is not None
+    assert _check_ineligible(_job(title="Project Manager")) is not None
+    assert _check_ineligible(_job(title="Program Manager")) is not None
+    assert _check_ineligible(_job(title="Operations Manager")) is not None
+    assert _check_ineligible(_job(title="Manager")) is not None
+
+
+def test_config_exclude_titles_is_a_separate_mechanism_not_touched_by_this_change():
+    """Unmocked (uses this machine's real ~/.applypilot/searches.yaml):
+    documents that a genuinely separate, user-editable config layer
+    (scorer.py's exclude_titles check, sourced from searches.yaml) may
+    independently still exclude "manager" -- this is NOT the seniority gate
+    this change modified, and editing a user's config file is out of scope
+    here. If this assertion ever starts failing because the live config no
+    longer lists "manager", that's a config change on this machine, not a
+    regression in this exemption."""
+    from applypilot.config import load_search_config
+
+    cfg = load_search_config() or {}
+    excluded = [str(t).strip().lower() for t in (cfg.get("exclude_titles") or [])]
+    if "manager" in excluded:
+        reason = _check_ineligible(_job(title="Account Manager"))
+        assert reason is not None
+        assert "search configuration" in reason.lower()
 
 
 def test_senior_recruiter_and_account_titles_still_blocked_by_seniority():

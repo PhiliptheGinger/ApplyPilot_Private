@@ -310,6 +310,116 @@ class TestRunOnce:
             "moment a single crawl exceeds the interval"
         )
 
+    # ── 2026-08-29: per-stage exclusion flags (--no-discovery etc.) ────────
+
+    def test_default_config_still_permits_discovery(self, tmp_db, seed_job):
+        """No exclusion flags set -- run-continuous's existing default
+        behavior (discover runs when due) must be completely unchanged."""
+        conn = tmp_db()
+        pipeline_fn = _RecordingPipeline()
+        cfg = self._cfg()
+
+        result = sched.run_once(
+            cfg,
+            conn=conn,
+            run_pipeline_fn=pipeline_fn,
+            availability_fn=lambda **k: _avail(AVAILABLE),
+            api_capacity_fn=lambda: True,
+            last_discover_at=None,  # forces discover_due=True unconditionally
+        )
+
+        assert result["discovery_ran"] is True
+        assert any(call.get("stages") == ["discover"] for call in pipeline_fn.calls)
+
+    def test_no_discovery_prevents_discovery_call(self, tmp_db, seed_job):
+        """--no-discovery (enable_discover=False) must genuinely prevent
+        run_pipeline_fn from ever being called with stages=["discover"] --
+        not merely suppress logging/output about it."""
+        conn = tmp_db()
+        pipeline_fn = _RecordingPipeline()
+        cfg = self._cfg(enable_discover=False)
+
+        result = sched.run_once(
+            cfg,
+            conn=conn,
+            run_pipeline_fn=pipeline_fn,
+            availability_fn=lambda **k: _avail(AVAILABLE),
+            api_capacity_fn=lambda: True,
+            last_discover_at=None,  # discover_due=True -- would fire if not for the flag
+        )
+
+        assert result["discovery_ran"] is False
+        assert not any(call.get("stages") == ["discover"] for call in pipeline_fn.calls), (
+            "discover must never be invoked when enable_discover=False, even though it was due"
+        )
+
+    def test_no_discovery_leaves_other_stages_operating(self, tmp_db, seed_job):
+        """Disabling discover must not disturb the other enabled stages --
+        enrich still runs, and scoring still processes real pending work,
+        exactly as it would with discovery enabled."""
+        conn = tmp_db()
+        seed_job(conn, url_suffix="pending-score", fit_score=None, full_description="x", state="enriched")
+        pipeline_fn = _RecordingPipeline()
+        cfg = self._cfg(enable_discover=False)
+
+        sched.run_once(
+            cfg,
+            conn=conn,
+            run_pipeline_fn=pipeline_fn,
+            availability_fn=lambda **k: _avail(AVAILABLE),
+            api_capacity_fn=lambda: True,
+            last_discover_at=None,
+        )
+
+        stages_called = [call.get("stages") for call in pipeline_fn.calls]
+        assert ["discover"] not in stages_called
+        assert ["enrich"] in stages_called, "enrich must still run when only discovery is disabled"
+        assert ["score"] in stages_called, (
+            "scoring must still process real pending work when only discovery is disabled -- "
+            "existing queue sizing/pacing for enabled stages must remain intact"
+        )
+
+    def test_individual_stage_flags_disable_only_that_stage(self, tmp_db, seed_job):
+        """--no-enrichment/--no-scoring disable exactly their own stage,
+        leaving the others (including discover) untouched -- proves the
+        flags are independent, not a single all-or-nothing switch."""
+        conn = tmp_db()
+        seed_job(conn, url_suffix="pending-score-2", fit_score=None, full_description="x", state="enriched")
+        pipeline_fn = _RecordingPipeline()
+        cfg = self._cfg(enable_enrich=False, enable_score=False)
+
+        result = sched.run_once(
+            cfg,
+            conn=conn,
+            run_pipeline_fn=pipeline_fn,
+            availability_fn=lambda **k: _avail(AVAILABLE),
+            api_capacity_fn=lambda: True,
+            last_discover_at=None,
+        )
+
+        stages_called = [call.get("stages") for call in pipeline_fn.calls]
+        assert result["discovery_ran"] is True
+        assert ["discover"] in stages_called
+        assert ["enrich"] not in stages_called
+        assert ["score"] not in stages_called
+
+    def test_no_continuous_apply_semantics_unchanged_and_independent(self):
+        """--no-continuous-apply (SchedulerConfig.no_continuous_apply)
+        controls the continuous apply worker thread in run_continuous --
+        an entirely separate concern from the new per-stage flags. Setting
+        it must not change any enable_* default, proving the two are not
+        conflated."""
+        default_cfg = sched.SchedulerConfig()
+        assert default_cfg.no_continuous_apply is False
+
+        apply_disabled_cfg = sched.SchedulerConfig(no_continuous_apply=True)
+        assert apply_disabled_cfg.no_continuous_apply is True
+        assert apply_disabled_cfg.enable_discover is True
+        assert apply_disabled_cfg.enable_enrich is True
+        assert apply_disabled_cfg.enable_score is True
+        assert apply_disabled_cfg.enable_tailor is True
+        assert apply_disabled_cfg.enable_cover is True
+
     def test_available_state_targets_ready_buffer(self, tmp_db, seed_job):
         conn = tmp_db()
         pipeline_fn = _RecordingPipeline()

@@ -1,0 +1,117 @@
+==================================================================================================== 21292
+Come work at a place where innovation and teamwork come together to support
+the most exciting missions in the world!  
+  
+Grow your career internally at Qualys, our best talent comes from within!  
+  
+The Technical Support Team is responsible for managing prompt resolution to
+global customer and partner service requests in a highly secured environment.
+The primary function of this position is to ensure that each customer
+interaction is a friendly and professional experience, which addresses the
+needs of the customer in all stages of the customer service life cycle within
+Qualys. Customer relationship building and teamwork are key success criteria
+for this role.The Technical Support Engineer (TSE) works closely with Customer
+Service, Engineering, Finance, Sales, Alliances and Operations to ensure high
+levels of customer satisfaction with all transactions. The TSE will provide
+support via phone, email, and WebEx focused on the Qualys portfolio of
+products and their integration with customer environments.  
+  
+Qualifications:  
+  
+The ideal candidate will have strong hands-on networking knowledge and must be
+able to adapt quickly to any technical challenge. You must have a strong
+Windows foundation and/or solid Linux/Unix experience in an enterprise
+environment. Candidate must be passionate about security, and individuals with
+CISSP/CEH, or equivalent, are preferred. Applicant will have a deep
+understanding of network services and how they work from a
+protocol/configuration level with applications such as Apache/IIS is an
+advantage, as well as Windows AD security administration.  
+  
+Required Knowledge/Experience:  
+  
+
+  * Bachelor of Science in Computer Science or equivalent experience 
+  * 3+ years of experience in a technical support role. 
+  * Unix/Linux experience in an enterprise environment. 
+  * In-depth TCP/IP understanding. 
+  * LAN/WAN infrastructures. 
+  * Common OS services (IIS, BIND, Apache, AD, WINS, Samba, SSH). 
+  * Strong knowledge of current firewall, Intrusion Detection System technologies, and Network Vulnerability Scanners. 
+  * Windows Active Directory authentication and security. 
+  * Knowledge of Samba/Active Directory integration 
+  * CIFS, DNS, ACL, server/client configuration. 
+  * Splunk usage including but not limited to log queries and report/dashboard generation 
+  * Experienced with packet capture review and diagnosis. 
+  * Oracle and Microsoft SQL knowledge 
+  * Outstanding troubleshooting and analytical skills. 
+  * Excellent written and verbal communication skills. 
+  * Bilingual candidates highly desirable ( Spanish, Portuguese )   
+  
+  
+
+Preferred:  
+  
+
+  * Systems Management experience (KACE, GPO deployments) 
+  * Previous API support and Regex knowledge. 
+  * Scripting experience (Bash, Python) 
+  * Knowledge of major web server software (IIS, Apache, Websphere, Tomcat, WebLogic), UNIX/Windows web services, and diverse platforms and applications (Linux, Windows 2003/2008, Windows NT, Novell, Lotus Notes, Mac OS). 
+  * CCNA, MCSE, CISSP, CompTIA Security+, and CEH highly desirable. 
+  * Experience with Customer Support and Development Tools (Salesforce, JIRA, etc.)   
+  
+  
+
+Have you notified your current manager of your application?  
+  
+Qualys is an Equal Opportunity Employer, please see our EEO policy.
+==================================================================================================== 24338
+A small IT managed service provider in the Charolotte area (Matthews, NC) is
+hiring a Level 2 Support Engineer to join their team. They are looking for
+someone who can provide advanced technical support across modern Microsoft
+365, cloud, endpoint, network, and security environments. This role serves as
+an escalation point for Level 1 support, helping resolve complex issues,
+reduce repeat incidents, improve client environments, and deliver a high-
+quality user experience.  
+  
+They are ideally looking for someone with strong working knowledge of
+Microsoft 365, Microsoft Entra ID, Intune, Windows environments, networking,
+VoIP, endpoint security, documentation, and practical automation. This role is
+not a call-center or help desk-only position. Every day brings a new
+opportunity to solve meaningful problems, build trust with clients, and
+strengthen the technology environments they rely on. Excellent customer
+service is a must have, as you'll be working onsite at client locations
+regularly. The role involves 50% in office and 50% onsite at customer
+locations in the Charlotte area.  
+  
+Contract Duration: 6 Months - Contract to Hire  
+  
+**Required Skills & Experience  
+  
+**
+
+  * 3+ years of IT support, systems administration, or MSP experience, with hands-on Level 2 escalation responsibilities preferred. 
+  * Strong Microsoft 365 administration experience, including Exchange Online, Teams, SharePoint, OneDrive, licensing, permissions, and collaboration support. 
+  * Experience supporting Windows Server environments, Active Directory, Group Policy, DNS, DHCP, file shares, print services, and hybrid infrastructure. 
+  * Working knowledge of Microsoft Entra ID and Intune for identity, access, endpoint management, device compliance, configuration profiles, and application deployment. 
+  * Solid understanding of networking fundamentals, including TCP/IP, DNS, DHCP, VLANs, VPN, wireless, routing, switching, and firewall concepts. 
+  * Experience with backup and disaster recovery solutions, endpoint protection, security alerts, and basic cybersecurity hardening practices. 
+  * Strong troubleshooting skills with the ability to investigate root cause, identify patterns, and recommend long-term fixes instead of temporary workarounds. 
+  * Customer-focused mindset with clear verbal and written communication, and the ability to explain technical issues in plain language.   
+  
+
+**What You Will Be Doing  
+  
+** Tech Breakdown  
+  
+
+  * Windows, M365 Admin, Active Directory, Group Policy, Entra ID, Backups/Disaster recovery 
+  * Network support fundamentals - wireless, routing, switching, firewall concepts to provide support   
+  
+
+Daily Responsibilities  
+  
+
+  * 100% Hands On   
+  
+
+**Posted By:** Jillian Freesman

@@ -278,6 +278,84 @@ def test_unrelated_numbers_not_accidentally_disqualified(title):
     assert seniority_disqualifier(title) is None, f"{title!r} should NOT be disqualified"
 
 
+# ── IC/customer-facing manager-title exception (2026-08-25) ──────────────
+# Narrow exception for four title families that are near-universally
+# individual-contributor, customer-facing roles despite containing the bare
+# word "manager": Account Manager, Customer Success Manager, Technical
+# Account Manager, Sales Manager. NOT a general "manager" exemption --
+# Engineering/Product/Project/Program/Operations Manager and bare "Manager"
+# remain fully disqualifying. See eligibility.py's module-level comment
+# above _IC_CUSTOMER_FACING_MANAGER_TITLES for the live-data investigation
+# this codifies.
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Account Manager",
+        "Customer Success Manager",
+        "Technical Account Manager",
+        "Sales Manager",
+        # business-segment/region modifiers are not seniority signals
+        "Regional Sales Manager",
+        "Enterprise Account Manager",
+        "Strategic Account Manager",
+        "National Channel Sales Manager",
+        "Client Account Manager II, Retail",
+        "Inside Sales Account Manager",
+    ],
+)
+def test_exempt_ic_manager_families_not_disqualified(title):
+    assert seniority_disqualifier(title) is None, f"{title!r} should NOT be disqualified"
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Senior Account Manager",
+        "Senior Customer Success Manager",
+        "Lead Technical Account Manager",
+        "Principal Technical Account Manager",
+        "Director of Account Management",
+        "Head of Customer Success",
+        "VP of Sales",
+        "Customer Success Manager - Senior Manager - Global Public Sector",
+    ],
+)
+def test_independently_senior_titles_still_disqualified_despite_exempt_family(title):
+    """Any OTHER SENIORITY_TITLE_PATTERN token in the title still
+    disqualifies -- the exception only suppresses the bare "manager" token
+    by itself, never a genuinely senior variant of an exempt family."""
+    assert seniority_disqualifier(title) is not None, f"{title!r} should still be disqualified"
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Manager",
+        "Engineering Manager",
+        "Product Manager",
+        "Project Manager",
+        "Program Manager",
+        "Operations Manager",
+        "Manager, Software Technical Account Managers",  # genuinely people-management
+        "IT Manager",
+        "Finance Manager",
+    ],
+)
+def test_non_exempt_manager_titles_still_disqualified(title):
+    """The exemption is exactly four families -- every other manager-titled
+    role, and bare "Manager" alone, remains fully disqualifying."""
+    assert seniority_disqualifier(title) is not None, f"{title!r} should still be disqualified"
+
+
+def test_exempt_family_reason_is_none_not_a_falsy_string():
+    """Regression guard against a subtle bug class: the return value must be
+    the literal None, not an empty string or other falsy value that would
+    behave differently under `is not None` checks elsewhere in the pipeline."""
+    assert seniority_disqualifier("Account Manager") is None
+
+
 # ── Score never compensates for a hard disqualifier ──────────────────────
 
 
@@ -315,7 +393,10 @@ class TestScoreCannotBypassSeniority:
 
         mock_get_client.assert_not_called()
         assert result["score"] == 2
-        assert result["eligibility"] == "non_us_only"  # reused generic reject signal
+        # 2026-08-29 eligibility-labeling fix: seniority-title rejections
+        # now get their own dedicated category instead of being mislabeled
+        # "non_us_only" by the old generic-signal design.
+        assert result["eligibility"] == "seniority_mismatch"
         assert "seniority" in result["reasoning"].lower()
 
     @pytest.mark.parametrize(
@@ -359,6 +440,14 @@ class TestScoreCannotBypassSeniority:
         "Software Engineer",
         "Junior Software Engineer",
         "IT Support Specialist",
+        # 2026-08-25: the exempt IC/customer-facing manager families and
+        # their senior variants must agree between scorer and apply too.
+        "Account Manager",
+        "Customer Success Manager",
+        "Technical Account Manager",
+        "Sales Manager",
+        "Senior Account Manager",
+        "Director of Account Management",
     ],
 )
 def test_apply_and_scoring_agree(title):
@@ -534,6 +623,53 @@ class TestRevalidateSeniority:
         assert result["matched"] == 1
         assert result["updated"] == 1
         row = conn.execute("SELECT state FROM jobs WHERE url LIKE '%cover-failed-senior%'").fetchone()
+        assert row["state"] == "archived"
+
+    def test_exempt_ic_manager_titles_not_archived(self, tmp_db, seed_job):
+        """2026-08-25 follow-up: this function used to delegate to
+        database.reject_jobs_by_title_patterns([SENIORITY_TITLE_PATTERN.pattern]),
+        a second regex evaluation that bypassed seniority_disqualifier()'s
+        Python-level exemption entirely -- running this sweep would have
+        silently re-archived every exempt-family job the scorer had just
+        started letting through, making this the fourth drifted seniority
+        copy the whole module exists to prevent. Now iterates rows and
+        calls seniority_disqualifier() directly, so it can never drift."""
+        from applypilot.eligibility import revalidate_seniority
+
+        conn = tmp_db()
+        for i, title in enumerate(
+            ["Account Manager", "Customer Success Manager", "Technical Account Manager", "Sales Manager"]
+        ):
+            seed_job(conn, url_suffix=f"exempt-{i}", title=title, fit_score=8, state="scored")
+
+        result = revalidate_seniority(conn)
+
+        assert result["matched"] == 0
+        assert result["updated"] == 0
+        rows = conn.execute("SELECT state FROM jobs").fetchall()
+        assert all(r["state"] == "scored" for r in rows)
+
+    def test_senior_variant_of_exempt_family_still_archived(self, tmp_db, seed_job):
+        """The sweep must still catch a genuinely senior variant of an
+        otherwise-exempt family -- the exemption only suppresses the bare
+        "manager" token, not the whole family unconditionally."""
+        from applypilot.eligibility import revalidate_seniority
+
+        conn = tmp_db()
+        seed_job(
+            conn,
+            url_suffix="senior-account-manager",
+            title="Senior Account Manager",
+            fit_score=8,
+            state="tailored",
+            tailored_resume_path="/tmp/r.docx",
+        )
+
+        result = revalidate_seniority(conn)
+
+        assert result["matched"] == 1
+        assert result["updated"] == 1
+        row = conn.execute("SELECT state FROM jobs WHERE url LIKE '%senior-account-manager%'").fetchone()
         assert row["state"] == "archived"
 
     def test_already_applied_job_never_touched(self, tmp_db, seed_job):

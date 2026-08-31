@@ -40,6 +40,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from applypilot.apply.prompt import (
     _build_experience_line,
+    _build_hard_rules,
+    _build_profile_summary,
     _build_relocation_line,
     _build_screening_section,
     _build_skills_tools_rule,
@@ -297,6 +299,104 @@ def test_regression_against_real_profile_json():
 
 
 # ---------------------------------------------------------------------------
+# 2026-08-28 follow-up: _build_profile_summary and _build_hard_rules were
+# found to have the SAME obsolete-key bug as the already-fixed
+# _build_screening_section -- both read legally_authorized_to_work /
+# require_sponsorship / work_permit_type directly instead of going through
+# _build_work_auth_line, so _build_profile_summary rendered the circular
+# placeholder "Work Auth: See profile" / "Sponsorship Needed: See profile"
+# INSIDE the "APPLICANT PROFILE" section other rules point back to as "the
+# profile", and _build_hard_rules always fell through to the generic
+# "Answer truthfully from profile" rule even when real
+# authorized_to_work_us/requires_sponsorship data existed. Both now source
+# their work-auth text from the single shared _build_work_auth_line helper.
+# ---------------------------------------------------------------------------
+
+
+def _full_profile(**overrides):
+    """Like _profile(), but with the extra required fields
+    _build_profile_summary subscripts directly (personal['email'] /
+    personal['phone']) rather than .get()-ing."""
+    base = {
+        "personal": {
+            "full_name": "Test Candidate",
+            "city": "Testville",
+            "email": "test@example.com",
+            "phone": "555-0000",
+        },
+        "experience": {},
+        "application_profile": {},
+        "resume_facts": {},
+        "skills_boundary": {},
+    }
+    base.update(overrides)
+    return base
+
+
+def test_profile_summary_uses_real_schema_keys_no_see_profile():
+    profile = _full_profile(
+        application_profile={"work_authorization": {"authorized_to_work_us": True, "requires_sponsorship": False}}
+    )
+    summary = _build_profile_summary(profile)
+    assert "See profile" not in summary
+    assert "authorized to work in the US: True" in summary
+    assert "requires sponsorship: False" in summary
+
+
+def test_profile_summary_legacy_schema_still_produces_a_truthful_line():
+    profile = _full_profile(
+        application_profile={
+            "work_authorization": {"legally_authorized_to_work": "Yes", "require_sponsorship": "No"}
+        }
+    )
+    summary = _build_profile_summary(profile)
+    assert "See profile" not in summary
+    assert "Yes" in summary
+    assert "No" in summary
+
+
+def test_profile_summary_missing_work_auth_degrades_to_neutral_not_see_profile():
+    profile = _full_profile(application_profile={"work_authorization": {}})
+    summary = _build_profile_summary(profile)
+    assert "See profile" not in summary
+    assert "answer truthfully from the profile" in summary
+
+
+def test_hard_rules_reflects_real_work_auth_data():
+    profile = _full_profile(
+        application_profile={"work_authorization": {"authorized_to_work_us": True, "requires_sponsorship": False}}
+    )
+    rules = _build_hard_rules(profile)
+    assert "authorized to work in the US: True" in rules
+    assert "requires sponsorship: False" in rules
+    # The old generic fallback rule must not appear when real data exists.
+    assert "Work auth: Answer truthfully from profile." not in rules
+
+
+def test_hard_rules_missing_work_auth_still_gives_a_safe_neutral_rule():
+    profile = _full_profile(application_profile={"work_authorization": {}})
+    rules = _build_hard_rules(profile)
+    assert "answer truthfully from the profile" in rules.lower()
+    assert "See profile" not in rules
+
+
+def test_profile_summary_and_hard_rules_regression_against_real_profile_json():
+    if not PROJECT_PROFILE_PATH.exists():
+        import pytest
+
+        pytest.skip("data/profile.json not present in this environment")
+
+    profile = json.loads(PROJECT_PROFILE_PATH.read_text(encoding="utf-8"))
+    summary = _build_profile_summary(profile)
+    rules = _build_hard_rules(profile)
+
+    assert "See profile" not in summary
+    assert "See profile" not in rules
+    assert "authorized to work in the US: True" in summary
+    assert "authorized to work in the US: True" in rules
+
+
+# ---------------------------------------------------------------------------
 # build_prompt integration: office-location section
 # ---------------------------------------------------------------------------
 
@@ -429,3 +529,24 @@ def test_build_prompt_office_location_still_uses_location_accept_priority(tmp_pa
 
     assert "WHICH OFFICE" in result
     assert "Selection priority order: Mebane, Remote" in result
+
+
+def test_build_prompt_work_auth_sections_never_contradict_each_other(tmp_path, monkeypatch):
+    """Full-prompt regression for the profile-summary/hard-rules fix: with
+    real work-authorization data populated, the APPLICANT PROFILE, HARD
+    RULES, and SCREENING QUESTIONS sections must all agree, and the dead
+    "See profile" placeholder must not appear anywhere in the assembled
+    prompt."""
+    _setup_paths(tmp_path, monkeypatch)
+    resume_txt = _make_resume(tmp_path, "docx")
+    _mock_db_calls(monkeypatch)
+
+    from applypilot.apply.prompt import build_prompt
+
+    job = _build_job(resume_txt)
+    result = build_prompt(job, tailored_resume="Resume text", doc_format="docx")
+
+    assert "See profile" not in result
+    # _MINIMAL_PROFILE sets authorized_to_work_us=True/requires_sponsorship=False --
+    # every section that mentions work authorization must reflect that.
+    assert result.count("authorized to work in the US: True") >= 2  # profile summary + hard rules (+ screening)

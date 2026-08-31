@@ -77,9 +77,16 @@ def _build_profile_summary(profile: dict) -> str:
     if online.get("website"):
         lines.append(f"Website: {online['website']}")
 
-    # Work authorization (application/profile-only fields)
-    lines.append(f"Work Auth: {work_auth.get('legally_authorized_to_work', 'See profile')}")
-    lines.append(f"Sponsorship Needed: {work_auth.get('require_sponsorship', 'See profile')}")
+    # Work authorization (application/profile-only fields). Sourced from the
+    # single shared _build_work_auth_line helper (2026-08-28 fix) rather than
+    # re-deriving authorized/sponsorship from the profile here -- this used
+    # to read legally_authorized_to_work/require_sponsorship, keys that don't
+    # exist in the real application_profile.work_authorization schema
+    # (authorized_to_work_us/requires_sponsorship), so it always rendered the
+    # circular placeholder "Work Auth: See profile" / "Sponsorship Needed:
+    # See profile" directly inside the section other prompt sections point to
+    # as "the profile".
+    lines.append(f"Work Authorization: {_build_work_auth_line(work_auth)}")
     if work_auth.get("work_permit_type"):
         lines.append(f"Work Permit: {work_auth['work_permit_type']}")
 
@@ -419,13 +426,13 @@ def _build_hard_rules(profile: dict) -> str:
     preferred_last = full_name.split()[-1] if " " in full_name else ""
     display_name = f"{preferred_name} {preferred_last}".strip() if preferred_last else preferred_name
 
-    # Build work auth rule dynamically
-    sponsorship = work_auth.get("require_sponsorship", "")
-    permit_type = work_auth.get("work_permit_type", "")
-
-    work_auth_rule = "Work auth: Answer truthfully from profile."
-    if permit_type:
-        work_auth_rule = f"Work auth: {permit_type}. Sponsorship needed: {sponsorship}."
+    # Build work auth rule dynamically -- reuses the single shared
+    # _build_work_auth_line helper (2026-08-28 fix) instead of the obsolete
+    # require_sponsorship/work_permit_type keys, which don't exist in the
+    # real application_profile.work_authorization schema and always fell
+    # through to the generic "Answer truthfully from profile" rule even
+    # when real authorized_to_work_us/requires_sponsorship data existed.
+    work_auth_rule = f"Work auth: {_build_work_auth_line(work_auth)}."
 
     name_rule = f"Name: Legal name = {full_name}."
     if preferred_name and preferred_name != full_name.split()[0]:

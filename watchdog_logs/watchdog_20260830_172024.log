@@ -1,0 +1,121 @@
+2026-08-30 17:20:24.889345 === ApplyPilot watchdog starting ===
+2026-08-30 17:20:24.889345 Project: C:\Users\phili\Projects\resume-agent
+2026-08-30 17:20:24.889345 Command: applypilot run score --limit 25 --workers 1 --min-score 8
+2026-08-30 17:20:24.889345 Log file: C:\Users\phili\Projects\resume-agent\watchdog_logs\watchdog_20260830_172024.log
+2026-08-30 17:20:24.889345 Thresholds: disk active>=99% AND latency>=1000ms, OR RAM available<2000MB -- sustained 10 consecutive samples (20s) before acting.
+2026-08-30 17:20:24.905255 ApplyPilot PID: 7796
+2026-08-30 17:20:26.911188 RAM available=3612 MB used=70.1%
+2026-08-30 17:20:27.839195 Disk0 active=87.0% read=0.87 MB/s write=0.55 MB/s latency=0.0 ms
+2026-08-30 17:20:29.849620 RAM available=3621 MB used=70.0%
+2026-08-30 17:20:31.851920 RAM available=3623 MB used=70.0%
+2026-08-30 17:20:33.854062 RAM available=3617 MB used=70.0%
+2026-08-30 17:20:35.856251 RAM available=3585 MB used=70.3%
+2026-08-30 17:20:37.857931 RAM available=3555 MB used=70.5%
+2026-08-30 17:20:38.742451 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 17:20:40.756374 RAM available=3536 MB used=70.7%
+2026-08-30 17:20:42.758791 RAM available=3519 MB used=70.8%
+2026-08-30 17:20:44.760207 RAM available=3513 MB used=70.9%
+2026-08-30 17:20:46.762078 RAM available=3534 MB used=70.7%
+2026-08-30 17:20:48.763833 RAM available=3482 MB used=71.1%
+2026-08-30 17:20:49.570677 Disk0 active=1.0% read=0.00 MB/s write=0.63 MB/s latency=0.0 ms
+2026-08-30 17:20:51.574294 RAM available=3546 MB used=70.6%
+2026-08-30 17:20:53.576203 RAM available=3538 MB used=70.7%
+2026-08-30 17:20:55.577801 RAM available=3610 MB used=70.1%
+2026-08-30 17:20:57.579536 RAM available=3594 MB used=70.2%
+2026-08-30 17:20:59.580908 RAM available=3581 MB used=70.3%
+2026-08-30 17:21:00.375808 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 17:21:02.378014 RAM available=3609 MB used=70.1%
+2026-08-30 17:21:04.383430 RAM available=3604 MB used=70.1%
+2026-08-30 17:21:06.385107 RAM available=3603 MB used=70.1%
+2026-08-30 17:21:08.387645 RAM available=3572 MB used=70.4%
+2026-08-30 17:21:10.389580 RAM available=3565 MB used=70.5%
+2026-08-30 17:21:11.237234 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 17:21:13.245700 RAM available=3547 MB used=70.6%
+2026-08-30 17:21:15.247638 RAM available=3570 MB used=70.4%
+2026-08-30 17:21:17.249971 RAM available=3561 MB used=70.5%
+2026-08-30 17:21:19.252812 RAM available=3574 MB used=70.4%
+2026-08-30 17:21:21.254847 RAM available=3608 MB used=70.1%
+2026-08-30 17:21:22.166748 Disk0 active=21.0% read=0.24 MB/s write=0.25 MB/s latency=0.0 ms
+2026-08-30 17:21:24.190340 RAM available=3552 MB used=70.6%
+2026-08-30 17:21:26.192463 RAM available=3558 MB used=70.5%
+2026-08-30 17:21:28.195126 RAM available=3549 MB used=70.6%
+2026-08-30 17:21:30.196835 RAM available=3575 MB used=70.4%
+2026-08-30 17:21:32.198803 RAM available=3577 MB used=70.4%
+2026-08-30 17:21:33.063182 Disk0 active=0.0% read=0.00 MB/s write=0.12 MB/s latency=0.0 ms
+2026-08-30 17:21:35.065727 RAM available=3564 MB used=70.5%
+2026-08-30 17:21:37.067656 RAM available=3535 MB used=70.7%
+2026-08-30 17:21:39.070258 RAM available=3535 MB used=70.7%
+2026-08-30 17:21:41.072387 RAM available=3537 MB used=70.7%
+2026-08-30 17:21:43.074398 RAM available=3528 MB used=70.8%
+2026-08-30 17:21:43.846995 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 17:21:45.849809 RAM available=3560 MB used=70.5%
+2026-08-30 17:21:47.851921 RAM available=3561 MB used=70.5%
+2026-08-30 17:21:49.854061 RAM available=3556 MB used=70.5%
+2026-08-30 17:21:51.856123 RAM available=3510 MB used=70.9%
+2026-08-30 17:21:53.857802 RAM available=3506 MB used=71.0%
+2026-08-30 17:21:54.834398 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 17:21:56.836004 RAM available=3481 MB used=71.2%
+2026-08-30 17:21:58.838080 RAM available=3659 MB used=69.7%
+2026-08-30 17:22:00.840387 RAM available=3665 MB used=69.6%
+2026-08-30 17:22:02.842376 RAM available=3662 MB used=69.7%
+2026-08-30 17:22:04.844830 RAM available=3685 MB used=69.5%
+2026-08-30 17:22:05.703509 Disk0 active=17.0% read=0.00 MB/s write=31.24 MB/s latency=0.0 ms
+2026-08-30 17:22:07.706051 RAM available=3681 MB used=69.5%
+2026-08-30 17:22:09.708537 RAM available=3686 MB used=69.5%
+2026-08-30 17:22:11.710497 RAM available=3670 MB used=69.6%
+2026-08-30 17:22:13.712136 RAM available=3712 MB used=69.2%
+2026-08-30 17:22:15.714147 RAM available=3699 MB used=69.4%
+2026-08-30 17:22:16.480133 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 17:22:18.484133 RAM available=3722 MB used=69.2%
+2026-08-30 17:22:20.486441 RAM available=3682 MB used=69.5%
+2026-08-30 17:22:22.487646 RAM available=3716 MB used=69.2%
+2026-08-30 17:22:24.488955 RAM available=3696 MB used=69.4%
+2026-08-30 17:22:26.491087 RAM available=3646 MB used=69.8%
+2026-08-30 17:22:27.363523 Disk0 active=49.0% read=0.07 MB/s write=0.37 MB/s latency=0.0 ms
+2026-08-30 17:22:29.366580 RAM available=3682 MB used=69.5%
+2026-08-30 17:22:31.368708 RAM available=3667 MB used=69.6%
+2026-08-30 17:22:33.370447 RAM available=3669 MB used=69.6%
+2026-08-30 17:22:35.372081 RAM available=3650 MB used=69.8%
+2026-08-30 17:22:37.374144 RAM available=3647 MB used=69.8%
+2026-08-30 17:22:38.127803 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 17:22:40.135063 RAM available=3640 MB used=69.8%
+2026-08-30 17:22:42.137060 RAM available=3683 MB used=69.5%
+2026-08-30 17:22:44.139152 RAM available=3664 MB used=69.6%
+2026-08-30 17:22:46.140890 RAM available=3660 MB used=69.7%
+2026-08-30 17:22:48.142892 RAM available=3643 MB used=69.8%
+2026-08-30 17:22:48.969773 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 17:22:50.974914 RAM available=3607 MB used=70.1%
+2026-08-30 17:22:52.976681 RAM available=3578 MB used=70.4%
+2026-08-30 17:22:54.978622 RAM available=3574 MB used=70.4%
+2026-08-30 17:22:56.980670 RAM available=3563 MB used=70.5%
+2026-08-30 17:22:58.982625 RAM available=3570 MB used=70.4%
+2026-08-30 17:22:59.820902 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 17:23:01.830654 RAM available=3583 MB used=70.3%
+2026-08-30 17:23:03.833168 RAM available=3543 MB used=70.6%
+2026-08-30 17:23:05.834707 RAM available=3551 MB used=70.6%
+2026-08-30 17:23:07.836533 RAM available=3560 MB used=70.5%
+2026-08-30 17:23:09.839012 RAM available=3521 MB used=70.8%
+2026-08-30 17:23:12.491737 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 17:23:14.499263 RAM available=3529 MB used=70.8%
+2026-08-30 17:23:16.501444 RAM available=3542 MB used=70.7%
+2026-08-30 17:23:18.503499 RAM available=3490 MB used=71.1%
+2026-08-30 17:23:20.505669 RAM available=3476 MB used=71.2%
+2026-08-30 17:23:22.507435 RAM available=3606 MB used=70.1%
+2026-08-30 17:23:23.348251 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 17:23:25.360286 RAM available=3634 MB used=69.9%
+2026-08-30 17:23:27.362416 RAM available=3690 MB used=69.4%
+2026-08-30 17:23:29.365141 RAM available=3680 MB used=69.5%
+2026-08-30 17:23:31.367116 RAM available=3684 MB used=69.5%
+2026-08-30 17:23:33.368319 RAM available=3631 MB used=69.9%
+2026-08-30 17:23:34.193376 Disk0 active=0.0% read=0.00 MB/s write=0.00 MB/s latency=0.0 ms
+2026-08-30 17:23:36.195558 RAM available=3619 MB used=70.0%
+2026-08-30 17:23:38.196912 RAM available=3619 MB used=70.0%
+2026-08-30 17:23:40.199035 RAM available=3648 MB used=69.8%
+2026-08-30 17:23:42.200450 RAM available=3641 MB used=69.8%
+2026-08-30 17:23:44.201812 RAM available=3642 MB used=69.8%
+2026-08-30 17:23:45.028078 Disk0 active=0.0% read=0.00 MB/s write=0.20 MB/s latency=0.0 ms
+2026-08-30 17:23:47.041706 RAM available=3579 MB used=70.4%
+2026-08-30 17:23:49.043890 RAM available=3567 MB used=70.4%
+2026-08-30 17:23:51.045374 RAM available=3597 MB used=70.2%
+2026-08-30 17:23:51.045374 ApplyPilot exited normally with code 0
+2026-08-30 17:23:51.045374 === Watchdog finished ===

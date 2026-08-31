@@ -33,7 +33,7 @@ def test_run_scoring_resume_text_is_profile_derived_not_fabricated(tmp_db, seed_
 
     captured: dict = {}
 
-    def fake_score_job(resume_text, job, profile=None):
+    def fake_score_job(resume_text, job, profile=None, conn=None):
         captured["resume_text"] = resume_text
         captured["profile"] = profile
         return {"score": 5, "keywords": "", "reasoning": ""}
@@ -65,7 +65,7 @@ def test_run_scoring_uses_real_canonical_profile_truthfully(tmp_db, seed_job, mo
 
     captured: dict = {}
 
-    def fake_score_job(resume_text, job, profile=None):
+    def fake_score_job(resume_text, job, profile=None, conn=None):
         captured["resume_text"] = resume_text
         return {"score": 5, "keywords": "", "reasoning": ""}
 

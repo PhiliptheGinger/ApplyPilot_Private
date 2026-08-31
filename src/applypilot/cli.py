@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import os
 import re
 
@@ -357,9 +358,34 @@ def test_local_cmd() -> None:
         # the /v1 root regardless of whether the user configured the bare
         # server root or already included /v1 -- see local_openai_base_url.
         client._fallback_chain = [ModelEntry(model, "local", local_openai_base_url(url), "")]
+        # 2026-08-31 fix: max_tokens=30 was too small for Qwen3 models.
+        # Reproduced live against Ollama 0.33.2: qwen3's OpenAI-compatible
+        # /v1/chat/completions response ALWAYS carries a separate hidden
+        # "reasoning" trace ahead of "content", regardless of the /no_think
+        # prompt-prefix chat() already applies for qwen entries (confirmed
+        # identical empty-content/finish_reason="length" result with and
+        # without it) -- and this Ollama version's OpenAI-compatible route
+        # ignores both a non-standard "think": false and "reasoning_effort"
+        # field in the request body (also confirmed live, no effect). The
+        # only endpoint that actually honors "think": false is Ollama's
+        # NATIVE /api/chat (already used correctly by
+        # local_tailor.get_local_tailoring_plan()) -- not this command's
+        # deliberately generic, OpenAI-compatible LLMClient path, which
+        # exists specifically to test the same client real cloud-fallback/
+        # local callers use. With no suppression mechanism available here,
+        # the trivial probe prompt's reasoning trace alone consumed the
+        # entire 30-token budget every time (finish_reason="length",
+        # content=""), independent of whether the model was healthy. 300 is
+        # confirmed live to comfortably cover reasoning + a short reply
+        # (completion_tokens=135/300, finish_reason="stop") -- matching the
+        # generous budgets every real local caller already uses
+        # unconditionally (request_local_realization's default 600;
+        # _try_openai_compat's own local-provider floor of 2048), so this
+        # reasoning overhead was never a problem for the actual tailoring/
+        # scoring path, only for this probe's much smaller hardcoded value.
         reply = client.chat(
             [{"role": "user", "content": 'Reply with exactly: {"status":"ok"}'}],
-            max_tokens=30,
+            max_tokens=300,
         )
         console.print(f"[dim]Response: {reply[:80]}[/dim]")
         console.print("[green]Local LLM is working.[/green]")
@@ -743,7 +769,33 @@ def run_continuous(
     no_continuous_apply: bool = typer.Option(
         False,
         "--no-continuous-apply",
-        help="Run the upstream scheduler only -- do not also run the continuous apply worker in this process.",
+        help="Run the upstream scheduler only -- do not also run the continuous apply worker in this process. "
+        "This is the apply-stage exclusion; there is no separate --no-apply flag.",
+    ),
+    no_discovery: bool = typer.Option(
+        False,
+        "--no-discovery",
+        help="Disable the discover stage -- other enabled stages keep processing the existing backlog normally.",
+    ),
+    no_enrichment: bool = typer.Option(
+        False,
+        "--no-enrichment",
+        help="Disable the enrich stage.",
+    ),
+    no_scoring: bool = typer.Option(
+        False,
+        "--no-scoring",
+        help="Disable the score stage.",
+    ),
+    no_tailoring: bool = typer.Option(
+        False,
+        "--no-tailoring",
+        help="Disable the tailor stage.",
+    ),
+    no_cover: bool = typer.Option(
+        False,
+        "--no-cover",
+        help="Disable the cover-letter stage.",
     ),
 ) -> None:
     """Run discover/enrich/score/tailor/cover/apply continuously, sizing
@@ -753,6 +805,16 @@ def run_continuous(
     Re-queries the database every cycle -- a newly discovered high-scoring
     job enters the very next batch naturally. Single instance only (a
     second concurrent `run-continuous` refuses to start). Stop with Ctrl+C.
+
+    Any of discover/enrich/score/tailor/cover can be excluded with
+    --no-discovery/--no-enrichment/--no-scoring/--no-tailoring/--no-cover --
+    useful for running controlled experiments against an existing backlog
+    without also continuously discovering more jobs. Excluding a stage
+    genuinely prevents it from running (not merely from being displayed);
+    the other enabled stages keep re-querying and processing normally, with
+    their existing queue sizing/pacing unaffected. There is no separate
+    --no-apply flag -- --no-continuous-apply already controls whether the
+    apply worker runs in this process.
     """
     _bootstrap()
 
@@ -782,13 +844,31 @@ def run_continuous(
         min_score=min_score,
         max_age_days=max_age_days,
         doc_format=doc_format,
+        enable_discover=not no_discovery,
+        enable_enrich=not no_enrichment,
+        enable_score=not no_scoring,
+        enable_tailor=not no_tailoring,
+        enable_cover=not no_cover,
     )
+
+    disabled_stages = [
+        name
+        for name, disabled in (
+            ("discover", no_discovery),
+            ("enrich", no_enrichment),
+            ("score", no_scoring),
+            ("tailor", no_tailoring),
+            ("cover", no_cover),
+        )
+        if disabled
+    ]
 
     console.print("\n[bold blue]Launching continuous scheduler[/bold blue]")
     console.print(f"  Ready buffer:      {ready_buffer} (unknown-reset: {ready_buffer_unknown})")
     console.print(f"  Poll interval:     {poll_interval}s")
     console.print(f"  Max batch:         {max_batch}")
     console.print(f"  Continuous apply:  {'no' if no_continuous_apply else 'yes'}")
+    console.print(f"  Disabled stages:   {', '.join(disabled_stages) if disabled_stages else 'none'}")
     console.print("[dim]Ctrl+C to stop.[/dim]\n")
 
     try:
@@ -1149,6 +1229,26 @@ def apply(
     )
 
 
+def _score_bar_length(count: int, max_count: int, width: int = 30) -> int:
+    """Bar length for one score-distribution row, on a log scale.
+
+    2026-08-30 fix: the raw linear scale (count/max_count*width) made small
+    but meaningful populations (e.g. 8 score-9 jobs against 5,935 score-2
+    jobs) round to a 0-length bar -- invisible even though the exact count
+    is still shown in the adjacent column. log1p compresses the dominant
+    low-score populations without hiding them (they still render as the
+    longest bars) while giving every nonzero count a visible, comparable
+    length. Zero stays zero -- this must not manufacture a bar where the
+    count is genuinely 0.
+    """
+    if count <= 0 or max_count <= 0:
+        return 0
+    log_max = math.log1p(max_count)
+    if log_max <= 0:
+        return width if count > 0 else 0
+    return max(1, round(math.log1p(count) / log_max * width))
+
+
 @app.command()
 def status() -> None:
     """Show pipeline statistics from the database."""
@@ -1193,14 +1293,14 @@ def status() -> None:
 
         max_count = max(count for _, count in stats["score_distribution"]) or 1
         for score, count in stats["score_distribution"]:
-            bar_len = int(count / max_count * 30)
+            bar_len = _score_bar_length(count, max_count)
             if score >= 7:
                 color = "green"
             elif score >= 5:
                 color = "yellow"
             else:
                 color = "red"
-            bar = f"[{color}]{'=' * bar_len}[/{color}]"
+            bar = f"[{color}]{'█' * bar_len}[/{color}]"
             dist_table.add_row(str(score), str(count), bar)
 
         console.print(dist_table)

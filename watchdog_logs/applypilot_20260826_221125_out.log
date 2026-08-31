@@ -1,0 +1,17 @@
+
++----------------------------------+
+| ApplyPilot Pipeline (sequential) |
++----------------------------------+
+  Min score: 8
+  Max age:   14d
+  Limit:     20 jobs/batch
+  Workers:   1
+  Stages:    discover
+  DB:        23902 jobs, 69 pending enrichment
+
+======================================================================
+  STAGE: discover — Job discovery (JobSpy + Workday + smart extract + HN)
+  Started: 02:13:34
+======================================================================
+  JobSpy full crawl...
+  JobSpy (linkedin)...

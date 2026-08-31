@@ -235,6 +235,110 @@ class TestLocalGenerationSuccess(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+# 2b. Ollama native URL normalization (2026-08-31 fix)
+#
+# Root cause reproduced live: APPLYPILOT_LOCAL_LLM_URL is documented for,
+# and llm.py's local_openai_base_url() always normalizes TO, the OpenAI-
+# compatible /v1 convention -- but get_local_tailoring_plan() posts
+# straight to Ollama's native /api/chat, which lives at the bare server
+# root. A URL configured the documented way (WITH /v1) previously built
+# {url}/v1/api/chat here, a route Ollama doesn't serve -- 404, confirmed
+# against a real Ollama instance running `debug-local-plan`. None of the
+# pre-existing tests in this file caught it: they all mock httpx.post at
+# the function level and only inspect the mocked return value, never the
+# URL the call was actually made with. These tests assert on the URL
+# specifically to close that gap.
+# ---------------------------------------------------------------------------
+
+
+class TestOllamaNativeBaseUrlNormalization(unittest.TestCase):
+    def test_strips_trailing_v1(self):
+        from applypilot.scoring.local_tailor import _ollama_native_base_url
+
+        self.assertEqual(
+            _ollama_native_base_url("http://localhost:11434/v1"),
+            "http://localhost:11434",
+        )
+
+    def test_strips_trailing_v1_with_trailing_slash(self):
+        from applypilot.scoring.local_tailor import _ollama_native_base_url
+
+        self.assertEqual(
+            _ollama_native_base_url("http://localhost:11434/v1/"),
+            "http://localhost:11434",
+        )
+
+    def test_bare_root_unaffected(self):
+        """The already-correct, default-matching form must be untouched."""
+        from applypilot.scoring.local_tailor import _ollama_native_base_url
+
+        self.assertEqual(
+            _ollama_native_base_url("http://localhost:11434"),
+            "http://localhost:11434",
+        )
+
+    def test_bare_root_with_trailing_slash(self):
+        from applypilot.scoring.local_tailor import _ollama_native_base_url
+
+        self.assertEqual(
+            _ollama_native_base_url("http://localhost:11434/"),
+            "http://localhost:11434",
+        )
+
+    def test_does_not_strip_v1_that_is_not_a_trailing_segment(self):
+        """A host/path that merely CONTAINS "v1" elsewhere (not as the
+        trailing path segment) must not be mangled."""
+        from applypilot.scoring.local_tailor import _ollama_native_base_url
+
+        self.assertEqual(
+            _ollama_native_base_url("http://v1.example.com:11434"),
+            "http://v1.example.com:11434",
+        )
+
+    def test_get_local_tailoring_plan_posts_to_bare_root_when_v1_configured(self):
+        """End-to-end regression for the exact reported/reproduced bug:
+        with APPLYPILOT_LOCAL_LLM_URL including /v1 (the documented,
+        test-local-matching convention), the actual outgoing POST must
+        hit the bare-root /api/chat, not /v1/api/chat."""
+        from applypilot.scoring import local_tailor
+
+        job, profile = _matchable_job_and_profile()
+        resume_text = "resume text"
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.raise_for_status.return_value = None
+        mock_resp.json.return_value = {"message": {"content": '{"matches":[]}'}}
+
+        env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}
+        with patch.dict("os.environ", env, clear=False), patch("httpx.post", return_value=mock_resp) as mock_post:
+            local_tailor.get_local_tailoring_plan(resume_text, job, profile)
+
+        self.assertTrue(mock_post.called)
+        called_url = mock_post.call_args[0][0]
+        self.assertEqual(called_url, "http://localhost:11434/api/chat")
+        self.assertNotEqual(called_url, "http://localhost:11434/v1/api/chat")
+
+    def test_get_local_tailoring_plan_posts_to_bare_root_when_bare_root_configured(self):
+        """The already-working configuration (no /v1) must keep working
+        identically -- regression guard for the non-broken case."""
+        from applypilot.scoring import local_tailor
+
+        job, profile = _matchable_job_and_profile()
+        resume_text = "resume text"
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.raise_for_status.return_value = None
+        mock_resp.json.return_value = {"message": {"content": '{"matches":[]}'}}
+
+        env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434"}
+        with patch.dict("os.environ", env, clear=False), patch("httpx.post", return_value=mock_resp) as mock_post:
+            local_tailor.get_local_tailoring_plan(resume_text, job, profile)
+
+        called_url = mock_post.call_args[0][0]
+        self.assertEqual(called_url, "http://localhost:11434/api/chat")
+
+
+# ---------------------------------------------------------------------------
 # 3. Local provider unavailable
 # ---------------------------------------------------------------------------
 
@@ -2307,6 +2411,368 @@ class TestFallbackChainProviderSeparation(unittest.TestCase):
         called_entry = mock_try.call_args[0][0]
         self.assertEqual(called_entry.provider, "local")
         self.assertEqual(called_entry.name, "qwen3:8b")
+
+
+# ---------------------------------------------------------------------------
+# 14b. test-local probe vs. Qwen3's mandatory reasoning trace (2026-08-31)
+#
+# Root cause, reproduced live against a real Ollama 0.33.2 instance running
+# qwen3:1.7b: `applypilot test-local` reported "Null/empty content" even
+# though the exact same model answered a direct HTTP request fine. Ollama's
+# OpenAI-compatible /v1/chat/completions response for qwen3 models ALWAYS
+# carries a separate "reasoning" field ahead of "content" -- confirmed
+# identical (empty content, finish_reason="length") with and without
+# chat()'s existing "/no_think" prompt prefix, and confirmed that neither a
+# "think": false nor "reasoning_effort" field in the OpenAI-compatible
+# request body has any effect on this Ollama version's /v1 route (both
+# silently ignored). The command's old max_tokens=30 gave the reasoning
+# trace nowhere to go before hitting the limit. This is NOT a request-
+# construction or response-parsing bug -- _try_openai_compat's extraction
+# (data["choices"][0]["message"]["content"]) is correct and must keep
+# treating a genuinely empty result as a failure. The fix only raises the
+# probe's token budget (30 -> 300, confirmed live to be enough headroom).
+# ---------------------------------------------------------------------------
+
+
+class TestLocalProbeReasoningTokenBudget(unittest.TestCase):
+    def _real_ollama_response(self, content: str, reasoning: str, finish_reason: str, completion_tokens: int):
+        """Builds a response shaped exactly like the real, live Ollama
+        0.33.2 payload captured for qwen3:1.7b via /v1/chat/completions --
+        both a top-level "reasoning" field AND the standard "content"
+        field are present on every response, success or not."""
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = {
+            "model": "qwen3:1.7b",
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {"role": "assistant", "content": content, "reasoning": reasoning},
+                    "finish_reason": finish_reason,
+                }
+            ],
+            "usage": {"completion_tokens": completion_tokens},
+        }
+        return resp
+
+    def test_reasoning_only_response_at_small_budget_still_raises(self):
+        """Locks down that an empty `content` alongside a populated
+        `reasoning` field (the real shape observed at max_tokens=30) is
+        NOT treated as success merely because a "reasoning" field is
+        present -- the fix must not weaken this validation."""
+        from applypilot.llm import LLMClient, ModelEntry
+
+        fake_chain = [ModelEntry("qwen3:1.7b", "local", "http://localhost:11434/v1", "")]
+        with patch("applypilot.llm._build_fallback_chain", return_value=fake_chain):
+            client = LLMClient("http://localhost:11434/v1", "qwen3:1.7b", "", quality=False)
+        client._fallback_chain = fake_chain
+
+        resp = self._real_ollama_response(
+            content="",
+            reasoning='Okay, the user wants me to reply with exactly {"status":"ok"}.\n\nFirst, I need to',
+            finish_reason="length",
+            completion_tokens=30,
+        )
+        with patch.object(client._client, "post", return_value=resp):
+            with self.assertRaises(RuntimeError) as ctx:
+                client.chat([{"role": "user", "content": 'Reply with exactly: {"status":"ok"}'}], max_tokens=30)
+        self.assertIn("Null/empty content", str(ctx.exception))
+
+    def test_real_content_response_at_current_budget_succeeds(self):
+        """The real success shape captured live at max_tokens=300: the
+        reasoning trace still precedes the answer, but this time finishes
+        (finish_reason="stop") with room left for real content."""
+        from applypilot.llm import LLMClient, ModelEntry
+
+        fake_chain = [ModelEntry("qwen3:1.7b", "local", "http://localhost:11434/v1", "")]
+        with patch("applypilot.llm._build_fallback_chain", return_value=fake_chain):
+            client = LLMClient("http://localhost:11434/v1", "qwen3:1.7b", "", quality=False)
+        client._fallback_chain = fake_chain
+
+        resp = self._real_ollama_response(
+            content='{"status":"ok"}',
+            reasoning="Okay, the user wants me to reply with exactly ... Let me confirm that's all.",
+            finish_reason="stop",
+            completion_tokens=135,
+        )
+        with patch.object(client._client, "post", return_value=resp):
+            result = client.chat([{"role": "user", "content": 'Reply with exactly: {"status":"ok"}'}], max_tokens=300)
+        self.assertEqual(result, '{"status":"ok"}')
+
+    def test_test_local_cmd_succeeds_end_to_end_with_realistic_reasoning_response(self):
+        """End-to-end through the actual CLI command (not a mocked
+        _try_openai_compat): a fake HTTP responder mimics the real Ollama
+        behavior -- reasoning consumes the whole budget below ~135
+        completion tokens, succeeds above it -- so this only passes if
+        test_local_cmd is actually requesting a large-enough max_tokens."""
+        import applypilot.cli as cli_mod
+
+        def fake_post(url, json=None, headers=None, **kwargs):  # noqa: A002 - matches httpx.Client.post's own param name
+            requested = json["max_tokens"]
+            reasoning = 'Okay, the user wants me to reply with exactly {"status":"ok"}. Let me confirm.'
+            if requested < 135:
+                return self._real_ollama_response("", reasoning, "length", requested)
+            return self._real_ollama_response('{"status":"ok"}', reasoning, "stop", 135)
+
+        env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1", "APPLYPILOT_LOCAL_LLM_MODEL": "qwen3:1.7b"}
+        with (
+            patch.dict("os.environ", env, clear=False),
+            patch("applypilot.llm.local_available", return_value=True),
+            patch("httpx.Client.post", side_effect=fake_post),
+        ):
+            # Must not raise/exit -- a typer.Exit would fail this test.
+            cli_mod.test_local_cmd()
+
+
+# ---------------------------------------------------------------------------
+# 14c. Semantic candidate-recall expansion (2026-08-31)
+#
+# Real-data validation (5 real jobs / 40 requirements, then
+# arbitration_test.py) found: raw cosine similarity does not reliably
+# separate genuine evidence from false positives, and neither does the
+# existing Qwen3 arbitration prompt. So the one invariant these tests
+# exist to lock down is architectural, not score-based: a semantic
+# candidate may WIDEN a requirement's candidate pool, but must NEVER be
+# able to auto-resolve a requirement the way a single literal candidate
+# can.
+# ---------------------------------------------------------------------------
+
+
+class TestEvidenceSemanticText(unittest.TestCase):
+    def test_experience_uses_role_title_and_role_type_when_description_empty(self):
+        from applypilot.scoring.local_tailor import _evidence_semantic_text
+
+        item = {
+            "name": "Alex Prosperity Group / UST Logistics",
+            "role_title": "Moving Specialist / Installation Tech",
+            "role_type": "installation",
+            "description": None,
+            "relevance_categories": ["customer-facing", "hands-on work", "installation"],
+        }
+        text = _evidence_semantic_text("experience", item)
+        self.assertIn("Moving Specialist / Installation Tech", text)
+        self.assertIn("installation", text)
+        self.assertIn("Alex Prosperity Group / UST Logistics", text)
+
+    def test_experience_includes_description_when_present(self):
+        from applypilot.scoring.local_tailor import _evidence_semantic_text
+
+        item = {"name": "X", "description": "Real description text.", "relevance_categories": []}
+        text = _evidence_semantic_text("experience", item)
+        self.assertIn("Real description text.", text)
+
+    def test_project_uses_factual_concepts(self):
+        from applypilot.scoring.local_tailor import _evidence_semantic_text
+
+        item = {"name": "Standup-OCR", "factual_concepts": ["Python", "OCR"], "relevance_categories": ["automation"]}
+        text = _evidence_semantic_text("project", item)
+        self.assertIn("Python", text)
+        self.assertIn("OCR", text)
+
+    def test_certification_uses_official_description(self):
+        from applypilot.scoring.local_tailor import _evidence_semantic_text
+
+        item = {
+            "name": "CompTIA A+",
+            "official_credential_description": "CompTIA A+ Core 1 and Core 2 Certification Exams",
+            "relevance_categories": ["technical support", "IT"],
+        }
+        text = _evidence_semantic_text("certification", item)
+        self.assertIn("CompTIA A+ Core 1 and Core 2 Certification Exams", text)
+
+    def test_empty_item_returns_empty_string_not_raise(self):
+        from applypilot.scoring.local_tailor import _evidence_semantic_text
+
+        self.assertEqual(_evidence_semantic_text("experience", {}), "")
+
+
+class TestBuildFullEvidenceCorpus(unittest.TestCase):
+    def test_resume_allowed_false_excluded(self):
+        from applypilot.scoring.local_tailor import _build_full_evidence_corpus
+
+        corpus = _build_full_evidence_corpus(_sample_profile())
+        names = [c["name"] for c in corpus]
+        self.assertNotIn("Private Consulting Gig", names)
+
+    def test_includes_items_literal_matching_would_never_score(self):
+        """The whole point: no literal-overlap filter here -- everything
+        resume_allowed=True is included regardless of any job description."""
+        from applypilot.scoring.local_tailor import _build_full_evidence_corpus
+
+        corpus = _build_full_evidence_corpus(_sample_profile())
+        names = [c["name"] for c in corpus]
+        self.assertIn("Unrelated Woodworking Project", names)  # matches no job at all, still in the full corpus
+
+    def test_each_entry_has_nonempty_text(self):
+        from applypilot.scoring.local_tailor import _build_full_evidence_corpus
+
+        corpus = _build_full_evidence_corpus(_sample_profile())
+        self.assertTrue(corpus)
+        for c in corpus:
+            self.assertTrue(c["text"].strip())
+
+
+class TestSemanticExpandEvidence(unittest.TestCase):
+    """_semantic_expand_evidence: the safe-degradation + candidate-expansion
+    wrapper called from get_local_tailoring_plan."""
+
+    def test_disabled_returns_unchanged(self):
+        from applypilot.scoring.local_tailor import _semantic_expand_evidence
+
+        lines = [{"text": "Install PC hardware.", "importance": "unspecified"}]
+        ranked = []
+        with patch.dict("os.environ", {"APPLYPILOT_SEMANTIC_MATCH": "0"}):
+            extended, semantic_candidates = _semantic_expand_evidence(lines, ranked, _sample_profile())
+        self.assertIs(extended, ranked)
+        self.assertEqual(semantic_candidates, {})
+
+    def test_ollama_failure_degrades_to_unchanged_not_raise(self):
+        from applypilot.scoring.local_tailor import _semantic_expand_evidence
+
+        lines = [{"text": "Install PC hardware.", "importance": "unspecified"}]
+        ranked = []
+        with (
+            patch.dict("os.environ", {"APPLYPILOT_SEMANTIC_MATCH": "1"}),
+            patch("httpx.post", side_effect=ConnectionError("refused")),
+        ):
+            extended, semantic_candidates = _semantic_expand_evidence(lines, ranked, _sample_profile())
+        self.assertEqual(extended, ranked)
+        self.assertEqual(semantic_candidates, {})
+
+    def test_evidence_corpus_embedded_once_not_per_requirement(self):
+        """Embeddings must be reused across all requirement lines in one
+        call -- exactly two embed calls total (corpus once, requirements
+        batched once), regardless of how many requirement lines exist."""
+        from applypilot.scoring.local_tailor import _semantic_expand_evidence
+
+        lines = [
+            {"text": "Install PC hardware.", "importance": "unspecified"},
+            {"text": "Troubleshoot connectivity issues.", "importance": "unspecified"},
+            {"text": "Document incidents.", "importance": "unspecified"},
+        ]
+        profile = _sample_profile()
+
+        def fake_embed(texts, timeout=30.0):
+            return [[1.0, 0.0] for _ in texts]
+
+        with (
+            patch.dict("os.environ", {"APPLYPILOT_SEMANTIC_MATCH": "1"}),
+            patch("applypilot.scoring.semantic_match.embed_texts", side_effect=fake_embed) as mock_embed,
+        ):
+            _semantic_expand_evidence(lines, [], profile)
+
+        self.assertEqual(mock_embed.call_count, 2)  # once for corpus, once for all 3 requirements batched
+
+    def test_new_items_appended_with_semantic_provenance(self):
+        from applypilot.scoring.local_tailor import _semantic_expand_evidence
+
+        lines = [{"text": "Install PC hardware.", "importance": "unspecified"}]
+        profile = _sample_profile()
+
+        def fake_embed(texts, timeout=30.0):
+            return [[1.0, 0.0] for _ in texts]
+
+        with (
+            patch.dict("os.environ", {"APPLYPILOT_SEMANTIC_MATCH": "1"}),
+            patch("applypilot.scoring.semantic_match.embed_texts", side_effect=fake_embed),
+        ):
+            extended, semantic_candidates = _semantic_expand_evidence(lines, [], profile)
+
+        self.assertGreater(len(extended), 0)
+        new_items = [e for e in extended if e.get("provenance") == "semantic"]
+        self.assertTrue(new_items)
+        for e in new_items:
+            self.assertEqual(e["matched_terms"], [])
+        self.assertIn(1, semantic_candidates)
+
+    def test_items_already_in_literal_ranked_evidence_not_duplicated(self):
+        from applypilot.scoring.local_tailor import _semantic_expand_evidence
+
+        lines = [{"text": "Automate things with Python.", "importance": "unspecified"}]
+        profile = _sample_profile()
+        already_literal = [{"type": "skill", "name": "Python", "score": 1, "matched_terms": ["python"], "item": {}}]
+
+        def fake_embed(texts, timeout=30.0):
+            return [[1.0, 0.0] for _ in texts]
+
+        with (
+            patch.dict("os.environ", {"APPLYPILOT_SEMANTIC_MATCH": "1"}),
+            patch("applypilot.scoring.semantic_match.embed_texts", side_effect=fake_embed),
+        ):
+            extended, _ = _semantic_expand_evidence(lines, already_literal, profile)
+
+        names = [(e["type"], e["name"]) for e in extended]
+        self.assertEqual(names.count(("skill", "Python")), 1)  # not duplicated
+
+
+class TestAutoResolveRequirementsSemanticProvenance(unittest.TestCase):
+    """The central safety invariant: a semantic-only candidate must never
+    auto-resolve a requirement, even a single unambiguous one."""
+
+    def _ranked(self):
+        return [
+            {"type": "certification", "name": "CompTIA A+", "score": 0, "matched_terms": [], "item": {}},
+            {"type": "project", "name": "You Power You", "score": 0, "matched_terms": [], "item": {}},
+        ]
+
+    def test_literal_only_behavior_unchanged_when_semantic_param_omitted(self):
+        from applypilot.scoring.local_tailor import _auto_resolve_requirements
+
+        lines = [{"text": "Nothing matches this at all.", "importance": "unspecified"}]
+        resolved, candidates = _auto_resolve_requirements(lines, self._ranked())
+        self.assertEqual(resolved, {1: []})
+        self.assertEqual(candidates, {1: []})
+
+    def test_semantic_only_candidate_does_not_auto_resolve(self):
+        """Literal finds nothing; semantic proposes evidence id 1. Must
+        NOT be auto-resolved -- must remain in the ambiguous/arbitration
+        path, even though there's exactly one semantic candidate."""
+        from applypilot.scoring.local_tailor import _auto_resolve_requirements
+
+        lines = [{"text": "Nothing literal matches this at all.", "importance": "unspecified"}]
+        resolved, candidates = _auto_resolve_requirements(lines, self._ranked(), {1: [1]})
+        self.assertNotIn(1, resolved)
+        self.assertEqual(candidates[1], [1])
+
+    def test_single_semantic_candidate_still_not_auto_resolved(self):
+        """Explicit single-candidate case named in the requirements: do
+        not infer support from semantic candidate count alone."""
+        from applypilot.scoring.local_tailor import _auto_resolve_requirements
+
+        lines = [{"text": "Some unrelated requirement text.", "importance": "unspecified"}]
+        resolved, candidates = _auto_resolve_requirements(lines, self._ranked(), {1: [2]})
+        self.assertNotIn(1, resolved)
+        self.assertEqual(candidates[1], [2])
+
+    def test_existing_literal_resolution_untouched_by_semantic_addition(self):
+        """Literal already resolved this requirement (1 candidate) -- a
+        semantic addition for the SAME requirement must not perturb that
+        resolution."""
+        from applypilot.scoring.local_tailor import _auto_resolve_requirements
+
+        ranked = [
+            {"type": "skill", "name": "Python", "score": 1, "matched_terms": ["python"], "item": {}},
+            {"type": "project", "name": "You Power You", "score": 0, "matched_terms": [], "item": {}},
+        ]
+        lines = [{"text": "Use python for automation.", "importance": "unspecified"}]
+        resolved, candidates = _auto_resolve_requirements(lines, ranked, {1: [2]})
+        self.assertEqual(resolved[1], [1])  # untouched -- literal's own answer, unchanged
+        self.assertEqual(candidates[1], [1, 2])  # semantic addition still visible for transparency, just unused
+
+    def test_semantic_extra_already_in_literal_set_not_duplicated(self):
+        from applypilot.scoring.local_tailor import _auto_resolve_requirements
+
+        ranked = [
+            {"type": "skill", "name": "Python", "score": 1, "matched_terms": ["python"], "item": {}},
+            {"type": "skill", "name": "SQL", "score": 1, "matched_terms": ["sql"], "item": {}},
+        ]
+        lines = [{"text": "Use python and sql.", "importance": "unspecified"}]
+        # Both are already literal candidates (a genuine tie) -- semantic
+        # "rediscovering" one of them must not duplicate it in candidates.
+        resolved, candidates = _auto_resolve_requirements(lines, ranked, {1: [1, 2]})
+        self.assertEqual(candidates[1], [1, 2])
+        self.assertNotIn(1, resolved)  # still a genuine literal tie -- unchanged, ambiguous
 
 
 # ---------------------------------------------------------------------------

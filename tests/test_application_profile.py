@@ -27,16 +27,28 @@ def test_application_profile_not_leaked_into_resume():
     profile = config.load_profile()
     txt = assemble_resume_text(data, profile)
     # Application-profile phrases must not appear verbatim in the resume
-    forbidden = ["Work Auth", "Sponsorship Needed", "Willing to relocate", "preferred_commute_minutes"]
+    forbidden = ["Work Authorization", "Willing to relocate", "preferred_commute_minutes"]
     for f in forbidden:
         assert f not in txt
 
 
 def test_autofill_prompt_uses_application_profile():
+    """2026-08-28 tightened: this test previously only checked that the
+    "Work Auth:"/"Sponsorship Needed:" LABELS were present -- it would have
+    passed identically whether the rendered value was the real
+    authorized_to_work_us/requires_sponsorship data or the broken literal
+    "See profile" placeholder (the actual live bug, found and fixed the same
+    day). Now asserts the rendered VALUE reflects the real profile's data
+    and that the dead placeholder string is gone."""
     profile = config.load_profile()
     summary = apply_prompt._build_profile_summary(profile)
-    # Ensure the autofill/profile summary includes the explicit work auth lines
-    assert "Work Auth:" in summary
-    assert "Sponsorship Needed:" in summary
+    ap = profile["application_profile"]
+    assert ap["work_authorization"]["authorized_to_work_us"] is True
+    assert ap["work_authorization"]["requires_sponsorship"] is False
+
+    assert "Work Authorization:" in summary
+    assert "authorized to work in the US: True" in summary
+    assert "requires sponsorship: False" in summary
+    assert "See profile" not in summary
     # Spanish CEFR should be present as B1-B2 in the summary
     assert re.search(r"Spanish.*B1-B2|B1-B2.*Spanish", summary, re.IGNORECASE)

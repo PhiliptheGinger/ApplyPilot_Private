@@ -1,0 +1,871 @@
+22:13:46 - WARNING - Dropping board(s) not supported by the installed jobspy version: google. Remove from searches.yaml's `boards` list to silence this.
+2026-08-26 22:13:46,913 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:13:47,098 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:13:47,105 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:13:47,149 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:13:47,158 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:13:47,255 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:14:27,265 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 22:14:27,942 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:14:28,008 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:14:28,105 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:14:28,113 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:14:28,123 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:14:28,129 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:14:58,950 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 22:14:59,449 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:14:59,581 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:14:59,594 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:14:59,596 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:14:59,598 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:14:59,602 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:15:42,725 - JobSpy - ERROR - Glassdoor response status code 400
+2026-08-26 22:15:42,966 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:15:43,059 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:15:43,108 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:15:43,118 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:15:43,124 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:15:43,124 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:19:01,210 - JobSpy - ERROR - Glassdoor response status code 400
+2026-08-26 22:19:02,103 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:19:02,242 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:19:02,251 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:19:02,252 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:19:02,253 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:19:02,264 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:21:10,401 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 22:21:11,324 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:21:11,423 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:21:11,519 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:21:11,528 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:21:11,534 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:21:11,568 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:22:15,234 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 22:22:16,017 - JobSpy - ERROR - ZipRecruiter response status code 403
+22:26:41 - ERROR - ["help desk technician" in Remote (remote) [tier 1]] (glassdoor) error
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 110, in _fetch_jobs_page
+    raise GlassdoorException(
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 77, in scrape
+    jobs, cursor = self._fetch_jobs_page(
+                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 117, in _fetch_jobs_page
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 85, in scrape
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\src\applypilot\discovery\jobspy.py", line 367, in _run_one_search
+    gd_df = _scrape_with_retry(gd_kwargs, max_retries=max_retries)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\src\applypilot\discovery\jobspy.py", line 103, in _scrape_with_retry
+    return scrape_jobs(**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 109, in scrape_jobs
+    site_value, scraped_data = future.result()
+                               ^^^^^^^^^^^^^^^
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 100, in worker
+    site_val, scraped_info = scrape_site(site)
+                             ^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 94, in scrape_site
+    scraped_data: JobResponse = scraper.scrape(scraper_input)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 87, in scrape
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+2026-08-26 22:26:41,984 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:26:42,115 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:26:42,119 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:26:42,144 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:26:42,147 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:26:42,152 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:28:32,000 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 22:28:32,969 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:28:32,994 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:28:33,144 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:28:33,169 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:28:33,169 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:28:33,174 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:29:48,845 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 22:29:49,234 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:29:49,327 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:29:49,549 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:29:49,550 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:29:49,550 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:29:49,558 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:30:32,056 - JobSpy - ERROR - Glassdoor response status code 400
+2026-08-26 22:30:34,064 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:30:34,151 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:30:34,217 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:30:34,221 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:30:34,224 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:30:34,224 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:34:05,582 - JobSpy - ERROR - Glassdoor response status code 400
+2026-08-26 22:34:07,549 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:34:07,673 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:34:07,738 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:34:07,742 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:34:07,742 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:34:07,800 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:35:48,878 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 22:35:49,323 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:35:49,445 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:35:49,515 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:35:49,516 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:35:49,518 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:35:49,533 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:36:55,415 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 22:36:56,267 - JobSpy - ERROR - ZipRecruiter response status code 403
+22:37:19 - WARNING - ["technical support engineer" in Remote (remote) [tier 1]] LinkedIn location-parsing error (Invalid country string: 'bolivia'. Valid countries are: argentina, australia, austria, bahrain, belg); retrying without LinkedIn
+2026-08-26 22:37:19,708 - JobSpy - ERROR - ZipRecruiter response status code 403
+22:37:21 - ERROR - ["technical support engineer" in Remote (remote) [tier 1]] (glassdoor) error
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 110, in _fetch_jobs_page
+    raise GlassdoorException(
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 77, in scrape
+    jobs, cursor = self._fetch_jobs_page(
+                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 117, in _fetch_jobs_page
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 85, in scrape
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\src\applypilot\discovery\jobspy.py", line 367, in _run_one_search
+    gd_df = _scrape_with_retry(gd_kwargs, max_retries=max_retries)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\src\applypilot\discovery\jobspy.py", line 103, in _scrape_with_retry
+    return scrape_jobs(**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 109, in scrape_jobs
+    site_value, scraped_data = future.result()
+                               ^^^^^^^^^^^^^^^
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 100, in worker
+    site_val, scraped_info = scrape_site(site)
+                             ^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 94, in scrape_site
+    scraped_data: JobResponse = scraper.scrape(scraper_input)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 87, in scrape
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+2026-08-26 22:37:21,650 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:37:21,721 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:37:21,823 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:37:21,833 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:37:21,844 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:37:21,851 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:38:59,823 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 22:39:12,905 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:39:13,044 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:39:13,118 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:39:13,119 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:39:13,119 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:39:13,172 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:40:55,597 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 22:40:56,354 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:40:56,456 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:40:56,569 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:40:56,623 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:40:56,625 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:40:56,631 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:42:40,729 - JobSpy - ERROR - Glassdoor response status code 400
+2026-08-26 22:42:41,196 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:42:41,338 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:42:41,632 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:42:41,633 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:42:41,636 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:42:41,648 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:46:14,251 - JobSpy - ERROR - Glassdoor response status code 400
+2026-08-26 22:46:14,795 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:46:14,922 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:46:15,069 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:46:15,071 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:46:15,071 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:46:15,072 - JobSpy - ERROR - Indeed response status code 403
+22:48:44 - WARNING - Retrying (Retry(total=2, connect=3, read=None, redirect=None, status=3)) after connection broken by 'ReadTimeoutError("HTTPSConnectionPool(host='www.linkedin.com', port=443): Read timed out. (read timeout=5)")': /jobs/view/4455837615
+2026-08-26 22:49:00,900 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 22:49:01,227 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:49:01,377 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:49:01,391 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:49:01,402 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:49:01,402 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:49:01,404 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:51:26,500 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 22:51:27,148 - JobSpy - ERROR - ZipRecruiter response status code 403
+22:51:56 - WARNING - ["customer support specialist" in Remote (remote) [tier 1]] LinkedIn location-parsing error (Invalid country string: 'lithuania'. Valid countries are: argentina, australia, austria, bahrain, be); retrying without LinkedIn
+2026-08-26 22:51:57,208 - JobSpy - ERROR - ZipRecruiter response status code 403
+22:51:58 - ERROR - ["customer support specialist" in Remote (remote) [tier 1]] (glassdoor) error
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 110, in _fetch_jobs_page
+    raise GlassdoorException(
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 77, in scrape
+    jobs, cursor = self._fetch_jobs_page(
+                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 117, in _fetch_jobs_page
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 85, in scrape
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\src\applypilot\discovery\jobspy.py", line 367, in _run_one_search
+    gd_df = _scrape_with_retry(gd_kwargs, max_retries=max_retries)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\src\applypilot\discovery\jobspy.py", line 103, in _scrape_with_retry
+    return scrape_jobs(**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 109, in scrape_jobs
+    site_value, scraped_data = future.result()
+                               ^^^^^^^^^^^^^^^
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 100, in worker
+    site_val, scraped_info = scrape_site(site)
+                             ^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 94, in scrape_site
+    scraped_data: JobResponse = scraper.scrape(scraper_input)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 87, in scrape
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+2026-08-26 22:51:58,811 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:51:58,925 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:51:58,989 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:51:59,001 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:51:59,018 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:51:59,037 - JobSpy - ERROR - Indeed response status code 403
+22:52:06 - WARNING - Retrying (Retry(total=2, connect=3, read=None, redirect=None, status=3)) after connection broken by 'ReadTimeoutError("HTTPSConnectionPool(host='www.linkedin.com', port=443): Read timed out. (read timeout=5)")': /jobs/view/4458301638
+2026-08-26 22:52:25,037 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 22:52:25,258 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:52:25,377 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:52:25,453 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:52:25,454 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:52:25,492 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:52:25,493 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:52:47,246 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 22:52:47,617 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:52:47,700 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:52:47,780 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:52:47,783 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:52:47,784 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:52:47,784 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:53:08,158 - JobSpy - ERROR - Glassdoor response status code 400
+2026-08-26 22:53:08,373 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:53:08,529 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:53:08,605 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:53:08,608 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:53:08,609 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:53:08,610 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:54:09,988 - JobSpy - ERROR - Glassdoor response status code 400
+2026-08-26 22:54:10,608 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:54:10,689 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:54:10,748 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:54:10,759 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:54:10,760 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:54:10,772 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:54:40,318 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 22:54:40,565 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:54:40,667 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:54:40,725 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:54:40,729 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:54:40,730 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:54:40,743 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:55:22,033 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 22:55:22,408 - JobSpy - ERROR - ZipRecruiter response status code 403
+22:58:45 - ERROR - ["desktop support engineer" in Remote (remote) [tier 2]] (glassdoor) error
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 110, in _fetch_jobs_page
+    raise GlassdoorException(
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 77, in scrape
+    jobs, cursor = self._fetch_jobs_page(
+                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 117, in _fetch_jobs_page
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 85, in scrape
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\src\applypilot\discovery\jobspy.py", line 367, in _run_one_search
+    gd_df = _scrape_with_retry(gd_kwargs, max_retries=max_retries)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\src\applypilot\discovery\jobspy.py", line 103, in _scrape_with_retry
+    return scrape_jobs(**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 109, in scrape_jobs
+    site_value, scraped_data = future.result()
+                               ^^^^^^^^^^^^^^^
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 100, in worker
+    site_val, scraped_info = scrape_site(site)
+                             ^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 94, in scrape_site
+    scraped_data: JobResponse = scraper.scrape(scraper_input)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 87, in scrape
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+2026-08-26 22:58:46,010 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:58:46,170 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:58:46,174 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:58:46,175 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:58:46,183 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:58:46,189 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:59:14,649 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 22:59:14,956 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:59:15,043 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:59:15,109 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:59:15,132 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:59:15,133 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:59:15,134 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:59:43,329 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 22:59:43,549 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:59:43,667 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 22:59:43,720 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:59:43,723 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:59:43,729 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 22:59:43,755 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:00:04,519 - JobSpy - ERROR - Glassdoor response status code 400
+2026-08-26 23:00:04,702 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:00:04,817 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:00:04,864 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:00:04,866 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:00:04,885 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:00:04,888 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:02:17,856 - JobSpy - ERROR - Glassdoor response status code 400
+2026-08-26 23:02:18,146 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:02:18,332 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:02:18,365 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:02:18,368 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:02:18,370 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:02:18,416 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:04:02,376 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 23:04:03,113 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:04:03,234 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:04:03,390 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:04:03,396 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:04:03,404 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:04:03,408 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:05:07,723 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 23:05:08,485 - JobSpy - ERROR - ZipRecruiter response status code 403
+23:08:46 - ERROR - ["desktop engineer" in Remote (remote) [tier 2]] (glassdoor) error
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 110, in _fetch_jobs_page
+    raise GlassdoorException(
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 77, in scrape
+    jobs, cursor = self._fetch_jobs_page(
+                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 117, in _fetch_jobs_page
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 85, in scrape
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\src\applypilot\discovery\jobspy.py", line 367, in _run_one_search
+    gd_df = _scrape_with_retry(gd_kwargs, max_retries=max_retries)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\src\applypilot\discovery\jobspy.py", line 103, in _scrape_with_retry
+    return scrape_jobs(**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 109, in scrape_jobs
+    site_value, scraped_data = future.result()
+                               ^^^^^^^^^^^^^^^
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 100, in worker
+    site_val, scraped_info = scrape_site(site)
+                             ^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 94, in scrape_site
+    scraped_data: JobResponse = scraper.scrape(scraper_input)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 87, in scrape
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+2026-08-26 23:08:48,952 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:08:49,008 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:08:49,125 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:08:49,128 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:08:49,129 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:08:49,149 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:09:31,969 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 23:09:40,432 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:09:40,570 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:09:40,606 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:09:40,608 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:09:40,609 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:09:40,669 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:10:19,876 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 23:10:20,123 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:10:20,213 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:10:20,314 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:10:20,324 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:10:20,336 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:10:20,349 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:11:00,122 - JobSpy - ERROR - Glassdoor response status code 400
+2026-08-26 23:11:00,671 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:11:00,799 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:11:00,867 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:11:00,878 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:11:00,879 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:11:00,893 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:14:33,214 - JobSpy - ERROR - Glassdoor response status code 400
+2026-08-26 23:14:33,682 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:14:33,806 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:14:33,841 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:14:33,842 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:14:33,844 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:14:33,846 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:16:59,530 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 23:17:00,137 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:17:00,269 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:17:00,307 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:17:00,309 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:17:00,310 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:17:00,318 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:18:41,149 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 23:18:41,802 - JobSpy - ERROR - ZipRecruiter response status code 403
+23:22:19 - ERROR - ["systems administrator" in Remote (remote) [tier 2]] (glassdoor) error
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 110, in _fetch_jobs_page
+    raise GlassdoorException(
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 77, in scrape
+    jobs, cursor = self._fetch_jobs_page(
+                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 117, in _fetch_jobs_page
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 85, in scrape
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\src\applypilot\discovery\jobspy.py", line 367, in _run_one_search
+    gd_df = _scrape_with_retry(gd_kwargs, max_retries=max_retries)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\src\applypilot\discovery\jobspy.py", line 103, in _scrape_with_retry
+    return scrape_jobs(**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 109, in scrape_jobs
+    site_value, scraped_data = future.result()
+                               ^^^^^^^^^^^^^^^
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 100, in worker
+    site_val, scraped_info = scrape_site(site)
+                             ^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 94, in scrape_site
+    scraped_data: JobResponse = scraper.scrape(scraper_input)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 87, in scrape
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+2026-08-26 23:22:19,765 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:22:19,885 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:22:19,919 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:22:19,922 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:22:19,922 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:22:19,937 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:22:44,504 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 23:22:44,861 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:22:44,969 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:22:45,069 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:22:45,073 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:22:45,073 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:22:45,125 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:23:08,360 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 23:23:08,621 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:23:08,731 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:23:08,757 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:23:08,800 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:23:08,802 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:23:08,887 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:23:32,823 - JobSpy - ERROR - Glassdoor response status code 400
+2026-08-26 23:23:33,037 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:23:33,125 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:23:33,257 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:23:33,260 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:23:33,261 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:23:33,262 - JobSpy - ERROR - Indeed response status code 403
+23:25:04 - WARNING - Retrying (Retry(total=2, connect=3, read=None, redirect=None, status=3)) after connection broken by 'ReadTimeoutError("HTTPSConnectionPool(host='www.linkedin.com', port=443): Read timed out. (read timeout=10)")': /jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=network+engineer&location=North+Carolina&pageNum=0&start=100&f_TPR=r259200
+2026-08-26 23:25:26,608 - JobSpy - ERROR - Glassdoor response status code 400
+2026-08-26 23:25:27,055 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:25:27,163 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:25:27,211 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:25:27,218 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:25:27,219 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:25:27,219 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:26:11,290 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 23:26:11,617 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:26:11,757 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:26:11,806 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:26:11,811 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:26:11,815 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:26:11,820 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:27:13,005 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 23:27:13,430 - JobSpy - ERROR - ZipRecruiter response status code 403
+23:27:34 - WARNING - ["network engineer" in Remote (remote) [tier 2]] LinkedIn location-parsing error (Invalid country string: 'malta'. Valid countries are: argentina, australia, austria, bahrain, belgiu); retrying without LinkedIn
+2026-08-26 23:27:35,026 - JobSpy - ERROR - ZipRecruiter response status code 403
+23:27:36 - ERROR - ["network engineer" in Remote (remote) [tier 2]] (glassdoor) error
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 110, in _fetch_jobs_page
+    raise GlassdoorException(
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 77, in scrape
+    jobs, cursor = self._fetch_jobs_page(
+                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 117, in _fetch_jobs_page
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 85, in scrape
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\src\applypilot\discovery\jobspy.py", line 367, in _run_one_search
+    gd_df = _scrape_with_retry(gd_kwargs, max_retries=max_retries)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\src\applypilot\discovery\jobspy.py", line 103, in _scrape_with_retry
+    return scrape_jobs(**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 109, in scrape_jobs
+    site_value, scraped_data = future.result()
+                               ^^^^^^^^^^^^^^^
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 100, in worker
+    site_val, scraped_info = scrape_site(site)
+                             ^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 94, in scrape_site
+    scraped_data: JobResponse = scraper.scrape(scraper_input)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 87, in scrape
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+2026-08-26 23:27:36,726 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:27:36,784 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:27:36,876 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:27:36,885 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:27:36,892 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:27:36,893 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:27:52,910 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 23:27:53,266 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:27:53,357 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:27:53,449 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:27:53,450 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:27:53,451 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:27:53,456 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:28:07,957 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 23:28:08,226 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:28:08,333 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:28:08,410 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:28:08,411 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:28:08,413 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:28:08,420 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:28:21,575 - JobSpy - ERROR - Glassdoor response status code 400
+2026-08-26 23:28:21,757 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:28:21,872 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:28:21,925 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:28:21,937 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:28:21,940 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:28:21,942 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:32:00,570 - JobSpy - ERROR - Glassdoor response status code 400
+2026-08-26 23:32:01,446 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:32:01,581 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:32:01,597 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:32:01,703 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:32:01,703 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:32:01,703 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:34:42,634 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 23:34:42,982 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:34:43,104 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:34:43,253 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:34:43,253 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:34:43,254 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:34:43,254 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:37:05,052 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 23:37:09,661 - JobSpy - ERROR - ZipRecruiter response status code 403
+23:38:24 - WARNING - ["software engineer" in Remote (remote) [tier 3]] LinkedIn location-parsing error (Invalid country string: 'estonia'. Valid countries are: argentina, australia, austria, bahrain, belg); retrying without LinkedIn
+2026-08-26 23:38:24,411 - JobSpy - ERROR - ZipRecruiter response status code 403
+23:38:25 - ERROR - ["software engineer" in Remote (remote) [tier 3]] (glassdoor) error
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 110, in _fetch_jobs_page
+    raise GlassdoorException(
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 77, in scrape
+    jobs, cursor = self._fetch_jobs_page(
+                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 117, in _fetch_jobs_page
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 85, in scrape
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\src\applypilot\discovery\jobspy.py", line 367, in _run_one_search
+    gd_df = _scrape_with_retry(gd_kwargs, max_retries=max_retries)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\src\applypilot\discovery\jobspy.py", line 103, in _scrape_with_retry
+    return scrape_jobs(**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 109, in scrape_jobs
+    site_value, scraped_data = future.result()
+                               ^^^^^^^^^^^^^^^
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 100, in worker
+    site_val, scraped_info = scrape_site(site)
+                             ^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 94, in scrape_site
+    scraped_data: JobResponse = scraper.scrape(scraper_input)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 87, in scrape
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+2026-08-26 23:38:26,060 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:38:26,154 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:38:26,234 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:38:26,235 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:38:26,236 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:38:26,244 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:38:36,336 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 23:38:36,577 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:38:36,635 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:38:36,764 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:38:36,861 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:38:36,861 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:38:36,861 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:38:57,746 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 23:38:58,124 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:38:58,306 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:38:58,316 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:38:58,317 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:38:58,317 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:38:58,318 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:39:05,620 - JobSpy - ERROR - Glassdoor response status code 400
+2026-08-26 23:39:05,828 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:39:05,921 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:39:05,978 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:39:05,995 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:39:05,996 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:39:06,002 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:42:15,520 - JobSpy - ERROR - Glassdoor response status code 400
+2026-08-26 23:42:15,869 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:42:15,906 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:42:16,012 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:42:16,027 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:42:16,031 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:42:16,032 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:44:03,660 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 23:44:03,938 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:44:04,049 - JobSpy - ERROR - ZipRecruiter response status code 403
+2026-08-26 23:44:04,110 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:44:04,114 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:44:04,116 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:44:04,139 - JobSpy - ERROR - Indeed response status code 403
+2026-08-26 23:46:32,778 - JobSpy - ERROR - Glassdoor response status code 403
+2026-08-26 23:46:33,214 - JobSpy - ERROR - ZipRecruiter response status code 403
+23:46:38 - WARNING - ["backend developer" in Remote (remote) [tier 3]] LinkedIn location-parsing error (Invalid country string: 'estonia'. Valid countries are: argentina, australia, austria, bahrain, belg); retrying without LinkedIn
+2026-08-26 23:46:38,864 - JobSpy - ERROR - ZipRecruiter response status code 403
+23:46:40 - ERROR - ["backend developer" in Remote (remote) [tier 3]] (glassdoor) error
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 110, in _fetch_jobs_page
+    raise GlassdoorException(
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 77, in scrape
+    jobs, cursor = self._fetch_jobs_page(
+                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 117, in _fetch_jobs_page
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 85, in scrape
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\phili\Projects\resume-agent\src\applypilot\discovery\jobspy.py", line 367, in _run_one_search
+    gd_df = _scrape_with_retry(gd_kwargs, max_retries=max_retries)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\src\applypilot\discovery\jobspy.py", line 103, in _scrape_with_retry
+    return scrape_jobs(**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 109, in scrape_jobs
+    site_value, scraped_data = future.result()
+                               ^^^^^^^^^^^^^^^
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\phili\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 100, in worker
+    site_val, scraped_info = scrape_site(site)
+                             ^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\__init__.py", line 94, in scrape_site
+    scraped_data: JobResponse = scraper.scrape(scraper_input)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\phili\Projects\resume-agent\venv\Lib\site-packages\jobspy\scrapers\glassdoor\__init__.py", line 87, in scrape
+    raise GlassdoorException(str(e))
+jobspy.scrapers.exceptions.GlassdoorException: bad response status code: 400
+00:00:28 - WARNING - ["help desk technician" in Remote (remote) [tier 1]] LinkedIn location-parsing error (Invalid country string: 'bulgaria'. Valid countries are: argentina, australia, austria, bahrain, bel); retrying without LinkedIn
+00:00:28 - ERROR - ["help desk technician" in Remote (remote) [tier 1]]: all sites failed

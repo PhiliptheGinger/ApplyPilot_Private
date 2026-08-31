@@ -1,0 +1,38 @@
+{
+  "24215": {
+    "title": "OIT Managed Desktop Support Analyst",
+    "result": {
+      "score": 7,
+      "keywords": "Desktop Support, Technical Support, Troubleshooting, CompTIA A+, Customer Service, Hardware Support, Operating Systems, Workstation Configuration",
+      "reasoning": "The candidate's CompTIA A+ certification, customer service background, and Bachelor's degree align well with this desktop support analyst position located in Raleigh, NC (a reasonable commute from Mebane). The candidate falls slightly short of the required one year of formal IT experience, relying instead on hands-on technical installation roles and self-taught skills. Additionally, the posting indicates internal recruitment, making it a mild stretch but still a strong functional fit.",
+      "eligibility": "eligible"
+    }
+  },
+  "24162": {
+    "title": "Desktop Support Technician (1148921)",
+    "result": {
+      "score": 2,
+      "keywords": "Desktop Support, Hardware Support, Software Support, Troubleshooting, Windows, PC",
+      "reasoning": "While the candidate holds a CompTIA A+ certification and has hands-on technical troubleshooting experience, this role is a mid-level position requiring at least 5 years of professional desktop support experience. The candidate has no documented professional IT help desk or desktop support employment history, making them underqualified for this seniority level. Additionally, the onsite location in Pinetops, NC, is outside of a reasonable commuting distance from Mebane, requiring relocation.",
+      "eligibility": "eligible"
+    }
+  },
+  "24163": {
+    "title": "Senior IT Support Specialist",
+    "result": {
+      "score": 2,
+      "keywords": "",
+      "reasoning": "Ineligible: seniority title match: 'Senior' in 'Senior IT Support Specialist'.",
+      "eligibility": "non_us_only"
+    }
+  },
+  "24338": {
+    "title": "Level 2 Support Engineer / Matthews, NC",
+    "result": {
+      "score": 2,
+      "keywords": "CompTIA A+, IT Support, Troubleshooting, Customer Service, Windows, Networking, Automation, Documentation",
+      "reasoning": "The role requires at least 3 years of professional IT support, systems administration, or MSP experience, with hands-on Level 2 escalation capabilities in Microsoft 365, Active Directory, Entra ID, and Intune. The candidate currently holds a CompTIA A+ certification but lacks professional IT support employment experience, making them significantly underqualified for a Level 2 support position.",
+      "eligibility": "eligible"
+    }
+  }
+}

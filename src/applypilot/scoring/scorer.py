@@ -480,6 +480,40 @@ def _check_ineligible(job: dict, profile: dict | None = None) -> str | None:
     return None
 
 
+# 2026-08-29 fix: score_job()'s pre-filter branch used to hardcode
+# eligibility="non_us_only" for EVERY _check_ineligible() rejection --
+# seniority, title/search-config exclusion, advanced-degree, clearance,
+# commission-only, and ethics reasons all got mislabeled as a geography
+# rejection. Live measurement: of 7,155 "non_us_only" rows, 2,784 (39%) were
+# actually non-geography (2,592 title-pattern, 187 seniority, 5 degree/
+# ethics). This classifier maps _check_ineligible()'s already-descriptive
+# reason string to one of a small, fixed set of semantically meaningful
+# `eligibility` values -- chosen to match exactly the categories the live
+# data showed matter (geography, title, seniority) plus one catch-all for
+# the low-volume remainder (degree/clearance/commission/ethics), rather
+# than inventing a distinct category for every _check_ineligible() branch.
+# _check_ineligible() itself is unchanged -- apply.launcher's independent
+# acquire_job() recheck also calls it and only ever treats the return value
+# as a truthy reason string, so its contract must not change here.
+DETERMINISTIC_INELIGIBLE_VALUES = frozenset(
+    {"non_us_only", "seniority_mismatch", "title_excluded", "ineligible_other"}
+)
+
+
+def _classify_ineligibility(reason: str) -> str:
+    """Map a _check_ineligible() reason string to one of
+    DETERMINISTIC_INELIGIBLE_VALUES. Pure string classification -- does not
+    call _check_ineligible() itself, so it stays trivially in sync with
+    whatever reason text that function already returns."""
+    if reason.startswith("non-US"):
+        return "non_us_only"
+    if reason.startswith("seniority title match"):
+        return "seniority_mismatch"
+    if reason.startswith("title excluded by search configuration"):
+        return "title_excluded"
+    return "ineligible_other"
+
+
 def _parse_score_response(response: str) -> dict:
     """Parse the LLM's score response into structured data.
 
@@ -613,7 +647,7 @@ def _build_location_context(profile: dict) -> str:
     return "; ".join(bits) or "US-based; location preferences not specified in profile"
 
 
-def score_job(resume_text: str, job: dict, profile: dict | None = None) -> dict:
+def score_job(resume_text: str, job: dict, profile: dict | None = None, conn=None) -> dict:
     """Score a single job against the resume.
 
     Args:
@@ -624,28 +658,45 @@ def score_job(resume_text: str, job: dict, profile: dict | None = None) -> dict:
             canonical profile every other stage (tailor, cover_letter)
             reads from, and has historically contained fabricated content.
         job: Job dict with keys: title, site, location, full_description.
+        conn: Optional DB connection, used only for the compensation
+            estimator's same-employer comparable lookup (see
+            scoring.compensation.estimate_compensation). Read-only. When
+            None, the estimator is skipped entirely and unstated
+            compensation simply classifies as "unknown" -- score_job()
+            still never writes to the database either way.
 
     Returns:
-        {"score": int, "keywords": str, "reasoning": str}
+        {"score": int, "keywords": str, "reasoning": str, "eligibility": str,
+         "compensation": dict}  -- "compensation" is additive/informational
+        (status + evidence), not persisted anywhere; see
+        scoring.compensation.classify_compensation for its shape.
     """
     if profile is None:
         profile = load_profile()
 
-    # Rule-based pre-filter: catch obvious non-US ineligible jobs before LLM call.
-    # Tags eligibility=non_us_only so downstream stages skip the job; the score
-    # is still recorded so audit views can see the original LLM-style severity.
+    # Rule-based pre-filter: catch obvious ineligible jobs before the LLM call.
+    # eligibility is tagged with the specific DETERMINISTIC_INELIGIBLE_VALUES
+    # category the reason falls into (see _classify_ineligibility) so
+    # downstream stages/dashboard/audit trail can distinguish WHY a job was
+    # excluded, not just THAT it was -- the score is still recorded so audit
+    # views can see the original LLM-style severity.
     ineligible_reason = _check_ineligible(job, profile)
     if ineligible_reason:
         log.info("Pre-filter INELIGIBLE: %s — %s", (job.get("title") or "?")[:60], ineligible_reason)
-        # eligibility="non_us_only" is reused here as the generic "force archive,
-        # never tailor/apply" signal for ALL pre-filter rejections (geography,
-        # title-pattern, ethical exclusion) -- see _flush_score_batch's archive routing.
-        return {
+        result = {
             "score": 2,
             "keywords": "",
             "reasoning": f"Ineligible: {ineligible_reason}.",
-            "eligibility": "non_us_only",
+            "eligibility": _classify_ineligibility(ineligible_reason),
         }
+        # 2026-08-30: tag compensation status only when THIS rejection is
+        # the commission-only gate specifically (see _check_ineligible's
+        # literal "commission-only compensation: ..." prefix) -- other
+        # pre-filter reasons (seniority, non-US, etc.) aren't about
+        # compensation at all and must not get a compensation label here.
+        if ineligible_reason.startswith("commission-only compensation:"):
+            result["compensation"] = {"status": "explicitly_absent"}
+        return result
 
     try:
         candidate_summary = _build_candidate_summary(profile)
@@ -685,6 +736,24 @@ def score_job(resume_text: str, job: dict, profile: dict | None = None) -> dict:
             result["error"] = (
                 f"LLM error: response did not contain a parseable SCORE line (first 200 chars: {response[:200]!r})"
             )
+        else:
+            # 2026-08-30: compensation-visibility layer (see
+            # scoring.compensation module docstring for the full design).
+            # Local import -- compensation.py itself lazily imports
+            # _COMMISSION_ONLY_PATTERN back from this module at CALL time
+            # (inside classify_compensation()), so importing compensation.py
+            # at this module's top level would be circular; importing it
+            # here, after this module has already finished defining
+            # _COMMISSION_ONLY_PATTERN, is not.
+            from applypilot.scoring.compensation import classify_compensation, compensation_score_adjustment
+
+            comp = classify_compensation(job, conn=conn)
+            result["compensation"] = comp
+            adjustment, note = compensation_score_adjustment(comp)
+            if adjustment:
+                result["score"] = max(1, result["score"] + adjustment)
+            if note:
+                result["reasoning"] = f"{result['reasoning']} {note}".strip()
         return result
     except Exception as exc:
         log.exception("LLM error scoring job '%s'", (job or {}).get("title") or "?")
@@ -746,15 +815,29 @@ def _flush_score_batch(conn, batch: list[dict], now: str) -> None:
                 "WHERE url = ?",
                 (r["score"], f"{r['keywords']}\n{r['reasoning']}", now, eligibility, r["url"]),
             )
-            # Eligibility-driven state transition. Non-US roles go straight to
-            # `archived` (terminal) so tailor/cover/apply never pick them up,
-            # bypassing the scored→tailored→ready_to_apply chain entirely.
-            if eligibility == "non_us_only":
+            # Eligibility-driven state transition. Every deterministic
+            # ineligible category (not just non_us_only) goes straight to
+            # `archived` (terminal) so tailor/cover/apply never pick them
+            # up, bypassing the scored→tailored→ready_to_apply chain
+            # entirely -- unchanged behavior from before the eligibility-
+            # labeling fix, just now checked against the full category set
+            # instead of a single hardcoded string.
+            #
+            # 2026-08-29 fix: the transition reason used to be hardcoded to
+            # the literal "non_us_only employer/role" for every deterministic
+            # rejection, regardless of the real reason. r["reasoning"] already
+            # holds the actual descriptive text ("Ineligible: <reason>.") --
+            # for a pre-filter rejection that's _check_ineligible()'s own
+            # reason string; for an LLM-judged non_us_only row it's the LLM's
+            # own explanation -- either way, strictly more informative than
+            # the old generic literal, so this also incidentally improves the
+            # LLM-origin non_us_only case (same branch, same fix).
+            if eligibility in DETERMINISTIC_INELIGIBLE_VALUES:
                 transition_state(
                     conn,
                     r["url"],
                     "archived",
-                    reason="non_us_only employer/role",
+                    reason=r["reasoning"][:200],
                     metadata={"score": r["score"], "eligibility": eligibility},
                     force=True,
                 )
@@ -866,7 +949,12 @@ def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1, max_age
 
     def _score_one(job: dict) -> dict:
         try:
-            result = score_job(resume_text, job, profile=profile)
+            # get_connection() (not the outer `conn`) -- sqlite3 connections
+            # are thread-local (see database.get_connection's docstring) and
+            # this may run inside a worker thread when workers > 1; sharing
+            # the single connection captured in run_scoring()'s own thread
+            # would raise sqlite3.ProgrammingError from any other thread.
+            result = score_job(resume_text, job, profile=profile, conn=get_connection())
             result["url"] = job["url"]
         except Exception as exc:
             log.exception("Unexpected error scoring '%s'", (job or {}).get("title") or "?")
