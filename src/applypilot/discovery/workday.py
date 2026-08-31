@@ -78,6 +78,44 @@ def _location_ok(location: str | None, accept: list[str], reject: list[str]) -> 
     return False
 
 
+# 2026-08-30 fix: `locationsText` is blank for some Workday tenants on
+# every posting they return (confirmed live for Accenture -- 5,056/5,056
+# stored rows -- and ~60% of all Workday rows overall), which made
+# _location_ok() a no-op for them ("if not location: return True" keeps
+# everything, including postings later found to be Toulouse/Paris/Sofia/
+# Mumbai/etc.). A live CXS probe found the search response already
+# carries the location in a second field these tenants DO populate,
+# `bulletFields` -- consistently `[requisition_id, location]`, e.g.
+# `["R00330861", "Sofia"]`, `["14295710", "Cyberjaya, Century Square"]`,
+# `["R00086230", "Buenos Aires"]`. This recovers that value with no
+# extra network request; it does not change what `_location_ok()`
+# accepts or rejects, only whether it has something to evaluate.
+def _extract_location(j: dict) -> str:
+    """Extract a Workday search-result posting's location.
+
+    Prefers `locationsText` unchanged (existing behavior, untouched for
+    every tenant that already populates it). Only when that's absent or
+    blank does this fall back to `bulletFields[1]` -- and only when
+    `bulletFields` is a list with at least two elements and that element
+    is a non-empty string. Any other shape (missing, `[]`, a single
+    element, `None`, a non-list, a non-string second element) is left
+    alone: this returns whatever `locationsText` was ("" or None) rather
+    than guessing, matching _location_ok()'s existing "unknown -- keep
+    it, let the scorer decide" contract.
+    """
+    loc = j.get("locationsText", "")
+    if loc:
+        return loc
+
+    bullet_fields = j.get("bulletFields")
+    if isinstance(bullet_fields, list) and len(bullet_fields) > 1:
+        candidate = bullet_fields[1]
+        if isinstance(candidate, str) and candidate.strip():
+            return candidate
+
+    return loc
+
+
 # -- HTML stripper -----------------------------------------------------------
 #
 # Thin wrapper -- delegates to ats_common.strip_html_to_text, the one
@@ -237,7 +275,7 @@ def search_employer(
             break
 
         for j in postings:
-            loc = j.get("locationsText", "")
+            loc = _extract_location(j)
             if (
                 location_filter
                 and accept_locs is not None
