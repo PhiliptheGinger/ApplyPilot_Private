@@ -22,6 +22,7 @@ from applypilot.scoring.tailor import (
     tailor_resume,
 )
 from applypilot.scoring.validator import (
+    check_bullet_vocabulary_injection,
     check_date_fabrication,
     check_date_placeholder_fabrication,
     check_title_inflation,
@@ -94,6 +95,14 @@ def _profile():
                 "resume_allowed": True,
                 "relevance_categories": ["web"],
                 "factual_concepts": ["Website development", "HTML/CSS/JavaScript"],
+            },
+        ],
+        "qualifications": [
+            {
+                "name": "Stand-up comedy",
+                "resume_allowed": True,
+                "relevance_categories": ["communications", "public speaking"],
+                "evidence": ["Public speaking", "Verbal communication", "Audience engagement"],
             },
         ],
     }
@@ -197,6 +206,184 @@ class TestFactualAnchorsTitleCheck:
         data = {"experience": [{"header": "Anything at Anywhere"}]}
         result = validate_factual_anchors(data, {"resume_facts": {}})
         assert result == {"errors": [], "warnings": []}
+
+
+class TestUnparseableHeaderFabrication:
+    """2026-09-01: the prompt bake-off's worst single fabrication
+    (IterateCV inventing a standalone "ALIGNMENT TECHNIQUES" experience
+    entry with no employer name at all) evaded every check that only fires
+    once a header splits into (title, company) -- it never reached that
+    branch. Any unparseable header is now checked against every known
+    entry name/authoritative title in the profile (whole-STRING
+    containment, not word-level overlap -- an earlier version pooled
+    individual words from every title into one set, which let "ALIGNMENT
+    TECHNIQUES" false-pass by coincidentally sharing the single word
+    "alignment" with the real "Alignment Technician" title; caught by this
+    exact test failing before the fix), including qualifications (some
+    real entries, like "Stand-up comedy", live only there)."""
+
+    def test_fabricated_standalone_entry_is_flagged(self):
+        data = {"experience": [{"header": "ALIGNMENT TECHNIQUES", "bullets": ["Built RESTful services."]}]}
+        result = validate_factual_anchors(data, _profile())
+        assert result["errors"] == []
+        assert any("could not be matched" in w for w in result["warnings"])
+        assert any("ALIGNMENT TECHNIQUES" in w for w in result["warnings"])
+
+    def test_legitimate_bare_qualification_header_is_not_flagged(self):
+        """A bare header using the qualification's OWN name text is
+        recognized -- must not be false-flagged just because it doesn't
+        split into (title, company)."""
+        data = {"experience": [{"header": "Stand-up comedy", "bullets": ["Delivered live performances."]}]}
+        result = validate_factual_anchors(data, _profile())
+        assert result["warnings"] == []
+
+    def test_derived_agent_noun_form_is_a_known_limitation(self):
+        """KNOWN LIMITATION, documented rather than silently accepted: a
+        stylistic rendering of a qualification as a person/role noun
+        ("Stand-up Comedian", from "Stand-up comedy") does not match via
+        string containment, and gets the same (low-cost, warning-tier,
+        non-blocking) treatment as a genuine fabrication would. Confirmed
+        during development that no simple string-similarity heuristic can
+        reliably tell this case apart from the real "ALIGNMENT TECHNIQUES"
+        fabrication above -- by character overlap, "Alignment Technician"
+        vs "ALIGNMENT TECHNIQUES" is MORE similar than "Stand-up comedy"
+        vs "Stand-up Comedian", so any threshold that accepts the second
+        would also accept the first. A warning here is an acceptable,
+        low-cost false positive (a human reviewer dismisses it on sight),
+        traded off against reliably catching the real fabrication."""
+        data = {"experience": [{"header": "Stand-up Comedian", "bullets": ["Delivered live performances."]}]}
+        result = validate_factual_anchors(data, _profile())
+        assert any("could not be matched" in w for w in result["warnings"])
+
+    def test_legitimate_bare_role_title_is_not_flagged(self):
+        """A bare authoritative role title with no company suffix, used
+        verbatim, must not be flagged."""
+        data = {"experience": [{"header": "Alignment Technician", "bullets": ["Vehicle alignment."]}]}
+        result = validate_factual_anchors(data, _profile())
+        assert result["warnings"] == []
+
+    def test_no_profile_data_never_flags_unparseable_header(self):
+        data = {"experience": [{"header": "Something Made Up"}]}
+        result = validate_factual_anchors(data, {"resume_facts": {}})
+        assert result == {"errors": [], "warnings": []}
+
+
+class TestBulletVocabularyInjection:
+    """2026-09-01: the prompt bake-off found a systematic pattern
+    (IterateCV especially) of grafting distinctive JOB-POSTING vocabulary
+    onto a bullet whose entry is otherwise correctly attributed -- e.g.
+    "utilizing data to inform comedic timing" on a Stand-up Comedian
+    bullet. The injected word ("data") is often already legitimate
+    SOMEWHERE in the candidate's profile (a real analytics project), so
+    this must be checked per-entry, not whole-profile. Uses a "Title at
+    Company" header (not the bare "Stand-up Comedian" form) so the test
+    exercises this mechanism directly, without also depending on the
+    separate comedian/comedy string-matching limitation documented in
+    TestUnparseableHeaderFabrication."""
+
+    def _job(self):
+        return {
+            "title": "Data Engineer",
+            "full_description": (
+                "We need a data engineer to build analytics pipelines and "
+                "dashboards, working with data at scale."
+            ),
+        }
+
+    def test_injected_job_vocabulary_on_unrelated_entry_is_flagged(self):
+        data = {
+            "experience": [
+                {
+                    "header": "Alignment Technician at National Tire and Battery / Mavis",
+                    "bullets": [
+                        "Performed vehicle alignment work, then helped build analytics "
+                        "pipelines and dashboards as part of a data engineer role."
+                    ],
+                }
+            ]
+        }
+        warnings = check_bullet_vocabulary_injection(data, _profile(), job=self._job())
+        assert warnings
+        assert "Alignment Technician" in warnings[0]
+
+    def test_word_grounded_in_its_own_entry_is_not_flagged(self):
+        """The SAME job-vocabulary word ("analytics"/"pipelines") applied
+        to an entry whose OWN evidence actually supports it must not be
+        flagged -- this is legitimate, truthful tailoring, not injection."""
+        profile = _profile()
+        profile["project_inventory"].append(
+            {
+                "name": "CAP Predictor",
+                "resume_allowed": True,
+                "factual_concepts": ["data analytics", "pipelines", "feature engineering"],
+            }
+        )
+        data = {
+            "projects": [
+                {
+                    "header": "CAP Predictor",
+                    "bullets": ["Built data analytics pipelines for feature engineering."],
+                }
+            ]
+        }
+        warnings = check_bullet_vocabulary_injection(data, profile, job=self._job())
+        assert warnings == []
+
+    def test_no_job_provided_returns_empty(self):
+        data = {"experience": [{"header": "Stand-up Comedian", "bullets": ["Utilizing data to inform comedic timing."]}]}
+        assert check_bullet_vocabulary_injection(data, _profile(), job=None) == []
+
+    def test_validate_json_fields_surfaces_injection_as_warning_only(self):
+        """Deliberately WARNING-tier, not ERROR -- natural-language
+        vocabulary overlap is fuzzier than the structural checks."""
+        data = {
+            "title": "Technical Support & Customer Service",
+            "summary": "Support and troubleshooting background.",
+            "skills": {"Languages": "Python"},
+            "experience": [
+                {
+                    "header": "Alignment Technician at National Tire and Battery / Mavis",
+                    "subtitle": "Technical Support",
+                    "bullets": [
+                        "Performed vehicle alignment work, then helped build analytics "
+                        "pipelines and dashboards as part of a data engineer role."
+                    ],
+                }
+            ],
+            "education": "University of North Carolina at Greensboro",
+        }
+        result = validate_json_fields(data, _profile(), job=self._job())
+        assert any("graft job-posting language" in w for w in result["warnings"])
+        assert not any("graft job-posting language" in e for e in result["errors"])
+
+
+class TestSkillsCategoryJoinBoundary:
+    """2026-09-01: found by the large-sample statistical fabrication-
+    detection test, not by any hand-picked example. validate_json_fields
+    used to join the SKILLS dict's category values with a bare space
+    (" ".join(...)) before checking them -- when neither adjacent value
+    ended in a delimiter, two DIFFERENT categories could merge into one
+    claim (e.g. {"Other": "Outreach", "Fabricated": "Salesforce"} ->
+    "outreach salesforce"), which then falsely substring-matched the real
+    "outreach" skill and silently exempted the fabricated content riding
+    along with it. Every hand-picked test case up to this point happened
+    to keep multi-item claims within a single, comma-separated category
+    value, so this never surfaced until a genuinely large, varied sample
+    was run. Fixed by joining with ", " instead of " "."""
+
+    def test_fabrication_in_a_separate_category_is_not_hidden_by_an_adjacent_real_skill(self):
+        data = {
+            "title": "Technical Support & Customer Service",
+            "summary": "Support and troubleshooting background.",
+            "skills": {"Real": "Outreach", "Fabricated": "Salesforce"},
+            "experience": [
+                {"header": "Packaging Associate / Warehouse Associate at UPS", "bullets": ["Package handling."]}
+            ],
+            "education": "University of North Carolina at Greensboro",
+        }
+        result = validate_json_fields(data, _profile())
+        assert not result["passed"]
+        assert any("salesforce" in e.lower() for e in result["errors"])
 
 
 # ---------------------------------------------------------------------------

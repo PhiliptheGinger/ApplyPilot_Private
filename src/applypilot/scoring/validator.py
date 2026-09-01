@@ -446,12 +446,18 @@ def sanitize_text(text: str) -> str:
 # ── JSON Field Validation ─────────────────────────────────────────────────
 
 
-def validate_json_fields(data: dict, profile: dict, standup_decision: str | None = None) -> dict:
+def validate_json_fields(
+    data: dict, profile: dict, standup_decision: str | None = None, job: dict | None = None
+) -> dict:
     """Validate individual JSON fields from an LLM-generated tailored resume.
 
     Args:
         data: Parsed JSON from the LLM (title, summary, skills, experience, projects, education).
         profile: User profile dict from load_profile().
+        job: Optional job dict (title/full_description) -- when given, also
+            runs check_bullet_vocabulary_injection (advisory-tier only;
+            omitting job simply skips that one check, everything else is
+            unaffected).
 
     Returns:
         {"passed": bool, "errors": list[str], "warnings": list[str]}
@@ -474,7 +480,19 @@ def validate_json_fields(data: dict, profile: dict, standup_decision: str | None
     # Skills: check for fabrication (exclude items that are in user's actual profile)
     allowed_skills = _build_skills_set(profile)
     if isinstance(data["skills"], dict):
-        skills_text = " ".join(str(v) for v in data["skills"].values()).lower()
+        # 2026-09-01: joining with a bare space let two adjacent SKILLS
+        # categories merge into one claim when neither value's own text
+        # ended in a delimiter (e.g. {"Other": "Outreach", "Fabricated":
+        # "Salesforce"} -> "outreach salesforce") -- the merged claim then
+        # falsely substring-matched the real "outreach" skill, silently
+        # exempting the fabricated content riding along with it. Found by
+        # the large-sample statistical fabrication-detection test
+        # (data/experiments/validator_fabrication_detection_stats_20260901),
+        # not by any hand-picked example -- every hand-picked test case so
+        # far happened to keep multi-item claims within a single,
+        # comma-separated category value. Joining with ", " instead
+        # guarantees a category boundary is always also a claim boundary.
+        skills_text = ", ".join(str(v) for v in data["skills"].values()).lower()
         for fake in FABRICATION_WATCHLIST:
             if len(fake) <= 2:
                 continue
@@ -568,6 +586,8 @@ def validate_json_fields(data: dict, profile: dict, standup_decision: str | None
     _anchor = validate_factual_anchors(data, profile)
     errors.extend(_anchor["errors"])
     warnings.extend(_anchor["warnings"])
+
+    warnings.extend(check_bullet_vocabulary_injection(data, profile, job=job))
 
     return {"passed": len(errors) == 0, "errors": errors, "warnings": warnings}
 
@@ -729,6 +749,21 @@ def validate_factual_anchors(tailored_data: dict, profile: dict) -> dict:
     Operations Specialist") that must be rejected outright, not merely
     flagged for human review.
 
+    Unparseable-header check (2026-09-01): a header that doesn't even
+    contain a recognizable "Title at Company"/"Title | Company" shape is
+    MORE suspicious than an ordinary unrecognized-employer case, not less
+    -- the prompt bake-off's worst single fabrication (IterateCV inventing
+    a standalone "ALIGNMENT TECHNIQUES" experience entry with no employer
+    name at all) evaded every check that only fires once a header DOES
+    split, because it never reached that branch. Any such header is now
+    checked against every known entry name and title/qualification word in
+    the profile (experience_inventory, historical_experience_inventory,
+    AND qualifications -- some real, legitimate entries like "Stand-up
+    comedy" live only in qualifications, not experience_inventory, and
+    must not be false-flagged); no match at all is a WARNING (same tier as
+    the unrecognized-employer case below, for the same reason: a single
+    ambiguous header shouldn't block an otherwise valid draft alone).
+
     Returns {"errors": list, "warnings": list}.
     """
     errors: list[str] = []
@@ -749,13 +784,41 @@ def validate_factual_anchors(tailored_data: dict, profile: dict) -> dict:
             if name and title:
                 authoritative_titles[name.lower()] = str(title)
 
-    if not preserved and not authoritative_titles:
+    # Broader "does this bare header correspond to ANYTHING real" set --
+    # employer names, their authoritative TITLES (not decomposed into
+    # words -- an earlier version pooled individual words from every
+    # title into one set, which let "ALIGNMENT TECHNIQUES" false-pass by
+    # sharing just the single word "alignment" with the real "Alignment
+    # Technician" title; whole-string substring matching doesn't have
+    # that failure mode), and qualification names (some real entries,
+    # like "Stand-up comedy", live only there, not in experience_
+    # inventory) -- deliberately STRING containment only, no word-level
+    # fuzzy matching.
+    known_entry_names: set[str] = set(authoritative_titles.keys())
+    known_entry_names.update(t.lower() for t in authoritative_titles.values())
+    for item in profile.get("qualifications") or []:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name") or "").strip()
+        if name:
+            known_entry_names.add(name.lower())
+
+    if not preserved and not authoritative_titles and not known_entry_names:
         return {"errors": [], "warnings": []}
 
     for entry in tailored_data.get("experience") or []:
         header = (entry.get("header") or "").strip()
         split = _split_experience_header(header)
         if split is None:
+            if header and known_entry_names:
+                header_lower = header.lower()
+                matches_known = any(name in header_lower or header_lower in name for name in known_entry_names)
+                if not matches_known:
+                    warnings.append(
+                        f"Experience header could not be matched to any "
+                        f"known employer, role, or qualification: '{header}' "
+                        f"-- possible fabricated entry"
+                    )
             continue
         title_part, company_part = split
         company_lower = company_part.lower()
@@ -783,6 +846,125 @@ def validate_factual_anchors(tailored_data: dict, profile: dict) -> dict:
             break  # matched a known employer; don't also check other entries
 
     return {"errors": errors, "warnings": warnings}
+
+
+# 2026-09-01: keyword-injection fabrication check. The prompt bake-off
+# found a systematic pattern (IterateCV especially) of grafting distinctive
+# JOB-POSTING vocabulary onto a bullet whose employer/entry is otherwise
+# correctly attributed -- e.g. "utilizing data to inform comedic timing and
+# audience connection" appended to a Stand-up Comedian bullet. This is a
+# genuinely harder case than the other checks: the injected WORD ("data")
+# is often already legitimately in the candidate's OWN vocabulary (e.g.
+# from a real data-analytics project) -- it's the CONTEXT that's fabricated,
+# not the word itself. A whole-profile word-overlap check would miss this
+# entirely, since "data" is grounded SOMEWHERE in the profile. The fix:
+# ground each bullet against ONLY its OWN entry's evidence text (not the
+# whole profile), so a word that's real for one entry but injected into an
+# unrelated one is still caught. Deliberately WARNING-tier, not ERROR --
+# natural-language vocabulary overlap is inherently fuzzier than the
+# structural title/date/skill checks above, so this is advisory (matching
+# check_claim_inflation/check_agency_inflation's precedent for coarser,
+# natural-language-derived signals) rather than a hard reject.
+_VOCAB_STOPWORDS: set[str] = {
+    "the", "and", "with", "that", "this", "from", "have", "will", "your",
+    "their", "about", "when", "where", "which", "while", "being", "been",
+    "were", "into", "onto", "upon", "across", "during", "after", "before",
+    "between", "through", "under", "over", "using", "used", "able", "also",
+    "such", "some", "more", "most", "other", "each", "every", "both",
+    "only", "just", "very", "much", "many", "less", "least", "same",
+    "than", "then", "them", "they", "these", "those", "what", "who",
+    "whom", "whose", "how", "why", "team", "role", "work", "years",
+    "including", "strong", "ability", "experience", "skills",
+    "knowledge", "environment", "opportunity", "candidate", "position",
+    "company", "join", "looking", "required", "preferred", "responsible",
+    "responsibilities", "requirements", "qualifications", "job",
+    "description", "please", "apply", "help", "customer", "customers",
+    "service", "services", "support", "provide", "provided", "ensure",
+    "ensuring", "maintain", "maintained", "deliver", "delivered",
+    "communication", "communicate", "communicated",
+}
+
+
+def _distinctive_words(text: str) -> set[str]:
+    """Lowercased words of length >= 4 from ``text``, excluding generic
+    English connectors/filler (_VOCAB_STOPWORDS) -- deliberately grammar-
+    based, not domain/technology-specific, so it never needs updating for
+    a new job posting's vocabulary the way a denylist would."""
+    words = {w for w in re.findall(r"[a-z][a-z0-9+#.\-]{3,}", text.lower())}
+    return words - _VOCAB_STOPWORDS
+
+
+def _entry_evidence_text(item: dict) -> str:
+    """Flatten one experience_inventory/historical_experience_inventory/
+    qualifications item's own descriptive fields into one text blob --
+    everything the candidate could truthfully draw language from for THIS
+    specific entry (not the whole profile)."""
+    parts = [str(item.get("description") or "")]
+    for field in ("responsibilities", "evidence", "factual_concepts", "relevance_categories"):
+        parts.extend(str(v) for v in item.get(field) or [])
+    return " ".join(parts)
+
+
+def check_bullet_vocabulary_injection(data: dict, profile: dict, job: dict | None = None) -> list[str]:
+    """Flag resume bullets that use distinctive vocabulary lifted from the
+    TARGET JOB POSTING but grounded NOWHERE in that SPECIFIC entry's own
+    evidence -- the "keyword injection" fabrication pattern found in the
+    prompt bake-off (2026-09-01). Deliberately scoped per-entry rather than
+    whole-profile: a word can be genuinely grounded for one job (e.g. "data"
+    for a real analytics project) and still be a fabricated graft onto an
+    unrelated entry (e.g. "data" tied to stand-up comedy). Requires the job
+    dict (title/full_description) -- returns [] when not provided, since
+    there's nothing to compare against."""
+    if not job or not (job.get("full_description") or "").strip():
+        return []
+    job_vocab = _distinctive_words((job.get("title") or "") + " " + (job.get("full_description") or ""))
+    if not job_vocab:
+        return []
+
+    entry_evidence: dict[str, str] = {}
+    for key in ("experience_inventory", "historical_experience_inventory", "qualifications", "project_inventory"):
+        for item in profile.get(key) or []:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("name") or "").strip()
+            if name:
+                entry_evidence[name.lower()] = _entry_evidence_text(item).lower()
+    if not entry_evidence:
+        return []
+
+    def _match_evidence(header: str) -> str | None:
+        split = _split_experience_header(header)
+        needle = split[1].strip().lower() if split else header.strip().lower()
+        if not needle:
+            return None
+        for name, ev_text in entry_evidence.items():
+            if name in needle or needle in name:
+                return ev_text
+        return None
+
+    warnings: list[str] = []
+    for section in ("experience", "projects"):
+        for entry in data.get(section) or []:
+            if not isinstance(entry, dict):
+                continue
+            header = str(entry.get("header") or "").strip()
+            if not header:
+                continue
+            matched_evidence = _match_evidence(header)
+            if matched_evidence is None:
+                continue
+            evidence_words = _distinctive_words(matched_evidence)
+            for bullet in entry.get("bullets") or []:
+                bullet_words = _distinctive_words(str(bullet))
+                injected = (bullet_words & job_vocab) - evidence_words
+                if len(injected) >= 2:
+                    warnings.append(
+                        f"Bullet for '{header}' may graft job-posting "
+                        f"language not grounded in this entry's own "
+                        f"evidence ({', '.join(sorted(injected)[:5])}): "
+                        f"'{str(bullet)[:120]}'"
+                    )
+    return warnings
 
 
 # 2026-08-28: `subtitle` ("Tech | Dates" per experience/project entry) was

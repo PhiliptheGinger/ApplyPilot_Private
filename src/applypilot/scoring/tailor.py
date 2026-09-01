@@ -1064,7 +1064,7 @@ def tailor_resume(
             return resume_text, report
 
         data = merge_realization(base_resume, realization, job)
-        validation = validate_json_fields(data, profile, standup_decision=standup_decision)
+        validation = validate_json_fields(data, profile, standup_decision=standup_decision, job=job)
         report["validator"] = validation
         degraded_tailored = assemble_resume_text(data, profile)
 
@@ -1168,7 +1168,7 @@ def tailor_resume(
             continue
 
         # Layer 1: Validate JSON fields
-        validation = validate_json_fields(data, profile, standup_decision=standup_decision)
+        validation = validate_json_fields(data, profile, standup_decision=standup_decision, job=job)
         report["validator"] = validation
 
         if not validation["passed"]:
