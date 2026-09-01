@@ -1,0 +1,51 @@
+Philip McLaughlin
+Technical Support & Customer Service
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Hands-on experience developing Python applications, implementing web design projects, and executing technical troubleshooting. Demonstrated capability in building modular software utilities, managing application data persistence, and delivering technical solutions under operational requirements.
+
+TECHNICAL SKILLS
+Languages: Python
+Design & Media: Web Design, Photography, Videography
+
+EXPERIENCE
+Sales Representative / Sales Tech
+AMP Smart
+- Consulted with residential property owners to analyze site specifications and deliver tailored technical solar solutions.
+- Executed targeted outreach strategies to identify qualified leads and align system specifications with client needs.
+
+Alignment Technician
+National Tire and Battery / Mavis
+- Diagnosed and calibrated mechanical vehicle systems, including precision steering alignment, suspension assemblies, and brakes.
+- Communicated technical findings and diagnostic recommendations clearly to customers.
+
+Moving Specialist / Installation Tech
+Alex Prosperity Group / UST Logistics
+- Installed major home appliances contracted through Lowe's, ensuring proper physical setup and operational verification.
+- Resolved on-site installation challenges while adhering to contractor safety and quality standards.
+
+Freelance Photographer / Videographer
+Freelance Photography / Videography
+- Produced visual media content and technical digital assets tailored to client specifications.
+
+PROJECTS
+Express_Engine - Application Software Project
+Python
+- Coded modular Python application software to handle spaced-repetition learning workflows, implementing persistent data routines.
+- Structured application components and command-line interfaces to maintain consistent data state across user sessions.
+
+You Power You - Web Application Project
+Web Design
+- Developed responsive web interfaces with client-side form handling and automated email notification logic.
+- Designed structured submission workflows to process and validate inbound customer qualification data.
+
+Standup-OCR - Document Processing Utility
+Python
+- Engineered Python optical character recognition tools to extract and transcribe text from unstructured image files.
+- Organized extracted output into structured data formats to support downstream model experimentation and review.
+
+EDUCATION
+University of North Carolina at Greensboro
+Bachelor of Arts in Media Studies
+2019 - 2022

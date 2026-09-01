@@ -40,6 +40,10 @@ STANDUP_INCLUDE = "INCLUDE"
 STANDUP_OPTIONAL = "OPTIONAL"
 STANDUP_EXCLUDE = "EXCLUDE"
 
+# Failures caused by temporary provider exhaustion should remain retryable,
+# but must not consume the persisted cross-run retry budget.
+NON_ATTEMPT_FAILURE_STATUSES = frozenset({"provider_unavailable"})
+
 
 def _matches_any(text: str, patterns: tuple[str, ...]) -> bool:
     return any(re.search(p, text) for p in patterns)
@@ -1153,7 +1157,8 @@ def tailor_resume(
         except RuntimeError:
             if is_local_configured() and not client_has_cloud_available():
                 return _run_degraded_mode(attempt + 1)
-            raise  # no local fallback configured -- genuine failure, propagate as before
+            report["status"] = "provider_unavailable"
+            return "", report
 
         # Parse JSON from response
         try:
@@ -1504,6 +1509,8 @@ def _mark_tailor_result(
     ``"failed_judge"``, ``"error"``, ``"exhausted_retries"``,
     ``"no_supported_evidence"``, ``"local_realization_failed"`` (the last
     two are degraded-mode-only -- see tailor_resume's _run_degraded_mode),
+    ``"provider_unavailable"`` (cloud providers exhausted/unavailable for
+    this call; retryable without consuming attempt budget),
     ``"seniority_mismatch"`` (the job requires a seniority tier no
     authoritative profile title supports -- see classify_seniority_
     mismatch, checked before any LLM call at all).
@@ -1557,10 +1564,11 @@ def _mark_tailor_result(
             metadata={"attempts": attempts, "filename": os.path.basename(path) if path else None},
         )
     else:
-        conn.execute(
-            "UPDATE jobs SET tailor_attempts = COALESCE(tailor_attempts, 0) + 1 WHERE url = ?",
-            (url,),
-        )
+        if status not in NON_ATTEMPT_FAILURE_STATUSES:
+            conn.execute(
+                "UPDATE jobs SET tailor_attempts = COALESCE(tailor_attempts, 0) + 1 WHERE url = ?",
+                (url,),
+            )
         transition_state(
             conn,
             url,

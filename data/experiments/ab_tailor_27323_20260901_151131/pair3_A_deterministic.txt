@@ -1,0 +1,53 @@
+Philip McLaughlin
+Sales Representative / Sales Tech
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Media Studies graduate with background in technical customer consultations, system software projects, and digital web design. Experienced in programming software utility tools and persistent data components using Python. Brings strong technical communication skills and hands-on operational experience to software systems development.
+
+TECHNICAL SKILLS
+Languages & Software: Python
+Creative & Media: Web Design, Photography, Videography
+Communication & Operations: Sales Consultations, Customer Service, Outreach
+
+EXPERIENCE
+Sales Representative / Sales Tech at AMP Smart
+Residential Solar Solutions
+- Executed targeted technical outreach and sales strategies for residential solar energy systems.
+- Conducted in-person consultations to translate homeowner technical requirements into tailored equipment proposals.
+- Evaluated regional market conditions and site specifications to identify and qualify prospective clients.
+
+Moving Specialist / Installation Tech at Alex Prosperity Group / UST Logistics
+Home Appliance Contracting
+- Installed major residential home appliances under contract for Lowe's, following technical setup specifications.
+- Verified system connections and operational readiness upon completing appliance installations.
+
+Alignment Technician at National Tire and Battery / Mavis
+Automotive Technical Services
+- Performed diagnostic vehicle alignments, brake services, and suspension adjustments using computerized alignment systems.
+- Communicated technical service requirements and component recommendations directly to customers.
+
+Packaging Associate / Warehouse Associate at UPS
+High-Volume Logistics
+- Handled package sorting and processing in a high-volume operational environment, maintaining target accuracy rates.
+
+PROJECTS
+Express_Engine - Application Software Subsystem
+Python
+- Programmed software updates and persistent data storage components for a CLI language-learning utility.
+- Implemented application architecture patterns using Python to handle content spacing and structured data access.
+
+You Power You - Web Application Workflow
+Web Design
+- Built a responsive web interface featuring custom qualification workflows and server-side form handling.
+- Integrated client notification routines to process web submissions automatically.
+
+Standup-OCR - Document Processing Pipeline
+Python
+- Developed automated transcription and image processing workflows using Python and optical character recognition tooling.
+- Structured data preparation pipelines to format extracts for machine learning models and human review.
+
+EDUCATION
+University of North Carolina at Greensboro
+Bachelor of Arts in Media Studies
+2019 - 2022

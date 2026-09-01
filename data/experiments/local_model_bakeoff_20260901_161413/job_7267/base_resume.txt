@@ -1,0 +1,93 @@
+CANONICAL PROFILE REFERENCE
+education: University of North Carolina at Greensboro
+- Bachelor of Arts in Media Studies
+experience_inventory: Freelance Photography / Videography
+- Freelance Photographer / Videographer
+experience_inventory: AMP Smart
+- Sales Representative / Sales Tech
+- Develop and execute targeted outreach and sales strategies for residential solar solutions.
+- Conduct in-person consultations.
+- Identify qualified leads.
+- Tailor proposals to homeowner needs and regional market conditions.
+experience_inventory: UPS
+- Packaging Associate / Warehouse Associate
+- Package handling
+- Efficiency in a high-volume operational environment
+experience_inventory: National Tire and Battery / Mavis
+- Alignment Technician
+- Vehicle alignment work
+- Tires
+- Shocks and struts
+- Brakes
+- Fluids
+- Customer relations
+experience_inventory: Alex Prosperity Group / UST Logistics
+- Moving Specialist / Installation Tech
+- Installed home appliances contracted through Lowe's
+experience_inventory: Waffle House
+- Server / Line Cook
+- Customer service
+- Order taking
+- High-volume food preparation
+historical_experience_inventory: Cold Stone Creamery
+- Shift Leader
+- Staff training
+- Task delegation
+- Team coordination during peak hours
+historical_experience_inventory: Lowe's Foods
+- Cashier
+- Register operations
+- Point-of-sale transactions
+- Customer service
+historical_experience_inventory: Raleigh Little Theatre
+- Volunteer Teacher's Assistant
+- Classroom management
+- Lesson organization
+- Assisting lead instructors
+historical_experience_inventory: McDonald's
+- Team Member
+- Currency and credit transactions
+- Fast-paced customer service
+- Customer retention
+qualifications: Stand-up comedy
+- Public speaking
+- Verbal communication
+- Audience engagement
+- Writing
+- Performance
+- Adapting material based on audience response
+project_inventory: Standup-OCR
+- Python
+- OCR
+- Image/document processing
+- Transcription
+- OCR tooling
+- Machine-learning experimentation
+- Human review workflows
+- Training-data preparation
+project_inventory: CAP Predictor
+- Financial/news data
+- Data collection
+- Feature engineering
+- Sentiment analysis
+- Statistical/modeling experimentation
+- Data processing
+project_inventory: Express_Engine
+- Language-learning tools
+- Spaced repetition
+- Application architecture
+- Persistent data
+- CLI/application components
+project_inventory: You Power You
+- Website development
+- HTML/CSS/JavaScript
+- Server-side form handling
+- Qualification/submission workflow
+- Email notification integration
+project_inventory: I_hate_social_media
+- Processing exported social-media data
+- Filtering and retrieving relevant posts
+- Extracting useful information
+- Structured data
+- Media/comedy-oriented data processing
+project_inventory: Sunburn

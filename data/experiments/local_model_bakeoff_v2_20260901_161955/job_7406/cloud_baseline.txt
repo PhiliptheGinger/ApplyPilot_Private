@@ -1,0 +1,64 @@
+Philip McLaughlin
+Cloud Platform Engineer
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Experienced in Python programming with a background in designing and deploying cloud-integrated solutions. Skilled at building and testing application architectures that combine cloud and traditional infrastructure to meet performance and security standards.
+
+TECHNICAL SKILLS
+Languages: Python
+Frameworks: 
+DevOps & Infra: 
+Databases: 
+Tools: Photography, Videography, Web Design
+
+EXPERIENCE
+Sales Consultant at AMP Smart
+Sales | Dates not specified
+- Developed and executed targeted outreach and sales strategies for residential solar solutions, increasing qualified lead identification.
+- Conducted in-person consultations to tailor proposals based on homeowner needs and regional market conditions.
+- Collaborated with clients to align solar solution designs with customer requirements and environmental factors.
+
+Package Handler at UPS
+Operations | Dates not specified
+- Handled high-volume package processing efficiently to support operational throughput.
+- Maintained reliability and accuracy in fast-paced logistics environment.
+- Contributed to team efforts ensuring timely delivery schedules.
+
+Alignment Technician at National Tire and Battery / Mavis
+Technical Support | Dates not specified
+- Performed vehicle alignment and maintenance tasks including tires, brakes, shocks, and fluids.
+- Provided customer service by diagnosing vehicle issues and recommending solutions.
+- Managed hands-on troubleshooting and repair work to maintain vehicle safety and performance.
+
+Installer at Alex Prosperity Group / UST Logistics
+Installation | Dates not specified
+- Installed home appliances contracted through Lowe's, ensuring proper setup and customer satisfaction.
+- Coordinated installation schedules and communicated with clients to confirm requirements.
+- Maintained quality standards and safety protocols during appliance installations.
+
+PROJECTS
+Standup-OCR - OCR and Image Processing Automation
+Python | Dates not specified
+- Developed Python scripts for optical character recognition and transcription workflows.
+- Implemented human review processes and training data preparation to improve OCR accuracy.
+
+CAP Predictor - Data Collection and Sentiment Analysis
+Python | Dates not specified
+- Collected and processed financial and news data for feature engineering.
+- Conducted sentiment analysis and statistical modeling to support predictive analytics.
+
+Express_Engine - Language Learning Software
+Python | Dates not specified
+- Built language-learning tools using spaced repetition techniques.
+- Designed application architecture with persistent data storage and CLI components.
+
+You Power You - Website Development
+HTML/CSS/JavaScript | Dates not specified
+- Developed a website with server-side form handling and email notification integration.
+- Created qualification and submission workflows to support user interactions.
+
+EDUCATION
+University of North Carolina at Greensboro
+Bachelor of Arts in Media Studies
+2019-2022

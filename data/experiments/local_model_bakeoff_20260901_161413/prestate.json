@@ -1,0 +1,18 @@
+{
+  "git_status_short": {
+    "ok": true,
+    "output": " M scripts/install_cft.py\n M scripts/smoke_cft.py\n M src/applypilot/cli.py\n M src/applypilot/scoring/cover_letter.py\n M src/applypilot/scoring/local_tailor.py\n M src/applypilot/scoring/tailor.py\n M tests/test_stage_transitions.py\n"
+  },
+  "git_diff_stat": {
+    "ok": true,
+    "output": " scripts/install_cft.py                 |  53 ++++--\n scripts/smoke_cft.py                   |  79 +++++---\n src/applypilot/cli.py                  | 334 +++++++++++++++++++++++++++++++++\n src/applypilot/scoring/cover_letter.py |  17 +-\n src/applypilot/scoring/local_tailor.py |  27 ++-\n src/applypilot/scoring/tailor.py       |  18 +-\n tests/test_stage_transitions.py        |  57 ++++++\n 7 files changed, 528 insertions(+), 57 deletions(-)\n"
+  },
+  "git_diff_name_only": {
+    "ok": true,
+    "output": "scripts/install_cft.py\nscripts/smoke_cft.py\nsrc/applypilot/cli.py\nsrc/applypilot/scoring/cover_letter.py\nsrc/applypilot/scoring/local_tailor.py\nsrc/applypilot/scoring/tailor.py\ntests/test_stage_transitions.py\n"
+  },
+  "applypilot_status": {
+    "ok": false,
+    "error": "Command '['.\\\\venv\\\\Scripts\\\\python.exe', '-m', 'applypilot', 'status']' returned non-zero exit status 1."
+  }
+}

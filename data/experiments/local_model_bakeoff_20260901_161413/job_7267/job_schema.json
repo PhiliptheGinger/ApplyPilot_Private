@@ -1,0 +1,178 @@
+{
+  "job_url": "https://adobe.wd5.myworkdayjobs.com/external_experienced/job/Remote-California/Software-Development-Engineer_R170523-1",
+  "requirements": [
+    {
+      "requirement": "What you will do",
+      "importance": "unspecified",
+      "supported": false,
+      "resume_evidence": [],
+      "exact_keywords": [],
+      "synonym_concepts": [],
+      "schema": null,
+      "ambiguous": false,
+      "frame": null,
+      "event_type": null,
+      "force_relation": null,
+      "category_tier": null,
+      "claim_ceiling": null,
+      "agency_ceiling": null,
+      "salience_order": [],
+      "provenance": []
+    },
+    {
+      "requirement": "Participate in all aspects of software development activities including design, coding, code review, unit-testing, integration testing, and bug fixing.",
+      "importance": "unspecified",
+      "supported": true,
+      "resume_evidence": [
+        "Express_Engine"
+      ],
+      "exact_keywords": [
+        "software"
+      ],
+      "synonym_concepts": [],
+      "schema": {
+        "cognitive_schema": "action_object_outcome",
+        "bullet_schema": "action_object_context_outcome"
+      },
+      "ambiguous": false,
+      "frame": "integration",
+      "event_type": "activity",
+      "force_relation": null,
+      "category_tier": "near_prototype",
+      "claim_ceiling": "participation",
+      "agency_ceiling": "individual_contributor",
+      "salience_order": [
+        "action",
+        "technology",
+        "context",
+        "outcome"
+      ],
+      "provenance": [],
+      "vary_phrasing": false
+    },
+    {
+      "requirement": "Work independently to design and delivering medium to complex functionality.",
+      "importance": "unspecified",
+      "supported": false,
+      "resume_evidence": [],
+      "exact_keywords": [],
+      "synonym_concepts": [],
+      "schema": null,
+      "ambiguous": false,
+      "frame": null,
+      "event_type": null,
+      "force_relation": null,
+      "category_tier": null,
+      "claim_ceiling": null,
+      "agency_ceiling": null,
+      "salience_order": [],
+      "provenance": []
+    },
+    {
+      "requirement": "Collaborate and Provide guidance to team members to build a scalable and high-performance solution with low operational overhead.",
+      "importance": "unspecified",
+      "supported": false,
+      "resume_evidence": [],
+      "exact_keywords": [],
+      "synonym_concepts": [],
+      "schema": null,
+      "ambiguous": false,
+      "frame": null,
+      "event_type": null,
+      "force_relation": null,
+      "category_tier": null,
+      "claim_ceiling": null,
+      "agency_ceiling": null,
+      "salience_order": [],
+      "provenance": []
+    },
+    {
+      "requirement": "Work with multi-functional team members to ensure a superb end-to-end user experience for our customers.",
+      "importance": "unspecified",
+      "supported": false,
+      "resume_evidence": [],
+      "exact_keywords": [],
+      "synonym_concepts": [],
+      "schema": null,
+      "ambiguous": false,
+      "frame": null,
+      "event_type": null,
+      "force_relation": null,
+      "category_tier": null,
+      "claim_ceiling": null,
+      "agency_ceiling": null,
+      "salience_order": [],
+      "provenance": []
+    },
+    {
+      "requirement": "Fast prototyping of ideas and concepts and researching the latest industry trends.",
+      "importance": "unspecified",
+      "supported": false,
+      "resume_evidence": [],
+      "exact_keywords": [],
+      "synonym_concepts": [],
+      "schema": null,
+      "ambiguous": false,
+      "frame": null,
+      "event_type": null,
+      "force_relation": null,
+      "category_tier": null,
+      "claim_ceiling": null,
+      "agency_ceiling": null,
+      "salience_order": [],
+      "provenance": []
+    },
+    {
+      "requirement": "Perform analysis and experimentation for the data flowing through different systems/services",
+      "importance": "unspecified",
+      "supported": false,
+      "resume_evidence": [],
+      "exact_keywords": [],
+      "synonym_concepts": [],
+      "schema": null,
+      "ambiguous": true,
+      "frame": null,
+      "event_type": null,
+      "force_relation": null,
+      "category_tier": null,
+      "claim_ceiling": null,
+      "agency_ceiling": null,
+      "salience_order": [],
+      "provenance": []
+    },
+    {
+      "requirement": "Build a data consistency and validation feature in delivering high-quality data.",
+      "importance": "unspecified",
+      "supported": true,
+      "resume_evidence": [
+        "CAP Predictor"
+      ],
+      "exact_keywords": [
+        "data"
+      ],
+      "synonym_concepts": [],
+      "schema": {
+        "cognitive_schema": "action_object_outcome",
+        "bullet_schema": "action_object_context_outcome"
+      },
+      "ambiguous": false,
+      "frame": "development",
+      "event_type": "activity",
+      "force_relation": null,
+      "category_tier": "near_prototype",
+      "claim_ceiling": "design",
+      "agency_ceiling": "individual_contributor",
+      "salience_order": [
+        "action",
+        "technology",
+        "context",
+        "outcome"
+      ],
+      "provenance": [],
+      "vary_phrasing": false
+    }
+  ],
+  "viewpoint": "engineering",
+  "summary_schema": "identity_domain_strength_evidence_value",
+  "evidence_considered": 6
+}

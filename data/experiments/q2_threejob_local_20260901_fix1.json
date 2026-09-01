@@ -1,0 +1,1217 @@
+{
+  "experiment": "q2_structured_plan_boundary",
+  "mode": "read_only",
+  "timestamp_utc": "2026-09-01T15:00:22.831155+00:00",
+  "explicit_selection": {
+    "job_ids": [
+      27316,
+      27323,
+      24881
+    ],
+    "urls": [],
+    "resolved_jobs": 3
+  },
+  "constraints": {
+    "claimed_jobs": false,
+    "incremented_tailor_attempts": false,
+    "changed_job_state": false,
+    "wrote_tailoring_results": false,
+    "used_transition_helpers": false
+  },
+  "jobs": [
+    {
+      "job_id": 27316,
+      "title": "Software Engineer",
+      "company": "",
+      "url": "https://builtin.com/job/software-engineer/10919767",
+      "requirement_count": 8,
+      "counts": {
+        "supported": 4,
+        "ambiguous": 0,
+        "unsupported": 4
+      },
+      "evidence_selections": [
+        {
+          "requirement_id": 1,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 2,
+          "status": "supported",
+          "evidence_ids": [
+            2
+          ],
+          "claim_ceiling": "participation",
+          "agency_ceiling": "individual_contributor"
+        },
+        {
+          "requirement_id": 3,
+          "status": "supported",
+          "evidence_ids": [
+            2
+          ],
+          "claim_ceiling": "participation",
+          "agency_ceiling": "individual_contributor"
+        },
+        {
+          "requirement_id": 4,
+          "status": "supported",
+          "evidence_ids": [
+            2
+          ],
+          "claim_ceiling": "participation",
+          "agency_ceiling": "individual_contributor"
+        },
+        {
+          "requirement_id": 5,
+          "status": "supported",
+          "evidence_ids": [
+            2
+          ],
+          "claim_ceiling": "participation",
+          "agency_ceiling": "individual_contributor"
+        },
+        {
+          "requirement_id": 6,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 7,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 8,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        }
+      ],
+      "plan_validation": {
+        "passed": true,
+        "errors": []
+      },
+      "deterministic_metrics": {
+        "provider": "none",
+        "model": "none",
+        "prompt_size_chars": 0,
+        "output_size_chars": 4929,
+        "latency_ms": 38,
+        "retries": 0,
+        "provider_unavailable_events": 0
+      },
+      "structured_plan": {
+        "schema_version": "q2.plan.v1",
+        "mode": "deterministic",
+        "job": {
+          "id": 27316,
+          "url": "https://builtin.com/job/software-engineer/10919767",
+          "title": "Software Engineer",
+          "company": "",
+          "site": "Ipt Global"
+        },
+        "viewpoint": "engineering",
+        "summary_schema": "identity_domain_strength_evidence_value",
+        "requirement_count": 8,
+        "counts": {
+          "supported": 4,
+          "ambiguous": 0,
+          "unsupported": 4
+        },
+        "dropped_benefit_lines": [],
+        "evidence_catalog": [
+          {
+            "id": 1,
+            "type": "project",
+            "name": "CAP Predictor",
+            "score": 2,
+            "matched_terms": [
+              "data",
+              "research"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 2,
+            "type": "skill",
+            "name": "Web Design",
+            "score": 2,
+            "matched_terms": [
+              "design",
+              "web"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 3,
+            "type": "experience",
+            "name": "UPS",
+            "score": 1,
+            "matched_terms": [
+              "operations"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 4,
+            "type": "experience",
+            "name": "Alex Prosperity Group / UST Logistics",
+            "score": 1,
+            "matched_terms": [
+              "group"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 5,
+            "type": "project",
+            "name": "Express_Engine",
+            "score": 1,
+            "matched_terms": [
+              "software"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 6,
+            "type": "project",
+            "name": "You Power You",
+            "score": 1,
+            "matched_terms": [
+              "web"
+            ],
+            "permitted": true
+          }
+        ],
+        "requirements": [
+          {
+            "id": 1,
+            "text": "Assist in developing applications and refining product requirements. Working with team lead, internal resources and clients to assess technical and operational needs.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 2,
+            "text": "Analyze requirements and assist in design development based on selected architectures.",
+            "importance": "unspecified",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "directives": {
+              "cognitive_schema": "evidence_claim",
+              "bullet_schema": "action_object_context_outcome",
+              "claim_ceiling": "participation",
+              "agency_ceiling": "individual_contributor",
+              "force_relation": null,
+              "salience_order": [
+                "action",
+                "technology",
+                "context",
+                "outcome"
+              ],
+              "exact_keywords": [
+                "design"
+              ],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 3,
+            "text": "Design solutions that are reliable, secure, simple, efficient, and maintainable.",
+            "importance": "unspecified",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "directives": {
+              "cognitive_schema": "evidence_claim",
+              "bullet_schema": "action_object_context_outcome",
+              "claim_ceiling": "participation",
+              "agency_ceiling": "individual_contributor",
+              "force_relation": null,
+              "salience_order": [
+                "action",
+                "technology",
+                "context",
+                "outcome"
+              ],
+              "exact_keywords": [
+                "design"
+              ],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 4,
+            "text": "Assist in estimating the scope of designs and participate in design review sessions.",
+            "importance": "unspecified",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "directives": {
+              "cognitive_schema": "evidence_claim",
+              "bullet_schema": "action_object_context_outcome",
+              "claim_ceiling": "participation",
+              "agency_ceiling": "individual_contributor",
+              "force_relation": null,
+              "salience_order": [
+                "action",
+                "technology",
+                "context",
+                "outcome"
+              ],
+              "exact_keywords": [
+                "design"
+              ],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 5,
+            "text": "Perform programming tasks to deliver design objectives.",
+            "importance": "unspecified",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "directives": {
+              "cognitive_schema": "evidence_claim",
+              "bullet_schema": "action_object_context_outcome",
+              "claim_ceiling": "participation",
+              "agency_ceiling": "individual_contributor",
+              "force_relation": null,
+              "salience_order": [
+                "action",
+                "technology",
+                "context",
+                "outcome"
+              ],
+              "exact_keywords": [
+                "design"
+              ],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 6,
+            "text": "Confirm program operation by conducting unit and system level tests.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 7,
+            "text": "Assist in product test planning, documentation and problem resolution.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 8,
+            "text": "Perform code reviews on pull requests from other developers.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          }
+        ]
+      },
+      "realization_boundary": {
+        "mode": "simulated_failure",
+        "realization_status": "failed",
+        "plan_discarded": false,
+        "validated_plan_reusable_after_failure": true
+      },
+      "local_planner": {
+        "invoked": true,
+        "provider": "local",
+        "model": "qwen3:1.7b",
+        "prompt_size_chars": null,
+        "output_size_chars": null,
+        "latency_ms": 71301,
+        "retries": 0,
+        "provider_unavailable_events": 1,
+        "plan_validation": null,
+        "invoked_predicted": false,
+        "invocation_prediction_mismatch": true
+      }
+    },
+    {
+      "job_id": 27323,
+      "title": "Software Engineer Graduate",
+      "company": "hpe",
+      "url": "https://builtin.com/job/software-engineer-graduate/10917868",
+      "requirement_count": 8,
+      "counts": {
+        "supported": 1,
+        "ambiguous": 3,
+        "unsupported": 4
+      },
+      "evidence_selections": [
+        {
+          "requirement_id": 1,
+          "status": "supported",
+          "evidence_ids": [
+            6
+          ],
+          "claim_ceiling": "participation",
+          "agency_ceiling": "individual_contributor"
+        },
+        {
+          "requirement_id": 2,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 3,
+          "status": "ambiguous",
+          "evidence_ids": [
+            2,
+            6
+          ],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 4,
+          "status": "ambiguous",
+          "evidence_ids": [
+            2,
+            6
+          ],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 5,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 6,
+          "status": "ambiguous",
+          "evidence_ids": [
+            2,
+            6
+          ],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 7,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 8,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        }
+      ],
+      "plan_validation": {
+        "passed": true,
+        "errors": []
+      },
+      "deterministic_metrics": {
+        "provider": "none",
+        "model": "none",
+        "prompt_size_chars": 0,
+        "output_size_chars": 4789,
+        "latency_ms": 154,
+        "retries": 0,
+        "provider_unavailable_events": 0
+      },
+      "structured_plan": {
+        "schema_version": "q2.plan.v1",
+        "mode": "deterministic",
+        "job": {
+          "id": 27323,
+          "url": "https://builtin.com/job/software-engineer-graduate/10917868",
+          "title": "Software Engineer Graduate",
+          "company": "",
+          "site": "Hewlett Packard Enterprise"
+        },
+        "viewpoint": "engineering",
+        "summary_schema": "capability_background_transfer_value",
+        "requirement_count": 8,
+        "counts": {
+          "supported": 1,
+          "ambiguous": 3,
+          "unsupported": 4
+        },
+        "dropped_benefit_lines": [],
+        "evidence_catalog": [
+          {
+            "id": 1,
+            "type": "project",
+            "name": "I_hate_social_media",
+            "score": 2,
+            "matched_terms": [
+              "media",
+              "social media"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 2,
+            "type": "skill",
+            "name": "Web Design",
+            "score": 2,
+            "matched_terms": [
+              "design",
+              "media"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 3,
+            "type": "experience",
+            "name": "Freelance Photography / Videography",
+            "score": 1,
+            "matched_terms": [
+              "media"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 4,
+            "type": "experience",
+            "name": "National Tire and Battery / Mavis",
+            "score": 1,
+            "matched_terms": [
+              "national"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 5,
+            "type": "project",
+            "name": "CAP Predictor",
+            "score": 1,
+            "matched_terms": [
+              "data"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 6,
+            "type": "project",
+            "name": "Express_Engine",
+            "score": 1,
+            "matched_terms": [
+              "software"
+            ],
+            "permitted": true
+          }
+        ],
+        "requirements": [
+          {
+            "id": 1,
+            "text": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "importance": "unspecified",
+            "status": "supported",
+            "evidence_ids": [
+              6
+            ],
+            "directives": {
+              "cognitive_schema": "action_object_outcome",
+              "bullet_schema": "action_object_context_outcome",
+              "claim_ceiling": "participation",
+              "agency_ceiling": "individual_contributor",
+              "force_relation": null,
+              "salience_order": [
+                "action",
+                "technology",
+                "context",
+                "outcome"
+              ],
+              "exact_keywords": [
+                "software"
+              ],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 2,
+            "text": "Executes established test plans and protocols for assigned portions of code; identifies, logs, and debugs assigned issues.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 3,
+            "text": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "importance": "unspecified",
+            "status": "ambiguous",
+            "evidence_ids": [
+              2,
+              6
+            ],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 4,
+            "text": "Experience or understanding of software systems design tools and languages.",
+            "importance": "unspecified",
+            "status": "ambiguous",
+            "evidence_ids": [
+              2,
+              6
+            ],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 5,
+            "text": "Good analytical and problem-solving skills.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 6,
+            "text": "Understanding of design for software systems running on multiple platform types",
+            "importance": "unspecified",
+            "status": "ambiguous",
+            "evidence_ids": [
+              2,
+              6
+            ],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 7,
+            "text": "Good written and verbal communication skills; mastery in English and local language.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 8,
+            "text": "Understanding of basic testing, coding, and debugging procedures",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          }
+        ]
+      },
+      "realization_boundary": {
+        "mode": "simulated_failure",
+        "realization_status": "failed",
+        "plan_discarded": false,
+        "validated_plan_reusable_after_failure": true
+      },
+      "local_planner": {
+        "invoked": true,
+        "provider": "local",
+        "model": "qwen3:1.7b",
+        "prompt_size_chars": 3487,
+        "output_size_chars": 2752,
+        "latency_ms": 32318,
+        "retries": 0,
+        "provider_unavailable_events": 0,
+        "plan_validation": {
+          "passed": true,
+          "errors": []
+        },
+        "invoked_predicted": true,
+        "invocation_prediction_mismatch": false,
+        "adapter_diagnostics": {
+          "unmapped_evidence_by_requirement": [
+            {
+              "requirement_id": 4,
+              "requirement": "Experience or understanding of software systems design tools and languages.",
+              "unmapped_resume_evidence": [
+                "You Power You"
+              ]
+            }
+          ]
+        },
+        "local_plan": {
+          "requirements": [
+            {
+              "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+              "importance": "preferred",
+              "resume_evidence": [
+                "Express_Engine"
+              ],
+              "supported": true
+            },
+            {
+              "requirement": "Executes established test plans and protocols for assigned portions of code; identifies, logs, and debugs assigned issues.",
+              "importance": "preferred",
+              "resume_evidence": [],
+              "supported": false
+            },
+            {
+              "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+              "importance": "preferred",
+              "resume_evidence": [
+                "Web Design",
+                "Express_Engine"
+              ],
+              "supported": true
+            },
+            {
+              "requirement": "Experience or understanding of software systems design tools and languages.",
+              "importance": "preferred",
+              "resume_evidence": [
+                "Web Design",
+                "Express_Engine",
+                "You Power You"
+              ],
+              "supported": true
+            },
+            {
+              "requirement": "Good analytical and problem-solving skills.",
+              "importance": "preferred",
+              "resume_evidence": [],
+              "supported": false
+            },
+            {
+              "requirement": "Understanding of design for software systems running on multiple platform types",
+              "importance": "preferred",
+              "resume_evidence": [
+                "Web Design",
+                "Express_Engine"
+              ],
+              "supported": true
+            },
+            {
+              "requirement": "Good written and verbal communication skills; mastery in English and local language.",
+              "importance": "preferred",
+              "resume_evidence": [],
+              "supported": false
+            },
+            {
+              "requirement": "Understanding of basic testing, coding, and debugging procedures",
+              "importance": "preferred",
+              "resume_evidence": [],
+              "supported": false
+            }
+          ],
+          "skills_to_emphasize": [
+            "Web Design"
+          ],
+          "bullets_to_prioritize": [],
+          "bullets_to_deemphasize": [],
+          "matching_projects": [
+            "Express_Engine",
+            "You Power You"
+          ],
+          "matching_certifications": [],
+          "summary_focus": [
+            "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "Experience or understanding of software systems design tools and languages."
+          ],
+          "keyword_targets": [
+            "software",
+            "design",
+            "media"
+          ],
+          "safe_rewrites": [],
+          "unsupported_requirements": [
+            "Executes established test plans and protocols for assigned portions of code; identifies, logs, and debugs assigned issues.",
+            "Good analytical and problem-solving skills.",
+            "Good written and verbal communication skills; mastery in English and local language.",
+            "Understanding of basic testing, coding, and debugging procedures"
+          ],
+          "_warnings": []
+        }
+      }
+    },
+    {
+      "job_id": 24881,
+      "title": "Surgical Equipment Specialist - Atrium Health Carolinas Medical Center",
+      "company": "",
+      "url": "https://www.linkedin.com/jobs/view/4456967067",
+      "requirement_count": 8,
+      "counts": {
+        "supported": 0,
+        "ambiguous": 0,
+        "unsupported": 8
+      },
+      "evidence_selections": [
+        {
+          "requirement_id": 1,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 2,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 3,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 4,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 5,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 6,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 7,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 8,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        }
+      ],
+      "plan_validation": {
+        "passed": true,
+        "errors": []
+      },
+      "deterministic_metrics": {
+        "provider": "none",
+        "model": "none",
+        "prompt_size_chars": 0,
+        "output_size_chars": 4010,
+        "latency_ms": 20,
+        "retries": 0,
+        "provider_unavailable_events": 0
+      },
+      "structured_plan": {
+        "schema_version": "q2.plan.v1",
+        "mode": "deterministic",
+        "job": {
+          "id": 24881,
+          "url": "https://www.linkedin.com/jobs/view/4456967067",
+          "title": "Surgical Equipment Specialist - Atrium Health Carolinas Medical Center",
+          "company": "",
+          "site": "linkedin"
+        },
+        "viewpoint": "general",
+        "summary_schema": "capability_background_transfer_value",
+        "requirement_count": 8,
+        "counts": {
+          "supported": 0,
+          "ambiguous": 0,
+          "unsupported": 8
+        },
+        "dropped_benefit_lines": [],
+        "evidence_catalog": [],
+        "requirements": [
+          {
+            "id": 1,
+            "text": "Ensures proper operation of medical video equipment, endoscopic equipment and systems, microscopes and specialized technology equipment.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 2,
+            "text": "Identifies and resolves equipment malfunctions and communicates all unresolved malfunctioning equipment issues to Leadership. Provides follow-up on equipment to ensure timeliness of repairs.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 3,
+            "text": "Serves as department laser resource person ensuring the proper operation of lasers and implementation of all laser safety policies.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 4,
+            "text": "Acts as a liaison and resource person with the Sterile Processing Department in appropriate utilization of endoscopic telescope equipment.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 5,
+            "text": "Coordinates activities relative to new equipment implementation, equipment modification, or changes in equipment configurations.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 6,
+            "text": "Coordinates disposition or transfer of capital equipment no longer in service.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 7,
+            "text": "Maintains knowledge and skills required to work safely in the surgical environment.",
+            "importance": "required",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 8,
+            "text": "May be required to work in any facility.",
+            "importance": "required",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          }
+        ]
+      },
+      "realization_boundary": {
+        "mode": "simulated_failure",
+        "realization_status": "failed",
+        "plan_discarded": false,
+        "validated_plan_reusable_after_failure": true
+      },
+      "local_planner": {
+        "invoked": false,
+        "provider": "local",
+        "model": "qwen3:1.7b",
+        "prompt_size_chars": null,
+        "output_size_chars": 2966,
+        "latency_ms": 9,
+        "retries": 0,
+        "provider_unavailable_events": 0,
+        "plan_validation": {
+          "passed": true,
+          "errors": []
+        },
+        "invoked_predicted": false,
+        "invocation_prediction_mismatch": false,
+        "local_plan": {
+          "requirements": [
+            {
+              "requirement": "Ensures proper operation of medical video equipment, endoscopic equipment and systems, microscopes and specialized technology equipment.",
+              "importance": "preferred",
+              "resume_evidence": [],
+              "supported": false
+            },
+            {
+              "requirement": "Identifies and resolves equipment malfunctions and communicates all unresolved malfunctioning equipment issues to Leadership. Provides follow-up on equipment to ensure timeliness of repairs.",
+              "importance": "preferred",
+              "resume_evidence": [],
+              "supported": false
+            },
+            {
+              "requirement": "Serves as department laser resource person ensuring the proper operation of lasers and implementation of all laser safety policies.",
+              "importance": "preferred",
+              "resume_evidence": [],
+              "supported": false
+            },
+            {
+              "requirement": "Acts as a liaison and resource person with the Sterile Processing Department in appropriate utilization of endoscopic telescope equipment.",
+              "importance": "preferred",
+              "resume_evidence": [],
+              "supported": false
+            },
+            {
+              "requirement": "Coordinates activities relative to new equipment implementation, equipment modification, or changes in equipment configurations.",
+              "importance": "preferred",
+              "resume_evidence": [],
+              "supported": false
+            },
+            {
+              "requirement": "Coordinates disposition or transfer of capital equipment no longer in service.",
+              "importance": "preferred",
+              "resume_evidence": [],
+              "supported": false
+            },
+            {
+              "requirement": "Maintains knowledge and skills required to work safely in the surgical environment.",
+              "importance": "required",
+              "resume_evidence": [],
+              "supported": false
+            },
+            {
+              "requirement": "May be required to work in any facility.",
+              "importance": "required",
+              "resume_evidence": [],
+              "supported": false
+            }
+          ],
+          "skills_to_emphasize": [],
+          "bullets_to_prioritize": [],
+          "bullets_to_deemphasize": [],
+          "matching_projects": [],
+          "matching_certifications": [],
+          "summary_focus": [],
+          "keyword_targets": [],
+          "safe_rewrites": [],
+          "unsupported_requirements": [
+            "Ensures proper operation of medical video equipment, endoscopic equipment and systems, microscopes and specialized technology equipment.",
+            "Identifies and resolves equipment malfunctions and communicates all unresolved malfunctioning equipment issues to Leadership. Provides follow-up on equipment to ensure timeliness of repairs.",
+            "Serves as department laser resource person ensuring the proper operation of lasers and implementation of all laser safety policies.",
+            "Acts as a liaison and resource person with the Sterile Processing Department in appropriate utilization of endoscopic telescope equipment.",
+            "Coordinates activities relative to new equipment implementation, equipment modification, or changes in equipment configurations.",
+            "Coordinates disposition or transfer of capital equipment no longer in service.",
+            "Maintains knowledge and skills required to work safely in the surgical environment.",
+            "May be required to work in any facility."
+          ],
+          "_warnings": [
+            "Skipped local LLM call: 8 requirement line(s), 0 evidence item(s) -- nothing to match."
+          ]
+        }
+      }
+    }
+  ],
+  "summary": {
+    "job_count": 3,
+    "plans_valid": 3,
+    "plans_invalid": 0,
+    "reusable_after_simulated_failure": 3
+  }
+}

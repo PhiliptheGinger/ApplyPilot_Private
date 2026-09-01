@@ -1,0 +1,67 @@
+Philip McLaughlin
+Technical Support & Customer Outreach
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Possesses foundational technical capabilities in Python and web design, backed by a Bachelor of Arts in Media Studies and hands-on experience building software applications. Experienced in collaborating with diverse teams and executing technical troubleshooting in fast-paced environments. Ready to apply structured problem-solving and cross-platform design understanding to support systems software development and collaborate effectively with engineering partners.
+
+TECHNICAL SKILLS
+Technical Languages: Python
+Creative & Web: Web Design, Photography, Videography
+
+EXPERIENCE
+Sales Representative / Sales Tech at AMP Smart
+Customer Outreach
+- Conducted in-person consultations to identify qualified leads and analyze homeowner requirements.
+- Developed and executed targeted outreach strategies for residential solar solutions to match regional market conditions.
+- Tailored technical proposals to specific homeowner needs, improving customer alignment and engagement.
+
+Alignment Technician at National Tire and Battery / Mavis
+Automotive Tech
+- Diagnosed and resolved mechanical issues with vehicle alignments, brakes, shocks, and struts.
+- Executed hands-on troubleshooting and fluid replacements under tight operational schedules.
+- Communicated technical issues clearly to customers to build trust and ensure service satisfaction.
+
+Packaging Associate / Warehouse Associate at UPS
+Operations
+- Handled high-volume package processing under strict time constraints to maintain operational flow.
+- Managed physical inventory and sorting tasks, ensuring high reliability in a fast-paced environment.
+
+Freelance Photographer / Videographer at Freelance Photography / Videography
+Media Tech
+- Designed and produced digital media assets, managing production workflows from initial concept to final delivery.
+- Managed client relationships and gathered requirements to deliver tailored visual content.
+
+Moving Specialist / Installation Tech at Alex Prosperity Group / UST Logistics
+Installation
+- Installed home appliances contracted through Lowe's, ensuring proper technical setup and customer satisfaction.
+
+Server / Line Cook at Waffle House
+Food Service
+- Managed high-volume food preparation and customer service in a fast-paced environment.
+
+PROJECTS
+Express_Engine - Language Learning Tool
+Python
+- Coded and programmed enhancements for a language-learning software tool, implementing spaced repetition algorithms to improve vocabulary retention.
+- Built CLI components and persistent data structures in Python, enabling reliable local data storage and retrieval.
+
+You Power You - Web Platform
+HTML, CSS, JavaScript
+- Developed a custom website using HTML, CSS, and JavaScript, establishing a structured qualification and submission workflow.
+- Implemented server-side form handling and integrated email notifications to automate user inquiries.
+
+Standup-OCR - Text Extraction Utility
+Python
+- Built a Python-based OCR utility to process image and document data, automating text transcription workflows.
+- Configured machine-learning experimentation pipelines and human review workflows to prepare high-quality training data.
+
+CAP Predictor - Financial Data Processor
+Python
+- Developed data collection and processing scripts in Python to analyze financial and news datasets.
+- Performed feature engineering and sentiment analysis to support statistical modeling experimentation.
+
+EDUCATION
+University of North Carolina at Greensboro
+Bachelor of Arts in Media Studies
+2019 - 2022

@@ -1,0 +1,234 @@
+{
+  "schema_version": "q2.plan.v1",
+  "mode": "deterministic",
+  "job": {
+    "id": 7406,
+    "url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Cloud-Platform-Engineer_ATCI-5712812-S2064009-1",
+    "title": "Cloud Platform Engineer",
+    "company": "",
+    "site": "Accenture"
+  },
+  "viewpoint": "operations",
+  "summary_schema": "capability_background_transfer_value",
+  "requirement_count": 8,
+  "counts": {
+    "supported": 0,
+    "ambiguous": 1,
+    "unsupported": 7
+  },
+  "dropped_benefit_lines": [],
+  "evidence_catalog": [
+    {
+      "id": 1,
+      "type": "project",
+      "name": "CAP Predictor",
+      "score": 2,
+      "matched_terms": [
+        "data",
+        "python"
+      ],
+      "permitted": true
+    },
+    {
+      "id": 2,
+      "type": "skill",
+      "name": "Python",
+      "score": 2,
+      "matched_terms": [
+        "data",
+        "python"
+      ],
+      "permitted": true
+    },
+    {
+      "id": 3,
+      "type": "experience",
+      "name": "Freelance Photography / Videography",
+      "score": 1,
+      "matched_terms": [
+        "creative"
+      ],
+      "permitted": true
+    },
+    {
+      "id": 4,
+      "type": "experience",
+      "name": "UPS",
+      "score": 1,
+      "matched_terms": [
+        "operations"
+      ],
+      "permitted": true
+    },
+    {
+      "id": 5,
+      "type": "experience",
+      "name": "National Tire and Battery / Mavis",
+      "score": 1,
+      "matched_terms": [
+        "national"
+      ],
+      "permitted": true
+    },
+    {
+      "id": 6,
+      "type": "project",
+      "name": "Standup-OCR",
+      "score": 1,
+      "matched_terms": [
+        "python"
+      ],
+      "permitted": true
+    }
+  ],
+  "requirements": [
+    {
+      "id": 1,
+      "text": "Expected to be an SME, collaborate and manage the team to perform.",
+      "importance": "unspecified",
+      "status": "unsupported",
+      "evidence_ids": [],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 2,
+      "text": "Responsible for team decisions.",
+      "importance": "unspecified",
+      "status": "unsupported",
+      "evidence_ids": [],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 3,
+      "text": "Engage with multiple teams and contribute on key decisions.",
+      "importance": "unspecified",
+      "status": "unsupported",
+      "evidence_ids": [],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 4,
+      "text": "Provide solutions to problems for their immediate team and across multiple teams.",
+      "importance": "unspecified",
+      "status": "unsupported",
+      "evidence_ids": [],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 5,
+      "text": "Lead the evaluation and implementation of cloud infrastructure strategies to support business objectives.",
+      "importance": "unspecified",
+      "status": "unsupported",
+      "evidence_ids": [],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 6,
+      "text": "Facilitate knowledge sharing and mentorship within the team to foster professional growth.",
+      "importance": "unspecified",
+      "status": "unsupported",
+      "evidence_ids": [],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 7,
+      "text": "Coordinate cross-functional efforts to ensure alignment of cloud platform initiatives with organizational goals.",
+      "importance": "unspecified",
+      "status": "unsupported",
+      "evidence_ids": [],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 8,
+      "text": "Must To Have Skills: Proficiency in Python (Programming Language).",
+      "importance": "unspecified",
+      "status": "ambiguous",
+      "evidence_ids": [
+        1,
+        2,
+        6
+      ],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    }
+  ]
+}

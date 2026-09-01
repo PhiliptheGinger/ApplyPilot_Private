@@ -1,0 +1,54 @@
+Philip McLaughlin
+Technical Support & Customer Service
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Possess foundational capability in Python programming and web design, backed by a background in media studies and hands-on technical troubleshooting. Demonstrated ability to analyze systems and communicate technical concepts, bringing strong problem-solving skills to support software systems development and collaborative engineering goals.
+
+TECHNICAL SKILLS
+Programming: Python
+Design & Media: Web Design, Photography, Videography
+
+EXPERIENCE
+Sales Representative / Sales Tech
+AMP Smart
+- Executed targeted outreach and technical sales consultations for residential solar systems.
+- Analyzed homeowner energy usage data to design tailored solar proposals and system specifications.
+- Identified qualified leads and explained technical system benefits to non-technical customers.
+
+Freelance Photographer / Videographer
+Freelance
+- Managed digital media assets and designed web portfolios to showcase creative content.
+- Configured camera systems and post-processing software to deliver high-quality media products.
+
+Alignment Technician
+National Tire and Battery / Mavis
+- Diagnosed and resolved mechanical and alignment issues using computerized diagnostic systems.
+- Executed precise calibrations on steering, suspension, and braking subsystems.
+- Communicated technical diagnostic findings and repair recommendations clearly to customers.
+
+Moving Specialist / Installation Tech
+Alex Prosperity Group / UST Logistics
+- Installed and configured home appliances, ensuring proper electrical and plumbing connections.
+- Troubleshot installation issues on-site to ensure system functionality and customer satisfaction.
+
+PROJECTS
+Express_Engine
+Python
+- Programmed software enhancements and updates for a language-learning utility using Python.
+- Designed application architecture with persistent data storage and CLI components to manage user progress.
+
+You Power You
+HTML, CSS, JavaScript
+- Designed and developed a responsive website using HTML, CSS, and JavaScript.
+- Implemented server-side form handling and automated email notification workflows for user submissions.
+
+Standup-OCR
+Python
+- Built a Python-based OCR tool to automate text extraction and transcription from image files.
+- Implemented machine-learning experimentation workflows and human review interfaces for data validation.
+
+EDUCATION
+University of North Carolina at Greensboro
+Bachelor of Arts in Media Studies
+2019 - 2022

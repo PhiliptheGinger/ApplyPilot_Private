@@ -1,0 +1,27 @@
+DETERMINISTIC EVIDENCE CATALOG (AUTHORITATIVE)
+E1: [experience] Freelance Photography / Videography | matched terms: creative
+E2: [experience] AMP Smart | matched terms: sales
+E3: [experience] National Tire and Battery / Mavis | matched terms: national
+E4: [project] CAP Predictor | matched terms: data
+E5: [project] Express_Engine | matched terms: software
+E6: [project] Sunburn | matched terms: experimentation
+
+DETERMINISTIC REQUIREMENT SUPPORT (AUTHORITATIVE)
+R1: [unsupported] What you will do
+  evidence: none
+R2: [supported] Participate in all aspects of software development activities including design, coding, code review, unit-testing, integration testing, and bug fixing.
+  evidence: Express_Engine
+R3: [unsupported] Work independently to design and delivering medium to complex functionality.
+  evidence: none
+R4: [unsupported] Collaborate and Provide guidance to team members to build a scalable and high-performance solution with low operational overhead.
+  evidence: none
+R5: [unsupported] Work with multi-functional team members to ensure a superb end-to-end user experience for our customers.
+  evidence: none
+R6: [unsupported] Fast prototyping of ideas and concepts and researching the latest industry trends.
+  evidence: none
+R7: [ambiguous] Perform analysis and experimentation for the data flowing through different systems/services
+  evidence: CAP Predictor, Sunburn
+R8: [supported] Build a data consistency and validation feature in delivering high-quality data.
+  evidence: CAP Predictor
+
+RULE: DO NOT claim support from any evidence not listed above for that requirement.

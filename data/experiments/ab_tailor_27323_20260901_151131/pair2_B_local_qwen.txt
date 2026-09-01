@@ -1,0 +1,59 @@
+Philip McLaughlin
+Sales Representative / Sales Tech
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Sales Representative / Sales Tech background with hands-on Python development experience across application and web projects. Demonstrates foundational software implementation skills including data processing, user workflow design, and application architecture. Combines technical execution with clear customer-facing communication to build reliable software solutions.
+
+TECHNICAL SKILLS
+Languages: Python
+Web & Media: Web Design, Photography, Videography
+
+EXPERIENCE
+Sales Representative / Sales Tech at AMP Smart
+Sales Tech, Technical Consultations
+- Developed and executed targeted outreach strategies for residential solar and home tech solutions.
+- Conducted technical consultations and tailored proposals to specific homeowner requirements.
+- Identified qualified leads and evaluated regional market conditions to optimize client acquisition.
+
+Alignment Technician at National Tire and Battery / Mavis
+Technical Diagnostics, Automotive Systems
+- Performed mechanical alignments, brake services, and fluid inspections across diverse vehicle platforms.
+- Diagnosed hardware and mechanical issues using specialized shop diagnostic equipment.
+- Communicated technical findings directly to customers to guide repair decisions.
+
+Moving Specialist / Installation Tech at Alex Prosperity Group / UST Logistics
+Hardware Setup, Logistics
+- Installed residential home appliances and hardware systems under contract for Lowe's.
+- Executed on-site technical setup and verified equipment functionality prior to client handover.
+
+Packaging Associate / Warehouse Associate at UPS
+High-Volume Operations, Logistics
+- Managed package handling and operational workflows within a high-volume processing environment.
+- Maintained efficiency and operational accuracy targets during high-throughput operational shifts.
+
+PROJECTS
+Express_Engine - Language Learning Application
+Python
+- Coded software updates and CLI application components in Python to implement spaced repetition learning mechanisms.
+- Built persistent data storage and structured application logic to maintain state across user sessions.
+
+Standup-OCR - Document Processing Tool
+Python
+- Programmed document processing pipeline using Python and OCR tooling to automate text transcription from media files.
+- Created training data preparation workflows and human review interfaces for accurate text extraction.
+
+You Power You - Web Application
+Web Design, HTML, CSS, JavaScript
+- Designed web application interface and user experience layouts using Web Design principles and HTML/CSS/JavaScript.
+- Implemented server-side form handling and automated submission workflows with email notification integrations.
+
+CAP Predictor - Financial Data Pipeline
+Python
+- Coded data collection and feature engineering scripts in Python for statistical modeling experimentation.
+- Processed news and financial text through sentiment analysis workflows to generate structured analysis datasets.
+
+EDUCATION
+University of North Carolina at Greensboro
+Bachelor of Arts in Media Studies
+2019 - 2022

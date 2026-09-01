@@ -1,0 +1,53 @@
+Philip McLaughlin
+Sales Representative / Sales Tech
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Background in technical support, client consultation, and software project implementation using Python and web design. Experienced in developing application architecture components, data processing scripts, and client workflows. Applies systematic problem solving and structured communication to support software engineering assignments.
+
+TECHNICAL SKILLS
+Languages: Python
+Tools: Web Design, Photography, Videography
+
+EXPERIENCE
+Sales Representative / Sales Tech
+AMP Smart
+- Evaluated homeowner technical requirements to tailor residential solar solutions and proposals.
+- Executed direct outreach strategies to identify and qualify prospective leads across regional markets.
+- Conducted in-person technical consultations, explaining system specifications and configurations to clients.
+
+Alignment Technician
+National Tire and Battery / Mavis
+- Diagnosed mechanical and alignment issues across vehicle subsystems including brakes, steering, and suspension.
+- Executed technical adjustments and fluid system maintenance according to service protocols.
+- Communicated diagnostic findings directly to customers to explain technical requirements and repair options.
+
+Moving Specialist / Installation Tech
+Alex Prosperity Group / UST Logistics
+- Installed home appliances under contracted workflows for retail customers, ensuring operational setup.
+- Troubleshot physical setup and connection challenges on site to satisfy customer installation requirements.
+
+Packaging Associate / Warehouse Associate
+UPS
+- Processed high-volume package sorting and routing operations under tight operational schedules.
+
+PROJECTS
+Express_Engine - Software Architecture & Language Tool
+Python
+- Coded command-line interface software components in Python to execute spaced-repetition algorithms.
+- Structured application architecture with persistent data storage mechanisms to retain state and user progress.
+
+You Power You - Web Interface & Form Processing
+Web Design
+- Designed responsive web interfaces using modern layout principles to streamline submission workflows.
+- Implemented server-side form handling and automated email notifications for client qualification routing.
+
+Standup-OCR - Document Processing & Data Automation
+Python
+- Developed Python scripts utilizing optical character recognition to automate image and document transcription.
+- Structured data review workflows and training datasets to improve text extraction accuracy.
+
+EDUCATION
+University of North Carolina at Greensboro
+Bachelor of Arts in Media Studies
+2019 - 2022

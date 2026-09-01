@@ -271,6 +271,11 @@ def generate_cover_letter(resume_text: str, job: dict, profile: dict, max_retrie
 # ── Batch Entry Point ────────────────────────────────────────────────────
 
 
+def _is_provider_unavailable_error(error: str | None) -> bool:
+    text = (error or "").lower()
+    return "cloud_cover_generation_exhausted" in text or "provider_unavailable" in text
+
+
 def _cover_one_job(job: dict, resume_text: str | None, profile: dict, doc_format: str = "docx") -> dict:
     """Generate cover letter for a single job. Safe to call from multiple threads."""
     from applypilot.scoring.tailor import _extract_keywords, _name_parts
@@ -394,15 +399,17 @@ def _mark_cover_result(
             metadata={"path": path},
         )
     else:
-        conn.execute(
-            "UPDATE jobs SET cover_attempts=COALESCE(cover_attempts,0)+1 WHERE url=?",
-            (url,),
-        )
+        error_text = error or ""
+        if not _is_provider_unavailable_error(error_text):
+            conn.execute(
+                "UPDATE jobs SET cover_attempts=COALESCE(cover_attempts,0)+1 WHERE url=?",
+                (url,),
+            )
         transition_state(
             conn,
             url,
             "cover_failed",
-            reason="cover generation failed",
+            reason="provider_unavailable" if _is_provider_unavailable_error(error_text) else "cover generation failed",
             metadata={"error": error},
         )
 

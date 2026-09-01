@@ -1,0 +1,66 @@
+Philip McLaughlin
+Technical Support & Customer Service
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Experienced in programming software enhancements and designing web interfaces using Python and web technologies. Backed by a background in Media Studies and hands-on technical troubleshooting, bringing strong collaborative skills from client-facing consultations. Ready to contribute reliable, high-quality solutions to HPE's software systems design and development teams.
+
+TECHNICAL SKILLS
+Technical & Creative: Python, Web Design, Photography, Videography
+Professional & Communication: Customer service, Outreach, Sales consultations
+
+EXPERIENCE
+Freelance Photographer / Videographer
+Photography, Videography
+- Captured high-quality digital media assets for diverse clients, delivering tailored visual content to meet specific creative briefs.
+- Managed production workflows, including post-processing and digital asset delivery, ensuring consistent client satisfaction.
+- Designed digital layouts and visual assets, aligning media content with client branding and web design requirements.
+
+Sales Representative / Sales Tech
+Outreach, Sales consultations
+- Executed targeted outreach and sales strategies for residential solar solutions, identifying qualified leads through direct engagement.
+- Conducted in-person consultations with homeowners, explaining technical specifications and regional market benefits clearly.
+- Tailored technical proposals to specific homeowner needs, increasing customer acquisition and regional market share.
+
+Alignment Technician
+Technical Support, Troubleshooting
+- Diagnosed and resolved mechanical issues on customer vehicles, performing precise wheel alignments and suspension adjustments.
+- Inspected and serviced critical automotive systems, including brakes, fluids, shocks, and struts, to ensure safety standards.
+- Communicated technical diagnostics and repair recommendations to clients, maintaining high customer service ratings.
+
+Packaging Associate / Warehouse Associate
+Operations
+- Handled high volumes of packages within a fast-paced operational environment, maintaining strict efficiency and safety standards.
+- Sorted and organized shipments systematically, reducing processing delays and improving warehouse workflow reliability.
+
+Moving Specialist / Installation Tech
+Installation, Customer Service
+- Installed residential home appliances contracted through Lowe's, ensuring proper electrical and plumbing connections.
+- Resolved on-site installation challenges safely, delivering high-quality customer service during home visits.
+
+Server / Line Cook
+Customer Service, Food Service
+- Prepared food orders in a high-volume, fast-paced kitchen environment, ensuring quality and speed of service.
+- Provided direct customer service, taking orders accurately and managing point-of-sale transactions efficiently.
+
+PROJECTS
+Express_Engine - Language Learning Tool
+Python
+- Built CLI and application components for a language-learning software tool, enabling spaced repetition and persistent data storage.
+
+Standup-OCR - Document Processing Tool
+Python
+- Created an OCR processing tool in Python to transcribe text from image documents, establishing human review workflows to prepare clean training data.
+
+You Power You - Web Development Project
+Web Design
+- Designed and built a responsive website using HTML, CSS, and JavaScript, integrating server-side form handling and email notifications to optimize user submissions.
+
+CAP Predictor - Data Analysis Project
+Python
+- Processed financial and news datasets using Python, performing feature engineering and sentiment analysis to support statistical modeling experiments.
+
+EDUCATION
+University of North Carolina at Greensboro
+Bachelor of Arts in Media Studies
+2019 - 2022

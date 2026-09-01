@@ -1,0 +1,122 @@
+[
+  {
+    "label": "TinyLlama Resume Tailor (1.1B LoRA)",
+    "family": "tinyllama_1.1b_resume_finetune",
+    "exact_identifier": "akshayrinku/tinyllama-resume-tailor-lora",
+    "source": "https://huggingface.co/akshayrinku/tinyllama-resume-tailor-lora",
+    "size_hint": "1.1B base + LoRA adapter",
+    "format": "PEFT adapter",
+    "available": true,
+    "runnable_now": false,
+    "availability_reason": "Repository is a PEFT adapter requiring base-model load/merge in Transformers+PEFT; those libraries are not installed in current repo venv, and model is not directly loadable by Ollama.",
+    "probe": {
+      "hf_pipeline_tag": "text-generation",
+      "hf_library_name": "peft",
+      "hf_downloads": 0,
+      "hf_has_gguf": false,
+      "hf_siblings_sample": [
+        ".gitattributes",
+        "README.md",
+        "adapter_config.json",
+        "adapter_model.safetensors",
+        "chat_template.jinja",
+        "tokenizer.json",
+        "tokenizer_config.json"
+      ],
+      "ollama_hf_show_exit": 1,
+      "ollama_hf_show_err": "Error: model 'hf.co/akshayrinku/tinyllama-resume-tailor-lora:latest' not found"
+    }
+  },
+  {
+    "label": "T5-Base resume candidate (~220M)",
+    "family": "t5_base_resume_candidate",
+    "exact_identifier": "Abhishek9998/t5-base-finetuned-resumes_t2json_large",
+    "source": "https://huggingface.co/Abhishek9998/t5-base-finetuned-resumes_t2json_large",
+    "size_hint": "~220M",
+    "format": "Transformers checkpoint",
+    "available": true,
+    "runnable_now": false,
+    "availability_reason": "Checkpoint exists but local Transformers stack is not installed; also model card indicates text-to-JSON resume dataset fine-tune, not clearly resume tailoring quality for this pipeline.",
+    "probe": {
+      "hf_pipeline_tag": null,
+      "hf_library_name": "transformers",
+      "hf_downloads": 20,
+      "hf_has_gguf": false,
+      "hf_siblings_sample": [
+        ".gitattributes",
+        ".gitignore",
+        "README.md",
+        "config.json",
+        "pytorch_model.bin",
+        "runs/Apr22_19-11-37_pytorch-1-13-20230216-153456/1682190700.4451935/events.out.tfevents.1682190700.pytorch-1-13-20230216-153456.1415230.1",
+        "runs/Apr22_19-11-37_pytorch-1-13-20230216-153456/events.out.tfevents.1682190700.pytorch-1-13-20230216-153456.1415230.0",
+        "runs/Apr23_13-29-04_pytorch-1-13-20230216-153456/1682256547.8522978/events.out.tfevents.1682256547.pytorch-1-13-20230216-153456.1329718.1",
+        "runs/Apr23_13-29-04_pytorch-1-13-20230216-153456/events.out.tfevents.1682256547.pytorch-1-13-20230216-153456.1329718.0",
+        "special_tokens_map.json",
+        "spiece.model",
+        "tokenizer.json"
+      ],
+      "ollama_hf_show_exit": 1,
+      "ollama_hf_show_err": "Error: model 'hf.co/Abhishek9998/t5-base-finetuned-resumes_t2json_large:latest' not found"
+    }
+  },
+  {
+    "label": "GPT-Neo resume assistant candidate (~1.3B)",
+    "family": "gpt_neo_resume_candidate",
+    "exact_identifier": null,
+    "source": "HF search queries: gpt-neo resume / gpt neo resume assistant (0 results)",
+    "size_hint": "~1.3B target",
+    "format": "N/A",
+    "available": false,
+    "runnable_now": false,
+    "availability_reason": "No resume-specific GPT-Neo candidate found from targeted HF searches; per instruction, not substituting generic GPT-Neo.",
+    "probe": {}
+  },
+  {
+    "label": "Qwen2.5 Resume LoRA (~7B)",
+    "family": "qwen25_7b_resume_finetune",
+    "exact_identifier": "Ella0506/Qwen2.5-7B-Instruct-Resume-LoRA",
+    "source": "https://huggingface.co/Ella0506/Qwen2.5-7B-Instruct-Resume-LoRA",
+    "size_hint": "~7B base + LoRA adapter",
+    "format": "PEFT adapter",
+    "available": true,
+    "runnable_now": false,
+    "availability_reason": "Repository is a PEFT adapter requiring base-model load/merge in Transformers+PEFT; those libraries are not installed in current repo venv, and model is not directly loadable by Ollama.",
+    "probe": {
+      "hf_pipeline_tag": null,
+      "hf_library_name": "peft",
+      "hf_downloads": 7,
+      "hf_has_gguf": false,
+      "hf_siblings_sample": [
+        ".gitattributes",
+        "README.md",
+        "adapter_config.json",
+        "adapter_model.safetensors",
+        "added_tokens.json",
+        "merges.txt",
+        "special_tokens_map.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "vocab.json"
+      ],
+      "ollama_hf_show_exit": 1,
+      "ollama_hf_show_err": "Error: model 'hf.co/Ella0506/Qwen2.5-7B-Instruct-Resume-LoRA:latest' not found"
+    }
+  },
+  {
+    "label": "qwen3 baseline",
+    "family": "qwen3_baseline",
+    "exact_identifier": "qwen3:1.7b",
+    "source": "local Ollama model inventory",
+    "size_hint": "2.0B (Q4_K_M, 1.4GB)",
+    "format": "Ollama local model",
+    "available": true,
+    "runnable_now": true,
+    "availability_reason": "Installed locally in Ollama.",
+    "probe": {
+      "ollama_show_exit": 0,
+      "ollama_show_stderr": "",
+      "ollama_show_stdout_head": "  Model\n    architecture        qwen3     \n    parameters          2.0B      \n    context length      40960     \n    embedding length    2048      \n    quantization        Q4_K_M    \n\n  Capabilities\n    completion    \n    tools         \n    thinking      \n"
+    }
+  }
+]

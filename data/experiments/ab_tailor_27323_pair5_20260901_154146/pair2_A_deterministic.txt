@@ -1,0 +1,60 @@
+Philip McLaughlin
+Technical Support & Media Specialist
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Developing Python programming capabilities and web design skills, grounded in a Media Studies background and hands-on technical troubleshooting experience. Proven ability to translate complex user needs into structured solutions, ready to contribute to software systems design and development at HPE.
+
+TECHNICAL SKILLS
+Languages: Python
+Technical & Creative: Web Design, Photography, Videography
+
+EXPERIENCE
+Sales Representative / Sales Tech at AMP Smart
+Sales, Customer Outreach
+- Diagnosed residential energy profiles and executed targeted outreach strategies for solar solutions.
+- Conducted in-person consultations to translate complex technical specifications into clear homeowner proposals.
+- Analyzed regional market conditions and homeowner needs to tailor technical and financial proposals.
+
+Alignment Technician at National Tire and Battery / Mavis
+Technical Support, Customer Service
+- Diagnosed and resolved mechanical and system alignment issues across diverse vehicle platforms.
+- Executed hands-on troubleshooting and repairs for brakes, suspension systems, and fluid components.
+- Communicated technical diagnostics directly to customers to ensure transparency and service alignment.
+
+Freelance Photographer / Videographer
+Media, Content, Creative
+- Managed digital media assets and designed visual content, coordinating with clients to meet technical and creative specifications.
+- Operated complex digital camera systems and editing software to produce high-quality media products.
+- Designed and delivered digital media assets, managing complete production workflows for diverse clients.
+
+Moving Specialist / Installation Tech at Alex Prosperity Group / UST Logistics
+Installation, Customer Service
+- Installed and configured home appliances contracted through Lowe's, ensuring proper electrical and mechanical connections.
+- Troubleshot installation issues on-site to maintain high customer satisfaction and safety standards.
+
+PROJECTS
+Express_Engine - Language-Learning Software
+Python
+- Participated in coding and programming enhancements for a language-learning utility, implementing spaced repetition algorithms in Python, enabling structured vocabulary retention.
+- Developed persistent data structures and CLI application components to support reliable software execution.
+
+Standup-OCR - Document Processing Tool
+Python
+- Built an OCR processing pipeline in Python to automate image and document transcription.
+- Implemented human review workflows and prepared training data to improve machine-learning model accuracy.
+
+You Power You - Web Application
+HTML, CSS, JavaScript
+- Developed a custom website utilizing HTML, CSS, and JavaScript to support user qualification workflows.
+- Implemented server-side form handling and integrated email notification systems for reliable data submission.
+
+CAP Predictor - Financial Analytics Tool
+Python
+- Collected and processed financial and news data using Python to perform sentiment analysis.
+- Engineered data features and executed statistical modeling experiments to analyze market trends.
+
+EDUCATION
+University of North Carolina at Greensboro
+Bachelor of Arts in Media Studies
+2019 - 2022

@@ -1,0 +1,3067 @@
+{
+  "experiment": "ab_tailoring_outcome_27323_pair5",
+  "timestamp_utc": "2026-09-01T15:50:08.635504+00:00",
+  "job": {
+    "id": 27323,
+    "title": "Software Engineer Graduate",
+    "url": "https://builtin.com/job/software-engineer-graduate/10917868"
+  },
+  "confounding_notes": [
+    "Both variants call the same tailor_resume() path with identical max_retries.",
+    "Only planning text differs: deterministic A vs constrained local B.",
+    "Generation remains stochastic (temperature=0.4 in tailor_resume), so resume text variance can occur run-to-run independent of planning signal.",
+    "Pair execution order is alternated (A->B then B->A) to reduce temporal provider drift bias."
+  ],
+  "base_resume_source": "C:\\Users\\phili\\Projects\\resume-agent\\data\\profile.json",
+  "deterministic_counts": {
+    "supported": 1,
+    "ambiguous": 3,
+    "unsupported": 4
+  },
+  "deterministic_validation": {
+    "passed": true,
+    "errors": []
+  },
+  "pairs": [
+    {
+      "pair": 1,
+      "order": "A_then_B",
+      "A": {
+        "variant": "deterministic_plan",
+        "plan_summary": {
+          "supported": 4,
+          "unsupported": 4,
+          "skills_to_emphasize": [
+            "Web Design"
+          ],
+          "projects_to_emphasize": [
+            "Express_Engine"
+          ],
+          "summary_focus": [
+            "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "Experience or understanding of software systems design tools and languages."
+          ],
+          "keyword_targets": [
+            "software",
+            "design",
+            "media"
+          ]
+        },
+        "plan_validation": {
+          "passed": true,
+          "errors": []
+        },
+        "generation_latency_ms": 64106,
+        "generation_status": "approved",
+        "validator": {
+          "passed": true,
+          "errors": [],
+          "warnings": [
+            "Company 'AMP Smart' not in experience or projects",
+            "Company 'UPS' not in experience or projects",
+            "Company 'National Tire and Battery / Mavis' not in experience or projects",
+            "Company 'Alex Prosperity Group / UST Logistics' not in experience or projects",
+            "Company 'Waffle House' not in experience or projects",
+            "Possible claim-strength inflation: resume uses a team lead-tier agency verb (led/managed/supervised/directed/spearheaded) but no profile evidence item's own description supports that level of people/organizational authority"
+          ]
+        },
+        "judge": {
+          "passed": true,
+          "verdict": "PASS",
+          "issues": "none",
+          "raw": "VERDICT: PASS\nISSUES: none"
+        },
+        "approved_facts": [
+          "edu:dates:2019 - 2022",
+          "edu:degree:bachelor of arts in media studies",
+          "edu:institution:university of north carolina at greensboro",
+          "experience:header:alignment technician",
+          "experience:header:freelance photographer / videographer",
+          "experience:header:moving specialist / installation tech",
+          "experience:header:packaging associate / warehouse associate",
+          "experience:header:sales representative / sales tech",
+          "experience:header:server / line cook",
+          "experience:subtitle:customer service, food service",
+          "experience:subtitle:installation, customer service",
+          "experience:subtitle:operations",
+          "experience:subtitle:outreach, sales consultations",
+          "experience:subtitle:photography, videography",
+          "experience:subtitle:technical support, troubleshooting",
+          "projects:header:cap predictor - data analysis project",
+          "projects:header:express_engine - language learning tool",
+          "projects:header:standup-ocr - document processing tool",
+          "projects:header:you power you - web development project",
+          "projects:subtitle:python",
+          "projects:subtitle:web design",
+          "skill:customer service",
+          "skill:outreach",
+          "skill:photography",
+          "skill:python",
+          "skill:sales consultations",
+          "skill:videography",
+          "skill:web design"
+        ],
+        "resume_diff_from_base": {
+          "base_bullets": 74,
+          "new_bullets": 19,
+          "retained": [],
+          "reordered": [],
+          "rewritten": [
+            {
+              "from": "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+              "to": "Executed targeted outreach and sales strategies for residential solar solutions, identifying qualified leads through direct engagement.",
+              "similarity": 0.699
+            },
+            {
+              "from": "Tailor proposals to homeowner needs and regional market conditions.",
+              "to": "Tailored technical proposals to specific homeowner needs, increasing customer acquisition and regional market share.",
+              "similarity": 0.634
+            },
+            {
+              "from": "Installed home appliances contracted through Lowe's",
+              "to": "Installed residential home appliances contracted through Lowe's, ensuring proper electrical and plumbing connections.",
+              "similarity": 0.607
+            }
+          ],
+          "omitted": [
+            "Bachelor of Arts in Media Studies",
+            "Freelance Photographer / Videographer",
+            "Sales Representative / Sales Tech",
+            "Conduct in-person consultations.",
+            "Identify qualified leads.",
+            "Packaging Associate / Warehouse Associate",
+            "Package handling",
+            "Efficiency in a high-volume operational environment",
+            "Alignment Technician",
+            "Vehicle alignment work",
+            "Tires",
+            "Shocks and struts",
+            "Brakes",
+            "Fluids",
+            "Customer relations",
+            "Moving Specialist / Installation Tech",
+            "Server / Line Cook",
+            "Customer service",
+            "Order taking",
+            "High-volume food preparation",
+            "Shift Leader",
+            "Staff training",
+            "Task delegation",
+            "Team coordination during peak hours",
+            "Cashier",
+            "Register operations",
+            "Point-of-sale transactions",
+            "Customer service",
+            "Volunteer Teacher's Assistant",
+            "Classroom management",
+            "Lesson organization",
+            "Assisting lead instructors",
+            "Team Member",
+            "Currency and credit transactions",
+            "Fast-paced customer service",
+            "Customer retention",
+            "Public speaking",
+            "Verbal communication",
+            "Audience engagement",
+            "Writing",
+            "Performance",
+            "Adapting material based on audience response",
+            "Python",
+            "OCR",
+            "Image/document processing",
+            "Transcription",
+            "OCR tooling",
+            "Machine-learning experimentation",
+            "Human review workflows",
+            "Training-data preparation",
+            "Financial/news data",
+            "Data collection",
+            "Feature engineering",
+            "Sentiment analysis",
+            "Statistical/modeling experimentation",
+            "Data processing",
+            "Language-learning tools",
+            "Spaced repetition",
+            "Application architecture",
+            "Persistent data",
+            "CLI/application components",
+            "Website development",
+            "HTML/CSS/JavaScript",
+            "Server-side form handling",
+            "Qualification/submission workflow",
+            "Email notification integration",
+            "Processing exported social-media data",
+            "Filtering and retrieving relevant posts",
+            "Extracting useful information",
+            "Structured data",
+            "Media/comedy-oriented data processing"
+          ],
+          "added": [
+            "Captured high-quality digital media assets for diverse clients, delivering tailored visual content to meet specific creative briefs.",
+            "Managed production workflows, including post-processing and digital asset delivery, ensuring consistent client satisfaction.",
+            "Designed digital layouts and visual assets, aligning media content with client branding and web design requirements.",
+            "Conducted in-person consultations with homeowners, explaining technical specifications and regional market benefits clearly.",
+            "Diagnosed and resolved mechanical issues on customer vehicles, performing precise wheel alignments and suspension adjustments.",
+            "Inspected and serviced critical automotive systems, including brakes, fluids, shocks, and struts, to ensure safety standards.",
+            "Communicated technical diagnostics and repair recommendations to clients, maintaining high customer service ratings.",
+            "Handled high volumes of packages within a fast-paced operational environment, maintaining strict efficiency and safety standards.",
+            "Sorted and organized shipments systematically, reducing processing delays and improving warehouse workflow reliability.",
+            "Resolved on-site installation challenges safely, delivering high-quality customer service during home visits.",
+            "Prepared food orders in a high-volume, fast-paced kitchen environment, ensuring quality and speed of service.",
+            "Provided direct customer service, taking orders accurately and managing point-of-sale transactions efficiently.",
+            "Built CLI and application components for a language-learning software tool, enabling spaced repetition and persistent data storage.",
+            "Created an OCR processing tool in Python to transcribe text from image documents, establishing human review workflows to prepare clean training data.",
+            "Designed and built a responsive website using HTML, CSS, and JavaScript, integrating server-side form handling and email notifications to optimize user submissions.",
+            "Processed financial and news datasets using Python, performing feature engineering and sentiment analysis to support statistical modeling experiments."
+          ]
+        },
+        "keyword_hits": {
+          "target_count": 3,
+          "hit_count": 3,
+          "hits": [
+            "software",
+            "design",
+            "media"
+          ]
+        },
+        "requirement_coverage": [
+          {
+            "requirement_id": 1,
+            "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "enhancements",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 2,
+            "requirement": "Executes established test plans and protocols for assigned portions of code; identifies, logs, and debugs assigned issues.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": []
+          },
+          {
+            "requirement_id": 3,
+            "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "development",
+              "software",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 4,
+            "requirement": "Experience or understanding of software systems design tools and languages.",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "software",
+              "systems",
+              "design"
+            ]
+          },
+          {
+            "requirement_id": 5,
+            "requirement": "Good analytical and problem-solving skills.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": []
+          },
+          {
+            "requirement_id": 6,
+            "requirement": "Understanding of design for software systems running on multiple platform types",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "design",
+              "software",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 7,
+            "requirement": "Good written and verbal communication skills; mastery in English and local language.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "communication",
+              "language"
+            ]
+          },
+          {
+            "requirement_id": 8,
+            "requirement": "Understanding of basic testing, coding, and debugging procedures",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": []
+          }
+        ],
+        "resume_md5": "f461921d8bbe10cde65f2d2bbad24e66",
+        "resume_file": "data/experiments/ab_tailor_27323_pair5_20260901_154146/pair1_A_deterministic.txt"
+      },
+      "B": {
+        "variant": "local_qwen_plan_constrained",
+        "local_model": "qwen3:1.7b",
+        "local_invoked": true,
+        "local_plan_latency_ms": 64961,
+        "local_plan_available": true,
+        "constrained_plan_available": true,
+        "adapter_diagnostics": {
+          "unmapped_evidence_by_requirement": [
+            {
+              "requirement_id": 4,
+              "requirement": "Experience or understanding of software systems design tools and languages.",
+              "unmapped_resume_evidence": [
+                "You Power You"
+              ]
+            }
+          ],
+          "constrained_plan_validation": {
+            "passed": true,
+            "errors": []
+          },
+          "remap_status": "ok"
+        },
+        "plan_summary": {
+          "supported": 4,
+          "unsupported": 4,
+          "skills_to_emphasize": [
+            "Web Design"
+          ],
+          "projects_to_emphasize": [
+            "Express_Engine"
+          ],
+          "summary_focus": [
+            "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "Experience or understanding of software systems design tools and languages."
+          ],
+          "keyword_targets": [
+            "software",
+            "design",
+            "media"
+          ]
+        },
+        "plan_validation": {
+          "passed": true,
+          "errors": []
+        },
+        "generation_latency_ms": 41581,
+        "generation_status": "approved",
+        "validator": {
+          "passed": true,
+          "errors": [],
+          "warnings": [
+            "Company 'AMP Smart' not in experience or projects",
+            "Company 'UPS' not in experience or projects",
+            "Company 'National Tire and Battery / Mavis' not in experience or projects",
+            "Company 'Alex Prosperity Group / UST Logistics' not in experience or projects",
+            "Company 'Waffle House' not in experience or projects",
+            "Possible claim-strength inflation: resume uses a team lead-tier agency verb (led/managed/supervised/directed/spearheaded) but no profile evidence item's own description supports that level of people/organizational authority"
+          ]
+        },
+        "judge": {
+          "passed": true,
+          "verdict": "PASS",
+          "issues": "none",
+          "raw": "VERDICT: PASS\nISSUES: none"
+        },
+        "approved_facts": [
+          "edu:dates:2019 - 2022",
+          "edu:degree:bachelor of arts in media studies",
+          "edu:institution:university of north carolina at greensboro",
+          "experience:header:alignment technician",
+          "experience:header:freelance photographer / videographer",
+          "experience:header:packaging associate / warehouse associate",
+          "experience:header:sales representative / sales tech",
+          "experience:subtitle:media & creative",
+          "experience:subtitle:operations",
+          "experience:subtitle:sales & outreach",
+          "experience:subtitle:technical support & troubleshooting",
+          "projects:header:express_engine",
+          "projects:header:standup-ocr",
+          "projects:header:you power you",
+          "projects:subtitle:html, css, javascript",
+          "projects:subtitle:python",
+          "skill:photography",
+          "skill:python",
+          "skill:videography",
+          "skill:web design"
+        ],
+        "resume_diff_from_base": {
+          "base_bullets": 74,
+          "new_bullets": 17,
+          "retained": [],
+          "reordered": [],
+          "rewritten": [
+            {
+              "from": "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+              "to": "Executed targeted outreach and sales strategies for residential solar solutions to identify qualified leads.",
+              "similarity": 0.794
+            },
+            {
+              "from": "Tailor proposals to homeowner needs and regional market conditions.",
+              "to": "Conducted in-person consultations to analyze homeowner needs and regional market conditions.",
+              "similarity": 0.704
+            }
+          ],
+          "omitted": [
+            "Bachelor of Arts in Media Studies",
+            "Freelance Photographer / Videographer",
+            "Sales Representative / Sales Tech",
+            "Conduct in-person consultations.",
+            "Identify qualified leads.",
+            "Packaging Associate / Warehouse Associate",
+            "Package handling",
+            "Efficiency in a high-volume operational environment",
+            "Alignment Technician",
+            "Vehicle alignment work",
+            "Tires",
+            "Shocks and struts",
+            "Brakes",
+            "Fluids",
+            "Customer relations",
+            "Moving Specialist / Installation Tech",
+            "Installed home appliances contracted through Lowe's",
+            "Server / Line Cook",
+            "Customer service",
+            "Order taking",
+            "High-volume food preparation",
+            "Shift Leader",
+            "Staff training",
+            "Task delegation",
+            "Team coordination during peak hours",
+            "Cashier",
+            "Register operations",
+            "Point-of-sale transactions",
+            "Customer service",
+            "Volunteer Teacher's Assistant",
+            "Classroom management",
+            "Lesson organization",
+            "Assisting lead instructors",
+            "Team Member",
+            "Currency and credit transactions",
+            "Fast-paced customer service",
+            "Customer retention",
+            "Public speaking",
+            "Verbal communication",
+            "Audience engagement",
+            "Writing",
+            "Performance",
+            "Adapting material based on audience response",
+            "Python",
+            "OCR",
+            "Image/document processing",
+            "Transcription",
+            "OCR tooling",
+            "Machine-learning experimentation",
+            "Human review workflows",
+            "Training-data preparation",
+            "Financial/news data",
+            "Data collection",
+            "Feature engineering",
+            "Sentiment analysis",
+            "Statistical/modeling experimentation",
+            "Data processing",
+            "Language-learning tools",
+            "Spaced repetition",
+            "Application architecture",
+            "Persistent data",
+            "CLI/application components",
+            "Website development",
+            "HTML/CSS/JavaScript",
+            "Server-side form handling",
+            "Qualification/submission workflow",
+            "Email notification integration",
+            "Processing exported social-media data",
+            "Filtering and retrieving relevant posts",
+            "Extracting useful information",
+            "Structured data",
+            "Media/comedy-oriented data processing"
+          ],
+          "added": [
+            "Tailored technical proposals to specific homeowner requirements, improving client understanding of system benefits.",
+            "Diagnosed and resolved mechanical issues through vehicle alignment, brake, and suspension troubleshooting.",
+            "Operated specialized diagnostic equipment to perform precise adjustments on steering and fluid systems.",
+            "Communicated technical findings directly to customers, ensuring clear understanding of required repairs.",
+            "Managed complete media production workflows, including photography, videography, and digital editing.",
+            "Designed digital media assets and coordinated client requirements to deliver high-quality creative content.",
+            "Configured technical camera equipment and lighting setups to match specific environmental conditions.",
+            "Handled high-volume package distribution under tight operational deadlines.",
+            "Maintained strict efficiency standards in a fast-paced warehouse environment.",
+            "Participated in coding and programming components for a language-learning software application, implementing spaced repetition algorithms to manage persistent data.",
+            "Developed CLI components in Python to enable interactive user review workflows.",
+            "Programmed a Python-based OCR utility to automate image and document processing, translating text from media files.",
+            "Implemented human review workflows to refine transcription accuracy and prepare machine-learning training data.",
+            "Designed and developed a responsive website using HTML, CSS, and JavaScript to establish an online brand presence.",
+            "Integrated server-side form handling and email notification workflows to process user submissions."
+          ]
+        },
+        "keyword_hits": {
+          "target_count": 3,
+          "hit_count": 3,
+          "hits": [
+            "software",
+            "design",
+            "media"
+          ]
+        },
+        "requirement_coverage": [
+          {
+            "requirement_id": 1,
+            "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "enhancements",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 2,
+            "requirement": "Executes established test plans and protocols for assigned portions of code; identifies, logs, and debugs assigned issues.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": []
+          },
+          {
+            "requirement_id": 3,
+            "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "development",
+              "partners",
+              "software",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 4,
+            "requirement": "Experience or understanding of software systems design tools and languages.",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "software",
+              "systems",
+              "design"
+            ]
+          },
+          {
+            "requirement_id": 5,
+            "requirement": "Good analytical and problem-solving skills.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": []
+          },
+          {
+            "requirement_id": 6,
+            "requirement": "Understanding of design for software systems running on multiple platform types",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "design",
+              "software",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 7,
+            "requirement": "Good written and verbal communication skills; mastery in English and local language.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "communication",
+              "language"
+            ]
+          },
+          {
+            "requirement_id": 8,
+            "requirement": "Understanding of basic testing, coding, and debugging procedures",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "coding"
+            ]
+          }
+        ],
+        "resume_md5": "2851549e2c966d96eb9874f867f4b51a",
+        "resume_file": "data/experiments/ab_tailor_27323_pair5_20260901_154146/pair1_B_local_qwen.txt"
+      }
+    },
+    {
+      "pair": 2,
+      "order": "B_then_A",
+      "A": {
+        "variant": "deterministic_plan",
+        "plan_summary": {
+          "supported": 4,
+          "unsupported": 4,
+          "skills_to_emphasize": [
+            "Web Design"
+          ],
+          "projects_to_emphasize": [
+            "Express_Engine"
+          ],
+          "summary_focus": [
+            "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "Experience or understanding of software systems design tools and languages."
+          ],
+          "keyword_targets": [
+            "software",
+            "design",
+            "media"
+          ]
+        },
+        "plan_validation": {
+          "passed": true,
+          "errors": []
+        },
+        "generation_latency_ms": 23375,
+        "generation_status": "approved",
+        "validator": {
+          "passed": true,
+          "errors": [],
+          "warnings": [
+            "Company 'UPS' not in experience or projects",
+            "Company 'Waffle House' not in experience or projects",
+            "Banned words (style): utilizing",
+            "Possible claim-strength inflation: resume uses a team lead-tier agency verb (led/managed/supervised/directed/spearheaded) but no profile evidence item's own description supports that level of people/organizational authority"
+          ]
+        },
+        "judge": {
+          "passed": true,
+          "verdict": "PASS",
+          "issues": "none",
+          "raw": "VERDICT: PASS\nISSUES: none"
+        },
+        "approved_facts": [
+          "edu:dates:2019 - 2022",
+          "edu:degree:bachelor of arts in media studies",
+          "edu:institution:university of north carolina at greensboro",
+          "experience:header:alignment technician at national tire and battery / mavis",
+          "experience:header:freelance photographer / videographer",
+          "experience:header:moving specialist / installation tech at alex prosperity group / ust logistics",
+          "experience:header:sales representative / sales tech at amp smart",
+          "experience:subtitle:installation, customer service",
+          "experience:subtitle:media, content, creative",
+          "experience:subtitle:sales, customer outreach",
+          "experience:subtitle:technical support, customer service",
+          "projects:header:cap predictor - financial analytics tool",
+          "projects:header:express_engine - language-learning software",
+          "projects:header:standup-ocr - document processing tool",
+          "projects:header:you power you - web application",
+          "projects:subtitle:html, css, javascript",
+          "projects:subtitle:python",
+          "skill:photography",
+          "skill:python",
+          "skill:videography",
+          "skill:web design"
+        ],
+        "resume_diff_from_base": {
+          "base_bullets": 74,
+          "new_bullets": 19,
+          "retained": [],
+          "reordered": [],
+          "rewritten": [
+            {
+              "from": "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+              "to": "Diagnosed residential energy profiles and executed targeted outreach strategies for solar solutions.",
+              "similarity": 0.691
+            },
+            {
+              "from": "Installed home appliances contracted through Lowe's",
+              "to": "Installed and configured home appliances contracted through Lowe's, ensuring proper electrical and mechanical connections.",
+              "similarity": 0.59
+            }
+          ],
+          "omitted": [
+            "Bachelor of Arts in Media Studies",
+            "Freelance Photographer / Videographer",
+            "Sales Representative / Sales Tech",
+            "Conduct in-person consultations.",
+            "Identify qualified leads.",
+            "Tailor proposals to homeowner needs and regional market conditions.",
+            "Packaging Associate / Warehouse Associate",
+            "Package handling",
+            "Efficiency in a high-volume operational environment",
+            "Alignment Technician",
+            "Vehicle alignment work",
+            "Tires",
+            "Shocks and struts",
+            "Brakes",
+            "Fluids",
+            "Customer relations",
+            "Moving Specialist / Installation Tech",
+            "Server / Line Cook",
+            "Customer service",
+            "Order taking",
+            "High-volume food preparation",
+            "Shift Leader",
+            "Staff training",
+            "Task delegation",
+            "Team coordination during peak hours",
+            "Cashier",
+            "Register operations",
+            "Point-of-sale transactions",
+            "Customer service",
+            "Volunteer Teacher's Assistant",
+            "Classroom management",
+            "Lesson organization",
+            "Assisting lead instructors",
+            "Team Member",
+            "Currency and credit transactions",
+            "Fast-paced customer service",
+            "Customer retention",
+            "Public speaking",
+            "Verbal communication",
+            "Audience engagement",
+            "Writing",
+            "Performance",
+            "Adapting material based on audience response",
+            "Python",
+            "OCR",
+            "Image/document processing",
+            "Transcription",
+            "OCR tooling",
+            "Machine-learning experimentation",
+            "Human review workflows",
+            "Training-data preparation",
+            "Financial/news data",
+            "Data collection",
+            "Feature engineering",
+            "Sentiment analysis",
+            "Statistical/modeling experimentation",
+            "Data processing",
+            "Language-learning tools",
+            "Spaced repetition",
+            "Application architecture",
+            "Persistent data",
+            "CLI/application components",
+            "Website development",
+            "HTML/CSS/JavaScript",
+            "Server-side form handling",
+            "Qualification/submission workflow",
+            "Email notification integration",
+            "Processing exported social-media data",
+            "Filtering and retrieving relevant posts",
+            "Extracting useful information",
+            "Structured data",
+            "Media/comedy-oriented data processing"
+          ],
+          "added": [
+            "Conducted in-person consultations to translate complex technical specifications into clear homeowner proposals.",
+            "Analyzed regional market conditions and homeowner needs to tailor technical and financial proposals.",
+            "Diagnosed and resolved mechanical and system alignment issues across diverse vehicle platforms.",
+            "Executed hands-on troubleshooting and repairs for brakes, suspension systems, and fluid components.",
+            "Communicated technical diagnostics directly to customers to ensure transparency and service alignment.",
+            "Managed digital media assets and designed visual content, coordinating with clients to meet technical and creative specifications.",
+            "Operated complex digital camera systems and editing software to produce high-quality media products.",
+            "Designed and delivered digital media assets, managing complete production workflows for diverse clients.",
+            "Troubleshot installation issues on-site to maintain high customer satisfaction and safety standards.",
+            "Participated in coding and programming enhancements for a language-learning utility, implementing spaced repetition algorithms in Python, enabling structured vocabulary retention.",
+            "Developed persistent data structures and CLI application components to support reliable software execution.",
+            "Built an OCR processing pipeline in Python to automate image and document transcription.",
+            "Implemented human review workflows and prepared training data to improve machine-learning model accuracy.",
+            "Developed a custom website utilizing HTML, CSS, and JavaScript to support user qualification workflows.",
+            "Implemented server-side form handling and integrated email notification systems for reliable data submission.",
+            "Collected and processed financial and news data using Python to perform sentiment analysis.",
+            "Engineered data features and executed statistical modeling experiments to analyze market trends."
+          ]
+        },
+        "keyword_hits": {
+          "target_count": 3,
+          "hit_count": 3,
+          "hits": [
+            "software",
+            "design",
+            "media"
+          ]
+        },
+        "requirement_coverage": [
+          {
+            "requirement_id": 1,
+            "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "enhancements",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 2,
+            "requirement": "Executes established test plans and protocols for assigned portions of code; identifies, logs, and debugs assigned issues.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": []
+          },
+          {
+            "requirement_id": 3,
+            "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "development",
+              "software",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 4,
+            "requirement": "Experience or understanding of software systems design tools and languages.",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "software",
+              "systems",
+              "design",
+              "languages"
+            ]
+          },
+          {
+            "requirement_id": 5,
+            "requirement": "Good analytical and problem-solving skills.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": []
+          },
+          {
+            "requirement_id": 6,
+            "requirement": "Understanding of design for software systems running on multiple platform types",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "design",
+              "software",
+              "systems",
+              "platform"
+            ]
+          },
+          {
+            "requirement_id": 7,
+            "requirement": "Good written and verbal communication skills; mastery in English and local language.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "language"
+            ]
+          },
+          {
+            "requirement_id": 8,
+            "requirement": "Understanding of basic testing, coding, and debugging procedures",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "coding"
+            ]
+          }
+        ],
+        "resume_md5": "d96236f47b40e0a7cea9edc9ad0c3b48",
+        "resume_file": "data/experiments/ab_tailor_27323_pair5_20260901_154146/pair2_A_deterministic.txt"
+      },
+      "B": {
+        "variant": "local_qwen_plan_constrained",
+        "local_model": "qwen3:1.7b",
+        "local_invoked": true,
+        "local_plan_latency_ms": 13851,
+        "local_plan_available": true,
+        "constrained_plan_available": true,
+        "adapter_diagnostics": {
+          "unmapped_evidence_by_requirement": [],
+          "constrained_plan_validation": {
+            "passed": true,
+            "errors": []
+          },
+          "remap_status": "ok"
+        },
+        "plan_summary": {
+          "supported": 3,
+          "unsupported": 5,
+          "skills_to_emphasize": [
+            "Web Design"
+          ],
+          "projects_to_emphasize": [
+            "Express_Engine"
+          ],
+          "summary_focus": [
+            "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "Understanding of design for software systems running on multiple platform types"
+          ],
+          "keyword_targets": [
+            "software",
+            "design",
+            "media"
+          ]
+        },
+        "plan_validation": {
+          "passed": true,
+          "errors": []
+        },
+        "generation_latency_ms": 64634,
+        "generation_status": "approved",
+        "validator": {
+          "passed": true,
+          "errors": [],
+          "warnings": [
+            "Possible claim-strength inflation: resume uses a team lead-tier agency verb (led/managed/supervised/directed/spearheaded) but no profile evidence item's own description supports that level of people/organizational authority",
+            "Experience header may reference unrecognized employer: 'Freelance Photography / Videography' (known: Amp Smart, Ups, National Tire And Battery / Mavis)"
+          ]
+        },
+        "judge": {
+          "passed": true,
+          "verdict": "PASS",
+          "issues": "none",
+          "raw": "VERDICT: PASS\nISSUES: none"
+        },
+        "approved_facts": [
+          "edu:dates:2019 - 2022",
+          "edu:degree:bachelor of arts in media studies",
+          "edu:institution:university of north carolina at greensboro",
+          "experience:header:alignment technician at national tire and battery / mavis",
+          "experience:header:freelance photographer / videographer at freelance photography / videography",
+          "experience:header:moving specialist / installation tech at alex prosperity group / ust logistics",
+          "experience:header:packaging associate / warehouse associate at ups",
+          "experience:header:sales representative / sales tech at amp smart",
+          "experience:header:server / line cook at waffle house",
+          "experience:subtitle:automotive tech",
+          "experience:subtitle:customer outreach",
+          "experience:subtitle:food service",
+          "experience:subtitle:installation",
+          "experience:subtitle:media tech",
+          "experience:subtitle:operations",
+          "projects:header:cap predictor - financial data processor",
+          "projects:header:express_engine - language learning tool",
+          "projects:header:standup-ocr - text extraction utility",
+          "projects:header:you power you - web platform",
+          "projects:subtitle:html, css, javascript",
+          "projects:subtitle:python",
+          "skill:photography",
+          "skill:python",
+          "skill:videography",
+          "skill:web design"
+        ],
+        "resume_diff_from_base": {
+          "base_bullets": 74,
+          "new_bullets": 20,
+          "retained": [],
+          "reordered": [],
+          "rewritten": [
+            {
+              "from": "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+              "to": "Developed and executed targeted outreach strategies for residential solar solutions to match regional market conditions.",
+              "similarity": 0.768
+            },
+            {
+              "from": "Installed home appliances contracted through Lowe's",
+              "to": "Installed home appliances contracted through Lowe's, ensuring proper technical setup and customer satisfaction.",
+              "similarity": 0.63
+            }
+          ],
+          "omitted": [
+            "Bachelor of Arts in Media Studies",
+            "Freelance Photographer / Videographer",
+            "Sales Representative / Sales Tech",
+            "Conduct in-person consultations.",
+            "Identify qualified leads.",
+            "Tailor proposals to homeowner needs and regional market conditions.",
+            "Packaging Associate / Warehouse Associate",
+            "Package handling",
+            "Efficiency in a high-volume operational environment",
+            "Alignment Technician",
+            "Vehicle alignment work",
+            "Tires",
+            "Shocks and struts",
+            "Brakes",
+            "Fluids",
+            "Customer relations",
+            "Moving Specialist / Installation Tech",
+            "Server / Line Cook",
+            "Customer service",
+            "Order taking",
+            "High-volume food preparation",
+            "Shift Leader",
+            "Staff training",
+            "Task delegation",
+            "Team coordination during peak hours",
+            "Cashier",
+            "Register operations",
+            "Point-of-sale transactions",
+            "Customer service",
+            "Volunteer Teacher's Assistant",
+            "Classroom management",
+            "Lesson organization",
+            "Assisting lead instructors",
+            "Team Member",
+            "Currency and credit transactions",
+            "Fast-paced customer service",
+            "Customer retention",
+            "Public speaking",
+            "Verbal communication",
+            "Audience engagement",
+            "Writing",
+            "Performance",
+            "Adapting material based on audience response",
+            "Python",
+            "OCR",
+            "Image/document processing",
+            "Transcription",
+            "OCR tooling",
+            "Machine-learning experimentation",
+            "Human review workflows",
+            "Training-data preparation",
+            "Financial/news data",
+            "Data collection",
+            "Feature engineering",
+            "Sentiment analysis",
+            "Statistical/modeling experimentation",
+            "Data processing",
+            "Language-learning tools",
+            "Spaced repetition",
+            "Application architecture",
+            "Persistent data",
+            "CLI/application components",
+            "Website development",
+            "HTML/CSS/JavaScript",
+            "Server-side form handling",
+            "Qualification/submission workflow",
+            "Email notification integration",
+            "Processing exported social-media data",
+            "Filtering and retrieving relevant posts",
+            "Extracting useful information",
+            "Structured data",
+            "Media/comedy-oriented data processing"
+          ],
+          "added": [
+            "Conducted in-person consultations to identify qualified leads and analyze homeowner requirements.",
+            "Tailored technical proposals to specific homeowner needs, improving customer alignment and engagement.",
+            "Diagnosed and resolved mechanical issues with vehicle alignments, brakes, shocks, and struts.",
+            "Executed hands-on troubleshooting and fluid replacements under tight operational schedules.",
+            "Communicated technical issues clearly to customers to build trust and ensure service satisfaction.",
+            "Handled high-volume package processing under strict time constraints to maintain operational flow.",
+            "Managed physical inventory and sorting tasks, ensuring high reliability in a fast-paced environment.",
+            "Designed and produced digital media assets, managing production workflows from initial concept to final delivery.",
+            "Managed client relationships and gathered requirements to deliver tailored visual content.",
+            "Managed high-volume food preparation and customer service in a fast-paced environment.",
+            "Coded and programmed enhancements for a language-learning software tool, implementing spaced repetition algorithms to improve vocabulary retention.",
+            "Built CLI components and persistent data structures in Python, enabling reliable local data storage and retrieval.",
+            "Developed a custom website using HTML, CSS, and JavaScript, establishing a structured qualification and submission workflow.",
+            "Implemented server-side form handling and integrated email notifications to automate user inquiries.",
+            "Built a Python-based OCR utility to process image and document data, automating text transcription workflows.",
+            "Configured machine-learning experimentation pipelines and human review workflows to prepare high-quality training data.",
+            "Developed data collection and processing scripts in Python to analyze financial and news datasets.",
+            "Performed feature engineering and sentiment analysis to support statistical modeling experimentation."
+          ]
+        },
+        "keyword_hits": {
+          "target_count": 3,
+          "hit_count": 3,
+          "hits": [
+            "software",
+            "design",
+            "media"
+          ]
+        },
+        "requirement_coverage": [
+          {
+            "requirement_id": 1,
+            "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "enhancements",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 2,
+            "requirement": "Executes established test plans and protocols for assigned portions of code; identifies, logs, and debugs assigned issues.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "code"
+            ]
+          },
+          {
+            "requirement_id": 3,
+            "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "relationship",
+              "development",
+              "partners",
+              "software",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 4,
+            "requirement": "Experience or understanding of software systems design tools and languages.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "software",
+              "systems",
+              "design",
+              "languages"
+            ]
+          },
+          {
+            "requirement_id": 5,
+            "requirement": "Good analytical and problem-solving skills.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "problem",
+              "solving"
+            ]
+          },
+          {
+            "requirement_id": 6,
+            "requirement": "Understanding of design for software systems running on multiple platform types",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "design",
+              "software",
+              "systems",
+              "platform"
+            ]
+          },
+          {
+            "requirement_id": 7,
+            "requirement": "Good written and verbal communication skills; mastery in English and local language.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "local",
+              "language"
+            ]
+          },
+          {
+            "requirement_id": 8,
+            "requirement": "Understanding of basic testing, coding, and debugging procedures",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": []
+          }
+        ],
+        "resume_md5": "46be8bb2456ceb3d208496f59403087e",
+        "resume_file": "data/experiments/ab_tailor_27323_pair5_20260901_154146/pair2_B_local_qwen.txt"
+      }
+    },
+    {
+      "pair": 3,
+      "order": "A_then_B",
+      "A": {
+        "variant": "deterministic_plan",
+        "plan_summary": {
+          "supported": 4,
+          "unsupported": 4,
+          "skills_to_emphasize": [
+            "Web Design"
+          ],
+          "projects_to_emphasize": [
+            "Express_Engine"
+          ],
+          "summary_focus": [
+            "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "Experience or understanding of software systems design tools and languages."
+          ],
+          "keyword_targets": [
+            "software",
+            "design",
+            "media"
+          ]
+        },
+        "plan_validation": {
+          "passed": true,
+          "errors": []
+        },
+        "generation_latency_ms": 20153,
+        "generation_status": "approved",
+        "validator": {
+          "passed": true,
+          "errors": [],
+          "warnings": [
+            "Company 'AMP Smart' not in experience or projects",
+            "Company 'UPS' not in experience or projects",
+            "Company 'National Tire and Battery / Mavis' not in experience or projects",
+            "Company 'Alex Prosperity Group / UST Logistics' not in experience or projects",
+            "Company 'Waffle House' not in experience or projects",
+            "Banned words (style): demonstrated ability",
+            "Possible claim-strength inflation: resume uses a team lead-tier agency verb (led/managed/supervised/directed/spearheaded) but no profile evidence item's own description supports that level of people/organizational authority"
+          ]
+        },
+        "judge": {
+          "passed": true,
+          "verdict": "PASS",
+          "issues": "none",
+          "raw": "VERDICT: PASS\nISSUES: none"
+        },
+        "approved_facts": [
+          "edu:dates:2019 - 2022",
+          "edu:degree:bachelor of arts in media studies",
+          "edu:institution:university of north carolina at greensboro",
+          "experience:header:alignment technician",
+          "experience:header:freelance photographer / videographer",
+          "experience:header:moving specialist / installation tech",
+          "experience:header:sales representative / sales tech",
+          "experience:subtitle:alex prosperity group / ust logistics",
+          "experience:subtitle:amp smart",
+          "experience:subtitle:freelance",
+          "experience:subtitle:national tire and battery / mavis",
+          "projects:header:express_engine",
+          "projects:header:standup-ocr",
+          "projects:header:you power you",
+          "projects:subtitle:html, css, javascript",
+          "projects:subtitle:python",
+          "skill:photography",
+          "skill:python",
+          "skill:videography",
+          "skill:web design"
+        ],
+        "resume_diff_from_base": {
+          "base_bullets": 74,
+          "new_bullets": 16,
+          "retained": [],
+          "reordered": [],
+          "rewritten": [
+            {
+              "from": "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+              "to": "Executed targeted outreach and technical sales consultations for residential solar systems.",
+              "similarity": 0.758
+            }
+          ],
+          "omitted": [
+            "Bachelor of Arts in Media Studies",
+            "Freelance Photographer / Videographer",
+            "Sales Representative / Sales Tech",
+            "Conduct in-person consultations.",
+            "Identify qualified leads.",
+            "Tailor proposals to homeowner needs and regional market conditions.",
+            "Packaging Associate / Warehouse Associate",
+            "Package handling",
+            "Efficiency in a high-volume operational environment",
+            "Alignment Technician",
+            "Vehicle alignment work",
+            "Tires",
+            "Shocks and struts",
+            "Brakes",
+            "Fluids",
+            "Customer relations",
+            "Moving Specialist / Installation Tech",
+            "Installed home appliances contracted through Lowe's",
+            "Server / Line Cook",
+            "Customer service",
+            "Order taking",
+            "High-volume food preparation",
+            "Shift Leader",
+            "Staff training",
+            "Task delegation",
+            "Team coordination during peak hours",
+            "Cashier",
+            "Register operations",
+            "Point-of-sale transactions",
+            "Customer service",
+            "Volunteer Teacher's Assistant",
+            "Classroom management",
+            "Lesson organization",
+            "Assisting lead instructors",
+            "Team Member",
+            "Currency and credit transactions",
+            "Fast-paced customer service",
+            "Customer retention",
+            "Public speaking",
+            "Verbal communication",
+            "Audience engagement",
+            "Writing",
+            "Performance",
+            "Adapting material based on audience response",
+            "Python",
+            "OCR",
+            "Image/document processing",
+            "Transcription",
+            "OCR tooling",
+            "Machine-learning experimentation",
+            "Human review workflows",
+            "Training-data preparation",
+            "Financial/news data",
+            "Data collection",
+            "Feature engineering",
+            "Sentiment analysis",
+            "Statistical/modeling experimentation",
+            "Data processing",
+            "Language-learning tools",
+            "Spaced repetition",
+            "Application architecture",
+            "Persistent data",
+            "CLI/application components",
+            "Website development",
+            "HTML/CSS/JavaScript",
+            "Server-side form handling",
+            "Qualification/submission workflow",
+            "Email notification integration",
+            "Processing exported social-media data",
+            "Filtering and retrieving relevant posts",
+            "Extracting useful information",
+            "Structured data",
+            "Media/comedy-oriented data processing"
+          ],
+          "added": [
+            "Analyzed homeowner energy usage data to design tailored solar proposals and system specifications.",
+            "Identified qualified leads and explained technical system benefits to non-technical customers.",
+            "Managed digital media assets and designed web portfolios to showcase creative content.",
+            "Configured camera systems and post-processing software to deliver high-quality media products.",
+            "Diagnosed and resolved mechanical and alignment issues using computerized diagnostic systems.",
+            "Executed precise calibrations on steering, suspension, and braking subsystems.",
+            "Communicated technical diagnostic findings and repair recommendations clearly to customers.",
+            "Installed and configured home appliances, ensuring proper electrical and plumbing connections.",
+            "Troubleshot installation issues on-site to ensure system functionality and customer satisfaction.",
+            "Programmed software enhancements and updates for a language-learning utility using Python.",
+            "Designed application architecture with persistent data storage and CLI components to manage user progress.",
+            "Designed and developed a responsive website using HTML, CSS, and JavaScript.",
+            "Implemented server-side form handling and automated email notification workflows for user submissions.",
+            "Built a Python-based OCR tool to automate text extraction and transcription from image files.",
+            "Implemented machine-learning experimentation workflows and human review interfaces for data validation."
+          ]
+        },
+        "keyword_hits": {
+          "target_count": 3,
+          "hit_count": 3,
+          "hits": [
+            "software",
+            "design",
+            "media"
+          ]
+        },
+        "requirement_coverage": [
+          {
+            "requirement_id": 1,
+            "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "enhancements",
+              "updates",
+              "subsystems",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 2,
+            "requirement": "Executes established test plans and protocols for assigned portions of code; identifies, logs, and debugs assigned issues.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": []
+          },
+          {
+            "requirement_id": 3,
+            "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "development",
+              "software",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 4,
+            "requirement": "Experience or understanding of software systems design tools and languages.",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "software",
+              "systems",
+              "design"
+            ]
+          },
+          {
+            "requirement_id": 5,
+            "requirement": "Good analytical and problem-solving skills.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "problem",
+              "solving"
+            ]
+          },
+          {
+            "requirement_id": 6,
+            "requirement": "Understanding of design for software systems running on multiple platform types",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "design",
+              "software",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 7,
+            "requirement": "Good written and verbal communication skills; mastery in English and local language.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "language"
+            ]
+          },
+          {
+            "requirement_id": 8,
+            "requirement": "Understanding of basic testing, coding, and debugging procedures",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": []
+          }
+        ],
+        "resume_md5": "a061c0be3af5daa99f0e37ed12e71b99",
+        "resume_file": "data/experiments/ab_tailor_27323_pair5_20260901_154146/pair3_A_deterministic.txt"
+      },
+      "B": {
+        "variant": "local_qwen_plan_constrained",
+        "local_model": "qwen3:1.7b",
+        "local_invoked": true,
+        "local_plan_latency_ms": 14119,
+        "local_plan_available": true,
+        "constrained_plan_available": true,
+        "adapter_diagnostics": {
+          "unmapped_evidence_by_requirement": [],
+          "constrained_plan_validation": {
+            "passed": true,
+            "errors": []
+          },
+          "remap_status": "ok"
+        },
+        "plan_summary": {
+          "supported": 3,
+          "unsupported": 5,
+          "skills_to_emphasize": [
+            "Web Design"
+          ],
+          "projects_to_emphasize": [
+            "Express_Engine"
+          ],
+          "summary_focus": [
+            "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "Understanding of design for software systems running on multiple platform types"
+          ],
+          "keyword_targets": [
+            "software",
+            "design",
+            "media"
+          ]
+        },
+        "plan_validation": {
+          "passed": true,
+          "errors": []
+        },
+        "generation_latency_ms": 25473,
+        "generation_status": "approved",
+        "validator": {
+          "passed": true,
+          "errors": [],
+          "warnings": [
+            "Company 'Alex Prosperity Group / UST Logistics' not in experience or projects",
+            "Company 'Waffle House' not in experience or projects",
+            "Banned words (style): cross-functional collaboration",
+            "Possible claim-strength inflation: resume uses a team lead-tier agency verb (led/managed/supervised/directed/spearheaded) but no profile evidence item's own description supports that level of people/organizational authority"
+          ]
+        },
+        "judge": {
+          "passed": true,
+          "verdict": "PASS",
+          "issues": "none",
+          "raw": "VERDICT: PASS\nISSUES: none"
+        },
+        "approved_facts": [
+          "edu:dates:2019 - 2022",
+          "edu:degree:bachelor of arts in media studies",
+          "edu:institution:university of north carolina at greensboro",
+          "experience:header:alignment technician at national tire and battery / mavis",
+          "experience:header:freelance photographer / videographer",
+          "experience:header:packaging associate / warehouse associate at ups",
+          "experience:header:sales representative / sales tech at amp smart",
+          "experience:subtitle:operations",
+          "experience:subtitle:photography, videography, web design",
+          "experience:subtitle:sales, customer outreach",
+          "experience:subtitle:technical support, customer service",
+          "projects:header:cap predictor",
+          "projects:header:express_engine",
+          "projects:header:standup-ocr",
+          "projects:header:you power you",
+          "projects:subtitle:html, css, javascript",
+          "projects:subtitle:python",
+          "skill:photography",
+          "skill:python",
+          "skill:videography",
+          "skill:web design"
+        ],
+        "resume_diff_from_base": {
+          "base_bullets": 74,
+          "new_bullets": 19,
+          "retained": [],
+          "reordered": [],
+          "rewritten": [
+            {
+              "from": "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+              "to": "Executed targeted outreach and sales strategies for residential solar solutions, generating qualified leads through direct engagement.",
+              "similarity": 0.702
+            }
+          ],
+          "omitted": [
+            "Bachelor of Arts in Media Studies",
+            "Freelance Photographer / Videographer",
+            "Sales Representative / Sales Tech",
+            "Conduct in-person consultations.",
+            "Identify qualified leads.",
+            "Tailor proposals to homeowner needs and regional market conditions.",
+            "Packaging Associate / Warehouse Associate",
+            "Package handling",
+            "Efficiency in a high-volume operational environment",
+            "Alignment Technician",
+            "Vehicle alignment work",
+            "Tires",
+            "Shocks and struts",
+            "Brakes",
+            "Fluids",
+            "Customer relations",
+            "Moving Specialist / Installation Tech",
+            "Installed home appliances contracted through Lowe's",
+            "Server / Line Cook",
+            "Customer service",
+            "Order taking",
+            "High-volume food preparation",
+            "Shift Leader",
+            "Staff training",
+            "Task delegation",
+            "Team coordination during peak hours",
+            "Cashier",
+            "Register operations",
+            "Point-of-sale transactions",
+            "Customer service",
+            "Volunteer Teacher's Assistant",
+            "Classroom management",
+            "Lesson organization",
+            "Assisting lead instructors",
+            "Team Member",
+            "Currency and credit transactions",
+            "Fast-paced customer service",
+            "Customer retention",
+            "Public speaking",
+            "Verbal communication",
+            "Audience engagement",
+            "Writing",
+            "Performance",
+            "Adapting material based on audience response",
+            "Python",
+            "OCR",
+            "Image/document processing",
+            "Transcription",
+            "OCR tooling",
+            "Machine-learning experimentation",
+            "Human review workflows",
+            "Training-data preparation",
+            "Financial/news data",
+            "Data collection",
+            "Feature engineering",
+            "Sentiment analysis",
+            "Statistical/modeling experimentation",
+            "Data processing",
+            "Language-learning tools",
+            "Spaced repetition",
+            "Application architecture",
+            "Persistent data",
+            "CLI/application components",
+            "Website development",
+            "HTML/CSS/JavaScript",
+            "Server-side form handling",
+            "Qualification/submission workflow",
+            "Email notification integration",
+            "Processing exported social-media data",
+            "Filtering and retrieving relevant posts",
+            "Extracting useful information",
+            "Structured data",
+            "Media/comedy-oriented data processing"
+          ],
+          "added": [
+            "Captured and edited high-quality digital media for diverse clients, ensuring alignment with brand guidelines and technical specifications.",
+            "Managed production workflows, from initial concept to final delivery, optimizing media assets for web platforms.",
+            "Designed and maintained digital portfolios to showcase visual content, improving online engagement and client acquisition.",
+            "Conducted in-person consultations to assess homeowner energy needs and present tailored technical proposals based on regional market conditions.",
+            "Maintained accurate customer records and updated CRM databases to track pipeline progress and coordinate with installation teams.",
+            "Diagnosed and resolved mechanical issues, performing precise vehicle alignments, brake services, and suspension adjustments.",
+            "Operated specialized diagnostic equipment to calibrate steering systems and ensure compliance with safety standards.",
+            "Communicated complex technical issues and repair recommendations clearly to customers, improving service satisfaction.",
+            "Processed and routed high-volume packages in a fast-paced logistics environment, maintaining strict efficiency and safety standards.",
+            "Collaborated with team members to resolve sorting discrepancies and optimize warehouse operations.",
+            "Programmed enhancements for portions of the language-learning software application, implementing spaced repetition algorithms to improve vocabulary retention.",
+            "Coded updates and changes for database and CLI subsystems of the software utility, enabling persistent data storage and reliable user input handling.",
+            "Developed Python-based OCR workflows to automate the transcription of image-based documents, reducing manual data entry.",
+            "Implemented machine-learning experimentation and human-review workflows to verify transcription accuracy.",
+            "Built a custom website using HTML, CSS, and JavaScript, integrating server-side form handling for user submissions.",
+            "Implemented an automated email notification workflow to optimize qualification and submission tracking.",
+            "Built data collection utilities in Python to gather financial and news data for sentiment analysis.",
+            "Performed feature engineering and statistical modeling to analyze trends and predict market indicators."
+          ]
+        },
+        "keyword_hits": {
+          "target_count": 3,
+          "hit_count": 3,
+          "hits": [
+            "software",
+            "design",
+            "media"
+          ]
+        },
+        "requirement_coverage": [
+          {
+            "requirement_id": 1,
+            "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "enhancements",
+              "updates",
+              "changes",
+              "portions",
+              "subsystems",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 2,
+            "requirement": "Executes established test plans and protocols for assigned portions of code; identifies, logs, and debugs assigned issues.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "portions",
+              "code"
+            ]
+          },
+          {
+            "requirement_id": 3,
+            "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "software",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 4,
+            "requirement": "Experience or understanding of software systems design tools and languages.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "software",
+              "systems",
+              "design",
+              "languages"
+            ]
+          },
+          {
+            "requirement_id": 5,
+            "requirement": "Good analytical and problem-solving skills.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": []
+          },
+          {
+            "requirement_id": 6,
+            "requirement": "Understanding of design for software systems running on multiple platform types",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "design",
+              "software",
+              "systems",
+              "platform"
+            ]
+          },
+          {
+            "requirement_id": 7,
+            "requirement": "Good written and verbal communication skills; mastery in English and local language.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "language"
+            ]
+          },
+          {
+            "requirement_id": 8,
+            "requirement": "Understanding of basic testing, coding, and debugging procedures",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": []
+          }
+        ],
+        "resume_md5": "ef6f0b8ad5156fd99d2e1baca8b1eaea",
+        "resume_file": "data/experiments/ab_tailor_27323_pair5_20260901_154146/pair3_B_local_qwen.txt"
+      }
+    },
+    {
+      "pair": 4,
+      "order": "B_then_A",
+      "A": {
+        "variant": "deterministic_plan",
+        "plan_summary": {
+          "supported": 4,
+          "unsupported": 4,
+          "skills_to_emphasize": [
+            "Web Design"
+          ],
+          "projects_to_emphasize": [
+            "Express_Engine"
+          ],
+          "summary_focus": [
+            "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "Experience or understanding of software systems design tools and languages."
+          ],
+          "keyword_targets": [
+            "software",
+            "design",
+            "media"
+          ]
+        },
+        "plan_validation": {
+          "passed": true,
+          "errors": []
+        },
+        "generation_latency_ms": 22101,
+        "generation_status": "approved",
+        "validator": {
+          "passed": true,
+          "errors": [],
+          "warnings": [
+            "Company 'Waffle House' not in experience or projects",
+            "Banned words (style): utilizing",
+            "Possible claim-strength inflation: resume uses a team lead-tier agency verb (led/managed/supervised/directed/spearheaded) but no profile evidence item's own description supports that level of people/organizational authority",
+            "Experience header may reference unrecognized employer: 'Freelance Photography / Videography' (known: Amp Smart, Ups, National Tire And Battery / Mavis)"
+          ]
+        },
+        "judge": {
+          "passed": true,
+          "verdict": "PASS",
+          "issues": "none",
+          "raw": "VERDICT: PASS\nISSUES: none"
+        },
+        "approved_facts": [
+          "edu:dates:2019 - 2022",
+          "edu:degree:bachelor of arts in media studies",
+          "edu:institution:university of north carolina at greensboro",
+          "experience:header:alignment technician at national tire and battery / mavis",
+          "experience:header:freelance photographer / videographer at freelance photography / videography",
+          "experience:header:moving specialist / installation tech at alex prosperity group / ust logistics",
+          "experience:header:packaging associate / warehouse associate at ups",
+          "experience:header:sales representative / sales tech at amp smart",
+          "experience:subtitle:appliance installation, technical troubleshooting",
+          "experience:subtitle:customer outreach, technical consultations",
+          "experience:subtitle:diagnostic tools, mechanical troubleshooting",
+          "experience:subtitle:operations, high-volume logistics",
+          "experience:subtitle:photography, videography",
+          "projects:header:express_engine - language learning software utility",
+          "projects:header:standup-ocr - document processing tool",
+          "projects:header:you power you - web development project",
+          "projects:subtitle:html, css, javascript",
+          "projects:subtitle:python",
+          "skill:photography",
+          "skill:python",
+          "skill:videography",
+          "skill:web design"
+        ],
+        "resume_diff_from_base": {
+          "base_bullets": 74,
+          "new_bullets": 16,
+          "retained": [],
+          "reordered": [],
+          "rewritten": [
+            {
+              "from": "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+              "to": "Executed targeted outreach and sales strategies to identify qualified leads and explain technical system specifications to homeowners.",
+              "similarity": 0.596
+            },
+            {
+              "from": "Tailor proposals to homeowner needs and regional market conditions.",
+              "to": "Tailored proposals to homeowner needs and regional market conditions, ensuring alignment with local utility guidelines.",
+              "similarity": 0.72
+            }
+          ],
+          "omitted": [
+            "Bachelor of Arts in Media Studies",
+            "Freelance Photographer / Videographer",
+            "Sales Representative / Sales Tech",
+            "Conduct in-person consultations.",
+            "Identify qualified leads.",
+            "Packaging Associate / Warehouse Associate",
+            "Package handling",
+            "Efficiency in a high-volume operational environment",
+            "Alignment Technician",
+            "Vehicle alignment work",
+            "Tires",
+            "Shocks and struts",
+            "Brakes",
+            "Fluids",
+            "Customer relations",
+            "Moving Specialist / Installation Tech",
+            "Installed home appliances contracted through Lowe's",
+            "Server / Line Cook",
+            "Customer service",
+            "Order taking",
+            "High-volume food preparation",
+            "Shift Leader",
+            "Staff training",
+            "Task delegation",
+            "Team coordination during peak hours",
+            "Cashier",
+            "Register operations",
+            "Point-of-sale transactions",
+            "Customer service",
+            "Volunteer Teacher's Assistant",
+            "Classroom management",
+            "Lesson organization",
+            "Assisting lead instructors",
+            "Team Member",
+            "Currency and credit transactions",
+            "Fast-paced customer service",
+            "Customer retention",
+            "Public speaking",
+            "Verbal communication",
+            "Audience engagement",
+            "Writing",
+            "Performance",
+            "Adapting material based on audience response",
+            "Python",
+            "OCR",
+            "Image/document processing",
+            "Transcription",
+            "OCR tooling",
+            "Machine-learning experimentation",
+            "Human review workflows",
+            "Training-data preparation",
+            "Financial/news data",
+            "Data collection",
+            "Feature engineering",
+            "Sentiment analysis",
+            "Statistical/modeling experimentation",
+            "Data processing",
+            "Language-learning tools",
+            "Spaced repetition",
+            "Application architecture",
+            "Persistent data",
+            "CLI/application components",
+            "Website development",
+            "HTML/CSS/JavaScript",
+            "Server-side form handling",
+            "Qualification/submission workflow",
+            "Email notification integration",
+            "Processing exported social-media data",
+            "Filtering and retrieving relevant posts",
+            "Extracting useful information",
+            "Structured data",
+            "Media/comedy-oriented data processing"
+          ],
+          "added": [
+            "Conducted in-person consultations for residential solar solutions, analyzing energy usage data to customize technical proposals.",
+            "Diagnosed and resolved mechanical and alignment issues using computerized diagnostic systems.",
+            "Executed precise mechanical adjustments on brakes, suspensions, steering systems, and fluids to ensure optimal vehicle performance.",
+            "Communicated technical diagnostics and repair requirements directly to customers, ensuring clear understanding of service needs.",
+            "Installed and configured home appliances contracted through Lowe's, troubleshooting electrical and plumbing connections to ensure proper operation.",
+            "Managed digital media assets and designed web-based portfolios to showcase creative work.",
+            "Operated complex camera systems and digital editing software to deliver high-quality media products.",
+            "Managed high-volume package routing and sorting, maintaining operational efficiency under strict time constraints.",
+            "Programmed a language-learning software utility in Python utilizing spaced repetition algorithms.",
+            "Designed application architecture with persistent data storage and a command-line interface for user interaction.",
+            "Developed a Python-based OCR tool to process and transcribe text from image documents.",
+            "Experimented with machine-learning workflows and prepared training data to improve transcription accuracy.",
+            "Built a responsive website using HTML, CSS, and JavaScript with server-side form handling.",
+            "Implemented a qualification workflow and integrated email notifications for user submissions."
+          ]
+        },
+        "keyword_hits": {
+          "target_count": 3,
+          "hit_count": 3,
+          "hits": [
+            "software",
+            "design",
+            "media"
+          ]
+        },
+        "requirement_coverage": [
+          {
+            "requirement_id": 1,
+            "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 2,
+            "requirement": "Executes established test plans and protocols for assigned portions of code; identifies, logs, and debugs assigned issues.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": []
+          },
+          {
+            "requirement_id": 3,
+            "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "development",
+              "software",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 4,
+            "requirement": "Experience or understanding of software systems design tools and languages.",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "software",
+              "systems",
+              "design",
+              "tools",
+              "languages"
+            ]
+          },
+          {
+            "requirement_id": 5,
+            "requirement": "Good analytical and problem-solving skills.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "problem",
+              "solving"
+            ]
+          },
+          {
+            "requirement_id": 6,
+            "requirement": "Understanding of design for software systems running on multiple platform types",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "design",
+              "software",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 7,
+            "requirement": "Good written and verbal communication skills; mastery in English and local language.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "local",
+              "language"
+            ]
+          },
+          {
+            "requirement_id": 8,
+            "requirement": "Understanding of basic testing, coding, and debugging procedures",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": []
+          }
+        ],
+        "resume_md5": "751897d6b96305ff6652085191fc8cdf",
+        "resume_file": "data/experiments/ab_tailor_27323_pair5_20260901_154146/pair4_A_deterministic.txt"
+      },
+      "B": {
+        "variant": "local_qwen_plan_constrained",
+        "local_model": "qwen3:1.7b",
+        "local_invoked": true,
+        "local_plan_latency_ms": 14234,
+        "local_plan_available": true,
+        "constrained_plan_available": true,
+        "adapter_diagnostics": {
+          "unmapped_evidence_by_requirement": [],
+          "constrained_plan_validation": {
+            "passed": true,
+            "errors": []
+          },
+          "remap_status": "ok"
+        },
+        "plan_summary": {
+          "supported": 3,
+          "unsupported": 5,
+          "skills_to_emphasize": [
+            "Web Design"
+          ],
+          "projects_to_emphasize": [
+            "Express_Engine"
+          ],
+          "summary_focus": [
+            "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "Understanding of design for software systems running on multiple platform types"
+          ],
+          "keyword_targets": [
+            "software",
+            "design",
+            "media"
+          ]
+        },
+        "plan_validation": {
+          "passed": true,
+          "errors": []
+        },
+        "generation_latency_ms": 24218,
+        "generation_status": "approved",
+        "validator": {
+          "passed": true,
+          "errors": [],
+          "warnings": [
+            "Possible claim-strength inflation: resume uses a team lead-tier agency verb (led/managed/supervised/directed/spearheaded) but no profile evidence item's own description supports that level of people/organizational authority",
+            "Experience header may reference unrecognized employer: 'Freelance Photography / Videography' (known: Amp Smart, Ups, National Tire And Battery / Mavis)"
+          ]
+        },
+        "judge": {
+          "passed": true,
+          "verdict": "PASS",
+          "issues": "none",
+          "raw": "VERDICT: PASS\nISSUES: none"
+        },
+        "approved_facts": [
+          "edu:dates:2019 - 2022",
+          "edu:degree:bachelor of arts in media studies",
+          "edu:institution:university of north carolina at greensboro",
+          "experience:header:alignment technician at national tire and battery / mavis",
+          "experience:header:freelance photographer / videographer at freelance photography / videography",
+          "experience:header:moving specialist / installation tech at alex prosperity group / ust logistics",
+          "experience:header:packaging associate / warehouse associate at ups",
+          "experience:header:sales representative / sales tech at amp smart",
+          "experience:header:server / line cook at waffle house",
+          "experience:subtitle:appliance installation",
+          "experience:subtitle:automotive diagnostics, customer relations",
+          "experience:subtitle:customer outreach, sales",
+          "experience:subtitle:customer service, food preparation",
+          "experience:subtitle:operations",
+          "experience:subtitle:photography, videography, web design",
+          "projects:header:cap predictor",
+          "projects:header:express_engine",
+          "projects:header:i_hate_social_media",
+          "projects:header:standup-ocr",
+          "projects:header:you power you",
+          "projects:subtitle:html, css, javascript",
+          "projects:subtitle:python",
+          "skill:photography",
+          "skill:python",
+          "skill:videography",
+          "skill:web design"
+        ],
+        "resume_diff_from_base": {
+          "base_bullets": 74,
+          "new_bullets": 19,
+          "retained": [],
+          "reordered": [],
+          "rewritten": [
+            {
+              "from": "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+              "to": "Executed targeted outreach and sales strategies for residential solar solutions, identifying qualified leads through direct engagement.",
+              "similarity": 0.699
+            },
+            {
+              "from": "Installed home appliances contracted through Lowe's",
+              "to": "Installed home appliances contracted through Lowe's, ensuring proper technical setup and customer satisfaction.",
+              "similarity": 0.63
+            }
+          ],
+          "omitted": [
+            "Bachelor of Arts in Media Studies",
+            "Freelance Photographer / Videographer",
+            "Sales Representative / Sales Tech",
+            "Conduct in-person consultations.",
+            "Identify qualified leads.",
+            "Tailor proposals to homeowner needs and regional market conditions.",
+            "Packaging Associate / Warehouse Associate",
+            "Package handling",
+            "Efficiency in a high-volume operational environment",
+            "Alignment Technician",
+            "Vehicle alignment work",
+            "Tires",
+            "Shocks and struts",
+            "Brakes",
+            "Fluids",
+            "Customer relations",
+            "Moving Specialist / Installation Tech",
+            "Server / Line Cook",
+            "Customer service",
+            "Order taking",
+            "High-volume food preparation",
+            "Shift Leader",
+            "Staff training",
+            "Task delegation",
+            "Team coordination during peak hours",
+            "Cashier",
+            "Register operations",
+            "Point-of-sale transactions",
+            "Customer service",
+            "Volunteer Teacher's Assistant",
+            "Classroom management",
+            "Lesson organization",
+            "Assisting lead instructors",
+            "Team Member",
+            "Currency and credit transactions",
+            "Fast-paced customer service",
+            "Customer retention",
+            "Public speaking",
+            "Verbal communication",
+            "Audience engagement",
+            "Writing",
+            "Performance",
+            "Adapting material based on audience response",
+            "Python",
+            "OCR",
+            "Image/document processing",
+            "Transcription",
+            "OCR tooling",
+            "Machine-learning experimentation",
+            "Human review workflows",
+            "Training-data preparation",
+            "Financial/news data",
+            "Data collection",
+            "Feature engineering",
+            "Sentiment analysis",
+            "Statistical/modeling experimentation",
+            "Data processing",
+            "Language-learning tools",
+            "Spaced repetition",
+            "Application architecture",
+            "Persistent data",
+            "CLI/application components",
+            "Website development",
+            "HTML/CSS/JavaScript",
+            "Server-side form handling",
+            "Qualification/submission workflow",
+            "Email notification integration",
+            "Processing exported social-media data",
+            "Filtering and retrieving relevant posts",
+            "Extracting useful information",
+            "Structured data",
+            "Media/comedy-oriented data processing"
+          ],
+          "added": [
+            "Conducted in-person consultations to analyze homeowner needs and tailor technical proposals based on regional market conditions.",
+            "Diagnosed and resolved mechanical issues, performing precise vehicle alignments, brake services, and fluid replacements.",
+            "Maintained high customer service standards by explaining technical diagnostics and repair procedures clearly to clients.",
+            "Managed complete creative production, delivering high-quality photography and videography assets for diverse clients.",
+            "Designed and updated a digital portfolio using web design principles to showcase media projects and attract new business.",
+            "Handled high-volume package distribution, maintaining strict operational efficiency and safety standards in a fast-paced environment.",
+            "Provided fast-paced customer service and managed high-volume food preparation under tight time constraints.",
+            "Coded software enhancements and updates for a language-learning tool, implementing a spaced repetition algorithm to manage persistent data.",
+            "Built CLI application components in Python, validating utility functionality through manual testing procedures.",
+            "Developed a responsive website using HTML, CSS, and JavaScript, integrating server-side form handling for user submissions.",
+            "Implemented email notification workflows to automate qualification and submission routing.",
+            "Programmed a Python-based OCR tool to automate text extraction and transcription from image documents.",
+            "Designed human review workflows to verify machine-learning transcription accuracy and prepare training data.",
+            "Created a Python data processing pipeline to collect and analyze financial news sentiment.",
+            "Executed statistical modeling experiments to evaluate feature engineering techniques on structured datasets.",
+            "Developed a Python utility to process exported social media data, filtering and retrieving relevant posts.",
+            "Extracted structured information from unstructured media logs to support data analysis."
+          ]
+        },
+        "keyword_hits": {
+          "target_count": 3,
+          "hit_count": 3,
+          "hits": [
+            "software",
+            "design",
+            "media"
+          ]
+        },
+        "requirement_coverage": [
+          {
+            "requirement_id": 1,
+            "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "enhancements",
+              "updates",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 2,
+            "requirement": "Executes established test plans and protocols for assigned portions of code; identifies, logs, and debugs assigned issues.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "test",
+              "code"
+            ]
+          },
+          {
+            "requirement_id": 3,
+            "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "development",
+              "software",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 4,
+            "requirement": "Experience or understanding of software systems design tools and languages.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "software",
+              "systems",
+              "design"
+            ]
+          },
+          {
+            "requirement_id": 5,
+            "requirement": "Good analytical and problem-solving skills.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": []
+          },
+          {
+            "requirement_id": 6,
+            "requirement": "Understanding of design for software systems running on multiple platform types",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "design",
+              "software",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 7,
+            "requirement": "Good written and verbal communication skills; mastery in English and local language.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "language"
+            ]
+          },
+          {
+            "requirement_id": 8,
+            "requirement": "Understanding of basic testing, coding, and debugging procedures",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "testing",
+              "procedures"
+            ]
+          }
+        ],
+        "resume_md5": "80c77f4f02ff4d14563f12ab3b9159c9",
+        "resume_file": "data/experiments/ab_tailor_27323_pair5_20260901_154146/pair4_B_local_qwen.txt"
+      }
+    },
+    {
+      "pair": 5,
+      "order": "A_then_B",
+      "A": {
+        "variant": "deterministic_plan",
+        "plan_summary": {
+          "supported": 4,
+          "unsupported": 4,
+          "skills_to_emphasize": [
+            "Web Design"
+          ],
+          "projects_to_emphasize": [
+            "Express_Engine"
+          ],
+          "summary_focus": [
+            "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "Experience or understanding of software systems design tools and languages."
+          ],
+          "keyword_targets": [
+            "software",
+            "design",
+            "media"
+          ]
+        },
+        "plan_validation": {
+          "passed": true,
+          "errors": []
+        },
+        "generation_latency_ms": 21007,
+        "generation_status": "approved",
+        "validator": {
+          "passed": true,
+          "errors": [],
+          "warnings": [
+            "Company 'Waffle House' not in experience or projects",
+            "Banned words (style): utilizing",
+            "Possible claim-strength inflation: resume uses a team lead-tier agency verb (led/managed/supervised/directed/spearheaded) but no profile evidence item's own description supports that level of people/organizational authority",
+            "Experience header may reference unrecognized employer: 'Freelance Photography / Videography' (known: Amp Smart, Ups, National Tire And Battery / Mavis)"
+          ]
+        },
+        "judge": {
+          "passed": true,
+          "verdict": "PASS",
+          "issues": "none",
+          "raw": "VERDICT: PASS\nISSUES: none"
+        },
+        "approved_facts": [
+          "edu:dates:2019 - 2022",
+          "edu:degree:bachelor of arts in media studies",
+          "edu:institution:university of north carolina at greensboro",
+          "experience:header:alignment technician at national tire and battery / mavis",
+          "experience:header:freelance photographer / videographer at freelance photography / videography",
+          "experience:header:moving specialist / installation tech at alex prosperity group / ust logistics",
+          "experience:header:packaging associate / warehouse associate at ups",
+          "experience:header:sales representative / sales tech at amp smart",
+          "experience:subtitle:installation, customer service",
+          "experience:subtitle:media, content creation",
+          "experience:subtitle:operations, logistics",
+          "experience:subtitle:sales consultations, outreach",
+          "experience:subtitle:technical troubleshooting, customer service",
+          "projects:header:express_engine - language learning software",
+          "projects:header:i_hate_social_media - data processing tool",
+          "projects:header:standup-ocr - document processing tool",
+          "projects:header:you power you - web development project",
+          "projects:subtitle:html, css, javascript",
+          "projects:subtitle:python",
+          "projects:subtitle:python, ocr",
+          "skill:customer service",
+          "skill:outreach",
+          "skill:photography",
+          "skill:python",
+          "skill:sales consultations",
+          "skill:videography",
+          "skill:web design"
+        ],
+        "resume_diff_from_base": {
+          "base_bullets": 74,
+          "new_bullets": 15,
+          "retained": [],
+          "reordered": [],
+          "rewritten": [
+            {
+              "from": "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+              "to": "Executed targeted outreach and technical sales strategies for residential solar solutions, identifying qualified leads and expanding the regional customer base.",
+              "similarity": 0.629
+            },
+            {
+              "from": "Tailor proposals to homeowner needs and regional market conditions.",
+              "to": "Conducted in-person technical consultations to explain system specifications, tailoring proposals to homeowner needs and regional market conditions.",
+              "similarity": 0.623
+            },
+            {
+              "from": "Installed home appliances contracted through Lowe's",
+              "to": "Installed home appliances contracted through Lowe's, executing hands-on technical setups and verifying operational safety.",
+              "similarity": 0.59
+            }
+          ],
+          "omitted": [
+            "Bachelor of Arts in Media Studies",
+            "Freelance Photographer / Videographer",
+            "Sales Representative / Sales Tech",
+            "Conduct in-person consultations.",
+            "Identify qualified leads.",
+            "Packaging Associate / Warehouse Associate",
+            "Package handling",
+            "Efficiency in a high-volume operational environment",
+            "Alignment Technician",
+            "Vehicle alignment work",
+            "Tires",
+            "Shocks and struts",
+            "Brakes",
+            "Fluids",
+            "Customer relations",
+            "Moving Specialist / Installation Tech",
+            "Server / Line Cook",
+            "Customer service",
+            "Order taking",
+            "High-volume food preparation",
+            "Shift Leader",
+            "Staff training",
+            "Task delegation",
+            "Team coordination during peak hours",
+            "Cashier",
+            "Register operations",
+            "Point-of-sale transactions",
+            "Customer service",
+            "Volunteer Teacher's Assistant",
+            "Classroom management",
+            "Lesson organization",
+            "Assisting lead instructors",
+            "Team Member",
+            "Currency and credit transactions",
+            "Fast-paced customer service",
+            "Customer retention",
+            "Public speaking",
+            "Verbal communication",
+            "Audience engagement",
+            "Writing",
+            "Performance",
+            "Adapting material based on audience response",
+            "Python",
+            "OCR",
+            "Image/document processing",
+            "Transcription",
+            "OCR tooling",
+            "Machine-learning experimentation",
+            "Human review workflows",
+            "Training-data preparation",
+            "Financial/news data",
+            "Data collection",
+            "Feature engineering",
+            "Sentiment analysis",
+            "Statistical/modeling experimentation",
+            "Data processing",
+            "Language-learning tools",
+            "Spaced repetition",
+            "Application architecture",
+            "Persistent data",
+            "CLI/application components",
+            "Website development",
+            "HTML/CSS/JavaScript",
+            "Server-side form handling",
+            "Qualification/submission workflow",
+            "Email notification integration",
+            "Processing exported social-media data",
+            "Filtering and retrieving relevant posts",
+            "Extracting useful information",
+            "Structured data",
+            "Media/comedy-oriented data processing"
+          ],
+          "added": [
+            "Performed precise vehicle alignment work and hands-on troubleshooting for mechanical systems including brakes, shocks, struts, and fluids.",
+            "Managed customer relations directly, explaining complex technical diagnostics and repair procedures to vehicle owners.",
+            "Managed complete media production workflows, delivering high-quality photography and videography assets tailored to client specifications.",
+            "Designed and optimized digital media content, ensuring compatibility across multiple platform types and digital channels.",
+            "Handled high-volume package routing and logistics operations, maintaining strict efficiency and reliability standards in a fast-paced environment.",
+            "Programmed software enhancements and CLI components for a language-learning application utilizing spaced repetition algorithms.",
+            "Implemented persistent data structures in Python to manage user progress and application state across multiple sessions.",
+            "Developed a responsive website utilizing HTML, CSS, and JavaScript, integrating server-side form handling for user qualification workflows.",
+            "Integrated automated email notification systems to process user submissions and improve communication response times.",
+            "Built an OCR transcription utility in Python to automate image and document processing workflows.",
+            "Developed human-review workflows and prepared structured training data for machine-learning experimentation.",
+            "Processed exported social-media data using Python scripts to filter, retrieve, and extract structured information from unstructured posts."
+          ]
+        },
+        "keyword_hits": {
+          "target_count": 3,
+          "hit_count": 3,
+          "hits": [
+            "software",
+            "design",
+            "media"
+          ]
+        },
+        "requirement_coverage": [
+          {
+            "requirement_id": 1,
+            "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "enhancements",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 2,
+            "requirement": "Executes established test plans and protocols for assigned portions of code; identifies, logs, and debugs assigned issues.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": []
+          },
+          {
+            "requirement_id": 3,
+            "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "development",
+              "software",
+              "systems"
+            ]
+          },
+          {
+            "requirement_id": 4,
+            "requirement": "Experience or understanding of software systems design tools and languages.",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "software",
+              "systems",
+              "design",
+              "languages"
+            ]
+          },
+          {
+            "requirement_id": 5,
+            "requirement": "Good analytical and problem-solving skills.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "problem",
+              "solving"
+            ]
+          },
+          {
+            "requirement_id": 6,
+            "requirement": "Understanding of design for software systems running on multiple platform types",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "design",
+              "software",
+              "systems",
+              "multiple",
+              "platform",
+              "types"
+            ]
+          },
+          {
+            "requirement_id": 7,
+            "requirement": "Good written and verbal communication skills; mastery in English and local language.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "communication",
+              "language"
+            ]
+          },
+          {
+            "requirement_id": 8,
+            "requirement": "Understanding of basic testing, coding, and debugging procedures",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "procedures"
+            ]
+          }
+        ],
+        "resume_md5": "2acab3245c7283c07696636d1c80d749",
+        "resume_file": "data/experiments/ab_tailor_27323_pair5_20260901_154146/pair5_A_deterministic.txt"
+      },
+      "B": {
+        "variant": "local_qwen_plan_constrained",
+        "local_model": "qwen3:1.7b",
+        "local_invoked": true,
+        "local_plan_latency_ms": 13879,
+        "local_plan_available": true,
+        "constrained_plan_available": true,
+        "adapter_diagnostics": {
+          "unmapped_evidence_by_requirement": [],
+          "constrained_plan_validation": {
+            "passed": true,
+            "errors": []
+          },
+          "remap_status": "ok"
+        },
+        "plan_summary": {
+          "supported": 3,
+          "unsupported": 5,
+          "skills_to_emphasize": [
+            "Web Design"
+          ],
+          "projects_to_emphasize": [
+            "Express_Engine"
+          ],
+          "summary_focus": [
+            "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "Understanding of design for software systems running on multiple platform types"
+          ],
+          "keyword_targets": [
+            "software",
+            "design",
+            "media"
+          ]
+        },
+        "plan_validation": {
+          "passed": true,
+          "errors": []
+        },
+        "generation_latency_ms": 73007,
+        "generation_status": "local_realization_failed",
+        "validator": null,
+        "judge": null,
+        "approved_facts": [],
+        "resume_diff_from_base": {
+          "base_bullets": 74,
+          "new_bullets": 74,
+          "retained": [
+            "Bachelor of Arts in Media Studies",
+            "Freelance Photographer / Videographer",
+            "Sales Representative / Sales Tech",
+            "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+            "Conduct in-person consultations.",
+            "Identify qualified leads.",
+            "Tailor proposals to homeowner needs and regional market conditions.",
+            "Packaging Associate / Warehouse Associate",
+            "Package handling",
+            "Efficiency in a high-volume operational environment",
+            "Alignment Technician",
+            "Vehicle alignment work",
+            "Tires",
+            "Shocks and struts",
+            "Brakes",
+            "Fluids",
+            "Customer relations",
+            "Moving Specialist / Installation Tech",
+            "Installed home appliances contracted through Lowe's",
+            "Server / Line Cook",
+            "Customer service",
+            "Order taking",
+            "High-volume food preparation",
+            "Shift Leader",
+            "Staff training",
+            "Task delegation",
+            "Team coordination during peak hours",
+            "Cashier",
+            "Register operations",
+            "Point-of-sale transactions",
+            "Customer service",
+            "Volunteer Teacher's Assistant",
+            "Classroom management",
+            "Lesson organization",
+            "Assisting lead instructors",
+            "Team Member",
+            "Currency and credit transactions",
+            "Fast-paced customer service",
+            "Customer retention",
+            "Public speaking",
+            "Verbal communication",
+            "Audience engagement",
+            "Writing",
+            "Performance",
+            "Adapting material based on audience response",
+            "Python",
+            "OCR",
+            "Image/document processing",
+            "Transcription",
+            "OCR tooling",
+            "Machine-learning experimentation",
+            "Human review workflows",
+            "Training-data preparation",
+            "Financial/news data",
+            "Data collection",
+            "Feature engineering",
+            "Sentiment analysis",
+            "Statistical/modeling experimentation",
+            "Data processing",
+            "Language-learning tools",
+            "Spaced repetition",
+            "Application architecture",
+            "Persistent data",
+            "CLI/application components",
+            "Website development",
+            "HTML/CSS/JavaScript",
+            "Server-side form handling",
+            "Qualification/submission workflow",
+            "Email notification integration",
+            "Processing exported social-media data",
+            "Filtering and retrieving relevant posts",
+            "Extracting useful information",
+            "Structured data",
+            "Media/comedy-oriented data processing"
+          ],
+          "reordered": [],
+          "rewritten": [],
+          "omitted": [],
+          "added": []
+        },
+        "keyword_hits": {
+          "target_count": 3,
+          "hit_count": 1,
+          "hits": [
+            "media"
+          ]
+        },
+        "requirement_coverage": [
+          {
+            "requirement_id": 1,
+            "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Express_Engine"
+            ],
+            "requirement_token_hits": []
+          },
+          {
+            "requirement_id": 2,
+            "requirement": "Executes established test plans and protocols for assigned portions of code; identifies, logs, and debugs assigned issues.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": []
+          },
+          {
+            "requirement_id": 3,
+            "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Express_Engine"
+            ],
+            "requirement_token_hits": [
+              "development"
+            ]
+          },
+          {
+            "requirement_id": 4,
+            "requirement": "Experience or understanding of software systems design tools and languages.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "tools"
+            ]
+          },
+          {
+            "requirement_id": 5,
+            "requirement": "Good analytical and problem-solving skills.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": []
+          },
+          {
+            "requirement_id": 6,
+            "requirement": "Understanding of design for software systems running on multiple platform types",
+            "plan_supported": true,
+            "plan_evidence": [
+              "Web Design",
+              "Express_Engine"
+            ],
+            "resume_evidence_mentions": [
+              "Express_Engine"
+            ],
+            "requirement_token_hits": []
+          },
+          {
+            "requirement_id": 7,
+            "requirement": "Good written and verbal communication skills; mastery in English and local language.",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": [
+              "verbal",
+              "communication",
+              "language"
+            ]
+          },
+          {
+            "requirement_id": 8,
+            "requirement": "Understanding of basic testing, coding, and debugging procedures",
+            "plan_supported": false,
+            "plan_evidence": [],
+            "resume_evidence_mentions": [],
+            "requirement_token_hits": []
+          }
+        ],
+        "resume_md5": "e87e098337e9c4e214f00cf635e997ea",
+        "resume_file": "data/experiments/ab_tailor_27323_pair5_20260901_154146/pair5_B_local_qwen.txt"
+      }
+    }
+  ],
+  "aggregate": {
+    "A": {
+      "success_count": 5,
+      "validator_pass_count": 5,
+      "judge_pass_count": 5,
+      "avg_generation_latency_ms": 30148.4,
+      "avg_validator_warnings": 5.0,
+      "unique_resume_hashes": 5
+    },
+    "B": {
+      "success_count": 4,
+      "validator_pass_count": 4,
+      "judge_pass_count": 4,
+      "local_invoked_count": 5,
+      "local_plan_available_count": 5,
+      "constrained_plan_available_count": 5,
+      "plan_validation_pass_count": 5,
+      "total_unmapped_evidence_refs": 1,
+      "avg_local_plan_latency_ms": 24208.8,
+      "avg_generation_latency_ms": 45782.6,
+      "avg_end_to_end_latency_ms": 69991.4,
+      "avg_validator_warnings": 2.8,
+      "unique_resume_hashes": 5
+    },
+    "pairwise": {
+      "B_better_validator_warnings_count": 4,
+      "equal_requirement_coverage_signature_count": 1,
+      "B_added_supported_requirements_count": 0
+    }
+  }
+}

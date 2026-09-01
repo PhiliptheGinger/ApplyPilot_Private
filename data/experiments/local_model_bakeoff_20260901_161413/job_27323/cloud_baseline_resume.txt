@@ -1,0 +1,57 @@
+Philip McLaughlin
+Technical Support & Customer Service Specialist
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Technical support and customer service specialist with a background in media studies and hands-on technical troubleshooting. Proficient in Python programming and web design, applying structured problem-solving to build software utilities and manage high-volume operations. Ready to contribute reliable technical execution and collaborative support to HPE's systems software engineering team.
+
+TECHNICAL SKILLS
+Languages & Technologies: Python, Web Design
+Media & Creative: Photography, Videography
+
+EXPERIENCE
+Sales Representative / Sales Tech at AMP Smart
+Customer Outreach, Technical Consultations
+- Conducted in-person consultations for residential solar solutions, analyzing energy usage data to customize technical proposals.
+- Executed targeted outreach and sales strategies to identify qualified leads and explain technical system specifications to homeowners.
+- Tailored proposals to homeowner needs and regional market conditions, ensuring alignment with local utility guidelines.
+
+Alignment Technician at National Tire and Battery / Mavis
+Diagnostic Tools, Mechanical Troubleshooting
+- Diagnosed and resolved mechanical and alignment issues using computerized diagnostic systems.
+- Executed precise mechanical adjustments on brakes, suspensions, steering systems, and fluids to ensure optimal vehicle performance.
+- Communicated technical diagnostics and repair requirements directly to customers, ensuring clear understanding of service needs.
+
+Moving Specialist / Installation Tech at Alex Prosperity Group / UST Logistics
+Appliance Installation, Technical Troubleshooting
+- Installed and configured home appliances contracted through Lowe's, troubleshooting electrical and plumbing connections to ensure proper operation.
+
+Freelance Photographer / Videographer at Freelance Photography / Videography
+Photography, Videography
+- Managed digital media assets and designed web-based portfolios to showcase creative work.
+- Operated complex camera systems and digital editing software to deliver high-quality media products.
+
+Packaging Associate / Warehouse Associate at UPS
+Operations, High-Volume Logistics
+- Managed high-volume package routing and sorting, maintaining operational efficiency under strict time constraints.
+
+PROJECTS
+Express_Engine - Language Learning Software Utility
+Python
+- Programmed a language-learning software utility in Python utilizing spaced repetition algorithms.
+- Designed application architecture with persistent data storage and a command-line interface for user interaction.
+
+Standup-OCR - Document Processing Tool
+Python
+- Developed a Python-based OCR tool to process and transcribe text from image documents.
+- Experimented with machine-learning workflows and prepared training data to improve transcription accuracy.
+
+You Power You - Web Development Project
+HTML, CSS, JavaScript
+- Built a responsive website using HTML, CSS, and JavaScript with server-side form handling.
+- Implemented a qualification workflow and integrated email notifications for user submissions.
+
+EDUCATION
+University of North Carolina at Greensboro
+Bachelor of Arts in Media Studies
+2019 - 2022

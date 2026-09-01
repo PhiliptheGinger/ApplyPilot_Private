@@ -16,11 +16,35 @@ import subprocess
 import sys
 import tempfile
 import time
+import platform
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 EXT_DIR = REPO_ROOT / "src" / "applypilot" / "apply" / "extension"
-CFT_BIN = Path.home() / ".applypilot" / "chrome-for-testing" / "chrome-linux64" / "chrome"
+
+
+def _cft_bin() -> Path:
+    base = Path.home() / ".applypilot" / "chrome-for-testing"
+    system = platform.system()
+    if system == "Windows":
+        for rel in (Path("chrome-win64") / "chrome.exe", Path("chrome-win") / "chrome.exe"):
+            p = base / rel
+            if p.exists():
+                return p
+        return base / "chrome-win64" / "chrome.exe"
+    if system == "Darwin":
+        for rel in (
+            Path("chrome-mac-x64") / "Google Chrome for Testing.app" / "Contents" / "MacOS" / "Google Chrome for Testing",
+            Path("chrome-mac-arm64") / "Google Chrome for Testing.app" / "Contents" / "MacOS" / "Google Chrome for Testing",
+        ):
+            p = base / rel
+            if p.exists():
+                return p
+        return base / "chrome-mac-x64" / "Google Chrome for Testing.app" / "Contents" / "MacOS" / "Google Chrome for Testing"
+    return base / "chrome-linux64" / "chrome"
+
+
+CFT_BIN = _cft_bin()
 
 
 def check_a_direct_launch() -> None:
@@ -85,43 +109,50 @@ def check_b_patchright_launch() -> None:
 
 
 def check_c_extension_loaded() -> None:
-    """Verify the extension is recognized by chrome://extensions/."""
+    """Verify the extension is loaded.
+
+    Primary check uses service workers in headless mode, which works in CI and
+    local terminals. Falls back to chrome://extensions/ DOM query if needed.
+    """
     from patchright.sync_api import sync_playwright
 
     with tempfile.TemporaryDirectory() as td:
         with sync_playwright() as p:
-            # chrome://extensions requires non-headless to enumerate via shadow DOM
-            # in some Chrome versions. Try headless first; fall back if empty.
             ctx = p.chromium.launch_persistent_context(
                 user_data_dir=td,
                 executable_path=str(CFT_BIN),
-                headless=False,
+                headless=True,
                 args=[
                     f"--load-extension={EXT_DIR}",
+                    f"--disable-extensions-except={EXT_DIR}",
                     "--no-first-run",
                     "--no-default-browser-check",
                 ],
             )
             try:
-                page = ctx.new_page()
-                page.goto("chrome://extensions/", timeout=10_000)
-                # Wait for the extensions-manager element to render.
-                page.wait_for_selector("extensions-manager", timeout=10_000)
-                names = page.evaluate(
-                    """
-                    () => {
-                      const m = document.querySelector('extensions-manager');
-                      if (!m || !m.shadowRoot) return [];
-                      const itemList = m.shadowRoot.querySelector('extensions-item-list');
-                      if (!itemList || !itemList.shadowRoot) return [];
-                      const items = itemList.shadowRoot.querySelectorAll('extensions-item');
-                      return Array.from(items).map(it => {
-                        const name = it.shadowRoot && it.shadowRoot.querySelector('#name');
-                        return name ? name.textContent.trim() : '(unknown)';
-                      });
-                    }
-                    """
-                )
+                # Give the extension worker time to initialize.
+                time.sleep(2)
+                sw_urls = [sw.url for sw in ctx.service_workers]
+                names = sw_urls[:]
+                if not names:
+                    page = ctx.new_page()
+                    page.goto("chrome://extensions/", timeout=10_000)
+                    page.wait_for_selector("extensions-manager", timeout=10_000)
+                    names = page.evaluate(
+                        """
+                        () => {
+                          const m = document.querySelector('extensions-manager');
+                          if (!m || !m.shadowRoot) return [];
+                          const itemList = m.shadowRoot.querySelector('extensions-item-list');
+                          if (!itemList || !itemList.shadowRoot) return [];
+                          const items = itemList.shadowRoot.querySelectorAll('extensions-item');
+                          return Array.from(items).map(it => {
+                            const name = it.shadowRoot && it.shadowRoot.querySelector('#name');
+                            return name ? name.textContent.trim() : '(unknown)';
+                          });
+                        }
+                        """
+                    )
             finally:
                 ctx.close()
     if not names:

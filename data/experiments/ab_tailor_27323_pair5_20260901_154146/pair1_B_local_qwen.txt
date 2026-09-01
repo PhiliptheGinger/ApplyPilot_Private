@@ -1,0 +1,55 @@
+Philip McLaughlin
+Technical Support & Customer Outreach
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Possess foundational software programming capabilities developed through hands-on technical projects, backed by a professional background in technical support, customer outreach, and media studies. Transferable strengths in systematic troubleshooting and client communication support effective collaboration with development partners to deliver reliable software enhancements.
+
+TECHNICAL SKILLS
+Programming & Design: Python, Web Design
+Media Production: Photography, Videography
+
+EXPERIENCE
+Sales Representative / Sales Tech
+Sales & Outreach
+- Executed targeted outreach and sales strategies for residential solar solutions to identify qualified leads.
+- Conducted in-person consultations to analyze homeowner needs and regional market conditions.
+- Tailored technical proposals to specific homeowner requirements, improving client understanding of system benefits.
+
+Alignment Technician
+Technical Support & Troubleshooting
+- Diagnosed and resolved mechanical issues through vehicle alignment, brake, and suspension troubleshooting.
+- Operated specialized diagnostic equipment to perform precise adjustments on steering and fluid systems.
+- Communicated technical findings directly to customers, ensuring clear understanding of required repairs.
+
+Freelance Photographer / Videographer
+Media & Creative
+- Managed complete media production workflows, including photography, videography, and digital editing.
+- Designed digital media assets and coordinated client requirements to deliver high-quality creative content.
+- Configured technical camera equipment and lighting setups to match specific environmental conditions.
+
+Packaging Associate / Warehouse Associate
+Operations
+- Handled high-volume package distribution under tight operational deadlines.
+- Maintained strict efficiency standards in a fast-paced warehouse environment.
+
+PROJECTS
+Express_Engine
+Python
+- Participated in coding and programming components for a language-learning software application, implementing spaced repetition algorithms to manage persistent data.
+- Developed CLI components in Python to enable interactive user review workflows.
+
+Standup-OCR
+Python
+- Programmed a Python-based OCR utility to automate image and document processing, translating text from media files.
+- Implemented human review workflows to refine transcription accuracy and prepare machine-learning training data.
+
+You Power You
+HTML, CSS, JavaScript
+- Designed and developed a responsive website using HTML, CSS, and JavaScript to establish an online brand presence.
+- Integrated server-side form handling and email notification workflows to process user submissions.
+
+EDUCATION
+University of North Carolina at Greensboro
+Bachelor of Arts in Media Studies
+2019 - 2022

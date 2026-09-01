@@ -1,0 +1,876 @@
+{
+  "experiment": "controlled_real_data_local_model_bakeoff",
+  "timestamp_utc": "2026-09-01T16:14:21.275924+00:00",
+  "constraints": {
+    "production_code_modified": false,
+    "production_db_mutations": false,
+    "commits_made": false,
+    "job_selection": "explicit real jobs only"
+  },
+  "prestate": {
+    "git_status_short": {
+      "ok": true,
+      "output": " M scripts/install_cft.py\n M scripts/smoke_cft.py\n M src/applypilot/cli.py\n M src/applypilot/scoring/cover_letter.py\n M src/applypilot/scoring/local_tailor.py\n M src/applypilot/scoring/tailor.py\n M tests/test_stage_transitions.py\n"
+    },
+    "git_diff_stat": {
+      "ok": true,
+      "output": " scripts/install_cft.py                 |  53 ++++--\n scripts/smoke_cft.py                   |  79 +++++---\n src/applypilot/cli.py                  | 334 +++++++++++++++++++++++++++++++++\n src/applypilot/scoring/cover_letter.py |  17 +-\n src/applypilot/scoring/local_tailor.py |  27 ++-\n src/applypilot/scoring/tailor.py       |  18 +-\n tests/test_stage_transitions.py        |  57 ++++++\n 7 files changed, 528 insertions(+), 57 deletions(-)\n"
+    },
+    "git_diff_name_only": {
+      "ok": true,
+      "output": "scripts/install_cft.py\nscripts/smoke_cft.py\nsrc/applypilot/cli.py\nsrc/applypilot/scoring/cover_letter.py\nsrc/applypilot/scoring/local_tailor.py\nsrc/applypilot/scoring/tailor.py\ntests/test_stage_transitions.py\n"
+    },
+    "applypilot_status": {
+      "ok": false,
+      "error": "Command '['.\\\\venv\\\\Scripts\\\\python.exe', '-m', 'applypilot', 'status']' returned non-zero exit status 1."
+    }
+  },
+  "runtime": {
+    "platform": "nt",
+    "python_exe": "C:\\Users\\phili\\Projects\\resume-agent\\venv\\Scripts\\python.exe",
+    "local_configured": true,
+    "python_libs": {
+      "torch": false,
+      "transformers": false,
+      "peft": false,
+      "accelerate": false,
+      "sentencepiece": false
+    },
+    "ollama_list": "NAME                 ID              SIZE      MODIFIED     \nall-minilm:latest    1b226e2802db    45 MB     26 hours ago    \nqwen3:1.7b           8f68893c685c    1.4 GB    10 days ago     \nqwen3:8b             500a1f067a9f    5.2 GB    2 weeks ago     \n"
+  },
+  "candidate_manifest": [
+    {
+      "label": "TinyLlama Resume Tailor (1.1B LoRA)",
+      "family": "tinyllama_1.1b_resume_finetune",
+      "exact_identifier": "akshayrinku/tinyllama-resume-tailor-lora",
+      "source": "https://huggingface.co/akshayrinku/tinyllama-resume-tailor-lora",
+      "size_hint": "1.1B base + LoRA adapter",
+      "format": "PEFT adapter",
+      "available": true,
+      "runnable_now": false,
+      "availability_reason": "Repository is a PEFT adapter requiring base-model load/merge in Transformers+PEFT; those libraries are not installed in current repo venv, and model is not directly loadable by Ollama.",
+      "probe": {
+        "hf_pipeline_tag": "text-generation",
+        "hf_library_name": "peft",
+        "hf_downloads": 0,
+        "hf_has_gguf": false,
+        "hf_siblings_sample": [
+          ".gitattributes",
+          "README.md",
+          "adapter_config.json",
+          "adapter_model.safetensors",
+          "chat_template.jinja",
+          "tokenizer.json",
+          "tokenizer_config.json"
+        ],
+        "ollama_hf_show_exit": 1,
+        "ollama_hf_show_err": "Error: model 'hf.co/akshayrinku/tinyllama-resume-tailor-lora:latest' not found"
+      }
+    },
+    {
+      "label": "T5-Base resume candidate (~220M)",
+      "family": "t5_base_resume_candidate",
+      "exact_identifier": "Abhishek9998/t5-base-finetuned-resumes_t2json_large",
+      "source": "https://huggingface.co/Abhishek9998/t5-base-finetuned-resumes_t2json_large",
+      "size_hint": "~220M",
+      "format": "Transformers checkpoint",
+      "available": true,
+      "runnable_now": false,
+      "availability_reason": "Checkpoint exists but local Transformers stack is not installed; also model card indicates text-to-JSON resume dataset fine-tune, not clearly resume tailoring quality for this pipeline.",
+      "probe": {
+        "hf_pipeline_tag": null,
+        "hf_library_name": "transformers",
+        "hf_downloads": 20,
+        "hf_has_gguf": false,
+        "hf_siblings_sample": [
+          ".gitattributes",
+          ".gitignore",
+          "README.md",
+          "config.json",
+          "pytorch_model.bin",
+          "runs/Apr22_19-11-37_pytorch-1-13-20230216-153456/1682190700.4451935/events.out.tfevents.1682190700.pytorch-1-13-20230216-153456.1415230.1",
+          "runs/Apr22_19-11-37_pytorch-1-13-20230216-153456/events.out.tfevents.1682190700.pytorch-1-13-20230216-153456.1415230.0",
+          "runs/Apr23_13-29-04_pytorch-1-13-20230216-153456/1682256547.8522978/events.out.tfevents.1682256547.pytorch-1-13-20230216-153456.1329718.1",
+          "runs/Apr23_13-29-04_pytorch-1-13-20230216-153456/events.out.tfevents.1682256547.pytorch-1-13-20230216-153456.1329718.0",
+          "special_tokens_map.json",
+          "spiece.model",
+          "tokenizer.json"
+        ],
+        "ollama_hf_show_exit": 1,
+        "ollama_hf_show_err": "Error: model 'hf.co/Abhishek9998/t5-base-finetuned-resumes_t2json_large:latest' not found"
+      }
+    },
+    {
+      "label": "GPT-Neo resume assistant candidate (~1.3B)",
+      "family": "gpt_neo_resume_candidate",
+      "exact_identifier": null,
+      "source": "HF search queries: gpt-neo resume / gpt neo resume assistant (0 results)",
+      "size_hint": "~1.3B target",
+      "format": "N/A",
+      "available": false,
+      "runnable_now": false,
+      "availability_reason": "No resume-specific GPT-Neo candidate found from targeted HF searches; per instruction, not substituting generic GPT-Neo.",
+      "probe": {}
+    },
+    {
+      "label": "Qwen2.5 Resume LoRA (~7B)",
+      "family": "qwen25_7b_resume_finetune",
+      "exact_identifier": "Ella0506/Qwen2.5-7B-Instruct-Resume-LoRA",
+      "source": "https://huggingface.co/Ella0506/Qwen2.5-7B-Instruct-Resume-LoRA",
+      "size_hint": "~7B base + LoRA adapter",
+      "format": "PEFT adapter",
+      "available": true,
+      "runnable_now": false,
+      "availability_reason": "Repository is a PEFT adapter requiring base-model load/merge in Transformers+PEFT; those libraries are not installed in current repo venv, and model is not directly loadable by Ollama.",
+      "probe": {
+        "hf_pipeline_tag": null,
+        "hf_library_name": "peft",
+        "hf_downloads": 7,
+        "hf_has_gguf": false,
+        "hf_siblings_sample": [
+          ".gitattributes",
+          "README.md",
+          "adapter_config.json",
+          "adapter_model.safetensors",
+          "added_tokens.json",
+          "merges.txt",
+          "special_tokens_map.json",
+          "tokenizer.json",
+          "tokenizer_config.json",
+          "vocab.json"
+        ],
+        "ollama_hf_show_exit": 1,
+        "ollama_hf_show_err": "Error: model 'hf.co/Ella0506/Qwen2.5-7B-Instruct-Resume-LoRA:latest' not found"
+      }
+    },
+    {
+      "label": "qwen3 baseline",
+      "family": "qwen3_baseline",
+      "exact_identifier": "qwen3:1.7b",
+      "source": "local Ollama model inventory",
+      "size_hint": "2.0B (Q4_K_M, 1.4GB)",
+      "format": "Ollama local model",
+      "available": true,
+      "runnable_now": true,
+      "availability_reason": "Installed locally in Ollama.",
+      "probe": {
+        "ollama_show_exit": 0,
+        "ollama_show_stderr": "",
+        "ollama_show_stdout_head": "  Model\n    architecture        qwen3     \n    parameters          2.0B      \n    context length      40960     \n    embedding length    2048      \n    quantization        Q4_K_M    \n\n  Capabilities\n    completion    \n    tools         \n    thinking      \n"
+      }
+    }
+  ],
+  "jobs": [
+    {
+      "job_id": 27323,
+      "title": "Software Engineer Graduate",
+      "company": null,
+      "site": "Hewlett Packard Enterprise",
+      "fit_score": null,
+      "state": "enriched",
+      "base_resume_source": "C:\\Users\\phili\\Projects\\resume-agent\\data\\profile.json",
+      "cloud_baseline_source": "data\\experiments\\ab_tailor_27323_pair5_20260901_154146\\pair4_A_deterministic.txt",
+      "deterministic_counts": {
+        "supported": 1,
+        "ambiguous": 3,
+        "unsupported": 4
+      },
+      "deterministic_plan_valid": true,
+      "standup_decision": "EXCLUDE"
+    },
+    {
+      "job_id": 7267,
+      "title": "Software Development Engineer",
+      "company": null,
+      "site": "Adobe",
+      "fit_score": 8,
+      "state": "archived",
+      "base_resume_source": "C:\\Users\\phili\\Projects\\resume-agent\\data\\profile.json",
+      "cloud_baseline_source": "C:\\Users\\phili\\Projects\\resume-agent\\data\\resumes\\applypilot\\Philip_McLaughlin_Software_Development_Engineer_74c9630f.txt",
+      "deterministic_counts": {
+        "supported": 2,
+        "ambiguous": 1,
+        "unsupported": 5
+      },
+      "deterministic_plan_valid": true,
+      "standup_decision": "INCLUDE"
+    },
+    {
+      "job_id": 7406,
+      "title": "Cloud Platform Engineer",
+      "company": null,
+      "site": "Accenture",
+      "fit_score": 8,
+      "state": "archived",
+      "base_resume_source": "C:\\Users\\phili\\Projects\\resume-agent\\data\\profile.json",
+      "cloud_baseline_source": "C:\\Users\\phili\\Projects\\resume-agent\\data\\resumes\\applypilot\\Philip_McLaughlin_Cloud_Platform_Engineer_1e7c9573.txt",
+      "deterministic_counts": {
+        "supported": 0,
+        "ambiguous": 1,
+        "unsupported": 7
+      },
+      "deterministic_plan_valid": true,
+      "standup_decision": "EXCLUDE"
+    }
+  ],
+  "model_results": [
+    {
+      "job_id": 27323,
+      "model_label": "qwen3 baseline",
+      "exact_model_identifier": "qwen3:1.7b",
+      "model_source": "local Ollama model inventory",
+      "model_size_hint": "2.0B (Q4_K_M, 1.4GB)",
+      "inference_succeeded": true,
+      "inference_latency_ms": 104495,
+      "resource": {
+        "vm_available_mb_before": 2670.97,
+        "vm_available_mb_after": 1370.63,
+        "vm_percent_before": 77.9,
+        "vm_percent_after": 88.6,
+        "ollama_proc_before": {
+          "pid": 14536,
+          "rss": 28647424,
+          "cpu_percent": 0.0
+        },
+        "ollama_proc_after": {
+          "pid": 14536,
+          "rss": 40046592,
+          "cpu_percent": 0.7
+        }
+      },
+      "model_generated_content": {
+        "realization": {
+          "summary": "Engineer specializing in software development, leveraging express engine tools to enhance system stability and efficiency, with a focus on technical execution and transferable capabilities.",
+          "bullets": {}
+        },
+        "realization_meta": {
+          "llm_called": true,
+          "realized_bullets": 0,
+          "prompt_chars": 2219,
+          "max_tokens": 600,
+          "claim_strength_violations": 1,
+          "passive_voice_warnings": 0
+        }
+      },
+      "deterministic_post_processing": {
+        "merged_resume_schema_keys": [
+          "education",
+          "experience",
+          "projects",
+          "skills",
+          "summary",
+          "title"
+        ],
+        "requirements_supported_count": 1
+      },
+      "validator": {
+        "passed": false,
+        "errors": [
+          "Missing required field: experience",
+          "Missing required field: education"
+        ],
+        "warnings": [
+          "Missing field: projects (optional, LLM may have folded into experience)"
+        ]
+      },
+      "judge": {
+        "passed": false,
+        "verdict": "FAIL",
+        "issues": "The candidate's actual employment history does not support the professional identity of \"Software Engineer Graduate\" or \"Engineer\" (claimed in the title and summary), violating Rule 8."
+      },
+      "grounding": {
+        "factual_or_grounding_violations": {
+          "validator_errors": [
+            "Missing required field: experience",
+            "Missing required field: education"
+          ],
+          "validator_warnings": [
+            "Missing field: projects (optional, LLM may have folded into experience)"
+          ],
+          "dropped_claim_or_metric_or_causal_violations": 1
+        },
+        "invented_or_unsupported_claim_indicators": [],
+        "requirements_supported": 1,
+        "requirements_addressed": 5,
+        "omitted_useful_evidence": []
+      },
+      "resume_edit_profile": {
+        "useful_rewrites": [],
+        "added_bullets": [],
+        "omitted_bullets": [
+          "Bachelor of Arts in Media Studies",
+          "Freelance Photographer / Videographer",
+          "Sales Representative / Sales Tech",
+          "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+          "Conduct in-person consultations.",
+          "Identify qualified leads.",
+          "Tailor proposals to homeowner needs and regional market conditions.",
+          "Packaging Associate / Warehouse Associate",
+          "Package handling",
+          "Efficiency in a high-volume operational environment",
+          "Alignment Technician",
+          "Vehicle alignment work",
+          "Tires",
+          "Shocks and struts",
+          "Brakes",
+          "Fluids",
+          "Customer relations",
+          "Moving Specialist / Installation Tech",
+          "Installed home appliances contracted through Lowe's",
+          "Server / Line Cook",
+          "Customer service",
+          "Order taking",
+          "High-volume food preparation",
+          "Shift Leader",
+          "Staff training",
+          "Task delegation",
+          "Team coordination during peak hours",
+          "Cashier",
+          "Register operations",
+          "Point-of-sale transactions",
+          "Customer service",
+          "Volunteer Teacher's Assistant",
+          "Classroom management",
+          "Lesson organization",
+          "Assisting lead instructors",
+          "Team Member",
+          "Currency and credit transactions",
+          "Fast-paced customer service",
+          "Customer retention",
+          "Public speaking",
+          "Verbal communication",
+          "Audience engagement",
+          "Writing",
+          "Performance",
+          "Adapting material based on audience response",
+          "Python",
+          "OCR",
+          "Image/document processing",
+          "Transcription",
+          "OCR tooling",
+          "Machine-learning experimentation",
+          "Human review workflows",
+          "Training-data preparation",
+          "Financial/news data",
+          "Data collection",
+          "Feature engineering",
+          "Sentiment analysis",
+          "Statistical/modeling experimentation",
+          "Data processing",
+          "Language-learning tools",
+          "Spaced repetition",
+          "Application architecture",
+          "Persistent data",
+          "CLI/application components",
+          "Website development",
+          "HTML/CSS/JavaScript",
+          "Server-side form handling",
+          "Qualification/submission workflow",
+          "Email notification integration",
+          "Processing exported social-media data",
+          "Filtering and retrieving relevant posts",
+          "Extracting useful information",
+          "Structured data",
+          "Media/comedy-oriented data processing"
+        ],
+        "reordered_count": 0,
+        "keyword_stuffing": {
+          "target_keywords": [
+            "software"
+          ],
+          "keyword_counts": {
+            "software": 2
+          },
+          "max_target_repeat": 2,
+          "stuffing_risk": false
+        }
+      },
+      "overall_qualitative_assessment": "failed_validation",
+      "output_file": "data/experiments/local_model_bakeoff_20260901_161413/job_27323/output_qwen3_1.7b.txt"
+    },
+    {
+      "job_id": 7267,
+      "model_label": "qwen3 baseline",
+      "exact_model_identifier": "qwen3:1.7b",
+      "model_source": "local Ollama model inventory",
+      "model_size_hint": "2.0B (Q4_K_M, 1.4GB)",
+      "inference_succeeded": true,
+      "inference_latency_ms": 63434,
+      "resource": {
+        "vm_available_mb_before": 1360.58,
+        "vm_available_mb_after": 1381.86,
+        "vm_percent_before": 88.7,
+        "vm_percent_after": 88.6,
+        "ollama_proc_before": {
+          "pid": 14536,
+          "rss": 40017920,
+          "cpu_percent": 0.0
+        },
+        "ollama_proc_after": {
+          "pid": 14536,
+          "rss": 40218624,
+          "cpu_percent": 0.3
+        }
+      },
+      "model_generated_content": {
+        "realization": {
+          "summary": "Experienced engineering professional with a strong background in software development, leveraging Express_Engine and CAP Predictor to deliver high-quality data solutions.",
+          "bullets": {}
+        },
+        "realization_meta": {
+          "llm_called": true,
+          "realized_bullets": 0,
+          "prompt_chars": 2428,
+          "max_tokens": 600,
+          "claim_strength_violations": 2,
+          "passive_voice_warnings": 0
+        }
+      },
+      "deterministic_post_processing": {
+        "merged_resume_schema_keys": [
+          "education",
+          "experience",
+          "projects",
+          "skills",
+          "summary",
+          "title"
+        ],
+        "requirements_supported_count": 2
+      },
+      "validator": {
+        "passed": false,
+        "errors": [
+          "Missing required field: experience",
+          "Missing required field: education"
+        ],
+        "warnings": [
+          "Missing field: projects (optional, LLM may have folded into experience)"
+        ]
+      },
+      "judge": {
+        "passed": false,
+        "verdict": "FAIL",
+        "issues": "The candidate has claimed the professional identity of \"Software Development Engineer\" in the title and summary. According to the provided employment history, the candidate has never held a role as an Engineer, Developer, or Programmer. Per the instructions, claiming a professional identity that the candidate's actual employment history does not support is a fabrication."
+      },
+      "grounding": {
+        "factual_or_grounding_violations": {
+          "validator_errors": [
+            "Missing required field: experience",
+            "Missing required field: education"
+          ],
+          "validator_warnings": [
+            "Missing field: projects (optional, LLM may have folded into experience)"
+          ],
+          "dropped_claim_or_metric_or_causal_violations": 2
+        },
+        "invented_or_unsupported_claim_indicators": [],
+        "requirements_supported": 2,
+        "requirements_addressed": 5,
+        "omitted_useful_evidence": []
+      },
+      "resume_edit_profile": {
+        "useful_rewrites": [],
+        "added_bullets": [],
+        "omitted_bullets": [
+          "Bachelor of Arts in Media Studies",
+          "Freelance Photographer / Videographer",
+          "Sales Representative / Sales Tech",
+          "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+          "Conduct in-person consultations.",
+          "Identify qualified leads.",
+          "Tailor proposals to homeowner needs and regional market conditions.",
+          "Packaging Associate / Warehouse Associate",
+          "Package handling",
+          "Efficiency in a high-volume operational environment",
+          "Alignment Technician",
+          "Vehicle alignment work",
+          "Tires",
+          "Shocks and struts",
+          "Brakes",
+          "Fluids",
+          "Customer relations",
+          "Moving Specialist / Installation Tech",
+          "Installed home appliances contracted through Lowe's",
+          "Server / Line Cook",
+          "Customer service",
+          "Order taking",
+          "High-volume food preparation",
+          "Shift Leader",
+          "Staff training",
+          "Task delegation",
+          "Team coordination during peak hours",
+          "Cashier",
+          "Register operations",
+          "Point-of-sale transactions",
+          "Customer service",
+          "Volunteer Teacher's Assistant",
+          "Classroom management",
+          "Lesson organization",
+          "Assisting lead instructors",
+          "Team Member",
+          "Currency and credit transactions",
+          "Fast-paced customer service",
+          "Customer retention",
+          "Public speaking",
+          "Verbal communication",
+          "Audience engagement",
+          "Writing",
+          "Performance",
+          "Adapting material based on audience response",
+          "Python",
+          "OCR",
+          "Image/document processing",
+          "Transcription",
+          "OCR tooling",
+          "Machine-learning experimentation",
+          "Human review workflows",
+          "Training-data preparation",
+          "Financial/news data",
+          "Data collection",
+          "Feature engineering",
+          "Sentiment analysis",
+          "Statistical/modeling experimentation",
+          "Data processing",
+          "Language-learning tools",
+          "Spaced repetition",
+          "Application architecture",
+          "Persistent data",
+          "CLI/application components",
+          "Website development",
+          "HTML/CSS/JavaScript",
+          "Server-side form handling",
+          "Qualification/submission workflow",
+          "Email notification integration",
+          "Processing exported social-media data",
+          "Filtering and retrieving relevant posts",
+          "Extracting useful information",
+          "Structured data",
+          "Media/comedy-oriented data processing"
+        ],
+        "reordered_count": 0,
+        "keyword_stuffing": {
+          "target_keywords": [
+            "data",
+            "software"
+          ],
+          "keyword_counts": {
+            "data": 1,
+            "software": 2
+          },
+          "max_target_repeat": 2,
+          "stuffing_risk": false
+        }
+      },
+      "overall_qualitative_assessment": "failed_validation",
+      "output_file": "data/experiments/local_model_bakeoff_20260901_161413/job_7267/output_qwen3_1.7b.txt"
+    },
+    {
+      "job_id": 7406,
+      "model_label": "qwen3 baseline",
+      "exact_model_identifier": "qwen3:1.7b",
+      "model_source": "local Ollama model inventory",
+      "model_size_hint": "2.0B (Q4_K_M, 1.4GB)",
+      "inference_succeeded": false,
+      "inference_latency_ms": 0,
+      "resource": {
+        "vm_available_mb_before": 1389.67,
+        "vm_available_mb_after": 1388.34,
+        "vm_percent_before": 88.5,
+        "vm_percent_after": 88.5,
+        "ollama_proc_before": {
+          "pid": 14536,
+          "rss": 40218624,
+          "cpu_percent": 0.0
+        },
+        "ollama_proc_after": {
+          "pid": 14536,
+          "rss": 40218624,
+          "cpu_percent": 0.0
+        }
+      },
+      "model_generated_content": {
+        "realization": null,
+        "realization_meta": {
+          "llm_called": false,
+          "realized_bullets": 0,
+          "prompt_chars": 0,
+          "max_tokens": 0,
+          "claim_strength_violations": 0,
+          "passive_voice_warnings": 0
+        }
+      },
+      "deterministic_post_processing": {
+        "merged_resume_schema_keys": [
+          "education",
+          "experience",
+          "projects",
+          "skills",
+          "summary",
+          "title"
+        ],
+        "requirements_supported_count": 0
+      },
+      "validator": {
+        "passed": false,
+        "errors": [
+          "Missing required field: summary",
+          "Missing required field: experience",
+          "Missing required field: education"
+        ],
+        "warnings": [
+          "Missing field: projects (optional, LLM may have folded into experience)"
+        ]
+      },
+      "judge": {
+        "passed": false,
+        "verdict": "FAIL",
+        "issues": "The tailored resume includes the job title \"Cloud Platform Engineer\" in the header. According to the instructions, I must FAIL if the title claims a professional identity (Engineer) that the candidate's actual employment history does not support. The candidate's employment history consists of roles such as Photographer, Sales Representative, Warehouse Associate, Technician, and Server; none of these support the professional identity of an \"Engineer.\""
+      },
+      "grounding": {
+        "factual_or_grounding_violations": {
+          "validator_errors": [
+            "Missing required field: summary",
+            "Missing required field: experience",
+            "Missing required field: education"
+          ],
+          "validator_warnings": [
+            "Missing field: projects (optional, LLM may have folded into experience)"
+          ],
+          "dropped_claim_or_metric_or_causal_violations": 0
+        },
+        "invented_or_unsupported_claim_indicators": [],
+        "requirements_supported": 0,
+        "requirements_addressed": 3,
+        "omitted_useful_evidence": []
+      },
+      "resume_edit_profile": {
+        "useful_rewrites": [],
+        "added_bullets": [],
+        "omitted_bullets": [
+          "Bachelor of Arts in Media Studies",
+          "Freelance Photographer / Videographer",
+          "Sales Representative / Sales Tech",
+          "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+          "Conduct in-person consultations.",
+          "Identify qualified leads.",
+          "Tailor proposals to homeowner needs and regional market conditions.",
+          "Packaging Associate / Warehouse Associate",
+          "Package handling",
+          "Efficiency in a high-volume operational environment",
+          "Alignment Technician",
+          "Vehicle alignment work",
+          "Tires",
+          "Shocks and struts",
+          "Brakes",
+          "Fluids",
+          "Customer relations",
+          "Moving Specialist / Installation Tech",
+          "Installed home appliances contracted through Lowe's",
+          "Server / Line Cook",
+          "Customer service",
+          "Order taking",
+          "High-volume food preparation",
+          "Shift Leader",
+          "Staff training",
+          "Task delegation",
+          "Team coordination during peak hours",
+          "Cashier",
+          "Register operations",
+          "Point-of-sale transactions",
+          "Customer service",
+          "Volunteer Teacher's Assistant",
+          "Classroom management",
+          "Lesson organization",
+          "Assisting lead instructors",
+          "Team Member",
+          "Currency and credit transactions",
+          "Fast-paced customer service",
+          "Customer retention",
+          "Public speaking",
+          "Verbal communication",
+          "Audience engagement",
+          "Writing",
+          "Performance",
+          "Adapting material based on audience response",
+          "Python",
+          "OCR",
+          "Image/document processing",
+          "Transcription",
+          "OCR tooling",
+          "Machine-learning experimentation",
+          "Human review workflows",
+          "Training-data preparation",
+          "Financial/news data",
+          "Data collection",
+          "Feature engineering",
+          "Sentiment analysis",
+          "Statistical/modeling experimentation",
+          "Data processing",
+          "Language-learning tools",
+          "Spaced repetition",
+          "Application architecture",
+          "Persistent data",
+          "CLI/application components",
+          "Website development",
+          "HTML/CSS/JavaScript",
+          "Server-side form handling",
+          "Qualification/submission workflow",
+          "Email notification integration",
+          "Processing exported social-media data",
+          "Filtering and retrieving relevant posts",
+          "Extracting useful information",
+          "Structured data",
+          "Media/comedy-oriented data processing"
+        ],
+        "reordered_count": 0,
+        "keyword_stuffing": {
+          "target_keywords": [],
+          "keyword_counts": {},
+          "max_target_repeat": 0,
+          "stuffing_risk": false
+        }
+      },
+      "overall_qualitative_assessment": "failed_validation",
+      "output_file": "data/experiments/local_model_bakeoff_20260901_161413/job_7406/output_qwen3_1.7b.txt"
+    }
+  ],
+  "comparison_to_cloud": [
+    {
+      "job_id": 27323,
+      "model": "qwen3:1.7b",
+      "cloud_source": "data\\experiments\\ab_tailor_27323_pair5_20260901_154146\\pair4_A_deterministic.txt",
+      "local_addressed_requirements": 5,
+      "cloud_addressed_requirements": 7,
+      "delta_local_minus_cloud": -2,
+      "local_validator_pass": false,
+      "local_judge_pass": false,
+      "notes": "Cloud baseline is pre-existing artifact; validator metadata for cloud is not reconstructed from text-only output."
+    },
+    {
+      "job_id": 7267,
+      "model": "qwen3:1.7b",
+      "cloud_source": "C:\\Users\\phili\\Projects\\resume-agent\\data\\resumes\\applypilot\\Philip_McLaughlin_Software_Development_Engineer_74c9630f.txt",
+      "local_addressed_requirements": 5,
+      "cloud_addressed_requirements": 7,
+      "delta_local_minus_cloud": -2,
+      "local_validator_pass": false,
+      "local_judge_pass": false,
+      "notes": "Cloud baseline is pre-existing artifact; validator metadata for cloud is not reconstructed from text-only output."
+    },
+    {
+      "job_id": 7406,
+      "model": "qwen3:1.7b",
+      "cloud_source": "C:\\Users\\phili\\Projects\\resume-agent\\data\\resumes\\applypilot\\Philip_McLaughlin_Cloud_Platform_Engineer_1e7c9573.txt",
+      "local_addressed_requirements": 3,
+      "cloud_addressed_requirements": 8,
+      "delta_local_minus_cloud": -5,
+      "local_validator_pass": false,
+      "local_judge_pass": false,
+      "notes": "Cloud baseline is pre-existing artifact; validator metadata for cloud is not reconstructed from text-only output."
+    }
+  ],
+  "summary_table": [
+    {
+      "model": "TinyLlama Resume Tailor (1.1B LoRA)",
+      "exact_identifier": "akshayrinku/tinyllama-resume-tailor-lora",
+      "size": "1.1B base + LoRA adapter",
+      "jobs_tested": 0,
+      "successful": 0,
+      "avg_latency_ms": null,
+      "validator_pass": "0/0",
+      "judge_pass": "0/0 (judge unavailable)",
+      "grounding_issues": 0,
+      "useful_tailoring_cases": 0,
+      "omitted_evidence_count": 0,
+      "availability": "Repository is a PEFT adapter requiring base-model load/merge in Transformers+PEFT; those libraries are not installed in current repo venv, and model is not directly loadable by Ollama.",
+      "runnable_now": false
+    },
+    {
+      "model": "T5-Base resume candidate (~220M)",
+      "exact_identifier": "Abhishek9998/t5-base-finetuned-resumes_t2json_large",
+      "size": "~220M",
+      "jobs_tested": 0,
+      "successful": 0,
+      "avg_latency_ms": null,
+      "validator_pass": "0/0",
+      "judge_pass": "0/0 (judge unavailable)",
+      "grounding_issues": 0,
+      "useful_tailoring_cases": 0,
+      "omitted_evidence_count": 0,
+      "availability": "Checkpoint exists but local Transformers stack is not installed; also model card indicates text-to-JSON resume dataset fine-tune, not clearly resume tailoring quality for this pipeline.",
+      "runnable_now": false
+    },
+    {
+      "model": "GPT-Neo resume assistant candidate (~1.3B)",
+      "exact_identifier": null,
+      "size": "~1.3B target",
+      "jobs_tested": 0,
+      "successful": 0,
+      "avg_latency_ms": null,
+      "validator_pass": "0/0",
+      "judge_pass": "0/0 (judge unavailable)",
+      "grounding_issues": 0,
+      "useful_tailoring_cases": 0,
+      "omitted_evidence_count": 0,
+      "availability": "No resume-specific GPT-Neo candidate found from targeted HF searches; per instruction, not substituting generic GPT-Neo.",
+      "runnable_now": false
+    },
+    {
+      "model": "Qwen2.5 Resume LoRA (~7B)",
+      "exact_identifier": "Ella0506/Qwen2.5-7B-Instruct-Resume-LoRA",
+      "size": "~7B base + LoRA adapter",
+      "jobs_tested": 0,
+      "successful": 0,
+      "avg_latency_ms": null,
+      "validator_pass": "0/0",
+      "judge_pass": "0/0 (judge unavailable)",
+      "grounding_issues": 0,
+      "useful_tailoring_cases": 0,
+      "omitted_evidence_count": 0,
+      "availability": "Repository is a PEFT adapter requiring base-model load/merge in Transformers+PEFT; those libraries are not installed in current repo venv, and model is not directly loadable by Ollama.",
+      "runnable_now": false
+    },
+    {
+      "model": "qwen3 baseline",
+      "exact_identifier": "qwen3:1.7b",
+      "size": "2.0B (Q4_K_M, 1.4GB)",
+      "jobs_tested": 3,
+      "successful": 2,
+      "avg_latency_ms": 55976.3,
+      "validator_pass": "0/3",
+      "judge_pass": "0/3",
+      "grounding_issues": 0,
+      "useful_tailoring_cases": 0,
+      "omitted_evidence_count": 0,
+      "availability": "Installed locally in Ollama.",
+      "runnable_now": true
+    }
+  ],
+  "recommendations": [
+    {
+      "model": "TinyLlama Resume Tailor (1.1B LoRA)",
+      "exact_identifier": "akshayrinku/tinyllama-resume-tailor-lora",
+      "recommendation": "reject"
+    },
+    {
+      "model": "T5-Base resume candidate (~220M)",
+      "exact_identifier": "Abhishek9998/t5-base-finetuned-resumes_t2json_large",
+      "recommendation": "reject"
+    },
+    {
+      "model": "GPT-Neo resume assistant candidate (~1.3B)",
+      "exact_identifier": null,
+      "recommendation": "reject"
+    },
+    {
+      "model": "Qwen2.5 Resume LoRA (~7B)",
+      "exact_identifier": "Ella0506/Qwen2.5-7B-Instruct-Resume-LoRA",
+      "recommendation": "impractical_on_current_hardware"
+    },
+    {
+      "model": "qwen3 baseline",
+      "exact_identifier": "qwen3:1.7b",
+      "recommendation": "best_local_candidate"
+    }
+  ]
+}

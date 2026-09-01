@@ -1,0 +1,13 @@
+{
+  "platform": "nt",
+  "python_exe": "C:\\Users\\phili\\Projects\\resume-agent\\venv\\Scripts\\python.exe",
+  "local_configured": true,
+  "python_libs": {
+    "torch": false,
+    "transformers": false,
+    "peft": false,
+    "accelerate": false,
+    "sentencepiece": false
+  },
+  "ollama_list": "NAME                 ID              SIZE      MODIFIED     \nall-minilm:latest    1b226e2802db    45 MB     26 hours ago    \nqwen3:1.7b           8f68893c685c    1.4 GB    10 days ago     \nqwen3:8b             500a1f067a9f    5.2 GB    2 weeks ago     \n"
+}

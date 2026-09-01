@@ -1,0 +1,27 @@
+DETERMINISTIC EVIDENCE CATALOG (AUTHORITATIVE)
+E1: [project] CAP Predictor | matched terms: data, python
+E2: [skill] Python | matched terms: data, python
+E3: [experience] Freelance Photography / Videography | matched terms: creative
+E4: [experience] UPS | matched terms: operations
+E5: [experience] National Tire and Battery / Mavis | matched terms: national
+E6: [project] Standup-OCR | matched terms: python
+
+DETERMINISTIC REQUIREMENT SUPPORT (AUTHORITATIVE)
+R1: [unsupported] Expected to be an SME, collaborate and manage the team to perform.
+  evidence: none
+R2: [unsupported] Responsible for team decisions.
+  evidence: none
+R3: [unsupported] Engage with multiple teams and contribute on key decisions.
+  evidence: none
+R4: [unsupported] Provide solutions to problems for their immediate team and across multiple teams.
+  evidence: none
+R5: [unsupported] Lead the evaluation and implementation of cloud infrastructure strategies to support business objectives.
+  evidence: none
+R6: [unsupported] Facilitate knowledge sharing and mentorship within the team to foster professional growth.
+  evidence: none
+R7: [unsupported] Coordinate cross-functional efforts to ensure alignment of cloud platform initiatives with organizational goals.
+  evidence: none
+R8: [ambiguous] Must To Have Skills: Proficiency in Python (Programming Language).
+  evidence: CAP Predictor, Python, Standup-OCR
+
+RULE: DO NOT claim support from any evidence not listed above for that requirement.

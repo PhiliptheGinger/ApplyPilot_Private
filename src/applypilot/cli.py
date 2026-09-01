@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import math
 import os
 import re
+import time
+from datetime import UTC, datetime
+from pathlib import Path
 
 import typer
 from rich.console import Console
@@ -542,6 +546,336 @@ def debug_local_plan_cmd(
         console.print("\n[dim]Dropped by grounding validation:[/dim]")
         for w in plan["_warnings"]:
             console.print(f"  [dim]- {w}[/dim]")
+
+
+@app.command("experiment-tailor-plan")
+def experiment_tailor_plan_cmd(
+    job_id: list[int] | None = typer.Option(
+        None,
+        "--job-id",
+        help="Explicit job rowid to analyze. Repeatable. Example: --job-id 123 --job-id 456",
+    ),
+    url: list[str] | None = typer.Option(
+        None,
+        "--url",
+        help="Explicit job URL (or stable substring) to analyze. Repeatable.",
+    ),
+    output: str | None = typer.Option(
+        None,
+        "--output",
+        help="Write report JSON to this path. Defaults to data/experiments/q2_plan_boundary_YYYYMMDD_HHMMSS.json",
+    ),
+    with_local_planner: bool = typer.Option(
+        False,
+        "--with-local-planner",
+        help=(
+            "Also invoke the existing local planner (if configured) and report its behavior separately. "
+            "Deterministic structured plan remains the central artifact."
+        ),
+    ),
+    simulate_realization_failure: bool = typer.Option(
+        True,
+        "--simulate-realization-failure/--no-simulate-realization-failure",
+        help=(
+            "Record whether a validated plan remains reusable when prose realization fails "
+            "(simulated, read-only; no resume generation)."
+        ),
+    ),
+    max_jobs: int = typer.Option(
+        5,
+        "--max-jobs",
+        help="Safety cap for experiment size (small explicit sets only).",
+    ),
+) -> None:
+    """Run the Q2 read-only plan-boundary experiment on an explicit job set.
+
+    Hard constraints:
+    - No pending_tailor selection
+    - No job claims / no transitions / no attempt increments
+    - No tailored resume generation or persistence
+    """
+    ids = list(job_id or [])
+    urls = [u for u in (url or []) if u and u.strip()]
+    if not ids and not urls:
+        console.print("[red]Provide at least one explicit --job-id or --url.[/red]")
+        raise typer.Exit(code=1)
+    explicit_requested = len(ids) + len(urls)
+    if explicit_requested > max_jobs:
+        console.print(
+            f"[red]Explicit set too large:[/red] requested {explicit_requested}, max allowed by --max-jobs is {max_jobs}."
+        )
+        raise typer.Exit(code=1)
+    if explicit_requested > 10:
+        console.print("[red]Refusing to run more than 10 explicit jobs in this experiment command.[/red]")
+        raise typer.Exit(code=1)
+
+    _bootstrap()
+
+    from applypilot.config import load_profile
+    from applypilot.database import get_connection
+    from applypilot.llm import is_local_configured
+    from applypilot.scoring.local_tailor import (
+        _PLAN_SYSTEM,
+        _auto_resolve_requirements,
+        _format_requirement_lines,
+        _split_requirement_lines,
+        format_evidence_for_prompt,
+        get_local_tailoring_plan,
+        rank_profile_evidence,
+    )
+    from applypilot.scoring.plan_experiment import build_structured_plan, validate_structured_plan
+    from applypilot.scoring.resume_router import load_resume_text_for_job
+    from applypilot.scoring.tailor import display_company
+
+    conn = get_connection()
+    select_cols = "rowid, url, title, site, company, application_url, full_description, fit_score"
+    jobs: list[dict] = []
+    seen_urls: set[str] = set()
+
+    for jid in ids:
+        row = conn.execute(f"SELECT {select_cols} FROM jobs WHERE rowid = ?", (jid,)).fetchone()
+        if not row:
+            console.print(f"[red]No job found for --job-id {jid}[/red]")
+            raise typer.Exit(code=1)
+        job = dict(row)
+        if job["url"] not in seen_urls:
+            jobs.append(job)
+            seen_urls.add(job["url"])
+
+    for u in urls:
+        like = f"%{u.split('?')[0].rstrip('/')}%"
+        row = conn.execute(
+            f"SELECT {select_cols} FROM jobs WHERE url = ? OR url LIKE ? ORDER BY discovered_at DESC LIMIT 1",
+            (u, like),
+        ).fetchone()
+        if not row:
+            console.print(f"[red]No job found for --url {u}[/red]")
+            raise typer.Exit(code=1)
+        job = dict(row)
+        if job["url"] not in seen_urls:
+            jobs.append(job)
+            seen_urls.add(job["url"])
+
+    if len(jobs) > max_jobs:
+        console.print(
+            f"[red]Resolved explicit set too large:[/red] {len(jobs)} unique jobs exceeds --max-jobs {max_jobs}."
+        )
+        raise typer.Exit(code=1)
+
+    profile = load_profile()
+    ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    output_path = Path(output) if output else Path("data") / "experiments" / f"q2_plan_boundary_{ts}.json"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    report: dict = {
+        "experiment": "q2_structured_plan_boundary",
+        "mode": "read_only",
+        "timestamp_utc": datetime.now(UTC).isoformat(),
+        "explicit_selection": {"job_ids": ids, "urls": urls, "resolved_jobs": len(jobs)},
+        "constraints": {
+            "claimed_jobs": False,
+            "incremented_tailor_attempts": False,
+            "changed_job_state": False,
+            "wrote_tailoring_results": False,
+            "used_transition_helpers": False,
+        },
+        "jobs": [],
+        "summary": {},
+    }
+
+    local_available = is_local_configured()
+    for job in jobs:
+        started = time.perf_counter()
+        plan = build_structured_plan(job, profile)
+        validation = validate_structured_plan(plan)
+        latency_ms = int((time.perf_counter() - started) * 1000)
+
+        job_result: dict = {
+            "job_id": job.get("rowid"),
+            "title": job.get("title"),
+            "company": display_company(job),
+            "url": job.get("url"),
+            "requirement_count": plan.get("requirement_count", 0),
+            "counts": plan.get("counts", {}),
+            "evidence_selections": [
+                {
+                    "requirement_id": r.get("id"),
+                    "status": r.get("status"),
+                    "evidence_ids": list(r.get("evidence_ids") or []),
+                    "claim_ceiling": (r.get("directives") or {}).get("claim_ceiling"),
+                    "agency_ceiling": (r.get("directives") or {}).get("agency_ceiling"),
+                }
+                for r in (plan.get("requirements") or [])
+            ],
+            "plan_validation": validation,
+            "deterministic_metrics": {
+                "provider": "none",
+                "model": "none",
+                "prompt_size_chars": 0,
+                "output_size_chars": len(json.dumps(plan, ensure_ascii=False)),
+                "latency_ms": latency_ms,
+                "retries": 0,
+                "provider_unavailable_events": 0,
+            },
+            "structured_plan": plan,
+        }
+
+        if simulate_realization_failure:
+            job_result["realization_boundary"] = {
+                "mode": "simulated_failure",
+                "realization_status": "failed",
+                "plan_discarded": False,
+                "validated_plan_reusable_after_failure": bool(validation.get("passed")),
+            }
+
+        if with_local_planner:
+            local_section: dict = {
+                "invoked": False,
+                "provider": "local",
+                "model": os.environ.get("APPLYPILOT_LOCAL_LLM_MODEL", "llama3.2") if local_available else None,
+                "prompt_size_chars": None,
+                "output_size_chars": None,
+                "latency_ms": None,
+                "retries": 0,
+                "provider_unavailable_events": 0,
+                "plan_validation": None,
+            }
+            if local_available:
+                top_n = int(os.environ.get("APPLYPILOT_LOCAL_EVIDENCE_TOPN", "6"))
+                ranked = rank_profile_evidence(job, profile, top_n=top_n)
+                req_lines, _dropped = _split_requirement_lines(job.get("full_description") or "")
+                resolved, candidates = _auto_resolve_requirements(req_lines, ranked)
+                ambiguous_ids = {i for i in range(1, len(req_lines) + 1) if i not in resolved}
+                llm_expected = bool(req_lines and ranked and ambiguous_ids)
+
+                if llm_expected:
+                    requirements_text = _format_requirement_lines(req_lines, candidates=candidates, only_ids=ambiguous_ids)
+                    evidence_text = format_evidence_for_prompt(ranked)
+                    job_text = f"TITLE: {job.get('title', '')}\\nCOMPANY: {display_company(job) or 'unknown'}"
+                    user_msg = (
+                        f"JOB:\\n{job_text}\\n\\n"
+                        f"REQUIREMENTS:\\n{requirements_text}\\n\\n"
+                        f"EVIDENCE:\\n{evidence_text}\\n\\n"
+                        "Return the JSON match list now:"
+                    )
+                    local_section["prompt_size_chars"] = len(_PLAN_SYSTEM) + len(user_msg)
+
+                resume_text, _ = load_resume_text_for_job(job)
+                l0 = time.perf_counter()
+                local_plan_result = get_local_tailoring_plan(resume_text, job, profile, return_meta=True)
+                if isinstance(local_plan_result, tuple):
+                    local_plan, local_meta = local_plan_result
+                else:
+                    local_plan, local_meta = local_plan_result, {"llm_called": False}
+                local_latency_ms = int((time.perf_counter() - l0) * 1000)
+                local_section["invoked"] = bool(local_meta.get("llm_called"))
+                local_section["invoked_predicted"] = bool(llm_expected)
+                local_section["invocation_prediction_mismatch"] = (
+                    local_section["invoked"] != local_section["invoked_predicted"]
+                )
+                local_section["latency_ms"] = local_latency_ms
+                if local_plan is None:
+                    local_section["provider_unavailable_events"] = 1 if local_section["invoked"] else 0
+                else:
+                    local_section["output_size_chars"] = len(json.dumps(local_plan, ensure_ascii=False))
+                    # Reuse the deterministic validator over the local plan shape by
+                    # embedding evidence ids when possible via requirement-level name matches.
+                    name_to_id = {
+                        e.get("name"): e.get("id") for e in (plan.get("evidence_catalog") or []) if e.get("name")
+                    }
+                    unmapped_evidence: list[dict] = []
+                    remapped_requirements = []
+                    req_index = {r.get("text"): r for r in (plan.get("requirements") or [])}
+                    for idx, req in enumerate(local_plan.get("requirements") or [], start=1):
+                        resume_evidence_names = [name for name in (req.get("resume_evidence") or []) if isinstance(name, str)]
+                        evidence_ids = []
+                        unmapped_names = []
+                        for name in resume_evidence_names:
+                            mapped_id = name_to_id.get(name)
+                            if isinstance(mapped_id, int):
+                                evidence_ids.append(mapped_id)
+                            else:
+                                unmapped_names.append(name)
+                        if req.get("supported") and unmapped_names:
+                            unmapped_evidence.append(
+                                {
+                                    "requirement_id": idx,
+                                    "requirement": req.get("requirement"),
+                                    "unmapped_resume_evidence": unmapped_names,
+                                }
+                            )
+                        # Never claim support when the model's evidence names cannot
+                        # be grounded to deterministic evidence IDs.
+                        status = "supported" if evidence_ids else "unsupported"
+                        det_req = req_index.get(req.get("requirement")) or {}
+                        remapped_requirements.append(
+                            {
+                                "id": idx,
+                                "text": req.get("requirement"),
+                                "importance": req.get("importance"),
+                                "status": status,
+                                "evidence_ids": evidence_ids,
+                                "directives": {
+                                    "cognitive_schema": (det_req.get("directives") or {}).get("cognitive_schema"),
+                                    "bullet_schema": (det_req.get("directives") or {}).get("bullet_schema"),
+                                    "claim_ceiling": (det_req.get("directives") or {}).get("claim_ceiling"),
+                                    "agency_ceiling": (det_req.get("directives") or {}).get("agency_ceiling"),
+                                    "force_relation": (det_req.get("directives") or {}).get("force_relation"),
+                                    "salience_order": list((det_req.get("directives") or {}).get("salience_order") or []),
+                                    "exact_keywords": list((det_req.get("directives") or {}).get("exact_keywords") or []),
+                                    "synonym_concepts": list(
+                                        (det_req.get("directives") or {}).get("synonym_concepts") or []
+                                    ),
+                                    "vary_phrasing": bool((det_req.get("directives") or {}).get("vary_phrasing")),
+                                },
+                            }
+                        )
+                    local_like = {
+                        "schema_version": "q2.plan.v1",
+                        "mode": "deterministic",
+                        "job": plan.get("job"),
+                        "viewpoint": plan.get("viewpoint"),
+                        "summary_schema": plan.get("summary_schema"),
+                        "requirement_count": len(remapped_requirements),
+                        "counts": {
+                            "supported": sum(1 for r in remapped_requirements if r["status"] == "supported"),
+                            "ambiguous": 0,
+                            "unsupported": sum(1 for r in remapped_requirements if r["status"] == "unsupported"),
+                        },
+                        "evidence_catalog": plan.get("evidence_catalog"),
+                        "requirements": remapped_requirements,
+                    }
+                    local_section["plan_validation"] = validate_structured_plan(local_like)
+                    if unmapped_evidence:
+                        local_section["adapter_diagnostics"] = {
+                            "unmapped_evidence_by_requirement": unmapped_evidence,
+                        }
+                    local_section["local_plan"] = local_plan
+            else:
+                local_section["note"] = "local planner not configured; deterministic path still executed"
+
+            job_result["local_planner"] = local_section
+
+        report["jobs"].append(job_result)
+
+    report["summary"] = {
+        "job_count": len(report["jobs"]),
+        "plans_valid": sum(1 for j in report["jobs"] if (j.get("plan_validation") or {}).get("passed")),
+        "plans_invalid": sum(1 for j in report["jobs"] if not (j.get("plan_validation") or {}).get("passed")),
+        "reusable_after_simulated_failure": sum(
+            1
+            for j in report["jobs"]
+            if (j.get("realization_boundary") or {}).get("validated_plan_reusable_after_failure") is True
+        ),
+    }
+
+    output_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    console.print(f"[green]Wrote read-only Q2 experiment report:[/green] {output_path}")
+    console.print(
+        f"[cyan]Summary:[/cyan] jobs={report['summary']['job_count']}, "
+        f"valid_plans={report['summary']['plans_valid']}, "
+        f"invalid_plans={report['summary']['plans_invalid']}"
+    )
 
 
 @app.command()

@@ -125,6 +125,24 @@ def test_tailor_attempts_increments_on_success_too(tmp_db, seed_job):
     assert row[0] >= 1, f"Expected tailor_attempts >= 1, got {row[0]}"
 
 
+def test_tailor_provider_unavailable_does_not_increment_attempts(tmp_db, seed_job):
+    """Temporary provider outages are retryable and should not burn attempts."""
+    conn = tmp_db()
+    url = _seed_with_state(
+        conn, seed_job, "TA8", "tailoring", fit_score=9, full_description="x" * 300, tailored_resume_path=None
+    )
+    conn.execute("UPDATE jobs SET tailor_attempts=2 WHERE url=?", (url,))
+
+    from applypilot.scoring.tailor import _mark_tailor_result
+
+    _mark_tailor_result(conn, url, "provider_unavailable", None, attempts=1)
+    conn.commit()
+
+    row = conn.execute("SELECT COALESCE(tailor_attempts, 0) FROM jobs WHERE url=?", (url,)).fetchone()
+    assert row[0] == 2
+    assert current_state(conn, url) == "tailor_failed"
+
+
 def test_tailor_retry_path_from_tailor_failed_via_claim(tmp_db, seed_job):
     """Retry path: pending_tailor re-selects a 'tailor_failed' row and
     run_tailoring's claim step legally re-enters 'tailoring' (tailor_failed
@@ -217,6 +235,45 @@ def test_cover_failure_writes_audit_row(tmp_db, seed_job):
 
     history = state_history(conn, url)
     assert any(h["to_state"] == "cover_failed" for h in history)
+
+
+def test_cover_provider_unavailable_does_not_increment_attempts(tmp_db, seed_job):
+    """Provider-unavailable cover failures should be retryable without burning attempts."""
+    conn = tmp_db()
+    url = _seed_with_state(
+        conn, seed_job, "CL5", "cover_writing", tailored_resume_path="/tmp/resume.pdf", cover_letter_path=None
+    )
+    conn.execute("UPDATE jobs SET cover_attempts=2 WHERE url=?", (url,))
+
+    from applypilot.scoring.cover_letter import _mark_cover_result
+
+    _mark_cover_result(conn, url, None, error="cloud_cover_generation_exhausted: All models exhausted")
+    conn.commit()
+
+    row = conn.execute("SELECT COALESCE(cover_attempts, 0) FROM jobs WHERE url=?", (url,)).fetchone()
+    assert row[0] == 2
+    assert current_state(conn, url) == "cover_failed"
+
+    history = state_history(conn, url)
+    assert history[0]["reason"] == "provider_unavailable"
+
+
+def test_cover_validation_failure_still_increments_attempts(tmp_db, seed_job):
+    """Non-provider errors keep existing attempt-accounting behavior."""
+    conn = tmp_db()
+    url = _seed_with_state(
+        conn, seed_job, "CL6", "cover_writing", tailored_resume_path="/tmp/resume.pdf", cover_letter_path=None
+    )
+    conn.execute("UPDATE jobs SET cover_attempts=2 WHERE url=?", (url,))
+
+    from applypilot.scoring.cover_letter import _mark_cover_result
+
+    _mark_cover_result(conn, url, None, error="validation failed: too short")
+    conn.commit()
+
+    row = conn.execute("SELECT COALESCE(cover_attempts, 0) FROM jobs WHERE url=?", (url,)).fetchone()
+    assert row[0] == 3
+    assert current_state(conn, url) == "cover_failed"
 
 
 # ---------------------------------------------------------------------------

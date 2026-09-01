@@ -1,0 +1,912 @@
+{
+  "experiment": "qwen3_1_7b_ambiguous_evidence_behavior",
+  "timestamp_utc": "2026-09-01T15:08:13.631344+00:00",
+  "job": {
+    "job_id": 27323,
+    "title": "Software Engineer Graduate",
+    "url": "https://builtin.com/job/software-engineer-graduate/10917868"
+  },
+  "model": "qwen3:1.7b",
+  "trials": [
+    {
+      "trial": 1,
+      "job_id": 27323,
+      "semantic_match": 0,
+      "invoked": true,
+      "latency_ms": 18784,
+      "failure_status": "ok",
+      "local_plan_validation_passed": true,
+      "local_plan_validation_errors": [],
+      "requirements_total": 8,
+      "requirements_sent_to_model": 3,
+      "local_supported_count": 3,
+      "local_unsupported_count": 5,
+      "supported_requirement_selections": [
+        {
+          "requirement_id": 1,
+          "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+          "selected_names": [
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 3,
+          "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 6,
+          "requirement": "Understanding of design for software systems running on multiple platform types",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        }
+      ],
+      "unmapped_evidence_by_requirement": [],
+      "dropped_or_out_of_candidate": [],
+      "deterministic_counts": {
+        "supported": 1,
+        "ambiguous": 3,
+        "unsupported": 4
+      },
+      "deterministic_validation_passed": true,
+      "deterministic_changed": false,
+      "candidate_map_sizes": {
+        "1": 1,
+        "2": 0,
+        "3": 2,
+        "4": 2,
+        "5": 0,
+        "6": 2,
+        "7": 0,
+        "8": 0
+      },
+      "captured_log_messages": [
+        [
+          "INFO",
+          "Local tailoring plan for Software Engineer Graduate: model=qwen3:1.7b, 3/8 requirement(s) supported, 0 semantic candidate(s) added, 0 warning(s), 3/8 requirement(s) sent to the model (rest resolved deterministically)"
+        ]
+      ]
+    },
+    {
+      "trial": 2,
+      "job_id": 27323,
+      "semantic_match": 0,
+      "invoked": true,
+      "latency_ms": 7620,
+      "failure_status": "ok",
+      "local_plan_validation_passed": true,
+      "local_plan_validation_errors": [],
+      "requirements_total": 8,
+      "requirements_sent_to_model": 3,
+      "local_supported_count": 3,
+      "local_unsupported_count": 5,
+      "supported_requirement_selections": [
+        {
+          "requirement_id": 1,
+          "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+          "selected_names": [
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 3,
+          "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 6,
+          "requirement": "Understanding of design for software systems running on multiple platform types",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        }
+      ],
+      "unmapped_evidence_by_requirement": [],
+      "dropped_or_out_of_candidate": [],
+      "deterministic_counts": {
+        "supported": 1,
+        "ambiguous": 3,
+        "unsupported": 4
+      },
+      "deterministic_validation_passed": true,
+      "deterministic_changed": false,
+      "candidate_map_sizes": {
+        "1": 1,
+        "2": 0,
+        "3": 2,
+        "4": 2,
+        "5": 0,
+        "6": 2,
+        "7": 0,
+        "8": 0
+      },
+      "captured_log_messages": [
+        [
+          "INFO",
+          "Local tailoring plan for Software Engineer Graduate: model=qwen3:1.7b, 3/8 requirement(s) supported, 0 semantic candidate(s) added, 0 warning(s), 3/8 requirement(s) sent to the model (rest resolved deterministically)"
+        ]
+      ]
+    },
+    {
+      "trial": 3,
+      "job_id": 27323,
+      "semantic_match": 0,
+      "invoked": true,
+      "latency_ms": 7058,
+      "failure_status": "ok",
+      "local_plan_validation_passed": true,
+      "local_plan_validation_errors": [],
+      "requirements_total": 8,
+      "requirements_sent_to_model": 3,
+      "local_supported_count": 3,
+      "local_unsupported_count": 5,
+      "supported_requirement_selections": [
+        {
+          "requirement_id": 1,
+          "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+          "selected_names": [
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 3,
+          "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 6,
+          "requirement": "Understanding of design for software systems running on multiple platform types",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        }
+      ],
+      "unmapped_evidence_by_requirement": [],
+      "dropped_or_out_of_candidate": [],
+      "deterministic_counts": {
+        "supported": 1,
+        "ambiguous": 3,
+        "unsupported": 4
+      },
+      "deterministic_validation_passed": true,
+      "deterministic_changed": false,
+      "candidate_map_sizes": {
+        "1": 1,
+        "2": 0,
+        "3": 2,
+        "4": 2,
+        "5": 0,
+        "6": 2,
+        "7": 0,
+        "8": 0
+      },
+      "captured_log_messages": [
+        [
+          "INFO",
+          "Local tailoring plan for Software Engineer Graduate: model=qwen3:1.7b, 3/8 requirement(s) supported, 0 semantic candidate(s) added, 0 warning(s), 3/8 requirement(s) sent to the model (rest resolved deterministically)"
+        ]
+      ]
+    },
+    {
+      "trial": 4,
+      "job_id": 27323,
+      "semantic_match": 0,
+      "invoked": true,
+      "latency_ms": 7482,
+      "failure_status": "ok",
+      "local_plan_validation_passed": true,
+      "local_plan_validation_errors": [],
+      "requirements_total": 8,
+      "requirements_sent_to_model": 3,
+      "local_supported_count": 3,
+      "local_unsupported_count": 5,
+      "supported_requirement_selections": [
+        {
+          "requirement_id": 1,
+          "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+          "selected_names": [
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 3,
+          "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 6,
+          "requirement": "Understanding of design for software systems running on multiple platform types",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        }
+      ],
+      "unmapped_evidence_by_requirement": [],
+      "dropped_or_out_of_candidate": [],
+      "deterministic_counts": {
+        "supported": 1,
+        "ambiguous": 3,
+        "unsupported": 4
+      },
+      "deterministic_validation_passed": true,
+      "deterministic_changed": false,
+      "candidate_map_sizes": {
+        "1": 1,
+        "2": 0,
+        "3": 2,
+        "4": 2,
+        "5": 0,
+        "6": 2,
+        "7": 0,
+        "8": 0
+      },
+      "captured_log_messages": [
+        [
+          "INFO",
+          "Local tailoring plan for Software Engineer Graduate: model=qwen3:1.7b, 3/8 requirement(s) supported, 0 semantic candidate(s) added, 0 warning(s), 3/8 requirement(s) sent to the model (rest resolved deterministically)"
+        ]
+      ]
+    },
+    {
+      "trial": 5,
+      "job_id": 27323,
+      "semantic_match": 0,
+      "invoked": true,
+      "latency_ms": 7328,
+      "failure_status": "ok",
+      "local_plan_validation_passed": true,
+      "local_plan_validation_errors": [],
+      "requirements_total": 8,
+      "requirements_sent_to_model": 3,
+      "local_supported_count": 3,
+      "local_unsupported_count": 5,
+      "supported_requirement_selections": [
+        {
+          "requirement_id": 1,
+          "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+          "selected_names": [
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 3,
+          "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 6,
+          "requirement": "Understanding of design for software systems running on multiple platform types",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        }
+      ],
+      "unmapped_evidence_by_requirement": [],
+      "dropped_or_out_of_candidate": [],
+      "deterministic_counts": {
+        "supported": 1,
+        "ambiguous": 3,
+        "unsupported": 4
+      },
+      "deterministic_validation_passed": true,
+      "deterministic_changed": false,
+      "candidate_map_sizes": {
+        "1": 1,
+        "2": 0,
+        "3": 2,
+        "4": 2,
+        "5": 0,
+        "6": 2,
+        "7": 0,
+        "8": 0
+      },
+      "captured_log_messages": [
+        [
+          "INFO",
+          "Local tailoring plan for Software Engineer Graduate: model=qwen3:1.7b, 3/8 requirement(s) supported, 0 semantic candidate(s) added, 0 warning(s), 3/8 requirement(s) sent to the model (rest resolved deterministically)"
+        ]
+      ]
+    },
+    {
+      "trial": 6,
+      "job_id": 27323,
+      "semantic_match": 1,
+      "invoked": true,
+      "latency_ms": 27576,
+      "failure_status": "ok",
+      "local_plan_validation_passed": true,
+      "local_plan_validation_errors": [],
+      "requirements_total": 8,
+      "requirements_sent_to_model": 4,
+      "local_supported_count": 4,
+      "local_unsupported_count": 4,
+      "supported_requirement_selections": [
+        {
+          "requirement_id": 1,
+          "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+          "selected_names": [
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 3,
+          "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 4,
+          "requirement": "Experience or understanding of software systems design tools and languages.",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine",
+            "You Power You"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": [
+            "You Power You"
+          ]
+        },
+        {
+          "requirement_id": 6,
+          "requirement": "Understanding of design for software systems running on multiple platform types",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        }
+      ],
+      "unmapped_evidence_by_requirement": [
+        {
+          "requirement_id": 4,
+          "requirement": "Experience or understanding of software systems design tools and languages.",
+          "unmapped_resume_evidence": [
+            "You Power You"
+          ]
+        }
+      ],
+      "dropped_or_out_of_candidate": [],
+      "deterministic_counts": {
+        "supported": 1,
+        "ambiguous": 3,
+        "unsupported": 4
+      },
+      "deterministic_validation_passed": true,
+      "deterministic_changed": false,
+      "candidate_map_sizes": {
+        "1": 1,
+        "2": 0,
+        "3": 3,
+        "4": 4,
+        "5": 0,
+        "6": 2,
+        "7": 2,
+        "8": 0
+      },
+      "captured_log_messages": [
+        [
+          "INFO",
+          "Local tailoring plan for Software Engineer Graduate: model=qwen3:1.7b, 4/8 requirement(s) supported, 5 semantic candidate(s) added, 0 warning(s), 4/8 requirement(s) sent to the model (rest resolved deterministically)"
+        ]
+      ]
+    },
+    {
+      "trial": 7,
+      "job_id": 27323,
+      "semantic_match": 1,
+      "invoked": true,
+      "latency_ms": 16064,
+      "failure_status": "ok",
+      "local_plan_validation_passed": true,
+      "local_plan_validation_errors": [],
+      "requirements_total": 8,
+      "requirements_sent_to_model": 4,
+      "local_supported_count": 4,
+      "local_unsupported_count": 4,
+      "supported_requirement_selections": [
+        {
+          "requirement_id": 1,
+          "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+          "selected_names": [
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 3,
+          "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 4,
+          "requirement": "Experience or understanding of software systems design tools and languages.",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine",
+            "You Power You"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": [
+            "You Power You"
+          ]
+        },
+        {
+          "requirement_id": 6,
+          "requirement": "Understanding of design for software systems running on multiple platform types",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        }
+      ],
+      "unmapped_evidence_by_requirement": [
+        {
+          "requirement_id": 4,
+          "requirement": "Experience or understanding of software systems design tools and languages.",
+          "unmapped_resume_evidence": [
+            "You Power You"
+          ]
+        }
+      ],
+      "dropped_or_out_of_candidate": [],
+      "deterministic_counts": {
+        "supported": 1,
+        "ambiguous": 3,
+        "unsupported": 4
+      },
+      "deterministic_validation_passed": true,
+      "deterministic_changed": false,
+      "candidate_map_sizes": {
+        "1": 1,
+        "2": 0,
+        "3": 3,
+        "4": 4,
+        "5": 0,
+        "6": 2,
+        "7": 2,
+        "8": 0
+      },
+      "captured_log_messages": [
+        [
+          "INFO",
+          "Local tailoring plan for Software Engineer Graduate: model=qwen3:1.7b, 4/8 requirement(s) supported, 5 semantic candidate(s) added, 0 warning(s), 4/8 requirement(s) sent to the model (rest resolved deterministically)"
+        ]
+      ]
+    },
+    {
+      "trial": 8,
+      "job_id": 27323,
+      "semantic_match": 1,
+      "invoked": true,
+      "latency_ms": 16557,
+      "failure_status": "ok",
+      "local_plan_validation_passed": true,
+      "local_plan_validation_errors": [],
+      "requirements_total": 8,
+      "requirements_sent_to_model": 4,
+      "local_supported_count": 4,
+      "local_unsupported_count": 4,
+      "supported_requirement_selections": [
+        {
+          "requirement_id": 1,
+          "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+          "selected_names": [
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 3,
+          "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 4,
+          "requirement": "Experience or understanding of software systems design tools and languages.",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine",
+            "You Power You"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": [
+            "You Power You"
+          ]
+        },
+        {
+          "requirement_id": 6,
+          "requirement": "Understanding of design for software systems running on multiple platform types",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        }
+      ],
+      "unmapped_evidence_by_requirement": [
+        {
+          "requirement_id": 4,
+          "requirement": "Experience or understanding of software systems design tools and languages.",
+          "unmapped_resume_evidence": [
+            "You Power You"
+          ]
+        }
+      ],
+      "dropped_or_out_of_candidate": [],
+      "deterministic_counts": {
+        "supported": 1,
+        "ambiguous": 3,
+        "unsupported": 4
+      },
+      "deterministic_validation_passed": true,
+      "deterministic_changed": false,
+      "candidate_map_sizes": {
+        "1": 1,
+        "2": 0,
+        "3": 3,
+        "4": 4,
+        "5": 0,
+        "6": 2,
+        "7": 2,
+        "8": 0
+      },
+      "captured_log_messages": [
+        [
+          "INFO",
+          "Local tailoring plan for Software Engineer Graduate: model=qwen3:1.7b, 4/8 requirement(s) supported, 5 semantic candidate(s) added, 0 warning(s), 4/8 requirement(s) sent to the model (rest resolved deterministically)"
+        ]
+      ]
+    },
+    {
+      "trial": 9,
+      "job_id": 27323,
+      "semantic_match": 1,
+      "invoked": true,
+      "latency_ms": 16170,
+      "failure_status": "ok",
+      "local_plan_validation_passed": true,
+      "local_plan_validation_errors": [],
+      "requirements_total": 8,
+      "requirements_sent_to_model": 4,
+      "local_supported_count": 4,
+      "local_unsupported_count": 4,
+      "supported_requirement_selections": [
+        {
+          "requirement_id": 1,
+          "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+          "selected_names": [
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 3,
+          "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 4,
+          "requirement": "Experience or understanding of software systems design tools and languages.",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine",
+            "You Power You"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": [
+            "You Power You"
+          ]
+        },
+        {
+          "requirement_id": 6,
+          "requirement": "Understanding of design for software systems running on multiple platform types",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        }
+      ],
+      "unmapped_evidence_by_requirement": [
+        {
+          "requirement_id": 4,
+          "requirement": "Experience or understanding of software systems design tools and languages.",
+          "unmapped_resume_evidence": [
+            "You Power You"
+          ]
+        }
+      ],
+      "dropped_or_out_of_candidate": [],
+      "deterministic_counts": {
+        "supported": 1,
+        "ambiguous": 3,
+        "unsupported": 4
+      },
+      "deterministic_validation_passed": true,
+      "deterministic_changed": false,
+      "candidate_map_sizes": {
+        "1": 1,
+        "2": 0,
+        "3": 3,
+        "4": 4,
+        "5": 0,
+        "6": 2,
+        "7": 2,
+        "8": 0
+      },
+      "captured_log_messages": [
+        [
+          "INFO",
+          "Local tailoring plan for Software Engineer Graduate: model=qwen3:1.7b, 4/8 requirement(s) supported, 5 semantic candidate(s) added, 0 warning(s), 4/8 requirement(s) sent to the model (rest resolved deterministically)"
+        ]
+      ]
+    },
+    {
+      "trial": 10,
+      "job_id": 27323,
+      "semantic_match": 1,
+      "invoked": true,
+      "latency_ms": 15368,
+      "failure_status": "ok",
+      "local_plan_validation_passed": true,
+      "local_plan_validation_errors": [],
+      "requirements_total": 8,
+      "requirements_sent_to_model": 4,
+      "local_supported_count": 4,
+      "local_unsupported_count": 4,
+      "supported_requirement_selections": [
+        {
+          "requirement_id": 1,
+          "requirement": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+          "selected_names": [
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 3,
+          "requirement": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        },
+        {
+          "requirement_id": 4,
+          "requirement": "Experience or understanding of software systems design tools and languages.",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine",
+            "You Power You"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": [
+            "You Power You"
+          ]
+        },
+        {
+          "requirement_id": 6,
+          "requirement": "Understanding of design for software systems running on multiple platform types",
+          "selected_names": [
+            "Web Design",
+            "Express_Engine"
+          ],
+          "mapped_evidence_ids": [
+            2,
+            6
+          ],
+          "unmapped_names": []
+        }
+      ],
+      "unmapped_evidence_by_requirement": [
+        {
+          "requirement_id": 4,
+          "requirement": "Experience or understanding of software systems design tools and languages.",
+          "unmapped_resume_evidence": [
+            "You Power You"
+          ]
+        }
+      ],
+      "dropped_or_out_of_candidate": [],
+      "deterministic_counts": {
+        "supported": 1,
+        "ambiguous": 3,
+        "unsupported": 4
+      },
+      "deterministic_validation_passed": true,
+      "deterministic_changed": false,
+      "candidate_map_sizes": {
+        "1": 1,
+        "2": 0,
+        "3": 3,
+        "4": 4,
+        "5": 0,
+        "6": 2,
+        "7": 2,
+        "8": 0
+      },
+      "captured_log_messages": [
+        [
+          "INFO",
+          "Local tailoring plan for Software Engineer Graduate: model=qwen3:1.7b, 4/8 requirement(s) supported, 5 semantic candidate(s) added, 0 warning(s), 4/8 requirement(s) sent to the model (rest resolved deterministically)"
+        ]
+      ]
+    }
+  ]
+}

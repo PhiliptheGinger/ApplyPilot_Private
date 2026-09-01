@@ -1,0 +1,61 @@
+Philip McLaughlin
+Sales Tech & Technical Support
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Proficient in Python programming and web design with a background in technical support, hands-on troubleshooting, and customer-facing roles. Applies analytical problem-solving and clear technical communication to analyze systems and execute structured workflows. Ready to bring these transferable capabilities to support software testing, debugging, and subsystem updates.
+
+TECHNICAL SKILLS
+Technical Skills: Python, Web Design
+Media & Creative: Photography, Videography
+Professional Capabilities: Customer service, Outreach, Sales consultations, Public speaking
+
+EXPERIENCE
+Sales Representative / Sales Tech at AMP Smart
+Sales Consultations, Outreach
+- Executed targeted outreach and sales strategies for residential solar solutions, identifying qualified leads and analyzing regional market conditions.
+- Conducted in-person consultations to evaluate homeowner energy needs and present tailored technical proposals.
+
+Alignment Technician at National Tire and Battery / Mavis
+Hands-on Troubleshooting, Customer Service
+- Diagnosed and repaired mechanical issues across steering, suspension, and braking systems, ensuring strict adherence to safety specifications.
+- Executed precise vehicle alignment procedures, utilizing specialized diagnostic tools to correct steering and suspension geometry.
+- Communicated technical diagnostics and repair recommendations directly to customers, improving service transparency.
+
+Moving Specialist / Installation Tech at Alex Prosperity Group / UST Logistics
+Installation, Customer Service
+- Installed complex home appliances contracted through Lowe's, verifying proper electrical and plumbing connections.
+- Troubleshot installation issues on-site to ensure optimal appliance functionality and customer satisfaction.
+
+Packaging Associate / Warehouse Associate at UPS
+Operations
+- Managed high-volume package handling operations, maintaining strict efficiency and accuracy standards under tight deadlines.
+
+Freelance Photographer / Videographer at Freelance Photography / Videography
+Photography, Videography, Web Design
+- Produced high-quality digital media assets for clients, managing the complete creative and technical production workflow.
+- Designed and maintained custom portfolio websites to showcase media assets and engage prospective clients.
+
+PROJECTS
+Express_Engine
+Python
+- Coded software updates for a language-learning tool's CLI components, enabling persistent data storage and spaced repetition to optimize user vocabulary retention.
+
+Standup-OCR
+Python
+- Developed a Python-based OCR tool to automate image and document processing, transcribing text from media files.
+- Experimented with machine-learning models and designed human review workflows to prepare high-quality training data.
+
+CAP Predictor
+Python
+- Built a Python data processing pipeline to collect and analyze financial and news data.
+- Engineered features and conducted sentiment analysis to support statistical modeling experiments.
+
+You Power You
+Web Design
+- Developed a responsive website using HTML, CSS, and JavaScript, integrating server-side form handling and email notification workflows.
+
+EDUCATION
+University of North Carolina at Greensboro
+Bachelor of Arts in Media Studies
+2019 - 2022

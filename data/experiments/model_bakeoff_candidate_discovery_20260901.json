@@ -1,0 +1,174 @@
+{
+  "timestamp_utc": "2026-09-01T16:10:53.673605+00:00",
+  "search_results": {
+    "tinyllama_resume_tailor": [
+      {
+        "query": "tinyllama resume tailor",
+        "rows": [
+          {
+            "id": "akshayrinku/tinyllama-resume-tailor-lora",
+            "pipeline_tag": "text-generation",
+            "library_name": "peft",
+            "downloads": 0,
+            "likes": 0,
+            "createdAt": "2026-04-30T16:35:50.000Z",
+            "tags": [
+              "peft",
+              "safetensors",
+              "resume",
+              "nlp",
+              "lora",
+              "fine-tuning",
+              "text-generation",
+              "conversational",
+              "en",
+              "base_model:TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+              "base_model:adapter:TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+              "license:mit"
+            ]
+          }
+        ]
+      },
+      {
+        "query": "tinyllama-resume-tailor",
+        "rows": []
+      },
+      {
+        "query": "TinyLlama 1.1B resume",
+        "rows": []
+      }
+    ],
+    "t5_base_resume": [
+      {
+        "query": "t5-base resume generation",
+        "rows": []
+      },
+      {
+        "query": "t5 base fine tuned resume",
+        "rows": [
+          {
+            "id": "Abhishek9998/t5-base-finetuned-resumes_t2json_large-peft",
+            "pipeline_tag": null,
+            "library_name": null,
+            "downloads": 0,
+            "likes": 0,
+            "createdAt": "2023-04-22T09:27:53.000Z",
+            "tags": [
+              "pytorch",
+              "tensorboard",
+              "generated_from_trainer",
+              "dataset:resumes_t2json_large",
+              "license:apache-2.0",
+              "region:us"
+            ]
+          },
+          {
+            "id": "Abhishek9998/t5-base-finetuned-resumes_t2json-peft",
+            "pipeline_tag": null,
+            "library_name": null,
+            "downloads": 0,
+            "likes": 0,
+            "createdAt": "2023-04-22T13:15:25.000Z",
+            "tags": [
+              "region:us"
+            ]
+          },
+          {
+            "id": "Abhishek9998/t5-base-finetuned-resumes_t2json_large",
+            "pipeline_tag": null,
+            "library_name": "transformers",
+            "downloads": 20,
+            "likes": 1,
+            "createdAt": "2023-04-22T18:57:26.000Z",
+            "tags": [
+              "transformers",
+              "pytorch",
+              "tensorboard",
+              "t5",
+              "text2text-generation",
+              "generated_from_trainer",
+              "dataset:resumes_t2json_large",
+              "license:apache-2.0",
+              "model-index",
+              "text-generation-inference",
+              "endpoints_compatible",
+              "region:us"
+            ]
+          }
+        ]
+      },
+      {
+        "query": "t5 resume json",
+        "rows": []
+      }
+    ],
+    "gpt_neo_resume": [
+      {
+        "query": "gpt-neo resume assistant",
+        "rows": []
+      },
+      {
+        "query": "gpt neo resume",
+        "rows": []
+      },
+      {
+        "query": "EleutherAI gpt-neo resume",
+        "rows": []
+      }
+    ],
+    "qwen25_resume_7b": [
+      {
+        "query": "qwen2.5 7b resume lora",
+        "rows": [
+          {
+            "id": "Ella0506/Qwen2.5-7B-Instruct-Resume-LoRA",
+            "pipeline_tag": null,
+            "library_name": "peft",
+            "downloads": 7,
+            "likes": 0,
+            "createdAt": "2025-04-24T03:26:48.000Z",
+            "tags": [
+              "peft",
+              "safetensors",
+              "llama-factory",
+              "lora",
+              "generated_from_trainer",
+              "base_model:Qwen/Qwen2.5-7B-Instruct",
+              "base_model:adapter:Qwen/Qwen2.5-7B-Instruct",
+              "license:other",
+              "region:us"
+            ]
+          }
+        ]
+      },
+      {
+        "query": "qwen2.5 resume tailor",
+        "rows": []
+      },
+      {
+        "query": "Qwen2.5-7B-Instruct-Resume-LoRA",
+        "rows": []
+      }
+    ]
+  },
+  "candidate_info": {
+    "akshayrinku/tinyllama-resume-tailor-lora": {
+      "error": "HTTP Error 400: Bad Request"
+    },
+    "Abhishek9998/t5-base-finetuned-resumes_t2json_large": {
+      "error": "HTTP Error 400: Bad Request"
+    },
+    "Abhishek9998/t5-base-finetuned-resumes_t2json_large-peft": {
+      "error": "HTTP Error 400: Bad Request"
+    },
+    "Ella0506/Qwen2.5-7B-Instruct-Resume-LoRA": {
+      "error": "HTTP Error 400: Bad Request"
+    },
+    "muhdnorian/model-qwen2.5-7b-fine-tuning-resume_jason_miller": {
+      "error": "HTTP Error 400: Bad Request"
+    },
+    "EleutherAI/gpt-neo-1.3B": {
+      "error": "HTTP Error 400: Bad Request"
+    }
+  }
+}

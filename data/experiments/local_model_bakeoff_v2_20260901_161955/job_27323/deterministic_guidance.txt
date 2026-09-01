@@ -1,0 +1,27 @@
+DETERMINISTIC EVIDENCE CATALOG (AUTHORITATIVE)
+E1: [project] I_hate_social_media | matched terms: media, social media
+E2: [skill] Web Design | matched terms: design, media
+E3: [experience] Freelance Photography / Videography | matched terms: media
+E4: [experience] National Tire and Battery / Mavis | matched terms: national
+E5: [project] CAP Predictor | matched terms: data
+E6: [project] Express_Engine | matched terms: software
+
+DETERMINISTIC REQUIREMENT SUPPORT (AUTHORITATIVE)
+R1: [supported] Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools
+  evidence: Express_Engine
+R2: [unsupported] Executes established test plans and protocols for assigned portions of code; identifies, logs, and debugs assigned issues.
+  evidence: none
+R3: [ambiguous] Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.
+  evidence: Web Design, Express_Engine
+R4: [ambiguous] Experience or understanding of software systems design tools and languages.
+  evidence: Web Design, Express_Engine
+R5: [unsupported] Good analytical and problem-solving skills.
+  evidence: none
+R6: [ambiguous] Understanding of design for software systems running on multiple platform types
+  evidence: Web Design, Express_Engine
+R7: [unsupported] Good written and verbal communication skills; mastery in English and local language.
+  evidence: none
+R8: [unsupported] Understanding of basic testing, coding, and debugging procedures
+  evidence: none
+
+RULE: DO NOT claim support from any evidence not listed above for that requirement.

@@ -1,0 +1,54 @@
+Philip McLaughlin
+Media Communications & Technical Support
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Background in media studies and application development using Python and web design. Experienced in structured technical project execution, client outreach, and operational support across high-volume environments.
+
+TECHNICAL SKILLS
+Languages: Python
+Media & Web: Web Design, Photography, Videography
+Communication & Sales: Customer service, Outreach, Sales consultations, Public speaking
+
+EXPERIENCE
+Sales Representative / Sales Tech at AMP Smart
+Technical Sales & Consultation
+- Executed targeted customer outreach and consultative sales strategies for residential solar solutions.
+- Conducted in-person consultations to analyze site requirements and present technical system configurations.
+- Tailored detailed proposals to match specific homeowner needs and regional market conditions.
+
+Alignment Technician at National Tire and Battery / Mavis
+Automotive Systems Maintenance
+- Executed diagnostic alignment procedures, brake servicing, and suspension maintenance on consumer vehicles.
+- Troubleshot mechanical systems, replacing shocks, struts, and fluids according to operational standards.
+- Communicated technical service requirements directly to customers to ensure system performance.
+
+Moving Specialist / Installation Tech at Alex Prosperity Group / UST Logistics
+Hardware Installation
+- Installed home appliances under contract for retail clients, ensuring proper physical setup and operational safety.
+- Evaluated installation sites to ensure physical and electrical compatibility before finalizing setup.
+
+Packaging Associate / Warehouse Associate at UPS
+Operational Logistics
+- Managed package sorting and volume handling within a fast-paced operational warehouse environment.
+
+PROJECTS
+Express_Engine - Application Tooling
+Python
+- Coded application architecture and persistent data management modules in Python for language-learning software.
+- Developed CLI components and data utilities to handle user spaced-repetition workflows.
+
+You Power You - Web Design & Integration
+HTML, CSS, JavaScript
+- Designed and developed website interface utilizing HTML, CSS, JavaScript, and modern Web Design principles.
+- Implemented server-side form processing and qualification workflows with automated email notifications.
+
+Standup-OCR - Text Extraction Pipeline
+Python
+- Programmed Python scripts for image and document processing to automate text transcription.
+- Constructed data review workflows to manage optical character recognition inputs and training data.
+
+EDUCATION
+University of North Carolina at Greensboro
+Bachelor of Arts in Media Studies
+2019 - 2022

@@ -1,0 +1,69 @@
+Philip McLaughlin
+Sales & Technical Support
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Experienced in Python programming and web design with a background in media studies and technical customer service. Skilled at troubleshooting systems and executing structured workflows to deliver reliable solutions. Ready to contribute to software development and testing efforts at HPE.
+
+TECHNICAL SKILLS
+Technical Skills: Python, Web Design
+Media & Creative: Photography, Videography
+
+EXPERIENCE
+Sales Representative / Sales Tech at AMP Smart
+Customer Outreach, Sales
+- Executed targeted outreach and sales strategies for residential solar solutions, identifying qualified leads through direct engagement.
+- Conducted in-person consultations to analyze homeowner needs and tailor technical proposals based on regional market conditions.
+
+Alignment Technician at National Tire and Battery / Mavis
+Automotive Diagnostics, Customer Relations
+- Diagnosed and resolved mechanical issues, performing precise vehicle alignments, brake services, and fluid replacements.
+- Maintained high customer service standards by explaining technical diagnostics and repair procedures clearly to clients.
+
+Freelance Photographer / Videographer at Freelance Photography / Videography
+Photography, Videography, Web Design
+- Managed complete creative production, delivering high-quality photography and videography assets for diverse clients.
+- Designed and updated a digital portfolio using web design principles to showcase media projects and attract new business.
+
+Packaging Associate / Warehouse Associate at UPS
+Operations
+- Handled high-volume package distribution, maintaining strict operational efficiency and safety standards in a fast-paced environment.
+
+Moving Specialist / Installation Tech at Alex Prosperity Group / UST Logistics
+Appliance Installation
+- Installed home appliances contracted through Lowe's, ensuring proper technical setup and customer satisfaction.
+
+Server / Line Cook at Waffle House
+Customer Service, Food Preparation
+- Provided fast-paced customer service and managed high-volume food preparation under tight time constraints.
+
+PROJECTS
+Express_Engine
+Python
+- Coded software enhancements and updates for a language-learning tool, implementing a spaced repetition algorithm to manage persistent data.
+- Built CLI application components in Python, validating utility functionality through manual testing procedures.
+
+You Power You
+HTML, CSS, JavaScript
+- Developed a responsive website using HTML, CSS, and JavaScript, integrating server-side form handling for user submissions.
+- Implemented email notification workflows to automate qualification and submission routing.
+
+Standup-OCR
+Python
+- Programmed a Python-based OCR tool to automate text extraction and transcription from image documents.
+- Designed human review workflows to verify machine-learning transcription accuracy and prepare training data.
+
+CAP Predictor
+Python
+- Created a Python data processing pipeline to collect and analyze financial news sentiment.
+- Executed statistical modeling experiments to evaluate feature engineering techniques on structured datasets.
+
+I_hate_social_media
+Python
+- Developed a Python utility to process exported social media data, filtering and retrieving relevant posts.
+- Extracted structured information from unstructured media logs to support data analysis.
+
+EDUCATION
+University of North Carolina at Greensboro
+Bachelor of Arts in Media Studies
+2019 - 2022

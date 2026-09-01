@@ -1,0 +1,1761 @@
+{
+  "experiment": "q2_structured_plan_boundary",
+  "mode": "read_only",
+  "timestamp_utc": "2026-09-01T02:39:38.213877+00:00",
+  "explicit_selection": {
+    "job_ids": [
+      27316,
+      27320,
+      27323,
+      27326,
+      27454
+    ],
+    "urls": [],
+    "resolved_jobs": 5
+  },
+  "constraints": {
+    "claimed_jobs": false,
+    "incremented_tailor_attempts": false,
+    "changed_job_state": false,
+    "wrote_tailoring_results": false,
+    "used_transition_helpers": false
+  },
+  "jobs": [
+    {
+      "job_id": 27316,
+      "title": "Software Engineer",
+      "company": "",
+      "url": "https://builtin.com/job/software-engineer/10919767",
+      "requirement_count": 8,
+      "counts": {
+        "supported": 4,
+        "ambiguous": 0,
+        "unsupported": 4
+      },
+      "evidence_selections": [
+        {
+          "requirement_id": 1,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 2,
+          "status": "supported",
+          "evidence_ids": [
+            2
+          ],
+          "claim_ceiling": "participation",
+          "agency_ceiling": "individual_contributor"
+        },
+        {
+          "requirement_id": 3,
+          "status": "supported",
+          "evidence_ids": [
+            2
+          ],
+          "claim_ceiling": "participation",
+          "agency_ceiling": "individual_contributor"
+        },
+        {
+          "requirement_id": 4,
+          "status": "supported",
+          "evidence_ids": [
+            2
+          ],
+          "claim_ceiling": "participation",
+          "agency_ceiling": "individual_contributor"
+        },
+        {
+          "requirement_id": 5,
+          "status": "supported",
+          "evidence_ids": [
+            2
+          ],
+          "claim_ceiling": "participation",
+          "agency_ceiling": "individual_contributor"
+        },
+        {
+          "requirement_id": 6,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 7,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 8,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        }
+      ],
+      "plan_validation": {
+        "passed": true,
+        "errors": []
+      },
+      "deterministic_metrics": {
+        "provider": "none",
+        "model": "none",
+        "prompt_size_chars": 0,
+        "output_size_chars": 4929,
+        "latency_ms": 123,
+        "retries": 0,
+        "provider_unavailable_events": 0
+      },
+      "structured_plan": {
+        "schema_version": "q2.plan.v1",
+        "mode": "deterministic",
+        "job": {
+          "id": 27316,
+          "url": "https://builtin.com/job/software-engineer/10919767",
+          "title": "Software Engineer",
+          "company": "",
+          "site": "Ipt Global"
+        },
+        "viewpoint": "engineering",
+        "summary_schema": "identity_domain_strength_evidence_value",
+        "requirement_count": 8,
+        "counts": {
+          "supported": 4,
+          "ambiguous": 0,
+          "unsupported": 4
+        },
+        "dropped_benefit_lines": [],
+        "evidence_catalog": [
+          {
+            "id": 1,
+            "type": "project",
+            "name": "CAP Predictor",
+            "score": 2,
+            "matched_terms": [
+              "data",
+              "research"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 2,
+            "type": "skill",
+            "name": "Web Design",
+            "score": 2,
+            "matched_terms": [
+              "design",
+              "web"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 3,
+            "type": "experience",
+            "name": "UPS",
+            "score": 1,
+            "matched_terms": [
+              "operations"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 4,
+            "type": "experience",
+            "name": "Alex Prosperity Group / UST Logistics",
+            "score": 1,
+            "matched_terms": [
+              "group"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 5,
+            "type": "project",
+            "name": "Express_Engine",
+            "score": 1,
+            "matched_terms": [
+              "software"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 6,
+            "type": "project",
+            "name": "You Power You",
+            "score": 1,
+            "matched_terms": [
+              "web"
+            ],
+            "permitted": true
+          }
+        ],
+        "requirements": [
+          {
+            "id": 1,
+            "text": "Assist in developing applications and refining product requirements. Working with team lead, internal resources and clients to assess technical and operational needs.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 2,
+            "text": "Analyze requirements and assist in design development based on selected architectures.",
+            "importance": "unspecified",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "directives": {
+              "cognitive_schema": "evidence_claim",
+              "bullet_schema": "action_object_context_outcome",
+              "claim_ceiling": "participation",
+              "agency_ceiling": "individual_contributor",
+              "force_relation": null,
+              "salience_order": [
+                "action",
+                "technology",
+                "context",
+                "outcome"
+              ],
+              "exact_keywords": [
+                "design"
+              ],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 3,
+            "text": "Design solutions that are reliable, secure, simple, efficient, and maintainable.",
+            "importance": "unspecified",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "directives": {
+              "cognitive_schema": "evidence_claim",
+              "bullet_schema": "action_object_context_outcome",
+              "claim_ceiling": "participation",
+              "agency_ceiling": "individual_contributor",
+              "force_relation": null,
+              "salience_order": [
+                "action",
+                "technology",
+                "context",
+                "outcome"
+              ],
+              "exact_keywords": [
+                "design"
+              ],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 4,
+            "text": "Assist in estimating the scope of designs and participate in design review sessions.",
+            "importance": "unspecified",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "directives": {
+              "cognitive_schema": "evidence_claim",
+              "bullet_schema": "action_object_context_outcome",
+              "claim_ceiling": "participation",
+              "agency_ceiling": "individual_contributor",
+              "force_relation": null,
+              "salience_order": [
+                "action",
+                "technology",
+                "context",
+                "outcome"
+              ],
+              "exact_keywords": [
+                "design"
+              ],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 5,
+            "text": "Perform programming tasks to deliver design objectives.",
+            "importance": "unspecified",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "directives": {
+              "cognitive_schema": "evidence_claim",
+              "bullet_schema": "action_object_context_outcome",
+              "claim_ceiling": "participation",
+              "agency_ceiling": "individual_contributor",
+              "force_relation": null,
+              "salience_order": [
+                "action",
+                "technology",
+                "context",
+                "outcome"
+              ],
+              "exact_keywords": [
+                "design"
+              ],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 6,
+            "text": "Confirm program operation by conducting unit and system level tests.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 7,
+            "text": "Assist in product test planning, documentation and problem resolution.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 8,
+            "text": "Perform code reviews on pull requests from other developers.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          }
+        ]
+      },
+      "realization_boundary": {
+        "mode": "simulated_failure",
+        "realization_status": "failed",
+        "plan_discarded": false,
+        "validated_plan_reusable_after_failure": true
+      },
+      "local_planner": {
+        "invoked": false,
+        "provider": "local",
+        "model": null,
+        "prompt_size_chars": null,
+        "output_size_chars": null,
+        "latency_ms": null,
+        "retries": 0,
+        "provider_unavailable_events": 0,
+        "plan_validation": null,
+        "note": "local planner not configured; deterministic path still executed"
+      }
+    },
+    {
+      "job_id": 27320,
+      "title": "Full Stack Software Engineer",
+      "company": "",
+      "url": "https://builtin.com/job/full-stack-software-engineer/10918046",
+      "requirement_count": 8,
+      "counts": {
+        "supported": 1,
+        "ambiguous": 1,
+        "unsupported": 6
+      },
+      "evidence_selections": [
+        {
+          "requirement_id": 1,
+          "status": "supported",
+          "evidence_ids": [
+            5
+          ],
+          "claim_ceiling": "participation",
+          "agency_ceiling": "individual_contributor"
+        },
+        {
+          "requirement_id": 2,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 3,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 4,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 5,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 6,
+          "status": "ambiguous",
+          "evidence_ids": [
+            1,
+            3,
+            4
+          ],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 7,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 8,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        }
+      ],
+      "plan_validation": {
+        "passed": true,
+        "errors": []
+      },
+      "deterministic_metrics": {
+        "provider": "none",
+        "model": "none",
+        "prompt_size_chars": 0,
+        "output_size_chars": 4821,
+        "latency_ms": 34,
+        "retries": 0,
+        "provider_unavailable_events": 0
+      },
+      "structured_plan": {
+        "schema_version": "q2.plan.v1",
+        "mode": "deterministic",
+        "job": {
+          "id": 27320,
+          "url": "https://builtin.com/job/full-stack-software-engineer/10918046",
+          "title": "Full Stack Software Engineer",
+          "company": "",
+          "site": "Frontier Energy Inc"
+        },
+        "viewpoint": "engineering",
+        "summary_schema": "capability_background_transfer_value",
+        "requirement_count": 8,
+        "counts": {
+          "supported": 1,
+          "ambiguous": 1,
+          "unsupported": 6
+        },
+        "dropped_benefit_lines": [],
+        "evidence_catalog": [
+          {
+            "id": 1,
+            "type": "project",
+            "name": "Express_Engine",
+            "score": 2,
+            "matched_terms": [
+              "automation",
+              "software"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 2,
+            "type": "experience",
+            "name": "UPS",
+            "score": 1,
+            "matched_terms": [
+              "reliability"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 3,
+            "type": "project",
+            "name": "Standup-OCR",
+            "score": 1,
+            "matched_terms": [
+              "automation"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 4,
+            "type": "skill",
+            "name": "Python",
+            "score": 1,
+            "matched_terms": [
+              "automation"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 5,
+            "type": "skill",
+            "name": "Web Design",
+            "score": 1,
+            "matched_terms": [
+              "design"
+            ],
+            "permitted": true
+          }
+        ],
+        "requirements": [
+          {
+            "id": 1,
+            "text": "Design, build, and maintain reliable full stack applications using C#, .NET Core, and modern front-end frameworks such as Blazor or React.",
+            "importance": "unspecified",
+            "status": "supported",
+            "evidence_ids": [
+              5
+            ],
+            "directives": {
+              "cognitive_schema": "evidence_claim",
+              "bullet_schema": "action_object_context_outcome",
+              "claim_ceiling": "participation",
+              "agency_ceiling": "individual_contributor",
+              "force_relation": null,
+              "salience_order": [
+                "action",
+                "technology",
+                "context",
+                "outcome"
+              ],
+              "exact_keywords": [
+                "design"
+              ],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 2,
+            "text": "Develop scalable APIs, microservices, and cloud-native components within Azure.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 3,
+            "text": "Own feature development from concept to deployment, including architecture, implementation, documentation, and testing.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 4,
+            "text": "Collaborate closely with product management, business analysts, and other engineers to break down complex problems into clear, actionable work.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 5,
+            "text": "Write clean, maintainable, well-tested code and participate in peer reviews that emphasize long-term quality and resilience.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 6,
+            "text": "Contribute to CI/CD pipelines (GitHub Actions or Azure DevOps), observability (logging, metrics, tracing), and infrastructure automation.",
+            "importance": "unspecified",
+            "status": "ambiguous",
+            "evidence_ids": [
+              1,
+              3,
+              4
+            ],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 7,
+            "text": "Mentor junior and mid-level engineers by offering guidance, pairing, and constructive feedback. Participate in backlog refinement, estimation sessions, and sprint ceremonies.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 8,
+            "text": "Help drive architectural discussions, propose solutions, and influence engineering best practices across the department.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          }
+        ]
+      },
+      "realization_boundary": {
+        "mode": "simulated_failure",
+        "realization_status": "failed",
+        "plan_discarded": false,
+        "validated_plan_reusable_after_failure": true
+      },
+      "local_planner": {
+        "invoked": false,
+        "provider": "local",
+        "model": null,
+        "prompt_size_chars": null,
+        "output_size_chars": null,
+        "latency_ms": null,
+        "retries": 0,
+        "provider_unavailable_events": 0,
+        "plan_validation": null,
+        "note": "local planner not configured; deterministic path still executed"
+      }
+    },
+    {
+      "job_id": 27323,
+      "title": "Software Engineer Graduate",
+      "company": "hpe",
+      "url": "https://builtin.com/job/software-engineer-graduate/10917868",
+      "requirement_count": 8,
+      "counts": {
+        "supported": 1,
+        "ambiguous": 3,
+        "unsupported": 4
+      },
+      "evidence_selections": [
+        {
+          "requirement_id": 1,
+          "status": "supported",
+          "evidence_ids": [
+            6
+          ],
+          "claim_ceiling": "participation",
+          "agency_ceiling": "individual_contributor"
+        },
+        {
+          "requirement_id": 2,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 3,
+          "status": "ambiguous",
+          "evidence_ids": [
+            2,
+            6
+          ],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 4,
+          "status": "ambiguous",
+          "evidence_ids": [
+            2,
+            6
+          ],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 5,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 6,
+          "status": "ambiguous",
+          "evidence_ids": [
+            2,
+            6
+          ],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 7,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 8,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        }
+      ],
+      "plan_validation": {
+        "passed": true,
+        "errors": []
+      },
+      "deterministic_metrics": {
+        "provider": "none",
+        "model": "none",
+        "prompt_size_chars": 0,
+        "output_size_chars": 4789,
+        "latency_ms": 42,
+        "retries": 0,
+        "provider_unavailable_events": 0
+      },
+      "structured_plan": {
+        "schema_version": "q2.plan.v1",
+        "mode": "deterministic",
+        "job": {
+          "id": 27323,
+          "url": "https://builtin.com/job/software-engineer-graduate/10917868",
+          "title": "Software Engineer Graduate",
+          "company": "",
+          "site": "Hewlett Packard Enterprise"
+        },
+        "viewpoint": "engineering",
+        "summary_schema": "capability_background_transfer_value",
+        "requirement_count": 8,
+        "counts": {
+          "supported": 1,
+          "ambiguous": 3,
+          "unsupported": 4
+        },
+        "dropped_benefit_lines": [],
+        "evidence_catalog": [
+          {
+            "id": 1,
+            "type": "project",
+            "name": "I_hate_social_media",
+            "score": 2,
+            "matched_terms": [
+              "media",
+              "social media"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 2,
+            "type": "skill",
+            "name": "Web Design",
+            "score": 2,
+            "matched_terms": [
+              "design",
+              "media"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 3,
+            "type": "experience",
+            "name": "Freelance Photography / Videography",
+            "score": 1,
+            "matched_terms": [
+              "media"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 4,
+            "type": "experience",
+            "name": "National Tire and Battery / Mavis",
+            "score": 1,
+            "matched_terms": [
+              "national"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 5,
+            "type": "project",
+            "name": "CAP Predictor",
+            "score": 1,
+            "matched_terms": [
+              "data"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 6,
+            "type": "project",
+            "name": "Express_Engine",
+            "score": 1,
+            "matched_terms": [
+              "software"
+            ],
+            "permitted": true
+          }
+        ],
+        "requirements": [
+          {
+            "id": 1,
+            "text": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+            "importance": "unspecified",
+            "status": "supported",
+            "evidence_ids": [
+              6
+            ],
+            "directives": {
+              "cognitive_schema": "action_object_outcome",
+              "bullet_schema": "action_object_context_outcome",
+              "claim_ceiling": "participation",
+              "agency_ceiling": "individual_contributor",
+              "force_relation": null,
+              "salience_order": [
+                "action",
+                "technology",
+                "context",
+                "outcome"
+              ],
+              "exact_keywords": [
+                "software"
+              ],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 2,
+            "text": "Executes established test plans and protocols for assigned portions of code; identifies, logs, and debugs assigned issues.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 3,
+            "text": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+            "importance": "unspecified",
+            "status": "ambiguous",
+            "evidence_ids": [
+              2,
+              6
+            ],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 4,
+            "text": "Experience or understanding of software systems design tools and languages.",
+            "importance": "unspecified",
+            "status": "ambiguous",
+            "evidence_ids": [
+              2,
+              6
+            ],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 5,
+            "text": "Good analytical and problem-solving skills.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 6,
+            "text": "Understanding of design for software systems running on multiple platform types",
+            "importance": "unspecified",
+            "status": "ambiguous",
+            "evidence_ids": [
+              2,
+              6
+            ],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 7,
+            "text": "Good written and verbal communication skills; mastery in English and local language.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 8,
+            "text": "Understanding of basic testing, coding, and debugging procedures",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          }
+        ]
+      },
+      "realization_boundary": {
+        "mode": "simulated_failure",
+        "realization_status": "failed",
+        "plan_discarded": false,
+        "validated_plan_reusable_after_failure": true
+      },
+      "local_planner": {
+        "invoked": false,
+        "provider": "local",
+        "model": null,
+        "prompt_size_chars": null,
+        "output_size_chars": null,
+        "latency_ms": null,
+        "retries": 0,
+        "provider_unavailable_events": 0,
+        "plan_validation": null,
+        "note": "local planner not configured; deterministic path still executed"
+      }
+    },
+    {
+      "job_id": 27326,
+      "title": "Front-End Software Developer &#x2013; Modeling &amp; Simulation / HITL",
+      "company": "",
+      "url": "https://builtin.com/job/front-end-software-developer-modeling-simulation-hitl/10917272",
+      "requirement_count": 8,
+      "counts": {
+        "supported": 1,
+        "ambiguous": 2,
+        "unsupported": 5
+      },
+      "evidence_selections": [
+        {
+          "requirement_id": 1,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 2,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 3,
+          "status": "ambiguous",
+          "evidence_ids": [
+            1,
+            4
+          ],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 4,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 5,
+          "status": "ambiguous",
+          "evidence_ids": [
+            2,
+            3
+          ],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 6,
+          "status": "supported",
+          "evidence_ids": [
+            1
+          ],
+          "claim_ceiling": "participation",
+          "agency_ceiling": "individual_contributor"
+        },
+        {
+          "requirement_id": 7,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 8,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        }
+      ],
+      "plan_validation": {
+        "passed": true,
+        "errors": []
+      },
+      "deterministic_metrics": {
+        "provider": "none",
+        "model": "none",
+        "prompt_size_chars": 0,
+        "output_size_chars": 4870,
+        "latency_ms": 24,
+        "retries": 0,
+        "provider_unavailable_events": 0
+      },
+      "structured_plan": {
+        "schema_version": "q2.plan.v1",
+        "mode": "deterministic",
+        "job": {
+          "id": 27326,
+          "url": "https://builtin.com/job/front-end-software-developer-modeling-simulation-hitl/10917272",
+          "title": "Front-End Software Developer &#x2013; Modeling &amp; Simulation / HITL",
+          "company": "",
+          "site": "Bts Software Solutions Llc"
+        },
+        "viewpoint": "engineering",
+        "summary_schema": "capability_background_transfer_value",
+        "requirement_count": 8,
+        "counts": {
+          "supported": 1,
+          "ambiguous": 2,
+          "unsupported": 5
+        },
+        "dropped_benefit_lines": [],
+        "evidence_catalog": [
+          {
+            "id": 1,
+            "type": "project",
+            "name": "Express_Engine",
+            "score": 3,
+            "matched_terms": [
+              "application architecture",
+              "python",
+              "software"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 2,
+            "type": "project",
+            "name": "CAP Predictor",
+            "score": 2,
+            "matched_terms": [
+              "data",
+              "python"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 3,
+            "type": "skill",
+            "name": "Python",
+            "score": 2,
+            "matched_terms": [
+              "data",
+              "python"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 4,
+            "type": "skill",
+            "name": "Web Design",
+            "score": 2,
+            "matched_terms": [
+              "design",
+              "web"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 5,
+            "type": "experience",
+            "name": "AMP Smart",
+            "score": 1,
+            "matched_terms": [
+              "amp"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 6,
+            "type": "experience",
+            "name": "National Tire and Battery / Mavis",
+            "score": 1,
+            "matched_terms": [
+              "national"
+            ],
+            "permitted": true
+          }
+        ],
+        "requirements": [
+          {
+            "id": 1,
+            "text": "Active TS/SCI security clearance.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 2,
+            "text": "Experience developing production-quality front-end applications using modern JavaScript or TypeScript frameworks such as React, Angular, Vue, or similar.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 3,
+            "text": "Strong proficiency with HTML, CSS, JavaScript/TypeScript, and modern web application architecture.",
+            "importance": "unspecified",
+            "status": "ambiguous",
+            "evidence_ids": [
+              1,
+              4
+            ],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 4,
+            "text": "Experience integrating front-end applications with REST APIs, WebSockets, message-based interfaces, or other backend services.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 5,
+            "text": "Experience developing data-intensive interfaces, dashboards, visualization tools, or engineering applications.",
+            "importance": "unspecified",
+            "status": "ambiguous",
+            "evidence_ids": [
+              2,
+              3
+            ],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 6,
+            "text": "Familiarity with software development practices including Git, automated testing, code review, and CI/CD.",
+            "importance": "unspecified",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "directives": {
+              "cognitive_schema": "action_object_outcome",
+              "bullet_schema": "action_object_context_outcome",
+              "claim_ceiling": "participation",
+              "agency_ceiling": "individual_contributor",
+              "force_relation": null,
+              "salience_order": [
+                "action",
+                "technology",
+                "context",
+                "outcome"
+              ],
+              "exact_keywords": [
+                "software"
+              ],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 7,
+            "text": "Ability to work directly with engineers and technical users to translate complex system requirements into effective user interfaces.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 8,
+            "text": "Experience supporting modeling and simulation (M&S) environments.",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          }
+        ]
+      },
+      "realization_boundary": {
+        "mode": "simulated_failure",
+        "realization_status": "failed",
+        "plan_discarded": false,
+        "validated_plan_reusable_after_failure": true
+      },
+      "local_planner": {
+        "invoked": false,
+        "provider": "local",
+        "model": null,
+        "prompt_size_chars": null,
+        "output_size_chars": null,
+        "latency_ms": null,
+        "retries": 0,
+        "provider_unavailable_events": 0,
+        "plan_validation": null,
+        "note": "local planner not configured; deterministic path still executed"
+      }
+    },
+    {
+      "job_id": 27454,
+      "title": "cloud administrator",
+      "company": "",
+      "url": "https://www.jobbank.gc.ca/jobsearch/jobposting/50186958",
+      "requirement_count": 8,
+      "counts": {
+        "supported": 0,
+        "ambiguous": 0,
+        "unsupported": 8
+      },
+      "evidence_selections": [
+        {
+          "requirement_id": 1,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 2,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 3,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 4,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 5,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 6,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 7,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        },
+        {
+          "requirement_id": 8,
+          "status": "unsupported",
+          "evidence_ids": [],
+          "claim_ceiling": null,
+          "agency_ceiling": null
+        }
+      ],
+      "plan_validation": {
+        "passed": true,
+        "errors": []
+      },
+      "deterministic_metrics": {
+        "provider": "none",
+        "model": "none",
+        "prompt_size_chars": 0,
+        "output_size_chars": 3576,
+        "latency_ms": 5,
+        "retries": 0,
+        "provider_unavailable_events": 0
+      },
+      "structured_plan": {
+        "schema_version": "q2.plan.v1",
+        "mode": "deterministic",
+        "job": {
+          "id": 27454,
+          "url": "https://www.jobbank.gc.ca/jobsearch/jobposting/50186958",
+          "title": "cloud administrator",
+          "company": "",
+          "site": "Job Bank Canada"
+        },
+        "viewpoint": "general",
+        "summary_schema": "capability_background_transfer_value",
+        "requirement_count": 8,
+        "counts": {
+          "supported": 0,
+          "ambiguous": 0,
+          "unsupported": 8
+        },
+        "dropped_benefit_lines": [],
+        "evidence_catalog": [
+          {
+            "id": 1,
+            "type": "experience",
+            "name": "Freelance Photography / Videography",
+            "score": 1,
+            "matched_terms": [
+              "content"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 2,
+            "type": "skill",
+            "name": "Photography",
+            "score": 1,
+            "matched_terms": [
+              "content"
+            ],
+            "permitted": true
+          },
+          {
+            "id": 3,
+            "type": "skill",
+            "name": "Videography",
+            "score": 1,
+            "matched_terms": [
+              "content"
+            ],
+            "permitted": true
+          }
+        ],
+        "requirements": [
+          {
+            "id": 1,
+            "text": "Cloud administrator",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 2,
+            "text": "Title posted on indeed.com - Administrator",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 3,
+            "text": "Posted on August 30, 2026 by",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 4,
+            "text": "Employer details",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 5,
+            "text": "Dinter Nursery",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 6,
+            "text": "Save to favourites",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 7,
+            "text": "Actions",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          },
+          {
+            "id": 8,
+            "text": "Job details",
+            "importance": "unspecified",
+            "status": "unsupported",
+            "evidence_ids": [],
+            "directives": {
+              "cognitive_schema": null,
+              "bullet_schema": null,
+              "claim_ceiling": null,
+              "agency_ceiling": null,
+              "force_relation": null,
+              "salience_order": [],
+              "exact_keywords": [],
+              "synonym_concepts": [],
+              "vary_phrasing": false
+            }
+          }
+        ]
+      },
+      "realization_boundary": {
+        "mode": "simulated_failure",
+        "realization_status": "failed",
+        "plan_discarded": false,
+        "validated_plan_reusable_after_failure": true
+      },
+      "local_planner": {
+        "invoked": false,
+        "provider": "local",
+        "model": null,
+        "prompt_size_chars": null,
+        "output_size_chars": null,
+        "latency_ms": null,
+        "retries": 0,
+        "provider_unavailable_events": 0,
+        "plan_validation": null,
+        "note": "local planner not configured; deterministic path still executed"
+      }
+    }
+  ],
+  "summary": {
+    "job_count": 5,
+    "plans_valid": 5,
+    "plans_invalid": 0,
+    "reusable_after_simulated_failure": 5
+  }
+}

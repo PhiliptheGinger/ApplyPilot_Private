@@ -1,0 +1,249 @@
+{
+  "schema_version": "q2.plan.v1",
+  "mode": "deterministic",
+  "job": {
+    "id": 7267,
+    "url": "https://adobe.wd5.myworkdayjobs.com/external_experienced/job/Remote-California/Software-Development-Engineer_R170523-1",
+    "title": "Software Development Engineer",
+    "company": "",
+    "site": "Adobe"
+  },
+  "viewpoint": "engineering",
+  "summary_schema": "identity_domain_strength_evidence_value",
+  "requirement_count": 8,
+  "counts": {
+    "supported": 2,
+    "ambiguous": 1,
+    "unsupported": 5
+  },
+  "dropped_benefit_lines": [],
+  "evidence_catalog": [
+    {
+      "id": 1,
+      "type": "experience",
+      "name": "Freelance Photography / Videography",
+      "score": 1,
+      "matched_terms": [
+        "creative"
+      ],
+      "permitted": true
+    },
+    {
+      "id": 2,
+      "type": "experience",
+      "name": "AMP Smart",
+      "score": 1,
+      "matched_terms": [
+        "sales"
+      ],
+      "permitted": true
+    },
+    {
+      "id": 3,
+      "type": "experience",
+      "name": "National Tire and Battery / Mavis",
+      "score": 1,
+      "matched_terms": [
+        "national"
+      ],
+      "permitted": true
+    },
+    {
+      "id": 4,
+      "type": "project",
+      "name": "CAP Predictor",
+      "score": 1,
+      "matched_terms": [
+        "data"
+      ],
+      "permitted": true
+    },
+    {
+      "id": 5,
+      "type": "project",
+      "name": "Express_Engine",
+      "score": 1,
+      "matched_terms": [
+        "software"
+      ],
+      "permitted": true
+    },
+    {
+      "id": 6,
+      "type": "project",
+      "name": "Sunburn",
+      "score": 1,
+      "matched_terms": [
+        "experimentation"
+      ],
+      "permitted": true
+    }
+  ],
+  "requirements": [
+    {
+      "id": 1,
+      "text": "What you will do",
+      "importance": "unspecified",
+      "status": "unsupported",
+      "evidence_ids": [],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 2,
+      "text": "Participate in all aspects of software development activities including design, coding, code review, unit-testing, integration testing, and bug fixing.",
+      "importance": "unspecified",
+      "status": "supported",
+      "evidence_ids": [
+        5
+      ],
+      "directives": {
+        "cognitive_schema": "action_object_outcome",
+        "bullet_schema": "action_object_context_outcome",
+        "claim_ceiling": "participation",
+        "agency_ceiling": "individual_contributor",
+        "force_relation": null,
+        "salience_order": [
+          "action",
+          "technology",
+          "context",
+          "outcome"
+        ],
+        "exact_keywords": [
+          "software"
+        ],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 3,
+      "text": "Work independently to design and delivering medium to complex functionality.",
+      "importance": "unspecified",
+      "status": "unsupported",
+      "evidence_ids": [],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 4,
+      "text": "Collaborate and Provide guidance to team members to build a scalable and high-performance solution with low operational overhead.",
+      "importance": "unspecified",
+      "status": "unsupported",
+      "evidence_ids": [],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 5,
+      "text": "Work with multi-functional team members to ensure a superb end-to-end user experience for our customers.",
+      "importance": "unspecified",
+      "status": "unsupported",
+      "evidence_ids": [],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 6,
+      "text": "Fast prototyping of ideas and concepts and researching the latest industry trends.",
+      "importance": "unspecified",
+      "status": "unsupported",
+      "evidence_ids": [],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 7,
+      "text": "Perform analysis and experimentation for the data flowing through different systems/services",
+      "importance": "unspecified",
+      "status": "ambiguous",
+      "evidence_ids": [
+        4,
+        6
+      ],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 8,
+      "text": "Build a data consistency and validation feature in delivering high-quality data.",
+      "importance": "unspecified",
+      "status": "supported",
+      "evidence_ids": [
+        4
+      ],
+      "directives": {
+        "cognitive_schema": "action_object_outcome",
+        "bullet_schema": "action_object_context_outcome",
+        "claim_ceiling": "design",
+        "agency_ceiling": "individual_contributor",
+        "force_relation": null,
+        "salience_order": [
+          "action",
+          "technology",
+          "context",
+          "outcome"
+        ],
+        "exact_keywords": [
+          "data"
+        ],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    }
+  ]
+}

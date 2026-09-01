@@ -1230,7 +1230,8 @@ def get_local_tailoring_plan(
     resume_text: str,
     job: dict,
     profile: dict,
-) -> dict | None:
+    return_meta: bool = False,
+) -> dict | None | tuple[dict | None, dict]:
     """Ask the local model to match job requirements to candidate evidence,
     then deterministically build and return the full plan (see
     validate_local_plan). Returns None if the local model is unavailable,
@@ -1269,6 +1270,13 @@ def get_local_tailoring_plan(
     # Avoid circular import
     from applypilot.scoring.tailor import display_company
 
+    meta: dict[str, bool] = {"llm_called": False}
+
+    def _ret(plan: dict | None):
+        if return_meta:
+            return plan, dict(meta)
+        return plan
+
     top_n = int(os.environ.get("APPLYPILOT_LOCAL_EVIDENCE_TOPN", "6"))
     ranked_evidence = rank_profile_evidence(job, profile, top_n=top_n)
     requirement_lines, dropped_benefits = _split_requirement_lines(job.get("full_description") or "")
@@ -1286,7 +1294,7 @@ def get_local_tailoring_plan(
         log.info("Local tailoring plan for %s: model=none (skipped). %s", (job.get("title") or "")[:40], reason)
         plan = validate_local_plan({"matches": []}, requirement_lines, ranked_evidence)
         plan["_warnings"].append(reason)
-        return plan
+        return _ret(plan)
 
     # 2026-08-31: semantic candidate-recall expansion. Best-effort and
     # additive only -- see _semantic_expand_evidence's docstring for the
@@ -1313,7 +1321,7 @@ def get_local_tailoring_plan(
             "via requirement/evidence term overlap -- no requirement had 2+ "
             "evidence items tied for top relevance."
         )
-        return plan
+        return _ret(plan)
 
     url = _ollama_native_base_url(os.environ.get("APPLYPILOT_LOCAL_LLM_URL", _DEFAULT_LOCAL_URL))
     model = os.environ.get("APPLYPILOT_LOCAL_LLM_MODEL", _DEFAULT_LOCAL_MODEL)
@@ -1352,6 +1360,7 @@ def get_local_tailoring_plan(
     }
 
     try:
+        meta["llm_called"] = True
         resp = httpx.post(f"{url}/api/chat", json=payload, timeout=timeout)
         resp.raise_for_status()
         data = resp.json()
@@ -1359,7 +1368,7 @@ def get_local_tailoring_plan(
         text = (message.get("content") or "").strip()
         if not text:
             log.warning("Local tailoring plan for %s: empty message content in response", (job.get("title") or "")[:40])
-            return None
+            return _ret(None)
         raw_plan = _parse_plan(text)
         if not isinstance(raw_plan, dict):
             log.warning(
@@ -1367,7 +1376,7 @@ def get_local_tailoring_plan(
                 (job.get("title") or "")[:40],
                 type(raw_plan).__name__,
             )
-            return None
+            return _ret(None)
         combined, filter_warnings = _merge_model_matches_with_resolved(
             raw_plan,
             resolved,
@@ -1395,7 +1404,7 @@ def get_local_tailoring_plan(
             len(ambiguous_ids),
             len(requirement_lines),
         )
-        return sanitized
+        return _ret(sanitized)
     except httpx.TimeoutException as exc:
         log.warning(
             "Local tailoring plan for %s timed out after %.0fs (model=%s). "
@@ -1407,7 +1416,7 @@ def get_local_tailoring_plan(
             model,
             exc,
         )
-        return None
+        return _ret(None)
     except httpx.ConnectError as exc:
         # Nothing listening at `url` -- the configured local model endpoint
         # (APPLYPILOT_LOCAL_LLM_URL) isn't running or isn't reachable.
@@ -1417,7 +1426,7 @@ def get_local_tailoring_plan(
             url,
             exc,
         )
-        return None
+        return _ret(None)
     except Exception as exc:  # noqa: BLE001 -- final fallback of a documented
         # "returns None if the local model is unreachable, the response is
         # empty, or the output can't be parsed" contract (see this
@@ -1429,7 +1438,7 @@ def get_local_tailoring_plan(
         log.warning(
             "Local tailoring plan failed for %s: %s: %s", (job.get("title") or "")[:40], type(exc).__name__, exc
         )
-        return None
+        return _ret(None)
 
 
 _THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)

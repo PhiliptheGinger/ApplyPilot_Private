@@ -1,0 +1,248 @@
+{
+  "schema_version": "q2.plan.v1",
+  "mode": "deterministic",
+  "job": {
+    "id": 27323,
+    "url": "https://builtin.com/job/software-engineer-graduate/10917868",
+    "title": "Software Engineer Graduate",
+    "company": "",
+    "site": "Hewlett Packard Enterprise"
+  },
+  "viewpoint": "engineering",
+  "summary_schema": "capability_background_transfer_value",
+  "requirement_count": 8,
+  "counts": {
+    "supported": 1,
+    "ambiguous": 3,
+    "unsupported": 4
+  },
+  "dropped_benefit_lines": [],
+  "evidence_catalog": [
+    {
+      "id": 1,
+      "type": "project",
+      "name": "I_hate_social_media",
+      "score": 2,
+      "matched_terms": [
+        "media",
+        "social media"
+      ],
+      "permitted": true
+    },
+    {
+      "id": 2,
+      "type": "skill",
+      "name": "Web Design",
+      "score": 2,
+      "matched_terms": [
+        "design",
+        "media"
+      ],
+      "permitted": true
+    },
+    {
+      "id": 3,
+      "type": "experience",
+      "name": "Freelance Photography / Videography",
+      "score": 1,
+      "matched_terms": [
+        "media"
+      ],
+      "permitted": true
+    },
+    {
+      "id": 4,
+      "type": "experience",
+      "name": "National Tire and Battery / Mavis",
+      "score": 1,
+      "matched_terms": [
+        "national"
+      ],
+      "permitted": true
+    },
+    {
+      "id": 5,
+      "type": "project",
+      "name": "CAP Predictor",
+      "score": 1,
+      "matched_terms": [
+        "data"
+      ],
+      "permitted": true
+    },
+    {
+      "id": 6,
+      "type": "project",
+      "name": "Express_Engine",
+      "score": 1,
+      "matched_terms": [
+        "software"
+      ],
+      "permitted": true
+    }
+  ],
+  "requirements": [
+    {
+      "id": 1,
+      "text": "Codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools",
+      "importance": "unspecified",
+      "status": "supported",
+      "evidence_ids": [
+        6
+      ],
+      "directives": {
+        "cognitive_schema": "action_object_outcome",
+        "bullet_schema": "action_object_context_outcome",
+        "claim_ceiling": "participation",
+        "agency_ceiling": "individual_contributor",
+        "force_relation": null,
+        "salience_order": [
+          "action",
+          "technology",
+          "context",
+          "outcome"
+        ],
+        "exact_keywords": [
+          "software"
+        ],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 2,
+      "text": "Executes established test plans and protocols for assigned portions of code; identifies, logs, and debugs assigned issues.",
+      "importance": "unspecified",
+      "status": "unsupported",
+      "evidence_ids": [],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 3,
+      "text": "Develops understanding of and relationship with internal and outsourced development partners on software systems design and development.",
+      "importance": "unspecified",
+      "status": "ambiguous",
+      "evidence_ids": [
+        2,
+        6
+      ],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 4,
+      "text": "Experience or understanding of software systems design tools and languages.",
+      "importance": "unspecified",
+      "status": "ambiguous",
+      "evidence_ids": [
+        2,
+        6
+      ],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 5,
+      "text": "Good analytical and problem-solving skills.",
+      "importance": "unspecified",
+      "status": "unsupported",
+      "evidence_ids": [],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 6,
+      "text": "Understanding of design for software systems running on multiple platform types",
+      "importance": "unspecified",
+      "status": "ambiguous",
+      "evidence_ids": [
+        2,
+        6
+      ],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 7,
+      "text": "Good written and verbal communication skills; mastery in English and local language.",
+      "importance": "unspecified",
+      "status": "unsupported",
+      "evidence_ids": [],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    },
+    {
+      "id": 8,
+      "text": "Understanding of basic testing, coding, and debugging procedures",
+      "importance": "unspecified",
+      "status": "unsupported",
+      "evidence_ids": [],
+      "directives": {
+        "cognitive_schema": null,
+        "bullet_schema": null,
+        "claim_ceiling": null,
+        "agency_ceiling": null,
+        "force_relation": null,
+        "salience_order": [],
+        "exact_keywords": [],
+        "synonym_concepts": [],
+        "vary_phrasing": false
+      }
+    }
+  ]
+}
