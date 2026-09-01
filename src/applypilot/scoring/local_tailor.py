@@ -1283,7 +1283,7 @@ def get_local_tailoring_plan(
                 f" All {len(dropped_benefits)} bullet line(s) in this posting were "
                 "employer benefits/perks, not candidate requirements: " + "; ".join(dropped_benefits[:6])
             )
-        log.debug("Local tailoring plan for %s: %s", (job.get("title") or "")[:40], reason)
+        log.info("Local tailoring plan for %s: model=none (skipped). %s", (job.get("title") or "")[:40], reason)
         plan = validate_local_plan({"matches": []}, requirement_lines, ranked_evidence)
         plan["_warnings"].append(reason)
         return plan
@@ -1299,8 +1299,8 @@ def get_local_tailoring_plan(
     ambiguous_ids = {i for i in range(1, len(requirement_lines) + 1) if i not in resolved}
 
     if not ambiguous_ids:
-        log.debug(
-            "Local tailoring plan for %s: skipped LLM call -- all %d requirement(s) "
+        log.info(
+            "Local tailoring plan for %s: model=none (skipped) -- all %d requirement(s) "
             "resolved deterministically via requirement/evidence term overlap "
             "(no requirement had 2+ evidence items tied for top relevance)",
             (job.get("title") or "")[:40],
@@ -1376,12 +1376,21 @@ def get_local_tailoring_plan(
         )
         sanitized = validate_local_plan(combined, requirement_lines, ranked_evidence)
         sanitized["_warnings"].extend(filter_warnings)
-        log.debug(
-            "Local tailoring plan for %s: %d/%d requirement(s) supported, %d warning(s), "
+        # Observability (2026-08-31): elevated from debug to info -- this is
+        # the one line that answers "was the local model used, which model,
+        # did semantic recall add anything, and did it succeed" for a given
+        # job during normal (non-debug) continuous-run logging, without
+        # dumping the model's actual prompt/response text.
+        n_semantic = sum(1 for v in semantic_candidates.values() for _ in v)
+        log.info(
+            "Local tailoring plan for %s: model=%s, %d/%d requirement(s) supported, "
+            "%d semantic candidate(s) added, %d warning(s), "
             "%d/%d requirement(s) sent to the model (rest resolved deterministically)",
             (job.get("title") or "")[:40],
+            model,
             sum(1 for r in sanitized["requirements"] if r["supported"]),
             len(sanitized["requirements"]),
+            n_semantic,
             len(sanitized["_warnings"]),
             len(ambiguous_ids),
             len(requirement_lines),

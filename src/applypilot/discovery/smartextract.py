@@ -33,7 +33,7 @@ from patchright.sync_api import sync_playwright
 from applypilot import config
 from applypilot.config import CONFIG_DIR
 from applypilot.database import get_stats, init_db, write_with_retry
-from applypilot.llm import get_client
+from applypilot.llm import ask_local, get_client, is_local_configured
 
 log = logging.getLogger(__name__)
 
@@ -743,6 +743,29 @@ def ask_llm(prompt: str, max_tokens: int = 8192, quality: bool = False) -> tuple
     return text, elapsed, meta
 
 
+def _local_json_fallback(prompt: str, label: str, max_tokens: int = 2048) -> dict | None:
+    """Last-resort local Ollama fallback for Phase 1 (strategy selection) and
+    Phase 2 (CSS-selector generation), tried only after BOTH cloud attempts
+    (fast, then quality) in the caller's existing escalation loop have
+    already failed -- this never shortcuts or replaces that cloud
+    escalation, it only extends it. Returns a parsed dict, or None on any
+    failure (not configured, unreachable, timeout, unparseable) -- callers
+    already have a defined "give up" behavior for that case.
+    """
+    if not is_local_configured():
+        return None
+    raw = ask_local(prompt, temperature=0.0, max_tokens=max_tokens)
+    if not raw:
+        return None
+    try:
+        parsed = extract_json(raw)
+    except Exception as e:  # noqa: BLE001 - local output is as unreliable to parse as cloud's; degrade to None like any other extraction failure
+        log.warning("%s: local fallback response failed to parse: %s", label, e)
+        return None
+    log.warning("%s: cloud cascade exhausted, used local fallback", label)
+    return parsed
+
+
 def extract_json(text: str) -> dict:
     """Extract JSON from LLM response, handling think tags and code fences."""
     if "<think>" in text:
@@ -934,7 +957,9 @@ def execute_css_selectors(intel: dict) -> tuple[dict, list[dict]]:
             return {}, []
 
     if selectors is None:
-        return {}, []
+        selectors = _local_json_fallback(prompt, "Phase 2")
+        if selectors is None:
+            return {}, []
 
     if "error" in selectors:
         log.warning("LLM: %s", selectors["error"])
@@ -1052,6 +1077,9 @@ def _run_one_site(name: str, url: str, no_headful: bool = False) -> dict:
                 log.warning("Phase 1 LLM_ERROR (fast) — escalating to quality: %s", e)
                 continue
             log.error("Phase 1 LLM_ERROR (quality): %s", e)
+            plan = _local_json_fallback(prompt, "Phase 1")
+            if plan is not None:
+                break
             return {"name": name, "status": "LLM_ERROR", "error": str(e)}
 
         log.info("LLM (quality=%s): %d chars, %.1fs", quality, meta["response_chars"], elapsed)
@@ -1062,6 +1090,9 @@ def _run_one_site(name: str, url: str, no_headful: bool = False) -> dict:
                 log.warning("Phase 1 empty/truncated — escalating to quality")
                 continue
             log.error("Phase 1 empty after quality retry | raw: %s", raw[:500])
+            plan = _local_json_fallback(prompt, "Phase 1")
+            if plan is not None:
+                break
             return {"name": name, "status": "PARSE_ERROR", "error": "empty response", "raw": raw}
 
         try:
@@ -1073,6 +1104,9 @@ def _run_one_site(name: str, url: str, no_headful: bool = False) -> dict:
                 log.warning("PARSE_ERROR in Phase 1 (fast) — escalating to quality: %s", e)
                 continue
             log.error("PARSE_ERROR: %s | raw: %s", e, raw[:500])
+            plan = _local_json_fallback(prompt, "Phase 1")
+            if plan is not None:
+                break
             return {"name": name, "status": "PARSE_ERROR", "error": str(e), "raw": raw}
 
     if plan is None:

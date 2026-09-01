@@ -362,35 +362,60 @@ def main():
 
 				stop_ollama_if_contributing()
 
-				log("Attempting to put Windows to sleep...")
-				try:
-					# 2026-08-30 fix: real incident -- `SetSuspendState` did
-					# not return on this machine (confirmed live: the
-					# rundll32.exe child and this watchdog process were both
-					# still alive and blocked here 3+ minutes after this line
-					# logged, with ApplyPilot already successfully killed).
-					# subprocess.run's own timeout handling kills the child
-					# process before re-raising TimeoutExpired, so this can't
-					# leave an orphaned rundll32.exe behind either. The
-					# emergency's actually load-bearing step (killing
-					# ApplyPilot, above) has already completed by this point
-					# regardless of whether sleep succeeds -- a bounded
-					# timeout here can only ever improve on "hangs forever",
-					# never regress a case that previously worked.
-					subprocess.run(
-						[
-							"rundll32.exe",
-							"powrprof.dll,SetSuspendState",
-							"0,1,0",
-						],
-						check=False,
-						timeout=15,
+				# 2026-08-31: automatic machine-sleep removed from the default
+				# path. ApplyPilot now normally runs under a persistent
+				# supervisor (scripts/run_continuous_supervisor.ps1, via
+				# Scheduled Task "ApplyPilot-RunContinuous") that restarts the
+				# pipeline on any exit, including one caused by this watchdog
+				# killing it -- sleeping the whole machine here would defeat
+				# that supervisor's entire purpose (unattended continuous
+				# operation) by taking the machine offline until someone
+				# physically wakes it. The load-bearing safety action is the
+				# kill above (already completed): it relieves the RAM/disk
+				# pressure that triggered this branch. Logging that clearly
+				# and returning is now sufficient -- if a restart-on-exit
+				# supervisor is running the killed process, it will relaunch
+				# ApplyPilot once conditions recover (same RAM/disk checks
+				# next cycle will simply not re-trigger); if nothing is
+				# supervising it, ApplyPilot just stays stopped, which is a
+				# safe (if inert) outcome, not a machine-wide one.
+				#
+				# The original sleep behavior is preserved, opt-in only, via
+				# APPLYPILOT_WATCHDOG_SLEEP=1 -- for the case this script is
+				# ever run standalone (no supervisor) on a machine where
+				# "sleep until a human intervenes" is genuinely wanted.
+				if os.environ.get("APPLYPILOT_WATCHDOG_SLEEP", "").strip() == "1":
+					log("APPLYPILOT_WATCHDOG_SLEEP=1 -- attempting to put Windows to sleep...")
+					try:
+						# 2026-08-30 fix: real incident -- `SetSuspendState` did
+						# not return on this machine (confirmed live: the
+						# rundll32.exe child and this watchdog process were both
+						# still alive and blocked here 3+ minutes after this line
+						# logged, with ApplyPilot already successfully killed).
+						# subprocess.run's own timeout handling kills the child
+						# process before re-raising TimeoutExpired, so this can't
+						# leave an orphaned rundll32.exe behind either.
+						subprocess.run(
+							[
+								"rundll32.exe",
+								"powrprof.dll,SetSuspendState",
+								"0,1,0",
+							],
+							check=False,
+							timeout=15,
+						)
+						log("Sleep command issued.")
+					except subprocess.TimeoutExpired:
+						log("WARNING: sleep command did not return within 15s -- abandoning it (ApplyPilot is already stopped).")
+					except Exception as exc:
+						log(f"ERROR entering sleep: {exc}")
+				else:
+					log(
+						"ApplyPilot stopped due to sustained resource pressure. Machine "
+						"sleep is NOT triggered by default (set APPLYPILOT_WATCHDOG_SLEEP=1 "
+						"to restore that). If a restart-on-exit supervisor is running this "
+						"workload, it will relaunch ApplyPilot once conditions recover."
 					)
-					log("Sleep command issued.")
-				except subprocess.TimeoutExpired:
-					log("WARNING: sleep command did not return within 15s -- abandoning it (ApplyPilot is already stopped).")
-				except Exception as exc:
-					log(f"ERROR entering sleep: {exc}")
 
 				return 0
 

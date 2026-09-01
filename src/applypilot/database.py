@@ -2143,6 +2143,30 @@ def get_jobs_by_stage(
         where += f" AND url IN ({','.join('?' * len(urls))})"
         params.extend(urls)
 
+    # 2026-08-31 fix: retry-eligible jobs (score_error IS NOT NULL --
+    # already past the WHERE clause's own score_attempts<5 and
+    # score_next_retry_at<=now checks, so every row reaching this ORDER BY
+    # in that state is genuinely due for a retry right now) were starving
+    # indefinitely behind a continuous stream of fresh, never-attempted
+    # jobs. Confirmed live: after the Aug 19 quota event, 3,884 jobs became
+    # retry-eligible; 0 were rescored by the Aug 30 continuous session,
+    # which spent 91.9% of its scoring on jobs discovered AFTER Aug 19 and
+    # only 8.1% on the older backlog -- the existing `_site_rank ASC`
+    # (newest-per-site-first) tiebreaker was winning every time because
+    # fit_score is NULL for the entire unscored population, so it never
+    # discriminated. This CASE is a new, higher-priority tier ahead of
+    # fit_score: retry-eligible rows (score_error IS NOT NULL) always sort
+    # before fresh ones (score_error IS NULL), guaranteeing eventual
+    # service instead of merely improving the odds. Harmless for every
+    # OTHER stage this shared query serves (pending_tailor/pending_cover/
+    # scored/tailored/...): score_error is cleared on a successful score
+    # (_flush_score_batch), so every row in those stages already has
+    # score_error IS NULL and gets the identical CASE value (1) --
+    # zero ordering change outside pending_score. Within the retry tier,
+    # score_next_retry_at ASC serves the longest-overdue retry first
+    # (deterministic, not merely "is old"); NULLs sort first in SQLite's
+    # default ASC ordering, which is fine here since a NULL retry
+    # timestamp is itself already-due by the WHERE clause's own contract.
     query = f"""
         SELECT * FROM (
             SELECT *, ROW_NUMBER() OVER (
@@ -2151,7 +2175,12 @@ def get_jobs_by_stage(
             ) AS _site_rank
             FROM jobs WHERE {where}
         )
-        ORDER BY fit_score DESC NULLS LAST, _site_rank ASC, discovered_at DESC
+        ORDER BY
+            CASE WHEN score_error IS NOT NULL THEN 0 ELSE 1 END ASC,
+            fit_score DESC NULLS LAST,
+            score_next_retry_at ASC,
+            _site_rank ASC,
+            discovered_at DESC
     """
     if limit > 0 and urls is None:
         query += " LIMIT ?"

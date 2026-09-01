@@ -158,3 +158,187 @@ def test_mixed_pool_returns_only_the_two_eligible_states(tmp_db, seed_job):
     assert urls == {enriched["url"], retry["url"]}
     assert archived["url"] not in urls
     assert scored["url"] not in urls
+
+
+# ---------------------------------------------------------------------------
+# 2026-08-31: retry-starvation fix.
+#
+# Real-data finding: after the Aug 19 cloud-quota event, 3,884 jobs became
+# retry-eligible (score_error set, retry window since expired), but the
+# existing ORDER BY (fit_score DESC NULLS LAST, then newest-per-site-first)
+# never discriminated between them and fresh jobs, since fit_score is NULL
+# for the entire unscored population -- so newest-first always won. Live
+# evidence: the Aug 30 continuous session scored 756 fresh jobs (91.9%) and
+# only 67 old-backlog jobs (8.1%); 0 of the 3,884 retry-eligible jobs were
+# rescored. These tests lock down the fix: a retry-eligible job must sort
+# ahead of ANY fresh job, regardless of how much newer the fresh job is.
+# ---------------------------------------------------------------------------
+
+
+def test_retry_eligible_job_sorts_before_much_newer_fresh_job(tmp_db, seed_job):
+    """The exact starvation scenario: an old, retry-eligible job must be
+    returned before a much more recently discovered, never-attempted job."""
+    from datetime import UTC, datetime, timedelta
+
+    from applypilot.database import get_jobs_by_stage
+
+    conn = tmp_db()
+    old_retry = seed_job(
+        conn,
+        url_suffix="old-retry",
+        fit_score=None,
+        full_description="x",
+        state="enriched",
+        score_error="LLM error: quota",
+        score_attempts=1,
+        score_next_retry_at=(datetime.now(UTC) - timedelta(days=11)).isoformat(),
+        discovered_at=(datetime.now(UTC) - timedelta(days=12)).isoformat(),
+    )
+    fresh = seed_job(
+        conn,
+        url_suffix="fresh",
+        fit_score=None,
+        full_description="x",
+        state="enriched",
+        score_error=None,
+        score_attempts=0,
+        discovered_at=datetime.now(UTC).isoformat(),
+    )
+
+    rows = get_jobs_by_stage(conn, stage="pending_score")
+    urls = [r["url"] for r in rows]
+    assert urls == [old_retry["url"], fresh["url"]]
+
+
+def test_retry_tier_ordered_by_most_overdue_first(tmp_db, seed_job):
+    """Deterministic ordering WITHIN the retry-eligible tier: the job whose
+    retry window opened longest ago goes first, not insertion order."""
+    from datetime import UTC, datetime, timedelta
+
+    from applypilot.database import get_jobs_by_stage
+
+    conn = tmp_db()
+    recently_due = seed_job(
+        conn,
+        url_suffix="recently-due",
+        fit_score=None,
+        full_description="x",
+        state="enriched",
+        score_error="LLM error: quota",
+        score_attempts=1,
+        score_next_retry_at=(datetime.now(UTC) - timedelta(hours=1)).isoformat(),
+    )
+    long_overdue = seed_job(
+        conn,
+        url_suffix="long-overdue",
+        fit_score=None,
+        full_description="x",
+        state="enriched",
+        score_error="LLM error: quota",
+        score_attempts=1,
+        score_next_retry_at=(datetime.now(UTC) - timedelta(days=11)).isoformat(),
+    )
+
+    rows = get_jobs_by_stage(conn, stage="pending_score")
+    urls = [r["url"] for r in rows]
+    assert urls == [long_overdue["url"], recently_due["url"]]
+
+
+def test_retry_not_yet_due_is_still_excluded_entirely(tmp_db, seed_job):
+    """The fix must not weaken the existing cooldown -- a job whose retry
+    window hasn't opened yet must not be selected at all, regardless of
+    ordering."""
+    from datetime import UTC, datetime, timedelta
+
+    from applypilot.database import get_jobs_by_stage
+
+    conn = tmp_db()
+    not_yet_due = seed_job(
+        conn,
+        url_suffix="not-yet-due",
+        fit_score=None,
+        full_description="x",
+        state="enriched",
+        score_error="LLM error: quota",
+        score_attempts=1,
+        score_next_retry_at=(datetime.now(UTC) + timedelta(hours=1)).isoformat(),
+    )
+
+    rows = get_jobs_by_stage(conn, stage="pending_score")
+    assert rows == []
+    assert not_yet_due  # seeded successfully; just never selectable yet
+
+
+def test_exhausted_retry_budget_still_excluded(tmp_db, seed_job):
+    """Unaffected by the ordering change: a job at/above the retry-attempt
+    ceiling stays excluded, priority tier or not."""
+    from datetime import UTC, datetime, timedelta
+
+    from applypilot.database import get_jobs_by_stage
+
+    conn = tmp_db()
+    exhausted = seed_job(
+        conn,
+        url_suffix="exhausted",
+        fit_score=None,
+        full_description="x",
+        state="enriched",
+        score_error="LLM error: quota",
+        score_attempts=5,
+        score_next_retry_at=(datetime.now(UTC) - timedelta(days=1)).isoformat(),
+    )
+
+    rows = get_jobs_by_stage(conn, stage="pending_score")
+    assert rows == []
+    assert exhausted
+
+
+def test_fresh_only_population_still_uses_recency_ordering(tmp_db, seed_job):
+    """Regression guard: with no retry-eligible jobs present at all, the
+    pre-existing newest-per-site-first behavior for fresh jobs is
+    unchanged (the new CASE tier is a no-op when nothing has score_error)."""
+    from datetime import UTC, datetime, timedelta
+
+    from applypilot.database import get_jobs_by_stage
+
+    conn = tmp_db()
+    older = seed_job(
+        conn,
+        url_suffix="older-fresh",
+        fit_score=None,
+        full_description="x",
+        state="enriched",
+        score_error=None,
+        site="acme",
+        discovered_at=(datetime.now(UTC) - timedelta(days=1)).isoformat(),
+    )
+    newer = seed_job(
+        conn,
+        url_suffix="newer-fresh",
+        fit_score=None,
+        full_description="x",
+        state="enriched",
+        score_error=None,
+        site="acme",
+        discovered_at=datetime.now(UTC).isoformat(),
+    )
+
+    rows = get_jobs_by_stage(conn, stage="pending_score")
+    urls = [r["url"] for r in rows]
+    assert urls == [newer["url"], older["url"]]
+
+
+def test_other_stage_ordering_unaffected_by_retry_tier(tmp_db, seed_job):
+    """The shared ORDER BY change must not alter a DIFFERENT stage's
+    result -- a "scored" job with a stale, already-cleared score_error
+    (the real post-success state per _flush_score_batch) sorts purely by
+    fit_score, same as before this fix."""
+    from applypilot.database import get_jobs_by_stage
+
+    conn = tmp_db()
+    lower = seed_job(conn, url_suffix="lower", fit_score=5, full_description="x", state="scored", score_error=None)
+    higher = seed_job(conn, url_suffix="higher", fit_score=9, full_description="x", state="scored", score_error=None)
+
+    rows = get_jobs_by_stage(conn, stage="scored", min_score=1)
+    urls = [r["url"] for r in rows]
+    assert urls == [higher["url"], lower["url"]]

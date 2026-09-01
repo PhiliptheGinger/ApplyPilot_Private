@@ -406,6 +406,15 @@ class LLMClient:
         self.quality = quality
         self._fallback_chain = _build_fallback_chain(model, quality=quality)
         self._client = httpx.Client(timeout=_TIMEOUT)
+        # Observability (2026-08-31): which provider/model actually answered
+        # the most recent successful chat() call -- read-only, additive,
+        # never consulted for control flow. Lets a caller (scorer.py,
+        # tailor.py, ...) log "which model handled this job" and detect
+        # escalation (last_model_used != self.model, the configured
+        # primary) without parsing log text or changing chat()'s str
+        # return contract. None until the first successful call.
+        self.last_model_used: str | None = None
+        self.last_provider_used: str | None = None
         # Track which models are temporarily exhausted (store until timestamp)
         self._exhausted: dict[str, float] = {}
         # Additive, read-only classification alongside self._exhausted -- lets
@@ -518,6 +527,8 @@ class LLMClient:
             is_last = idx == len(entries_to_try) - 1
             result = self._try_entry(entry, messages, temperature, max_tokens, is_last)
             if result is not None:
+                self.last_provider_used = entry.provider
+                self.last_model_used = entry.name
                 return result
 
         raise RuntimeError(
@@ -1096,3 +1107,59 @@ def local_available() -> bool:
         except Exception:  # noqa: BLE001, S112 - trying multiple candidate endpoint paths (Ollama/llama.cpp conventions differ); one path failing means try the next, not abort the probe
             continue
     return False
+
+
+def ask_local(prompt: str, system: str | None = None, temperature: float = 0.0, max_tokens: int = 512) -> str | None:
+    """Best-effort local Ollama call for non-tailoring callers (2026-08-31:
+    discovery/enrichment resilience audit) that want a last-resort fallback
+    when the cloud cascade in `chat()`/`ask()` is exhausted, without pulling
+    in the scoring-specific machinery in local_tailor.py.
+
+    Mirrors local_tailor.get_local_tailoring_plan()'s proven Ollama-native
+    transport (same env vars, same /api/chat shape, think=false, same
+    /v1-stripping normalization) but generalized to a plain prompt/system
+    pair -- callers own their own response parsing (JSON-fence stripping,
+    schema validation, etc.), same as they already do for the cloud path.
+
+    Returns None on ANY failure: not configured, unreachable, timeout,
+    non-2xx, or an empty response. Never raises. Callers must already treat
+    None the same as "no result" -- this is explicitly a last-resort,
+    never-authoritative addition, never a second source of truth.
+    """
+    if not is_local_configured():
+        return None
+    url = os.environ.get("APPLYPILOT_LOCAL_LLM_URL", "").rstrip("/")
+    if url.endswith("/v1"):
+        url = url[: -len("/v1")]
+    model = os.environ.get("APPLYPILOT_LOCAL_LLM_MODEL", "llama3.2")
+    timeout = float(os.environ.get("APPLYPILOT_LOCAL_LLM_TIMEOUT", "60"))
+
+    messages = []
+    if system:
+        messages.append({"role": "system", "content": system})
+    messages.append({"role": "user", "content": prompt})
+    payload = {
+        "model": model,
+        "messages": messages,
+        "think": False,
+        "stream": False,
+        "options": {"temperature": temperature, "num_predict": max_tokens},
+    }
+    try:
+        resp = httpx.post(f"{url}/api/chat", json=payload, timeout=timeout)
+        resp.raise_for_status()
+        data = resp.json()
+        text = ((data.get("message") or {}).get("content") or "").strip()
+        if not text:
+            log.warning("Local LLM fallback (model=%s): empty response content", model)
+            return None
+        return text
+    except httpx.TimeoutException as exc:
+        log.warning("Local LLM fallback (model=%s) timed out after %.0fs: %s", model, timeout, exc)
+        return None
+    except httpx.ConnectError as exc:
+        log.warning("Local LLM fallback: could not reach %s (%s)", url, exc)
+        return None
+    except Exception as exc:  # noqa: BLE001 - best-effort last-resort fallback; any other failure just means "no local result", never propagates
+        log.warning("Local LLM fallback failed: %s: %s", type(exc).__name__, exc)
+        return None

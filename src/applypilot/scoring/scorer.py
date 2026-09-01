@@ -725,6 +725,12 @@ def score_job(resume_text: str, job: dict, profile: dict | None = None, conn=Non
             temperature=0.2,
         )
         result = _parse_score_response(response)
+        # Observability (2026-08-31): which model actually answered, and
+        # whether that required falling through past the configured
+        # primary -- read from LLMClient's own bookkeeping (see
+        # llm.py::LLMClient.last_model_used), not re-derived here.
+        result["model"] = client.last_model_used
+        result["escalated"] = bool(client.last_model_used and client.last_model_used != client.model)
         if result["score"] is None:
             # 2026-08-25 fix: _parse_score_response returns score=None when
             # no "SCORE: <digits>" line could be found (empty/blank/refusal/
@@ -967,6 +973,15 @@ def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1, max_age
             }
         return result
 
+    def _model_suffix(result: dict) -> str:
+        """Observability (2026-08-31): render "(model)" or "(model, escalated)"
+        for the per-job log line -- "?" when a job errored before any model
+        answered (result has no "model" key in that path)."""
+        model = result.get("model")
+        if not model:
+            return "(?)"
+        return f"({model}, escalated)" if result.get("escalated") else f"({model})"
+
     def _flush_and_log(batch: list[dict], completed: int) -> list[dict]:
         now = datetime.now(UTC).isoformat()
         try:
@@ -987,10 +1002,11 @@ def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1, max_age
                     errors += 1
                 batch.append(result)
                 log.info(
-                    "[%d/%d] score=%s  %s",
+                    "[%d/%d] score=%s  %s  %s",
                     completed,
                     len(jobs),
                     result["score"] if result["score"] is not None else "ERR",
+                    _model_suffix(result),
                     (job.get("title") or "")[:60],
                 )
                 if len(batch) >= batch_size:
@@ -1003,10 +1019,11 @@ def run_scoring(limit: int = 0, rescore: bool = False, workers: int = 1, max_age
                 errors += 1
             batch.append(result)
             log.info(
-                "[%d/%d] score=%s  %s",
+                "[%d/%d] score=%s  %s  %s",
                 completed,
                 len(jobs),
                 result["score"] if result["score"] is not None else "ERR",
+                _model_suffix(result),
                 (job.get("title") or "")[:60],
             )
             if len(batch) >= batch_size:

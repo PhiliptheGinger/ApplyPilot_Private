@@ -163,7 +163,12 @@ class TestMainLoopDiskRamDecoupling:
 		computing ram_bad, so a disk-stat failure discarded that sample's
 		RAM reading entirely -- sustained RAM pressure could never
 		accumulate bad_samples to TRIGGER_SAMPLES. After the fix, RAM is
-		evaluated independently of disk-stat's outcome."""
+		evaluated independently of disk-stat's outcome.
+
+		2026-08-31: machine-sleep is no longer the default emergency action
+		(see test_default_emergency_no_longer_sleeps below for why) -- kill
+		is still always the load-bearing action and is asserted here
+		regardless of sleep opt-in."""
 
 		def _always_times_out():
 			raise watchdog.subprocess.TimeoutExpired(cmd="powershell.exe", timeout=5)
@@ -175,7 +180,28 @@ class TestMainLoopDiskRamDecoupling:
 		assert result == 0
 		kill_mock.assert_called_once()
 		ollama_mock.assert_called_once()
-		run_mock.assert_called_once()  # the emergency sleep command
+		run_mock.assert_not_called()  # sleep is opt-in only now -- see below
+
+	def test_default_emergency_no_longer_sleeps(self, monkeypatch):
+		"""2026-08-31: ApplyPilot normally runs under a persistent restart-
+		on-exit supervisor now (scripts/run_continuous_supervisor.ps1 via
+		the "ApplyPilot-RunContinuous" Scheduled Task) -- sleeping the whole
+		machine on resource pressure would defeat that supervisor's purpose
+		(unattended continuous operation) by taking the machine offline
+		until a human wakes it. The kill above is the load-bearing safety
+		action; by default nothing further happens to the machine itself."""
+
+		def _always_times_out():
+			raise watchdog.subprocess.TimeoutExpired(cmd="powershell.exe", timeout=5)
+
+		monkeypatch.delenv("APPLYPILOT_WATCHDOG_SLEEP", raising=False)
+		kill_mock, _ollama_mock, run_mock = self._install_common_mocks(monkeypatch, _always_times_out)
+
+		result = watchdog.main()
+
+		assert result == 0
+		kill_mock.assert_called_once()
+		run_mock.assert_not_called()
 
 	def test_emergency_sleep_timeout_does_not_hang_main(self, monkeypatch):
 		"""Real incident: `SetSuspendState` did not return on this machine --
@@ -185,7 +211,13 @@ class TestMainLoopDiskRamDecoupling:
 		The sleep subprocess.run call had no timeout at all. main() must
 		still return promptly (not hang, not raise) when the sleep call
 		times out -- killing ApplyPilot is the load-bearing action and has
-		already completed by that point regardless of whether sleep works."""
+		already completed by that point regardless of whether sleep works.
+
+		2026-08-31: sleep is now opt-in (APPLYPILOT_WATCHDOG_SLEEP=1) -- this
+		test explicitly opts in so the underlying timeout-handling logic
+		(preserved, not removed) still has live coverage."""
+
+		monkeypatch.setenv("APPLYPILOT_WATCHDOG_SLEEP", "1")
 
 		def _always_times_out_disk_stat():
 			raise watchdog.subprocess.TimeoutExpired(cmd="powershell.exe", timeout=5)

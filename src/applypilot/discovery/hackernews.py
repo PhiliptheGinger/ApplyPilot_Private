@@ -26,7 +26,7 @@ import httpx
 
 from applypilot import config
 from applypilot.database import init_db, write_with_retry
-from applypilot.llm import get_client
+from applypilot.llm import ask_local, get_client, is_local_configured
 
 log = logging.getLogger(__name__)
 
@@ -128,8 +128,27 @@ def _prefilter_comment(text: str, accept_keywords: list[str]) -> bool:
     return any(kw in lower for kw in accept_keywords)
 
 
+def _parse_extracted_job(raw: str) -> dict | None:
+    """Strip markdown fences and parse the extraction prompt's JSON response."""
+    if "```json" in raw:
+        raw = raw.split("```json")[1].split("```")[0]
+    elif "```" in raw:
+        raw = raw.split("```")[1].split("```")[0]
+    data = json.loads(raw.strip())
+    return data if isinstance(data, dict) else None
+
+
 def _extract_job(text: str) -> dict | None:
-    """Use LLM to extract structured job data from a raw comment."""
+    """Use LLM to extract structured job data from a raw comment.
+
+    2026-08-31: on cloud-cascade exhaustion, falls back to the local Ollama
+    model (if APPLYPILOT_LOCAL_LLM_URL is configured) using the SAME prompt
+    and parser -- this is genuinely a last resort, not a second source of
+    truth: the returned dict still goes through the exact same downstream
+    handling (skip flag, URL validation, DB storage) as a cloud result, and
+    a local failure degrades to the existing "skip this comment" behavior
+    exactly as a cloud failure always has.
+    """
     # Truncate very long comments to avoid token limits
     text_trimmed = text[:3000] if len(text) > 3000 else text
 
@@ -137,18 +156,22 @@ def _extract_job(text: str) -> dict | None:
     try:
         client = get_client()
         raw = client.ask(prompt, temperature=0.0, max_tokens=512)
-
-        # Strip markdown fences if present
-        if "```json" in raw:
-            raw = raw.split("```json")[1].split("```")[0]
-        elif "```" in raw:
-            raw = raw.split("```")[1].split("```")[0]
-
-        data = json.loads(raw.strip())
-        return data
-    except Exception as e:  # noqa: BLE001 - LLM extraction/JSON parsing is unreliable; degrade to None, caller skips this comment
-        log.warning("LLM extraction failed: %s", e)
-        return None
+        return _parse_extracted_job(raw)
+    except Exception as e:  # noqa: BLE001 - LLM extraction/JSON parsing is unreliable; fall back to local, else degrade to None so caller skips this comment
+        log.warning("Cloud LLM extraction failed: %s", e)
+        if not is_local_configured():
+            return None
+        local_raw = ask_local(prompt, temperature=0.0, max_tokens=512)
+        if not local_raw:
+            return None
+        try:
+            data = _parse_extracted_job(local_raw)
+            if data is not None:
+                log.info("HN extraction: used local fallback (cloud exhausted)")
+            return data
+        except Exception as e2:  # noqa: BLE001 - local fallback output is just as unreliable to parse as cloud's; degrade to None, same as any other extraction failure
+            log.warning("Local fallback extraction failed to parse: %s", e2)
+            return None
 
 
 def _deobfuscate_email(text: str) -> str:

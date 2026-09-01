@@ -569,8 +569,14 @@ def revalidate_seniority(
 
     result = _revalidate(dry_run=dry_run)
     verb = "Would archive" if dry_run else "Archived"
+    # dry_run's `updated` is always 0 by construction (no transition_state
+    # call is ever made in that branch) -- displaying it as the "would
+    # archive" count made a correctly-matching sweep look like it found
+    # matches but silently declined to act on them. `matched` is the real
+    # count of what a non-dry-run invocation would archive.
+    count = result["matched"] if dry_run else result["updated"]
     console.print(
-        f"[cyan]Seniority revalidation:[/cyan] {verb} {result['updated']} / {result['matched']} matched job(s)."
+        f"[cyan]Seniority revalidation:[/cyan] {verb} {count} / {result['matched']} matched job(s)."
     )
     if result["sample"]:
         t = Table(show_header=True, header_style="bold cyan")

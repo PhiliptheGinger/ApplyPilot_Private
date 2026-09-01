@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Date>2026-08-31T17:09:10</Date>
+    <Author>LAPTOP-CO59JT3C\phili</Author>
+    <URI>\ApplyPilot-RunContinuous</URI>
+    <Description>Keeps 'python -m applypilot run-continuous --no-continuous-apply' running via scripts/run_continuous_supervisor.ps1 (restart-on-exit loop, self-locked against duplicates). Hidden window, unaffected by battery/AC power state, no execution time limit. See CLAUDE.md decision history for why (2026-08-31): visible console windows and battery-triggered stop/restart cycles were traced to schtasks.exe's own defaults, not intended behavior.</Description>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="Author">
+      <UserId>S-1-5-21-2618666876-3489229144-608736139-1001</UserId>
+      <LogonType>InteractiveToken</LogonType>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>true</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <Priority>7</Priority>
+  </Settings>
+  <Triggers>
+    <TimeTrigger>
+      <StartBoundary>2026-08-31T17:09:00</StartBoundary>
+      <Repetition>
+        <Interval>PT5M</Interval>
+      </Repetition>
+    </TimeTrigger>
+  </Triggers>
+  <Actions Context="Author">
+    <Exec>
+      <Command>powershell.exe</Command>
+      <Arguments>-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "C:\Users\phili\Projects\resume-agent\scripts\run_continuous_supervisor.ps1" -RunContinuousArgs --no-continuous-apply</Arguments>
+    </Exec>
+  </Actions>
+</Task>

@@ -496,6 +496,52 @@ class TestRevalidateSeniority:
         assert row["fit_score"] == 8
         assert row["tailored_resume_path"] == "/tmp/r.docx"
 
+
+class TestRevalidateSeniorityCliMessage:
+    """2026-08-31 fix: cli.py's revalidate-seniority command printed
+    result['updated'] (always 0 in dry-run, by construction -- dry_run
+    returns before any transition_state call) as the "would archive"
+    count, making a correctly-matching sweep read as "Would archive 0 /
+    113 matched job(s)" -- indistinguishable from the matcher genuinely
+    finding nothing to do. No existing test caught this because every
+    prior test called eligibility.revalidate_seniority() directly, never
+    the CLI command that formats the message."""
+
+    def test_dry_run_message_shows_matched_count_not_zero(self):
+        from unittest.mock import patch
+
+        import applypilot.cli as cli_mod
+
+        fake_result = {"matched": 113, "updated": 0, "sample": []}
+        with (
+            patch("applypilot.cli._bootstrap"),
+            patch("applypilot.eligibility.revalidate_seniority", return_value=fake_result),
+            patch.object(cli_mod.console, "print") as mock_print,
+        ):
+            cli_mod.revalidate_seniority(dry_run=True)
+
+        printed = " ".join(str(call.args[0]) for call in mock_print.call_args_list)
+        assert "Would archive 113 / 113 matched job(s)" in printed
+        assert "Would archive 0 / 113" not in printed
+
+    def test_real_run_message_still_shows_actual_updated_count(self):
+        """Regression guard: the non-dry-run path's message (where
+        `updated` IS the real, meaningful count) must be unaffected."""
+        from unittest.mock import patch
+
+        import applypilot.cli as cli_mod
+
+        fake_result = {"matched": 113, "updated": 109, "sample": []}
+        with (
+            patch("applypilot.cli._bootstrap"),
+            patch("applypilot.eligibility.revalidate_seniority", return_value=fake_result),
+            patch.object(cli_mod.console, "print") as mock_print,
+        ):
+            cli_mod.revalidate_seniority(dry_run=False)
+
+        printed = " ".join(str(call.args[0]) for call in mock_print.call_args_list)
+        assert "Archived 109 / 113 matched job(s)" in printed
+
     def test_non_senior_job_not_touched(self, tmp_db, seed_job):
         from applypilot.eligibility import revalidate_seniority
 
