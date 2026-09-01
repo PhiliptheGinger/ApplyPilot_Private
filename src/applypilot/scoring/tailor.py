@@ -34,7 +34,11 @@ from applypilot.scoring.validator import (
 
 log = logging.getLogger(__name__)
 
-MAX_ATTEMPTS = 5  # max cross-run retries before giving up
+# 2026-09-01: the cross-run retry limit (tailor_attempts) is enforced by
+# database.py's pending_tailor query, bound from config.DEFAULTS
+# ["max_tailor_attempts"] -- this used to be a second, disconnected
+# MAX_ATTEMPTS = 5 constant here that nothing actually read. See
+# database.py's pending_tailor comment for the full history.
 
 STANDUP_INCLUDE = "INCLUDE"
 STANDUP_OPTIONAL = "OPTIONAL"

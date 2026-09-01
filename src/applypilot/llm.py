@@ -633,6 +633,39 @@ class LLMClient:
 
                 if resp.status_code == 429:
                     body = resp.text.lower()
+                    # 2026-09-01 fix: "insufficient_quota" / "credit_balance_
+                    # exhausted" (OpenAI's actual wording for "this account
+                    # has $0 balance") both contain the substring "quota",
+                    # so they used to fall into the daily-quota branch below
+                    # and get treated as a transient, self-resolving 24h
+                    # cooldown -- confirmed live: a direct diagnostic call
+                    # returned exactly this body with zero OpenAI credits
+                    # configured. A billing failure does NOT self-resolve in
+                    # 24h; retrying it daily forever just silently wastes a
+                    # round-trip every run while masquerading as normal
+                    # cooldown noise in the logs, with no signal that real
+                    # action (adding credits) is needed. Checked BEFORE the
+                    # generic quota branch since the substring overlaps.
+                    # Cooldown is deliberately much longer (30 days, not
+                    # 24h) -- there is no plausible reason a $0 balance
+                    # would refill itself tomorrow -- and logged at a
+                    # visibly different level/message so it can't blend in
+                    # with genuine rate-limit noise.
+                    if any(
+                        marker in body
+                        for marker in ("insufficient_quota", "credit_balance_exhausted", "billing_hard_limit")
+                    ):
+                        log.error(
+                            "%s/%s: BILLING FAILURE (insufficient credits/balance), not a rate limit -- "
+                            "this will NOT self-resolve. Marking unavailable for 30 days; add credits to "
+                            "restore it sooner. Response: %.200s",
+                            entry.provider,
+                            entry.name,
+                            resp.text,
+                        )
+                        self._exhausted[entry.name] = time.time() + 30 * 86400
+                        return None
+
                     # Distinguish daily/quota exhaustion vs transient rate limits
                     if "resource has been exhausted" in body or "quota" in body:
                         log.warning(
@@ -796,6 +829,25 @@ class LLMClient:
                 )
                 if resp.status_code == 429:
                     body = resp.text.lower()
+                    # Same billing-vs-rate-limit distinction as the OpenAI-
+                    # compat path above -- Anthropic's own wording for a
+                    # zero/insufficient balance also contains "quota"-like
+                    # substrings, so check it first with a real (not
+                    # effectively-immediate) cooldown.
+                    if any(
+                        marker in body
+                        for marker in ("insufficient_quota", "credit_balance_exhausted", "billing_hard_limit")
+                    ):
+                        log.error(
+                            "anthropic/%s: BILLING FAILURE (insufficient credits/balance), not a rate limit -- "
+                            "this will NOT self-resolve. Marking unavailable for 30 days; add credits to "
+                            "restore it sooner. Response: %.200s",
+                            entry.name,
+                            resp.text,
+                        )
+                        self._exhausted[entry.name] = time.time() + 30 * 86400
+                        return None
+
                     if "rate_limit" in body or "quota" in body:
                         log.warning("anthropic/%s hit rate limit, trying next", entry.name)
                         self._exhausted[entry.name] = time.time()

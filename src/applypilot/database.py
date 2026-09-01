@@ -2011,9 +2011,19 @@ _STAGE_CONDITIONS: dict[str, str] = {
     # below -- confirmed empirically zero current rows have fit_score
     # set with a NULL state, so no legacy-NULL carve-out is needed to
     # match that precedent exactly.
+    # 2026-09-01 fix: the "< 5" retry-limit literals below used to be
+    # hand-synced against tailor.MAX_ATTEMPTS / cover_letter.MAX_ATTEMPTS
+    # by comment only -- both of those constants, AND a THIRD, separate
+    # config.DEFAULTS["max_tailor_attempts"] = 5 that already existed for
+    # exactly this purpose, were all defined but never actually read by
+    # anything. The literal `5` here was the only one actually enforced.
+    # Now bound as real `?` parameters from config.DEFAULTS (see
+    # _build_stage_where), matching how min_score/max_age_days already
+    # work -- there is now exactly one real source of truth, and the dead
+    # tailor.py/cover_letter.py constants were removed.
     "pending_tailor": (
         "fit_score >= ? AND full_description IS NOT NULL "
-        "AND tailored_resume_path IS NULL AND COALESCE(tailor_attempts, 0) < 5 "
+        "AND tailored_resume_path IS NULL AND COALESCE(tailor_attempts, 0) < ? "
         "AND COALESCE(state, '') IN ('scored', 'tailor_failed') "
         "AND (eligibility IS NULL OR eligibility = 'eligible')"
     ),
@@ -2022,7 +2032,7 @@ _STAGE_CONDITIONS: dict[str, str] = {
         "AND full_description IS NOT NULL "
         "AND COALESCE(state, '') IN ('tailored', 'cover_failed') "
         "AND (cover_letter_path IS NULL OR cover_letter_path = '') "
-        "AND COALESCE(cover_attempts, 0) < 5 "  # keep in sync with cover_letter.MAX_ATTEMPTS
+        "AND COALESCE(cover_attempts, 0) < ? "
         "AND (eligibility IS NULL OR eligibility = 'eligible')"
     ),
     "tailored": "tailored_resume_path IS NOT NULL",
@@ -2041,6 +2051,8 @@ def _build_stage_where(stage: str, min_score: int, max_age_days: int) -> tuple[s
     must already be resolved (no None -- callers apply config.DEFAULTS
     first, matching both functions' existing default-resolution behavior).
     """
+    from applypilot.config import DEFAULTS
+
     where = _STAGE_CONDITIONS.get(stage, "1=1")
     params: list = []
 
@@ -2050,6 +2062,13 @@ def _build_stage_where(stage: str, min_score: int, max_age_days: int) -> tuple[s
     if stage in ("scored", "tailored", "applied") and "fit_score" not in where:
         where += " AND fit_score >= ?"
         params.append(min_score)
+
+    # Retry-limit params, in the same left-to-right order the "?" tokens
+    # appear in _STAGE_CONDITIONS above.
+    if stage == "pending_tailor":
+        params.append(DEFAULTS["max_tailor_attempts"])
+    if stage == "pending_cover":
+        params.append(DEFAULTS["max_cover_attempts"])
 
     # Age filter: only active when max_age_days > 0.
     # NULL discovered_at is excluded because `col > val` is NULL (→ falsy in WHERE).

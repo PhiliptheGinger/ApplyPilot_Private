@@ -381,6 +381,7 @@ DEFAULTS = {
     "max_tailored_per_company": 10,  # cap per company at tailor stage
     "max_apply_attempts": 3,
     "max_tailor_attempts": 5,
+    "max_cover_attempts": 5,
     "poll_interval": 60,
     "apply_timeout": 300,
     "viewport": "1280x900",

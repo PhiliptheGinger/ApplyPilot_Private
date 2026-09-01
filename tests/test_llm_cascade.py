@@ -1310,6 +1310,41 @@ class TestFullCascadeIntegration(unittest.TestCase):
         self.assertIn(first.name, client._exhausted)
         self.assertNotIn(second.name, client._exhausted)
 
+    def test_openai_insufficient_quota_marks_exhausted_much_longer_than_rate_limit(self):
+        """2026-09-01 fix: OpenAI's actual wording for a $0 account balance
+        is "insufficient_quota" -- a billing failure, not a rate limit --
+        but it contains the substring "quota" and used to fall into the
+        SAME 24h-cooldown branch as a genuine daily quota reset. Confirmed
+        live against a real zero-balance account. A billing failure must
+        get a much longer cooldown (it will not self-resolve tomorrow) and
+        must still fall through to the next model in the same call."""
+        client = self._build_real_client({"OPENAI_API_KEY": "fake-openai"})
+        openai_entries = [e for e in client._fallback_chain if e.provider == "openai"]
+        self.assertGreaterEqual(len(openai_entries), 2, "need 2+ openai models to test fallback")
+        first, second = openai_entries[0], openai_entries[1]
+
+        def fake_post(url, json=None, headers=None):
+            if json["model"] == first.name:
+                return self._fake_response(
+                    429,
+                    text=(
+                        '{"error": {"message": "You have no credits remaining.", '
+                        '"type": "insufficient_quota", "code": "credit_balance_exhausted"}}'
+                    ),
+                )
+            return self._fake_response(200, json_data=self._success_json("second openai model"))
+
+        with patch.object(client._client, "post", side_effect=fake_post):
+            result = client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertEqual(result, "second openai model")
+        self.assertIn(first.name, client._exhausted)
+        # Real quota (test above) marks ~24h out; billing failure must be
+        # marked meaningfully longer -- checked as "> 7 days from now" so
+        # this doesn't hardcode the exact 30-day constant and break on a
+        # future tuning change, while still failing if it regresses to 24h.
+        self.assertGreater(client._exhausted[first.name], time.time() + 7 * 86400)
+
     def test_claude_cli_reached_when_apis_exhausted_and_unreserved(self):
         """Claude CLI is reached when earlier providers are exhausted --
         with the reserve explicitly turned off."""

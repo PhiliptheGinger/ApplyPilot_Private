@@ -25,7 +25,11 @@ from applypilot.scoring.validator import (
 
 log = logging.getLogger(__name__)
 
-MAX_ATTEMPTS = 5  # max cross-run retries before giving up
+# 2026-09-01: the cross-run retry limit (cover_attempts) is enforced by
+# database.py's pending_cover query, bound from config.DEFAULTS
+# ["max_cover_attempts"] -- this used to be a second, disconnected
+# MAX_ATTEMPTS = 5 constant here that nothing actually read. See
+# database.py's pending_cover comment for the full history.
 
 
 def get_client(quality: bool = True):
@@ -299,7 +303,7 @@ def _cover_one_job(job: dict, resume_text: str | None, profile: dict, doc_format
     if not validation["passed"]:
         # Don't ship a letter that failed validation. Keep the rejected draft
         # on disk for inspection, return no path so _mark_cover_result parks
-        # the job as cover_failed (retried until MAX_ATTEMPTS via pending_cover).
+        # the job as cover_failed (retried until config.DEFAULTS["max_cover_attempts"] via pending_cover).
         reason = "; ".join(validation["errors"])
         rejected_path = COVER_LETTER_DIR / f"{prefix}_CL_rejected.txt"
         rejected_path.write_text(letter, encoding="utf-8")
