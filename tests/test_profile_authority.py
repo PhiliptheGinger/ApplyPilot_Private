@@ -22,8 +22,10 @@ from applypilot.scoring.tailor import (
     tailor_resume,
 )
 from applypilot.scoring.validator import (
+    check_date_fabrication,
     check_date_placeholder_fabrication,
     check_title_inflation,
+    check_unsupported_skill_claims,
     check_unsupported_technical_skills,
     validate_cover_letter,
     validate_factual_anchors,
@@ -305,6 +307,61 @@ class TestFabricationWatchlistUngroundedTechnologies:
         assert not any("fabricated skill: 'kubernetes'" in e.lower() for e in result["errors"])
 
 
+class TestUnsupportedSkillClaimsGeneralized:
+    """2026-09-01: FABRICATION_WATCHLIST and check_unsupported_technical_
+    skills both only catch fabrications someone already observed and
+    hand-enumerated -- confirmed as a real, live gap by the specialized-
+    model prompt bake-off, which found models inventing skills (e.g.
+    "Databricks") not on the watchlist at all. check_unsupported_skill_
+    claims is a POSITIVE check (must trace to the profile) instead of a
+    denylist, so it generalizes to any not-yet-seen fabrication."""
+
+    def test_novel_fabrication_not_on_watchlist_is_caught(self):
+        """"Databricks" is deliberately NOT in FABRICATION_WATCHLIST --
+        this is exactly the class of gap the watchlist-only approach
+        can't close."""
+        from applypilot.scoring.validator import FABRICATION_WATCHLIST
+
+        assert "databricks" not in FABRICATION_WATCHLIST
+        violations = check_unsupported_skill_claims("Python, Databricks", _profile())
+        assert any("databricks" in v.lower() for v in violations)
+        assert not any("python" in v.lower() for v in violations)
+
+    def test_validate_json_fields_rejects_novel_fabrication(self):
+        data = {
+            "title": "Technical Support & Customer Service",
+            "summary": "Support and troubleshooting background.",
+            "skills": {"Tools": "Python, Databricks"},
+            "experience": [
+                {"header": "Packaging Associate / Warehouse Associate at UPS", "bullets": ["Package handling."]}
+            ],
+            "education": "University of North Carolina at Greensboro",
+        }
+        result = validate_json_fields(data, _profile())
+        assert not result["passed"]
+        assert any("databricks" in e.lower() for e in result["errors"])
+
+    def test_proficiency_qualifiers_are_not_flagged(self):
+        """"(Exposure)"-style qualifiers must not be treated as skill
+        claims in their own right -- this is generic English grammar, not
+        a technology, and must never need a per-candidate update."""
+        violations = check_unsupported_skill_claims("Python (Exposure), Docker (Basic Familiarity)", _profile())
+        assert violations == []
+
+    def test_category_labels_are_not_flagged(self):
+        violations = check_unsupported_skill_claims("Languages: Python; Tools: Docker", _profile())
+        assert violations == []
+
+    def test_no_profile_skill_data_stays_silent(self):
+        """Matches check_title_inflation/validate_factual_anchors' same
+        early-exit -- nothing to ground a judgment on, so this doesn't
+        flag everything."""
+        assert check_unsupported_skill_claims("Python, Databricks", {}) == []
+
+    def test_empty_skills_text_returns_empty(self):
+        assert check_unsupported_skill_claims("", _profile()) == []
+
+
 # ---------------------------------------------------------------------------
 # check_date_placeholder_fabrication -- subtitle date-placeholder fabrication
 # ---------------------------------------------------------------------------
@@ -396,6 +453,79 @@ class TestValidateJsonFieldsRejectsDatePlaceholder:
         }
         result = validate_json_fields(data, _profile())
         assert not any("fabricated date placeholder" in e.lower() for e in result["errors"])
+
+
+def _profile_with_dates():
+    """_profile() extended with real start_date/end_date on the UPS entry
+    -- _profile() itself deliberately has none (so the existing placeholder
+    tests above can't accidentally trip the new date-fabrication check),
+    matching the shape data/profile.json actually has."""
+    profile = _profile()
+    profile["experience_inventory"][1]["start_date"] = "2024-05"
+    profile["experience_inventory"][1]["end_date"] = "2025-04"
+    return profile
+
+
+class TestDateFabricationAgainstAuthoritativeRange:
+    """2026-09-01: check_date_placeholder_fabrication only catches an
+    invented PLACEHOLDER ("Dates not specified") -- it has no way to catch
+    a model that instead invents a plausible-looking specific date range,
+    which is more dangerous (more falsifiable) and was confirmed to slip
+    past every existing check during the specialized-model prompt bake-off
+    (qwen3 invented "2019-2021" for a job the profile only ever shows as
+    "Dates not specified" -- nothing flagged it). check_date_fabrication
+    compares against the profile's own recorded start_date/end_date
+    instead of a string pattern."""
+
+    def test_out_of_range_year_is_rejected(self):
+        data = {
+            "experience": [
+                {"header": "Packaging Associate / Warehouse Associate at UPS", "subtitle": "Logistics | 2019 - 2021"}
+            ]
+        }
+        errors = check_date_fabrication(data, _profile_with_dates())
+        assert errors
+        assert "UPS" in errors[0] or "Packaging" in errors[0]
+
+    def test_correct_year_passes(self):
+        data = {
+            "experience": [
+                {"header": "Packaging Associate / Warehouse Associate at UPS", "subtitle": "Logistics | 2024 - 2025"}
+            ]
+        }
+        assert check_date_fabrication(data, _profile_with_dates()) == []
+
+    def test_employer_with_no_dates_on_file_stays_silent(self):
+        """_profile() (no dates recorded anywhere) must never flag --
+        there's no ground truth to contradict."""
+        data = {
+            "experience": [
+                {"header": "Packaging Associate / Warehouse Associate at UPS", "subtitle": "Logistics | 2019 - 2021"}
+            ]
+        }
+        assert check_date_fabrication(data, _profile()) == []
+
+    def test_no_year_mentioned_passes(self):
+        data = {"experience": [{"header": "Packaging Associate / Warehouse Associate at UPS", "subtitle": "Logistics"}]}
+        assert check_date_fabrication(data, _profile_with_dates()) == []
+
+    def test_validate_json_fields_rejects_invented_date_range(self):
+        data = {
+            "title": "Technical Support & Customer Service",
+            "summary": "Support and troubleshooting background.",
+            "skills": {"Languages": "Python"},
+            "experience": [
+                {
+                    "header": "Packaging Associate / Warehouse Associate at UPS",
+                    "subtitle": "Logistics | 2019 - 2021",
+                    "bullets": ["Package handling."],
+                }
+            ],
+            "education": "University of North Carolina at Greensboro",
+        }
+        result = validate_json_fields(data, _profile_with_dates())
+        assert not result["passed"]
+        assert any("fabricated date(s)" in e.lower() for e in result["errors"])
 
 
 # ---------------------------------------------------------------------------

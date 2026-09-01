@@ -286,6 +286,97 @@ def check_unsupported_technical_skills(skills_text: str, profile: dict) -> list[
     return sorted(violations)
 
 
+# 2026-09-01: FABRICATION_WATCHLIST and check_unsupported_technical_skills
+# above only catch fabrications someone has already observed and hand-
+# enumerated (a specific denylist of tech terms, or skills_inventory items
+# already known to the profile but marked non-resume-appropriate). Neither
+# can catch a technology invented from nothing that happens not to be on
+# the watchlist yet -- and the watchlist has to be manually re-curated
+# every time a new fabrication pattern is discovered, which doesn't
+# generalize across different candidates/profiles or a profile that
+# changes over time. This is a POSITIVE check instead: every individual
+# skill claim in the SKILLS section must trace back to something the
+# loaded profile actually declares (skills_boundary / skills_inventory),
+# regardless of which specific term it is. The stopword list below is
+# deliberately generic ENGLISH GRAMMAR/structure (connectors, category
+# labels, proficiency qualifiers) -- never a technology name -- so it
+# never needs updating as new tools get invented or fabricated, unlike
+# FABRICATION_WATCHLIST.
+_SKILL_CLAIM_STOPWORDS: set[str] = {
+    "and", "or", "with", "using", "etc", "other", "others", "various",
+    "including", "such", "as", "of", "for", "in", "to", "the", "a", "an",
+    "tools", "languages", "language", "frameworks", "framework",
+    "technologies", "technology", "skills", "software", "systems",
+    "system", "platforms", "platform", "methods", "methodologies",
+    "methodology", "services", "solutions", "concepts", "practices",
+    "libraries", "library", "databases", "infrastructure", "general",
+    "exposure", "familiarity", "familiar", "basic", "basics", "beginner",
+    "intermediate", "advanced", "proficient", "proficiency", "working",
+    "knowledge", "hands-on", "hands", "on", "experience", "learning",
+    "developing", "practical",
+}
+
+
+def _split_skill_claims(skills_text: str) -> list[str]:
+    """Split a SKILLS section's text into individual discrete skill claims,
+    independent of any hardcoded technology list. Flattens parenthetical
+    sub-lists (e.g. "Web Development (HTML, CSS, JavaScript)") into
+    separate claims, splits on the usual list separators, and drops
+    generic connector/category-label/qualifier noise via
+    _SKILL_CLAIM_STOPWORDS."""
+    flattened = skills_text.replace("(", ",").replace(")", ",")
+    claims: list[str] = []
+    for chunk in re.split(r"[,;/|]+", flattened):
+        chunk = chunk.strip().strip(":").strip()
+        if not chunk:
+            continue
+        # Drop the chunk only if EVERY word in it is a stopword (e.g.
+        # "Basic Familiarity") -- a chunk with at least one non-stopword
+        # word (e.g. "Data Analysis") is a real candidate skill claim.
+        words = chunk.lower().split()
+        if words and all(w in _SKILL_CLAIM_STOPWORDS for w in words):
+            continue
+        claims.append(chunk)
+    return claims
+
+
+def check_unsupported_skill_claims(skills_text: str, profile: dict) -> list[str]:
+    """General, profile-driven fabrication check for the SKILLS section:
+    every individual skill claim must be traceable to the profile's own
+    declared skills (skills_boundary / skills_inventory), via exact or
+    substring/word-level match. Unlike FABRICATION_WATCHLIST (a fixed
+    denylist of previously-observed hallucinations), this is a POSITIVE
+    check derived entirely from whichever profile is loaded -- it
+    generalizes to any candidate's resume and any future technology a
+    model might invent, without the watchlist needing to be hand-updated
+    every time a new fabrication is discovered. Kept alongside the
+    watchlist and check_unsupported_technical_skills (defense in depth),
+    not as a replacement. Empty list when there's nothing to flag, or when
+    the profile declares no skills at all to ground a judgment on."""
+    if not skills_text:
+        return []
+    allowed = _build_skills_set(profile)
+    if not allowed:
+        return []
+    allowed_words: set[str] = set()
+    for skill in allowed:
+        allowed_words.update(w for w in re.findall(r"[a-z0-9+#.]+", skill) if len(w) > 2)
+
+    violations: list[str] = []
+    for claim in _split_skill_claims(skills_text):
+        claim_lower = claim.lower()
+        if len(claim_lower) <= 2:
+            continue
+        if any(claim_lower in a or a in claim_lower for a in allowed):
+            continue
+        claim_words = [w for w in re.findall(r"[a-z0-9+#.]+", claim_lower) if len(w) > 2]
+        if claim_words and any(w in allowed_words for w in claim_words):
+            continue
+        if claim_words:
+            violations.append(claim)
+    return violations
+
+
 def _private_project_names(profile: dict) -> list[str]:
     """Return profile-marked private/non-resume project names."""
     names = set(profile.get("resume_facts", {}).get("private_projects", []))
@@ -394,10 +485,21 @@ def validate_json_fields(data: dict, profile: dict, standup_decision: str | None
                 errors.append(f"Fabricated skill: '{fake}'")
 
         unsupported_skills = check_unsupported_technical_skills(skills_text, profile)
+        flagged_skill_names = {n.lower() for n in unsupported_skills} | {
+            f.lower() for f in FABRICATION_WATCHLIST if f in skills_text and len(f) > 2
+        }
         for name in unsupported_skills:
             errors.append(
                 f"Unsupported technical skill in SKILLS section: '{name}' "
                 f"(not resume_allowed, or only ever project-scoped evidence)"
+            )
+
+        for claim in check_unsupported_skill_claims(skills_text, profile):
+            if claim.lower() in flagged_skill_names:
+                continue
+            errors.append(
+                f"Skill claim not grounded in profile: '{claim}' "
+                f"(no matching entry in skills_boundary/skills_inventory)"
             )
 
     # Experience: check preserved companies (warn for missing, don't hard-fail
@@ -449,6 +551,7 @@ def validate_json_fields(data: dict, profile: dict, standup_decision: str | None
         errors.append(title_inflation)
 
     errors.extend(check_date_placeholder_fabrication(data))
+    errors.extend(check_date_fabrication(data, profile))
 
     found_leaks = [p for p in LLM_LEAK_PHRASES if p in all_text]
     if found_leaks:
@@ -696,6 +799,96 @@ def validate_factual_anchors(tailored_data: dict, profile: dict) -> dict:
 # deterministic backstop, same ERROR-tier/retry pattern as
 # check_title_inflation below.
 _DATE_PLACEHOLDER_RE = re.compile(r"dates?\s+(?:not\s+(?:specified|provided)|n/?a|unspecified)", re.IGNORECASE)
+
+
+# 2026-09-01: check_date_placeholder_fabrication above only catches the
+# ABSENCE of a real date (an invented "Dates not specified"-style
+# placeholder) -- it has no way to catch a model that instead invents a
+# PLAUSIBLE-LOOKING specific date range, which is more dangerous (more
+# falsifiable, more likely to pass a casual read) and was found to slip
+# straight past every existing check during the specialized-model prompt
+# bake-off (2026-09-01). This compares any year(s) mentioned in an entry's
+# subtitle against the profile's own authoritative start_date/end_date for
+# that employer (experience_inventory / historical_experience_inventory)
+# -- profile-driven, so it generalizes to any candidate's resume without a
+# hardcoded date, and stays silent for any employer the profile has no
+# dates on file for (never a false positive from missing data).
+_YEAR_RE = re.compile(r"\b(19\d{2}|20\d{2})\b")
+
+
+def _authoritative_date_ranges(profile: dict) -> dict[str, tuple[str | None, str | None]]:
+    """employer name (lowercased) -> (start_date, end_date) as 'YYYY-MM'
+    strings (or None), from experience_inventory / historical_experience_
+    inventory -- the same authoritative source validate_factual_anchors
+    already uses for titles, extended to carry dates too."""
+    ranges: dict[str, tuple[str | None, str | None]] = {}
+    for key in ("experience_inventory", "historical_experience_inventory"):
+        for item in profile.get(key) or []:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("name") or "").strip()
+            if name:
+                ranges[name.lower()] = (item.get("start_date"), item.get("end_date"))
+    return ranges
+
+
+def check_date_fabrication(data: dict, profile: dict) -> list[str]:
+    """Return one error per experience/project entry whose subtitle states
+    a specific year that falls OUTSIDE the authoritative start/end date
+    range on file for that employer -- catches an INVENTED plausible date,
+    as opposed to check_date_placeholder_fabrication's invented-placeholder
+    case. Silent whenever the matched employer has no dates on file (e.g.
+    a test fixture, or a profile entry that never recorded them) -- there
+    must be real ground truth to contradict before this flags anything."""
+    errors: list[str] = []
+    date_ranges = _authoritative_date_ranges(profile)
+    if not date_ranges:
+        return errors
+
+    for section in ("experience", "projects"):
+        entries = data.get(section)
+        if not isinstance(entries, list):
+            continue
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            header = str(entry.get("header") or "")
+            subtitle = str(entry.get("subtitle") or "")
+            split = _split_experience_header(header)
+            if split is None:
+                continue
+            _title_part, company_part = split
+            company_lower = company_part.strip().lower()
+
+            matched_range = None
+            for known_name, rng in date_ranges.items():
+                if known_name in company_lower or company_lower in known_name:
+                    matched_range = rng
+                    break
+            if matched_range is None:
+                continue
+
+            start, end = matched_range
+            allowed_years: set[int] = set()
+            if start:
+                allowed_years.add(int(start[:4]))
+            if end:
+                allowed_years.add(int(end[:4]))
+            if start and end:
+                allowed_years.update(range(int(start[:4]), int(end[:4]) + 1))
+            if not allowed_years:
+                continue
+
+            claimed_years = {int(y) for y in _YEAR_RE.findall(subtitle)}
+            bad_years = claimed_years - allowed_years
+            if bad_years:
+                errors.append(
+                    f"Fabricated date(s) in subtitle for '{header}': claims "
+                    f"year(s) {sorted(bad_years)}, but the profile's "
+                    f"authoritative record for this employer is "
+                    f"{start or '?'} to {end or 'present'}"
+                )
+    return errors
 
 
 def check_date_placeholder_fabrication(data: dict) -> list[str]:
