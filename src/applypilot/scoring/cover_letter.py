@@ -220,11 +220,27 @@ def generate_cover_letter(resume_text: str, job: dict, profile: dict, max_retrie
 
         # Higher ceiling helps thinking-models avoid truncation while
         # still letting prompts enforce concise output.
-        letter = client.chat(
-            messages,
-            max_tokens=get_token_limit("cover", 8192),
-            temperature=0.7,
-        )
+        try:
+            # Mirror tailor.py's heavy-call behavior: keep cover generation
+            # cloud-only so quota exhaustion fails fast instead of silently
+            # falling through to slow local generation.
+            letter = client.chat(
+                messages,
+                max_tokens=get_token_limit("cover", 8192),
+                temperature=0.7,
+                exclude_providers=frozenset({"local"}),
+            )
+        except RuntimeError as exc:
+            log.warning(
+                "Cover-letter cloud generation exhausted for %s; skipping local fallback: %s",
+                (job.get("title") or "")[:40],
+                exc,
+            )
+            return "", {
+                "passed": False,
+                "errors": [f"cloud_cover_generation_exhausted: {exc}"],
+                "warnings": [],
+            }
         letter = sanitize_text(letter)  # auto-fix em dashes, smart quotes
 
         validation = validate_cover_letter(letter, profile)

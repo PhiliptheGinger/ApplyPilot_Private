@@ -10,6 +10,8 @@ Covers:
   instead of shipping the rejected letter
 """
 
+from unittest.mock import Mock
+
 import pytest
 
 from applypilot.scoring.tailor import display_company
@@ -57,9 +59,11 @@ class StubClient:
     def __init__(self, replies: list[str]):
         self.replies = list(replies)
         self.calls: list[list[dict]] = []
+        self.call_kwargs: list[dict] = []
 
     def chat(self, messages, **kwargs):
         self.calls.append(messages)
+        self.call_kwargs.append(kwargs)
         if len(self.replies) > 1:
             return self.replies.pop(0)
         return self.replies[0]
@@ -220,6 +224,24 @@ def test_exhausted_retries_returns_failed_validation(monkeypatch):
     _letter, validation = cl.generate_cover_letter("RESUME", JOB, PROFILE, max_retries=1)
     assert not validation["passed"]
     assert len(stub.calls) == 2  # initial + 1 retry
+
+
+def test_cover_generation_excludes_local_and_fast_fails_on_runtime_error(monkeypatch):
+    from applypilot.scoring import cover_letter as cl
+
+    stub = Mock()
+    stub.chat.side_effect = RuntimeError("All models exhausted")
+    monkeypatch.setattr(cl, "get_client", lambda quality=False: stub)
+
+    letter, validation = cl.generate_cover_letter("RESUME", JOB, PROFILE, max_retries=3)
+
+    assert letter == ""
+    assert not validation["passed"]
+    assert validation["errors"]
+    assert "cloud_cover_generation_exhausted" in validation["errors"][0]
+    assert stub.chat.call_count == 1
+    _, kwargs = stub.chat.call_args
+    assert kwargs.get("exclude_providers") == frozenset({"local"})
 
 
 def test_communication_role_prompt_includes_differentiator(monkeypatch):
