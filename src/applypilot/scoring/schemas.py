@@ -558,11 +558,23 @@ _CLAIM_VERB_PATTERNS: dict[str, re.Pattern] = {
         # both are far more often the PLURAL-NOUN job title ("worked with
         # senior engineers") than the rare 3rd-person-singular verb, and a
         # false positive here wrongly inflates the ceiling this ONE tier
-        # below authority gates; "designed/designing" and "engineered/
-        # engineering" already cover the realistic past-tense/gerund verb
-        # phrasing resumes actually use.
+        # below authority gates; "designed/designing" and "engineered"
+        # already cover the realistic past-tense/gerund verb phrasing
+        # resumes actually use.
+        #
+        # "engineering" the bare gerund is ALSO excluded (2026-09-02) --
+        # found via the deterministic slot-filler prototype scanning real
+        # profile.json factual_concepts: "Feature Engineering" (a data-
+        # science technique NAME, from CAP Predictor's factual_concepts)
+        # matched this pattern and wrongly elevated that evidence's claim
+        # ceiling to "design", the same tier "architected" gates just
+        # below. Same noun/verb-collision class as the -s-form exclusion
+        # above -- "X engineering" (feature/data/software/prompt/requirements
+        # engineering) is overwhelmingly a field/discipline name in resume
+        # and job-posting text, not a first-person action verb. "engineered"
+        # (unambiguous past tense) has no comparable collision and stays.
         r"\b(designed|designing|"
-        r"engineered|engineering|"
+        r"engineered|"
         r"planned|planning|plans)\b",
         re.IGNORECASE,
     ),

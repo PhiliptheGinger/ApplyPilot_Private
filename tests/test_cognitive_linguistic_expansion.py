@@ -255,6 +255,17 @@ class TestClaimTierDetection(unittest.TestCase):
     def test_engineered_verb_form_still_detected(self):
         self.assertEqual(schemas.detect_claim_tier("Engineered a resilient failover system."), "design")
 
+    def test_feature_engineering_as_a_technique_noun_is_not_design_tier(self):
+        """2026-09-02: found via the deterministic slot-filler prototype
+        scanning real profile.json factual_concepts -- 'Feature Engineering'
+        (a data-science technique name) matched the bare 'engineering'
+        gerund and wrongly elevated that evidence's claim ceiling to
+        'design'. Same noun/verb-collision class as the engineers/
+        architects bare-plural exclusions above: 'X engineering'
+        (feature/data/software/prompt engineering) is overwhelmingly a
+        field name in resume/job text, not a first-person action verb."""
+        self.assertIsNone(schemas.detect_claim_tier("Feature engineering and statistical modeling experimentation."))
+
     def test_led_is_not_a_technical_depth_verb(self):
         """2026-08-24: 'led' moved OUT of the technical-depth lattice into
         the separate agency axis (see TestAgencyAxis) -- evidence
