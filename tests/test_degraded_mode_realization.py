@@ -183,6 +183,7 @@ class TestBuildRealizationPrompt(unittest.TestCase):
                 "exact_keywords": [],
                 "synonym_concepts": [],
                 "schema": {"cognitive_schema": "evidence_claim", "bullet_schema": "action_object_context_outcome"},
+                "category_tier": "near_prototype",
             }
             for i in range(10)
         ]
@@ -733,6 +734,7 @@ class TestPromptBoundedness(unittest.TestCase):
                 "exact_keywords": ["term"],
                 "synonym_concepts": [],
                 "schema": {"cognitive_schema": "evidence_claim", "bullet_schema": "action_object_context_outcome"},
+                "category_tier": "prototype",
             }
             for i in range(20)  # far more than the cap
         ]

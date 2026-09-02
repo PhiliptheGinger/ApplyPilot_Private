@@ -1714,33 +1714,78 @@ def debug_plan_for_job(job: dict, profile: dict) -> dict | None:
 # in practice since format_schema_guidance already caps at a similar size.
 _DEGRADED_MAX_REALIZED_BULLETS = 5
 
+# 2026-09-02: plain-language ceiling phrasing, replacing the abstract tier
+# LABELS ("claim ceiling: participation | agency ceiling: individual_
+# contributor") the prompt used to hand a local model directly. Confirmed
+# live during the specialized-model prompt bake-off that small models
+# don't reliably treat a label like that as an instruction to follow --
+# Apex's plan-mode output literally echoed a structurally similar labeled
+# instruction line ("Tailor: emphasize this requirement using only the
+# evidence above.") back as if it were resume content. The taxonomy
+# itself (schemas.py's claim/agency lattices) stays exactly as-is and is
+# still what gets enforced deterministically afterward via
+# check_claim_strength/check_agency_strength below -- only the TEXT shown
+# to the model changes, from a label to a plain-language constraint a
+# small model is more likely to have seen phrased this way in ordinary
+# instruction-following data.
+_CLAIM_CEILING_PLAIN: dict[str, str] = {
+    "participation": "took part in/was exposed to this -- did not build, own, or lead it",
+    "execution": "carried out this task -- did not design or own the whole solution",
+    "implementation": "built/implemented this -- did not architect the whole system",
+    "design": "designed/architected this",
+    "authority": "no extra limit",
+}
+
+_AGENCY_CEILING_PLAIN: dict[str, str] = {
+    "individual_contributor": "did this yourself -- did not lead/manage people",
+    "owner": "owned this piece of work -- did not lead/manage a team",
+    "team_lead": "may say led/managed people for this",
+    "director": "no extra limit",
+}
+
+# One short, generic, unrelated-domain worked example per bullet schema --
+# few-shot demonstration instead of an abstract rule description, per the
+# same reasoning above. Deliberately terse (prompt-size budget is tight,
+# see TestPromptBoundedness) and deliberately NOT from any real candidate's
+# domain, so a model can't crib specific phrases into an unrelated job.
+_BULLET_SCHEMA_EXAMPLES: dict[str, str] = {
+    "action_object_context_outcome": (
+        '"Migrated reporting DB to improve query speed" -> '
+        '"Migrated the reporting database to PostgreSQL, improving query speed."'
+    ),
+    "problem_action_result": (
+        '"Diagnosed API timeouts, traced to a pool leak, fixed it" -> '
+        '"Diagnosed intermittent API timeouts, traced the cause to a connection pool leak, and resolved it."'
+    ),
+    "domain_transfer_bullet": (
+        '"Diagnosed vehicle electrical issues with multimeters" -> '
+        '"Diagnosed electrical issues using diagnostic tools, a skill transferable to systematic troubleshooting."'
+    ),
+    "prevention_intervention_result": (
+        '"Noticed a shortage pattern, flagged it before a stockout" -> '
+        '"Identified a recurring shortage pattern and flagged it early, preventing a stockout."'
+    ),
+}
+
 _REALIZATION_SYSTEM = (
     "You write SHORT resume content from pre-verified facts. You are given "
     "a list of bullet SLOTS to fill and a summary schema. For each slot you "
-    "are given: which evidence it's based on, the rhetorical shape to "
-    "follow (a sequence of slot names, e.g. action -> object -> outcome), "
-    "the underlying fact, a CLAIM CEILING, an AGENCY CEILING, and -- when "
-    "given -- exact terms to use verbatim or a note that this is "
-    "transferable (not identical-domain) experience. Write exactly ONE "
-    "sentence per bullet slot, realizing that shape. Never invent a fact, "
-    "employer, tool, or number beyond what you're given -- never change or "
-    "add a number not already in the fact text. When a slot is marked "
-    "transferable, do not claim the source experience IS the target domain "
-    "-- state the transferable capability. Use ACTIVE voice, candidate as "
-    "subject ('Diagnosed X'), never passive ('X was diagnosed').\n\n"
-    "CLAIM CEILING limits TECHNICAL DEPTH: participation < execution < "
-    "implementation < design < authority (architected). AGENCY CEILING is "
-    "a SEPARATE limit on PEOPLE authority: individual_contributor < owner "
-    "< team_lead (led/managed) < director (directed/spearheaded). Never "
-    "use a verb stronger than either given ceiling.\n\n"
-    "Also write one short (2-3 sentence) professional summary following "
-    "the given summary schema's shape, from the given viewpoint where it "
-    "fits naturally -- the viewpoint changes emphasis, never facts.\n\n"
-    "Output ONLY this JSON, nothing else -- no markdown fences, no prose:\n"
-    '{"summary": "...", "bullets": [{"evidence": "<evidence name exactly '
-    'as given>", "text": "<one sentence>"}]}\n'
-    "Include exactly one bullet entry per slot you were given, using the "
-    "evidence name verbatim so it can be matched back."
+    "are given: which evidence it's based on, a fill-in-the-blank sentence "
+    "shape, the underlying fact, and two limits: what you may claim about "
+    "technical depth, and about leading people. Write exactly ONE sentence "
+    "per bullet slot, following its shape, staying within both limits. "
+    "Never invent a fact, employer, tool, or number beyond what's given -- "
+    "never change or add a number not already in the fact text. A fact "
+    "marked transferable is NOT the target domain -- state the "
+    "transferable capability, not a claim of direct experience in it. "
+    "Active voice, candidate as subject ('Diagnosed X'), never passive. "
+    "Match the style of the worked examples.\n\n"
+    "Also write one short (2-3 sentence) summary following the given "
+    "summary schema and viewpoint -- viewpoint changes emphasis, never facts.\n\n"
+    "Output ONLY this JSON, no markdown fences, no prose:\n"
+    '{"summary": "...", "bullets": [{"evidence": "<name exactly as given>", '
+    '"text": "<one sentence>"}]}\n'
+    "One bullet entry per slot given, evidence name verbatim."
 )
 
 
@@ -1764,21 +1809,55 @@ def _build_realization_prompt(
     afterward via schemas.check_claim_strength, so a model that ignores
     this instruction still can't produce a claim stronger than the
     evidence supports.
+
+    Further restricted (2026-09-02) to `prototype`/`near_prototype`
+    category_tier only -- i.e. a literal keyword match. A statistical
+    re-check across 3 local models x 25 real jobs found bullet survival at
+    single digits to zero once checked for job-vocabulary injection
+    alongside the existing claim/agency/causal/metric checks, and the
+    failures weren't concentrated in any one evidence source -- they were
+    pervasive. `peripheral` (synonym-only, no exact keyword) is the
+    weakest tier still marked `supported`, and it's exactly the case where
+    the model has to bridge a gap that isn't really in the evidence --
+    the deterministic checks catch the worst violations but plenty still
+    got through. Rather than trust local generation to reliably self-limit
+    on a transferable/synonym claim, that slot is simply dropped from
+    degraded-mode realization -- the base resume's original bullet for
+    that entry stays untouched (merge_realization's existing "unrealized
+    means unchanged" behavior), which is always safe. Cloud-path
+    tailoring is unaffected -- this filter is local-realization-only.
     """
     from applypilot.scoring.schemas import BULLET_SCHEMAS
 
-    supported = [r for r in (job_schema.get("requirements") or []) if r.get("supported") and r.get("schema")][
-        :max_items
-    ]
+    supported = [
+        r
+        for r in (job_schema.get("requirements") or [])
+        if r.get("supported") and r.get("schema") and r.get("category_tier") in ("prototype", "near_prototype")
+    ][:max_items]
     if not supported:
         return None
+
+    # One terse worked example per DISTINCT bullet shape actually needed --
+    # not all four every time (keeps the prompt within TestPromptBoundedness's
+    # ceiling; also no point showing an example for a shape this job never
+    # uses). Order matches first appearance in `supported` for determinism.
+    schema_keys_used: list[str] = []
+    for r in supported:
+        key = r["schema"]["bullet_schema"]
+        if key not in schema_keys_used:
+            schema_keys_used.append(key)
+    example_lines = [f"- {_BULLET_SCHEMA_EXAMPLES[k]}" for k in schema_keys_used if k in _BULLET_SCHEMA_EXAMPLES]
 
     lines = [
         f"VIEWPOINT: {job_schema.get('viewpoint', 'general')}",
         f"SUMMARY SCHEMA: {job_schema.get('summary_schema', '')}",
-        "",
-        "BULLET SLOTS TO FILL (one sentence each):",
     ]
+    if example_lines:
+        lines.append("")
+        lines.append("WORKED EXAMPLES (match this style):")
+        lines.extend(example_lines)
+    lines.append("")
+    lines.append("BULLET SLOTS TO FILL (one sentence each):")
     for r in supported:
         bullet = BULLET_SCHEMAS.get(r["schema"]["bullet_schema"], {})
         if r.get("exact_keywords"):
@@ -1792,11 +1871,14 @@ def _build_realization_prompt(
             if r.get("force_relation") == "prevention"
             else ""
         )
+        claim_ceiling = r.get("claim_ceiling", "participation")
+        agency_ceiling = r.get("agency_ceiling", "individual_contributor")
+        claim_plain = _CLAIM_CEILING_PLAIN.get(claim_ceiling, claim_ceiling)
+        agency_plain = _AGENCY_CEILING_PLAIN.get(agency_ceiling, agency_ceiling)
         lines.append(
             f"- evidence: {', '.join(r['resume_evidence'])} | "
-            f"shape: {' -> '.join(bullet.get('slots', []))} | "
-            f"claim ceiling: {r.get('claim_ceiling', 'participation')} | "
-            f"agency ceiling: {r.get('agency_ceiling', 'individual_contributor')} | "
+            f"shape: {bullet.get('pattern', '')} | "
+            f"limits: {claim_plain}; {agency_plain} | "
             f"fact: {r['requirement']}{anchor}{force_note}"
         )
     user = "\n".join(lines) + "\n\nReturn the JSON now:"
