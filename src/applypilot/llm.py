@@ -16,6 +16,7 @@ next model in the fallback chain — including cross-provider fallback to
 OpenAI and Anthropic if their API keys are configured.
 """
 
+import json
 import logging
 import os
 import shutil
@@ -396,6 +397,61 @@ def _log_local_qwen_response(entry: "ModelEntry", messages: list[dict], text: st
     )
 
 
+# 2026-09-02: exhaustion state (self._exhausted below) used to live purely
+# in-process -- a fresh LLMClient always started with an empty dict, so
+# every new process (crash, manual restart, the run-continuous supervisor's
+# restart-on-exit loop) had to re-discover "OpenAI has no credits for 30
+# days" / "Gemini hit today's free-tier cap" from scratch via one real call
+# before it could fast-fail to local. On this CPU-only machine that one
+# call -- the full heavy tailoring prompt, since exhaustion isn't known yet
+# -- took 6m13s per Ollama's own server log (3,872 prompt tokens, 1,226
+# output tokens at 5.45 tok/s). Persisting exhaustion timestamps to disk
+# means a restarted process starts already knowing what the previous one
+# learned, instead of re-paying that cost every restart.
+_EXHAUSTION_STATE_PATH = Path.home() / ".applypilot" / "llm_exhaustion_state.json"
+
+
+def _load_exhaustion_state() -> dict[str, float]:
+    """Best-effort load of persisted provider-exhaustion timestamps.
+    Missing/corrupt file -> empty dict, never blocks startup. Already-
+    expired entries are dropped on load so a long-since-recovered provider
+    isn't treated as still exhausted and the file doesn't grow unbounded."""
+    try:
+        raw = json.loads(_EXHAUSTION_STATE_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(raw, dict):
+        return {}
+    now = time.time()
+    return {k: v for k, v in raw.items() if isinstance(v, (int, float)) and v > now}
+
+
+def _persist_exhaustion(name: str, until: float) -> None:
+    """Merge one provider's exhaustion timestamp into the shared on-disk
+    state file (read-modify-write, not a blind overwrite of the whole
+    file) -- multiple LLMClient instances (fast + quality tiers, and
+    separate --workers>1 processes) all share this one file, so writing
+    only this instance's in-memory dict would clobber entries another
+    instance/process just wrote. Best-effort: a write failure (disk full,
+    permissions) must never break a live chat() call, only get logged.
+    Not process-safe against a concurrent write racing this read-modify-
+    write -- acceptable here since this is an advisory cache, not a
+    correctness-critical store: the worst case is one extra real discovery
+    call, not a wrong answer."""
+    try:
+        _EXHAUSTION_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            existing = json.loads(_EXHAUSTION_STATE_PATH.read_text(encoding="utf-8"))
+            if not isinstance(existing, dict):
+                existing = {}
+        except (OSError, ValueError):
+            existing = {}
+        existing[name] = until
+        _EXHAUSTION_STATE_PATH.write_text(json.dumps(existing), encoding="utf-8")
+    except OSError as exc:
+        log.debug("Failed to persist LLM exhaustion state for %s: %s", name, exc)
+
+
 class LLMClient:
     """Multi-provider LLM client with automatic model fallback."""
 
@@ -415,8 +471,10 @@ class LLMClient:
         # return contract. None until the first successful call.
         self.last_model_used: str | None = None
         self.last_provider_used: str | None = None
-        # Track which models are temporarily exhausted (store until timestamp)
-        self._exhausted: dict[str, float] = {}
+        # Track which models are temporarily exhausted (store until timestamp).
+        # Seeded from disk (see _load_exhaustion_state) so a restarted process
+        # doesn't re-discover known-exhausted providers via a real call.
+        self._exhausted: dict[str, float] = _load_exhaustion_state()
         # Additive, read-only classification alongside self._exhausted -- lets
         # a caller (the continuous scheduler) distinguish *why* claude_cli was
         # marked exhausted without parsing logs or changing _try_claude_cli's
@@ -433,6 +491,14 @@ class LLMClient:
 
         chain_names = [f"{e.name} ({e.provider})" for e in self._fallback_chain]
         log.info("Fallback chain (%s): %s", "quality" if quality else "fast", " -> ".join(chain_names))
+
+    def _mark_exhausted(self, name: str, until: float) -> None:
+        """Set this instance's exhaustion timestamp AND persist it to disk
+        (see _persist_exhaustion) so a later process restart doesn't have
+        to re-discover it via a real call. Every self._exhausted[...] =
+        assignment in this class should go through here instead."""
+        self._exhausted[name] = until
+        _persist_exhaustion(name, until)
 
     def chat(
         self,
@@ -611,14 +677,14 @@ class LLMClient:
                 if resp.status_code == 402:
                     # Payment Required — mark as exhausted for a full day (free-tier)
                     log.warning("%s/%s payment required (402), marking exhausted for 24h", entry.provider, entry.name)
-                    self._exhausted[entry.name] = time.time() + 86400  # 24h from now
+                    self._mark_exhausted(entry.name, time.time() + 86400)  # 24h from now
                     return None
 
                 if resp.status_code == 400:
                     body = resp.text.lower()
                     if "api_key_invalid" in body or "api key expired" in body:
                         log.warning("%s/%s API key invalid/expired, trying next", entry.provider, entry.name)
-                        self._exhausted[entry.name] = time.time()
+                        self._mark_exhausted(entry.name, time.time())
                         return None
                     # Any other 400 (content safety, model not found, malformed prompt)
                     # — don't mark exhausted (it's per-request, not a quota), just skip
@@ -628,7 +694,7 @@ class LLMClient:
 
                 if resp.status_code == 404:
                     log.warning("%s/%s model not found (404), trying next", entry.provider, entry.name)
-                    self._exhausted[entry.name] = time.time()
+                    self._mark_exhausted(entry.name, time.time())
                     return None
 
                 if resp.status_code == 429:
@@ -663,7 +729,7 @@ class LLMClient:
                             entry.name,
                             resp.text,
                         )
-                        self._exhausted[entry.name] = time.time() + 30 * 86400
+                        self._mark_exhausted(entry.name, time.time() + 30 * 86400)
                         return None
 
                     # Distinguish daily/quota exhaustion vs transient rate limits
@@ -671,13 +737,13 @@ class LLMClient:
                         log.warning(
                             "%s/%s hit quota limit (daily), marking exhausted for 24h", entry.provider, entry.name
                         )
-                        self._exhausted[entry.name] = time.time() + 86400
+                        self._mark_exhausted(entry.name, time.time() + 86400)
                         return None
 
                     if "rate_limit" in body:
                         # Transient rate limit — mark briefly and try next
                         log.warning("%s/%s transient rate_limit, marking exhausted for 60s", entry.provider, entry.name)
-                        self._exhausted[entry.name] = time.time() + 60
+                        self._mark_exhausted(entry.name, time.time() + 60)
                         return None
 
                     if attempt < _MAX_RETRIES - 1:
@@ -845,12 +911,12 @@ class LLMClient:
                             entry.name,
                             resp.text,
                         )
-                        self._exhausted[entry.name] = time.time() + 30 * 86400
+                        self._mark_exhausted(entry.name, time.time() + 30 * 86400)
                         return None
 
                     if "rate_limit" in body or "quota" in body:
                         log.warning("anthropic/%s hit rate limit, trying next", entry.name)
-                        self._exhausted[entry.name] = time.time()
+                        self._mark_exhausted(entry.name, time.time())
                         return None
 
                     if attempt < _MAX_RETRIES - 1:
@@ -1004,7 +1070,7 @@ class LLMClient:
                 else:
                     log.warning("claude_cli/%s hit usage/session/rate limit, marking exhausted for 30min", entry.name)
                     self._exhaustion_reason[entry.name] = "quota_text_match"
-                self._exhausted[entry.name] = time.time() + 1800
+                self._mark_exhausted(entry.name, time.time() + 1800)
                 return None
 
             if proc.returncode != 0 or not proc.stdout.strip():

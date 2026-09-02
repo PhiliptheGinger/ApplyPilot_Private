@@ -31,6 +31,26 @@ def _local_ollama_reachable() -> bool:
         return False
 
 
+@pytest.fixture(autouse=True)
+def _isolate_llm_exhaustion_state(tmp_path, monkeypatch):
+    """Every test in this module gets its own isolated exhaustion-state
+    file. LLMClient._mark_exhausted (2026-09-02) persists exhaustion
+    timestamps to ~/.applypilot/llm_exhaustion_state.json by default so a
+    restarted process doesn't re-discover known-exhausted providers via a
+    real call -- but dozens of tests in this file construct LLMClient
+    directly (not just through _make_client below), and without this
+    autouse fixture, state one test writes would leak into unrelated
+    tests sharing the real file within the same pytest run (confirmed:
+    several TestFullCascadeIntegration/TestLocalExcludedFrom... tests
+    started failing with "All LLM providers are on quota cooldown" once
+    persistence was added, purely from run-order pollution). tmp_path is
+    function-scoped (fresh per test) and monkeypatch auto-reverts, so this
+    needs no manual setUp/tearDown anywhere else in the file."""
+    import applypilot.llm as llm_mod
+
+    monkeypatch.setattr(llm_mod, "_EXHAUSTION_STATE_PATH", tmp_path / "llm_exhaustion_state.json")
+
+
 def _make_client(n_models: int = 2):
     """Instantiate an LLMClient with fake models injected directly into the chain."""
     from applypilot.llm import LLMClient, ModelEntry
@@ -1436,6 +1456,81 @@ class TestFullCascadeIntegration(unittest.TestCase):
         self.assertIn("All models exhausted", message)
         for name in chain_names:
             self.assertIn(name, message)
+
+
+class TestExhaustionPersistence(unittest.TestCase):
+    """Exhaustion state survives a process restart (2026-09-02) -- a fresh
+    LLMClient should start already knowing what a previous instance
+    learned, instead of re-discovering it via a real call every restart.
+    Relies on the module-level _isolate_llm_exhaustion_state autouse
+    fixture (applies to unittest.TestCase methods too) for a fresh,
+    isolated state path per test -- no manual setUp/tearDown needed."""
+
+    def _state_path(self):
+        import applypilot.llm as llm_mod
+
+        return llm_mod._EXHAUSTION_STATE_PATH
+
+    def test_mark_exhausted_persists_and_a_new_client_loads_it(self):
+        client = _make_client(2)
+        first_name = client._fallback_chain[0].name
+        until = time.time() + 3600
+
+        client._mark_exhausted(first_name, until)
+        self.assertTrue(self._state_path().exists(), "marking exhausted should write the state file")
+
+        second_client = _make_client(2)
+        self.assertIn(first_name, second_client._exhausted)
+        self.assertAlmostEqual(second_client._exhausted[first_name], until, delta=1)
+
+    def test_expired_entries_are_dropped_on_load(self):
+        import json
+
+        state_path = self._state_path()
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(json.dumps({"stale-model": time.time() - 100, "live-model": time.time() + 100}))
+
+        client = _make_client(2)
+        self.assertNotIn("stale-model", client._exhausted, "already-expired entries must not be loaded")
+        self.assertIn("live-model", client._exhausted)
+
+    def test_missing_state_file_is_not_an_error(self):
+        self.assertFalse(self._state_path().exists())
+        client = _make_client(2)  # must not raise
+        self.assertEqual(client._exhausted, {})
+
+    def test_corrupt_state_file_falls_back_to_empty(self):
+        state_path = self._state_path()
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text("not valid json{{{")
+
+        client = _make_client(2)  # must not raise
+        self.assertEqual(client._exhausted, {})
+
+    def test_persisting_one_provider_does_not_clobber_another_instances_entry(self):
+        """Fast-tier and quality-tier clients are separate LLMClient
+        instances sharing the same on-disk file -- marking one provider
+        exhausted from one instance must not erase an entry a different
+        instance already wrote (a blind whole-file overwrite would)."""
+        fast_client = _make_client(2)
+        quality_client = _make_client(2)
+        fast_name = fast_client._fallback_chain[0].name
+        quality_name = quality_client._fallback_chain[1].name
+
+        fast_client._mark_exhausted(fast_name, time.time() + 3600)
+        quality_client._mark_exhausted(quality_name, time.time() + 3600)
+
+        third_client = _make_client(2)
+        self.assertIn(fast_name, third_client._exhausted)
+        self.assertIn(quality_name, third_client._exhausted)
+
+    def test_write_failure_does_not_raise(self):
+        """A persist failure (disk full, permissions) must never break a
+        live chat() call -- only the real exhaustion tracking matters."""
+        client = _make_client(2)
+        with patch.object(Path, "write_text", side_effect=OSError("disk full")):
+            client._mark_exhausted(client._fallback_chain[0].name, time.time())  # must not raise
+        self.assertIn(client._fallback_chain[0].name, client._exhausted, "in-memory state still updates")
 
 
 if __name__ == "__main__":
