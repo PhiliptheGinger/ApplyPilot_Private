@@ -526,7 +526,16 @@ _CLAIM_VERB_PATTERNS: dict[str, re.Pattern] = {
         r"participated in|participating in|participates in|"
         r"helped|helping|helps|"
         r"contributed to|contributing to|contributes to|"
-        r"exposure to|familiar with|learned|learning|knowledge of)\b",
+        r"exposure to|familiar with|learned|learning|knowledge of|"
+        # 2026-09-03: added while wiring real experience_inventory
+        # `responsibilities` text into ceiling detection (see
+        # _evidence_own_text) -- these communication/collaboration verbs
+        # are common in non-technical resume evidence (customer service,
+        # sales, hands-on trade roles) and match the existing
+        # participation-tier character (worked with/assisted/supported).
+        r"explained|explaining|explains|"
+        r"coordinated|coordinating|coordinates|"
+        r"communicated|communicating|communicates)\b",
         re.IGNORECASE,
     ),
     "execution": re.compile(
@@ -538,7 +547,17 @@ _CLAIM_VERB_PATTERNS: dict[str, re.Pattern] = {
         r"applied|applying|applies|"
         r"administered|administering|administers|"
         r"monitored|monitoring|monitors|"
-        r"executed|executing|executes)\b",
+        r"executed|executing|executes|"
+        # 2026-09-03: same real-data pass as above -- procedural,
+        # hands-on-trade verbs (diagnosing/fixing a specific issue via an
+        # established procedure) match this tier's existing character
+        # (configured/operated/maintained/applied), one step below
+        # implementation's "built something new".
+        r"diagnosed|diagnosing|diagnoses|"
+        r"corrected|correcting|corrects|"
+        r"performed|performing|performs|"
+        r"installed|installing|installs|"
+        r"prepared|preparing|prepares)\b",
         re.IGNORECASE,
     ),
     "implementation": re.compile(
@@ -607,6 +626,36 @@ def detect_claim_tier(text: str) -> str | None:
     return max(found, key=lambda t: _CLAIM_TIER_RANK[t])
 
 
+def _evidence_own_text(evidence_item: dict) -> str:
+    """The full text an evidence item's own record actually contains,
+    joining description + factual_concepts + responsibilities.
+
+    2026-09-03: `responsibilities` was missing here even though tailor.py's
+    canonical-inventory builder and validator.py's vocabulary-injection
+    check both already fall back to it (a real, already-authored field --
+    several experience_inventory entries, e.g. "National Tire and Battery /
+    Mavis", have description=None and factual_concepts=None but a real,
+    verb-bearing `responsibilities` list, e.g. "Diagnosed and corrected
+    vehicle alignment issues..."). Without this, claim/agency-tier
+    detection and event-type/force-relation classification below were
+    silently blind to that text and defaulted every such entry to the
+    lowest tier -- not because the evidence was thin, but because this one
+    function never looked at the field where it actually lives. Single
+    shared helper so claim/agency ceiling and the build_job_schema_
+    representation evidence_text used for provenance/event_type/
+    force_relation all read the same fields, rather than three
+    independently-maintained field lists drifting apart again.
+    """
+    parts = [evidence_item.get("description")]
+    concepts = evidence_item.get("factual_concepts")
+    if concepts:
+        parts.append(" ".join(str(c) for c in concepts))
+    responsibilities = evidence_item.get("responsibilities")
+    if responsibilities:
+        parts.append(" ".join(str(r) for r in responsibilities))
+    return " ".join(p for p in parts if p)
+
+
 def claim_ceiling_for_evidence(evidence_item: dict) -> str:
     """The strongest claim tier this evidence item's OWN text supports.
     Defaults to the most conservative tier ("participation") when no
@@ -618,15 +667,11 @@ def claim_ceiling_for_evidence(evidence_item: dict) -> str:
     defaults to "participation" (the resume shouldn't imply more than
     "mentioned/used" for an unelaborated skill). `evidence_level`/
     `proficiency` free-text (skills_inventory's own fields) is checked as
-    a fallback ONLY when the description/factual_concepts gave no verb --
-    a description's own verb always wins when present, since it's the
-    more specific, more directly-authored signal.
+    a fallback ONLY when the description/factual_concepts/responsibilities
+    gave no verb -- an own-text verb always wins when present, since it's
+    the more specific, more directly-authored signal.
     """
-    parts = [evidence_item.get("description")]
-    concepts = evidence_item.get("factual_concepts")
-    if concepts:
-        parts.append(" ".join(str(c) for c in concepts))
-    text = " ".join(p for p in parts if p)
+    text = _evidence_own_text(evidence_item)
     tier = detect_claim_tier(text)
     if tier:
         return tier
@@ -689,7 +734,15 @@ _AGENCY_VERB_PATTERNS: dict[str, re.Pattern] = {
         re.IGNORECASE,
     ),
     "team_lead": re.compile(
-        r"\b(led|leading|leads|managed|managing|manages|"
+        # "leads" as a bare -s form deliberately excluded (2026-09-03,
+        # same noun/verb-collision class as "engineers"/"architects" above
+        # and "engineering" in the claim-tier lattice) -- found via real
+        # profile.json data: AMP Smart's responsibilities include "Identify
+        # qualified leads," where "leads" is the NOUN (sales prospects),
+        # not the verb "leads [a team]" -- and wrongly earned that
+        # evidence a team_lead-tier agency ceiling. "led"/"leading" (past
+        # tense/gerund) have no comparable collision and stay.
+        r"\b(led|leading|managed|managing|manages|"
         r"supervised|supervising|supervises)\b",
         re.IGNORECASE,
     ),
@@ -721,12 +774,7 @@ def agency_ceiling_for_evidence(evidence_item: dict) -> str:
     """The strongest agency tier this evidence item's OWN text supports.
     Defaults to "individual_contributor" (the most conservative tier) when
     no team/ownership language is found."""
-    parts = [evidence_item.get("description")]
-    concepts = evidence_item.get("factual_concepts")
-    if concepts:
-        parts.append(" ".join(str(c) for c in concepts))
-    text = " ".join(p for p in parts if p)
-    return detect_agency_tier(text) or "individual_contributor"
+    return detect_agency_tier(_evidence_own_text(evidence_item)) or "individual_contributor"
 
 
 def check_agency_strength(realized_text: str, ceiling: str) -> dict:
@@ -1110,14 +1158,15 @@ def build_job_schema_representation(job: dict, profile: dict) -> dict:
             # rank_profile_evidence wraps the raw profile.json item under
             # item["item"] (item itself is {"type", "name", "score",
             # "matched_terms", "item"}) -- the descriptive text this
-            # section needs (description/factual_concepts) lives on the
-            # RAW item, not the wrapper. Using the wrapper directly here
-            # silently always returned "" (a real bug caught by manual
-            # verification: an evidence description literally containing
-            # "Automated..." still produced ceiling="participation"
-            # because .get("description") on the wrapper is always None).
+            # section needs (description/factual_concepts/responsibilities,
+            # see _evidence_own_text) lives on the RAW item, not the
+            # wrapper. Using the wrapper directly here silently always
+            # returned "" (a real bug caught by manual verification: an
+            # evidence description literally containing "Automated..."
+            # still produced ceiling="participation" because
+            # .get("description") on the wrapper is always None).
             raw_item = item.get("item") or {}
-            evidence_text = str(raw_item.get("description") or "")
+            evidence_text = _evidence_own_text(raw_item)
             entry["event_type"] = classify_event_type(evidence_text)
             force_relation = detect_force_relation(evidence_text)
             entry["force_relation"] = force_relation

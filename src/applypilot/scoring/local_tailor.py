@@ -689,6 +689,22 @@ def _item_terms(item: dict) -> set[str]:
     for concept in item.get("factual_concepts") or []:
         if isinstance(concept, str) and concept.strip():
             terms.add(_normalize_term(concept))
+    # 2026-09-03: several experience_inventory entries have no
+    # factual_concepts at all but a real, already-authored
+    # `responsibilities` list (e.g. "National Tire and Battery / Mavis":
+    # "Diagnosed and corrected vehicle alignment issues...") -- tailor.py's
+    # cloud prompt and validator.py's evidence-text check already fall back
+    # to this field; matching here didn't, so those entries could only ever
+    # be found via their relevance_categories tags. Split into words too
+    # (like name, just above) since responsibilities are full sentences,
+    # not short tag phrases -- whole-sentence terms would almost never
+    # word-boundary-match a job description verbatim.
+    for resp in item.get("responsibilities") or []:
+        if isinstance(resp, str) and resp.strip():
+            for w in _TERM_WORD_RE.findall(resp):
+                wl = _normalize_term(w)
+                if wl not in _NAME_TOKEN_STOPWORDS:
+                    terms.add(wl)
     return {t for t in terms if t and not _is_generic_evidence_term(t)}
 
 
@@ -784,7 +800,15 @@ def format_evidence_for_prompt(ranked: list[dict]) -> str:
         elif kind == "certification":
             lines.append(f"{idx} [certification] {name}")
         else:  # experience
-            desc = (item.get("description") or "")[:200]
+            desc = item.get("description") or ""
+            if not desc:
+                # Falls back to responsibilities when description is empty
+                # (several real experience_inventory entries have no
+                # description at all but a real responsibilities list --
+                # see _item_terms' comment above for the same gap).
+                resp = item.get("responsibilities") or []
+                desc = " ".join(str(r) for r in resp if isinstance(r, str))
+            desc = desc[:200]
             role_type = item.get("role_type", "")
             header = f"{idx} [experience] {name}" + (f" ({role_type})" if role_type else "")
             lines.append(header + (f": {desc}" if desc else ""))
@@ -827,6 +851,7 @@ def _evidence_semantic_text(kind: str, item: dict) -> str:
         add(item.get("role_title"))
         add(item.get("role_type"))
         add(item.get("description"))
+        add(item.get("responsibilities"))
         add(item.get("relevance_categories"))
     elif kind == "project":
         add(item.get("description"))
