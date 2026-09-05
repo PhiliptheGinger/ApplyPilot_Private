@@ -1,0 +1,55 @@
+{
+  "timestamp_local": "2026-09-01",
+  "purpose": "Baseline captured before installing any ML stack, per explicit user resource-guardrail instructions.",
+  "ram": {
+    "total_gb": 11.79,
+    "free_gb_at_baseline": 3.15,
+    "note": "Free RAM is tight. This is the single biggest risk factor for this experiment -- flagged before any install."
+  },
+  "disk_c": {
+    "free_gb": 557.95,
+    "note": "Ample -- not a constraint for wheel/model downloads."
+  },
+  "python": {
+    "production_venv_python": "3.11.9 (C:\\Users\\phili\\Projects\\resume-agent\\venv)",
+    "system_py_launcher_3.11": "3.11.9 (used to create the isolated experiment venv)",
+    "isolated_experiment_venv": "data/experiments/specialized_model_infra_20260901/venv (fresh, built from py -3.11, zero packages beyond pip/setuptools)"
+  },
+  "production_venv_ml_packages": {
+    "torch": false,
+    "transformers": false,
+    "peft": false,
+    "accelerate": false,
+    "sentencepiece": false,
+    "numpy": "1.24.2 (present)",
+    "conclusion": "Confirmed clean -- production venv has no ML stack to accidentally disturb."
+  },
+  "ollama": {
+    "version": "0.33.2",
+    "models": ["all-minilm:latest (45MB)", "qwen3:1.7b (1.4GB)", "qwen3:8b (5.2GB)"],
+    "processes_running": true,
+    "processes_idle_rss": "ollama app.exe 37MB, ollama.exe 26MB (no model currently resident)"
+  },
+  "top_ram_consumers_at_baseline": [
+    {"process": "claude (CLI)", "mb": 609.5},
+    {"process": "Code (VS Code)", "mb": 604.1},
+    {"process": "msedge", "mb": 511.7},
+    {"process": "Code", "mb": 344.9},
+    {"process": "MsMpEng (Defender)", "mb": 286.5},
+    {"process": "claude", "mb": 270.7}
+  ],
+  "git_status": "Clean relative to session start -- only new untracked files under data/experiments/ (this experiment's own outputs). No tracked-file modifications beyond what existed before this session.",
+  "torch_wheel_check": {
+    "target": "torch CPU-only build via --index-url https://download.pytorch.org/whl/cpu",
+    "windows_cp311_availability": "Confirmed win_amd64 + cp311 wheels exist on download.pytorch.org/whl/cpu",
+    "expected_size_class": "CPU-only wheels are the ~190-280MB class (vs. multi-GB CUDA builds) -- explicitly targeting the /whl/cpu index avoids ever resolving a CUDA wheel",
+    "disk_impact": "Negligible given 558GB free"
+  },
+  "decision": {
+    "proceed": true,
+    "rationale": "Disk is not a constraint. RAM is tight (3.15GB free) but T5-base (~220M params, ~880MB fp32 weights) should fit with margin; TinyLlama (1.1B, ~4.4GB fp32) will NOT fit in fp32 and must be loaded in fp16/bf16 (~2.2GB) if attempted at all, watched closely, only after T5 is proven stable.",
+    "isolation": "New venv at data/experiments/specialized_model_infra_20260901/venv (named literally 'venv' so the existing repo .gitignore rule excludes it automatically -- verified, no git noise). Production venv untouched.",
+    "minimum_dependency_stack": ["torch (CPU-only)", "transformers", "peft", "accelerate", "sentencepiece"],
+    "stack_rationale": "torch/transformers: required to load either candidate. peft: required for TinyLlama's LoRA adapter (PeftModel.from_pretrained). accelerate: not strictly required for basic CPU inference, but enables low_cpu_mem_usage=True in from_pretrained, which avoids a double-memory-copy during model load -- directly serves the RAM guardrail. sentencepiece: required by T5's tokenizer (SentencePiece-based); included defensively for TinyLlama too even though it ships a fast tokenizer.json."
+  }
+}

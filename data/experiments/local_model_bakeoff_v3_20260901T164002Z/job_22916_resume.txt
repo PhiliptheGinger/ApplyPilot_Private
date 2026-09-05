@@ -1,0 +1,77 @@
+Philip McLaughlin
+Software Development Engineer
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Experienced in Python programming with a strong foundation in software development principles. Skilled in building scalable solutions and conducting data analysis to improve user experiences. Effective communicator with experience in customer-facing roles and public speaking.
+
+TECHNICAL SKILLS
+Languages: Python
+Tools: Photography, Videography, Web Design, Public Speaking, Customer Service, Outreach, Sales Consultations
+
+EXPERIENCE
+Sales Consultant at AMP Smart
+Sales | Dates not specified
+- Developed and implemented targeted outreach and sales strategies for residential solar solutions, increasing qualified lead identification.
+- Conducted in-person consultations to assess homeowner needs and tailor proposals accordingly.
+- Customized sales proposals based on regional market conditions and customer requirements.
+- Maintained customer relationships to support ongoing sales and service efforts.
+
+Alignment Technician at National Tire and Battery / Mavis
+Technical Support | Dates not specified
+- Performed vehicle alignment and maintenance tasks including tires, shocks, struts, brakes, and fluids.
+- Provided hands-on technical troubleshooting and customer service to ensure vehicle safety and satisfaction.
+- Managed customer relations through clear communication and service explanations.
+- Maintained operational efficiency in a fast-paced automotive environment.
+
+Package Handler at UPS
+Operations | Dates not specified
+- Handled package sorting and logistics in a high-volume operational setting.
+- Maintained efficiency and reliability to meet tight delivery schedules.
+- Supported team efforts to optimize workflow and reduce errors.
+- Ensured adherence to safety and quality standards.
+
+Installer at Alex Prosperity Group / UST Logistics
+Installation | Dates not specified
+- Installed home appliances contracted through Lowe's with attention to detail and customer satisfaction.
+- Coordinated installation schedules and ensured proper setup and functionality.
+- Communicated effectively with customers to explain appliance operation and maintenance.
+- Maintained quality standards and resolved installation issues promptly.
+
+Server / Line Cook at Waffle House
+Customer Service | Dates not specified
+- Provided high-volume customer service including order taking and food preparation.
+- Managed multiple tasks efficiently during peak hours to maintain service quality.
+- Handled customer interactions with professionalism and responsiveness.
+- Contributed to team coordination to ensure smooth operations.
+
+Stand-up Comedian
+Public Speaking | Dates not specified
+- Delivered live performances requiring clear verbal communication and audience engagement.
+- Adapted material dynamically based on audience response to maintain interest.
+- Developed skills in public speaking, storytelling, and performance under pressure.
+- Enhanced ability to communicate complex ideas in an accessible and entertaining manner.
+
+PROJECTS
+Standup-OCR - OCR Tooling and Image Processing
+Python | Dates not specified
+- Developed Python scripts for optical character recognition and transcription of images and documents.
+- Implemented human review workflows and training-data preparation to improve accuracy.
+- Experimented with machine learning techniques to enhance OCR performance.
+
+CAP Predictor - Data Analytics and Feature Engineering
+Python | Dates not specified
+- Collected and processed financial and news data for sentiment analysis and modeling.
+- Engineered features and conducted statistical experimentation to support predictive analytics.
+- Automated data processing pipelines to streamline analysis workflows.
+
+You Power You - Web Development Project
+HTML/CSS/JavaScript | Dates not specified
+- Built a website with server-side form handling and email notification integration.
+- Designed qualification and submission workflows to support user interactions.
+- Implemented front-end and back-end components to enhance user experience.
+
+EDUCATION
+University of North Carolina at Greensboro
+Bachelor of Arts in Media Studies
+2019-2022

@@ -1,0 +1,482 @@
+[
+  {
+    "job_id": 28014,
+    "title": "Manager, Applied AI Architects",
+    "old": {
+      "latency_s": 101.7,
+      "raw_output": "{\n    \"summary\": \"I have experience in translating field patterns into actionable feedback for various teams and developing reusable architecture guidance, which has been valuable in my role as an individual contributor.\",\n    \"bullets\": [\n        {\n            \"evidence\": \"CAP Predictor\",\n            \"text\": \"Build trusted relationships with C-suite and board-level stakeholders, as well as senior AI, technology, data, security, and engineering leaders, serving as an executive technical sponsor when needed.\"\n        },\n        {\n            \"evidence\": \"CAP Predictor\",\n            \"text\": \"Mobilize Deployment Engineering, implementation, enablement, Product, Engineering, Research, Security, Legal, Privacy, partners, and other specialists to remove blockers and deliver a cohesive customer experience.\"\n        },\n        {\n            \"evidence\": \"CAP Predictor\",\n            \"text\": \"Translate patterns from the field into actionable feedback for Product, Engineering, Research, and go-to-market teams, while developing reusable architecture guidance and customer practices.\"\n        }\n    ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 3,
+      "bullets_survived": 3,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 40.7,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Build trusted relationships with C-suite and board-level stakeholders, as well as senior AI, technology, data, security, and engineering leaders, serving as an executive technical sponsor when needed.\"\n    },\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Mobilize Deployment Engineering, implementation, enablement, Product, Engineering, Research, Security, Legal, Privacy, partners, and other specialists to remove blockers and deliver a cohesive customer experience.\"\n    },\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Translate patterns from the field into actionable feedback for Product, Engineering, Research, and go-to-market teams, while developing reusable architecture guidance and customer practices.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 3,
+      "bullets_survived": 3,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 9051,
+    "title": "Research Engineer, Codex",
+    "old": {
+      "latency_s": 44.1,
+      "raw_output": "{\"summary\": \"Contributed to the design and implementation of end-to-end improvements in the post-training stack, including data pipelines, graders, reward signals, and model-behavior analysis. Worked on exposing model failures and turning them into training data, product fixes, and new research directions. Developed early-training and alignment interventions using data mixtures, synthetic data, and eval loops. Improved the machinery for large-scale training, enhancing reliability and observability.\", \"bullets\": [{\"evidence\": \"CAP Predictor\", \"text\": \"Own end-to-end improvements to the post-training stack, including RL, data pipelines, graders, reward signals, evals, diagnostics, and model-behavior analysis.\"}, {\"evidence\": \"CAP Predictor\", \"text\": \"Build evals and environments that expose the next set of model failures, then turn those failures into training data, product fixes, or new research directions.\"}, {\"evidence\": \"CAP Predictor\", \"text\": \"Work on early-training and alignment interventions, including data mixtures, objectives, synthetic data, and eval loops that shape downstream agent behavior.\"}, {\"evidence\": \"UPS\", \"text\": \"Improve the machinery for large-scale training, including experiment velocity, reliability, observability, reproducibility, cost, latency, and production readiness.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 4,
+      "bullets_survived": 3,
+      "violations": [
+        "CAP Predictor: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish"
+      ]
+    },
+    "new": {
+      "latency_s": 38.1,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Improved data pipelines to enhance model training efficiency, verified through increased model accuracy and reduced training time.\"\n    },\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Built evaluation environments that exposed model failures, turning those failures into training data, which improved model performance.\"\n    },\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Developed early-training interventions by mixing data and adjusting objectives, which led to more stable and aligned agent behavior.\"\n    },\n    {\n      \"evidence\": \"UPS\",\n      \"text\": \"Enhanced the machinery for large-scale training, improving experiment velocity, reliability, observability, and production readiness.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 4,
+      "bullets_survived": 0,
+      "violations": [
+        "CAP Predictor: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish",
+        "CAP Predictor: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish",
+        "CAP Predictor: 'team_lead'-tier agency claim exceeds evidence ceiling 'individual_contributor'",
+        "UPS: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish"
+      ]
+    }
+  },
+  {
+    "job_id": 20803,
+    "title": "Agentic AI Developer",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  },
+  {
+    "job_id": 25495,
+    "title": "Infrastructure Engineer \u2013 Automation",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  },
+  {
+    "job_id": 12070,
+    "title": "Data Engineer",
+    "old": {
+      "latency_s": 15.2,
+      "raw_output": "{\n    \"summary\": \"Utilized Databricks Unified Data Analytics Platform to enhance data analytics capabilities, contributing to the design of data-driven solutions.\",\n    \"bullets\": [\n        {\n            \"evidence\": \"CAP Predictor\",\n            \"text\": \"Participated in the design of data-driven solutions by utilizing Databricks Unified Data Analytics Platform for enhanced data analytics capabilities.\"\n        }\n    ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 1,
+      "bullets_survived": 1,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 19.4,
+      "raw_output": "{\"summary\": \"Developed an analytics pipeline using Databricks Unified Data Analytics Platform to improve data processing efficiency.\", \"bullets\": [{\"evidence\": \"CAP Predictor\", \"text\": \"Developed an analytics pipeline using Databricks Unified Data Analytics Platform to improve data processing efficiency.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 1,
+      "bullets_survived": 1,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 28152,
+    "title": "System Engineer",
+    "old": {
+      "latency_s": 58.7,
+      "raw_output": "{\"summary\": \"I have experience in supporting server hardware infrastructure and hardware and software solutions on multiple hardware platforms, assisting with server hardware and software solutions.\", \"bullets\": [{\"evidence\": \"Express_Engine\", \"text\": \"Assist in supporting server hardware infrastructure and hardware and software solutions on multiple hardware platforms, software\"}, {\"evidence\": \"Web Design\", \"text\": \"Collaborate with Technical Architects to assist with systems design, design\"}, {\"evidence\": \"Express_Engine\", \"text\": \"Assist in supporting server hardware infrastructure and hardware and software solutions on multiple hardware platforms, software\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 3,
+      "bullets_survived": 3,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 50.5,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Assist in supporting server hardware infrastructure and software solutions on multiple hardware platforms.\"\n    },\n    {\n      \"evidence\": \"Web Design\",\n      \"text\": \"Collaborate with Technical Architects to assist with systems design.\"\n    },\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Assist in maintaining software solutions for server hardware infrastructure and software solutions on multiple hardware platforms.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 3,
+      "bullets_survived": 2,
+      "violations": [
+        "Express_Engine: 'execution'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    }
+  },
+  {
+    "job_id": 669,
+    "title": "Mechanical Engineer, Components and Propulsion",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  },
+  {
+    "job_id": 18933,
+    "title": "Administrateur Syst\u00e8mes Windows H/F",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  },
+  {
+    "job_id": 2902,
+    "title": "Senior Manager, Tax Technology",
+    "old": {
+      "latency_s": 25.0,
+      "raw_output": "{\n    \"summary\": \"Utilizes AI and emerging technologies to enhance workflows, documentation, and team productivity through research and development.\",\n    \"bullets\": [\n        {\n            \"evidence\": \"CAP Predictor\",\n            \"text\": \"Leverage AI and emerging technologies to improve workflows, documentation, research, and team productivity.\"\n        }\n    ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 1,
+      "bullets_survived": 1,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 27.7,
+      "raw_output": "{\n  \"summary\": \"Used AI and emerging technologies to enhance research processes and team productivity.\",\n  \"bullets\": [\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Leveraged AI and emerging technologies to improve research workflows and team productivity.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 1,
+      "bullets_survived": 1,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 28656,
+    "title": "Multi Site Customer Service Coordinator",
+    "old": {
+      "latency_s": 38.0,
+      "raw_output": "{\n    \"summary\": \"Participated in supporting client operations by traveling locally, including day trips to post offices and satellite office locations as needed.\",\n    \"bullets\": [\n        {\n            \"evidence\": \"UPS | shape: action -> object -> context -> outcome | claim ceiling: participation | agency ceiling: individual_contributor | fact: Travel locally, including day trips to post offices and satellite office locations, as needed to support client operations. | use these exact terms: operations\",\n            \"text\": \"Traveled locally to support client operations, including day trips to post offices and satellite office locations as needed.\"\n        }\n    ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 1,
+      "bullets_survived": 1,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 28.3,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"UPS | shape: [Action] [object] [context], [outcome]. | limits: took part in/was exposed to this -- did not build, own, or lead it; did this yourself -- did not lead/manage people\",\n      \"text\": \"Traveled locally, including day trips to post offices and satellite office locations, to support client operations.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 1,
+      "bullets_survived": 1,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 18139,
+    "title": "Senior Control Systems Integration Technical Specialist / Programmer",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  },
+  {
+    "job_id": 11564,
+    "title": "Executive Director Principal Software Engineer - Athena Platform",
+    "old": {
+      "latency_s": 89.6,
+      "raw_output": "{\"summary\": \"Drives strategic initiatives and manages cross-functional teams, ensuring alignment and execution across Portfolio Management, Trading, Operations, and Accounting.\", \"bullets\": [{\"evidence\": \"UPS | shape: action -> object -> context -> outcome | claim ceiling: participation | agency ceiling: individual_contributor | fact: You will manage senior relationships spanning Portfolio Management, Trading, Operations, and Accounting \u2014 communicating with authority and clarity on architecture decisions, delivery status, and platform capability.\", \"text\": \"Manages senior relationships in Portfolio Management, Trading, Operations, and Accounting, communicating authority and clarity on architecture decisions, delivery status, and platform capability.\"}, {\"evidence\": \"Express_Engine | shape: action -> object -> context -> outcome | claim ceiling: participation | agency ceiling: individual_contributor | fact: Applies knowledge of tools within the Software Development Life Cycle toolchain, including enterprise-authorized AI-assisted development and automation capabilities, to improve the value realized by automation at scale.\", \"text\": \"Improves automation value by applying knowledge of tools within the Software Development Life Cycle, including AI-assisted development and automation capabilities.\"}, {\"evidence\": \"Express_Engine | shape: action -> object -> context -> outcome | claim ceiling: participation | agency ceiling: individual_contributor | fact: Creates durable, reusable software frameworks that are leveraged across teams and functions.\", \"text\": \"Creates durable, reusable software frameworks used across teams and functions.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 3,
+      "bullets_survived": 0,
+      "violations": [
+        "UPS | shape: action -> object -> context -> outcome | claim ceiling: participation | agency ceiling: individual_contributor | fact: You will manage senior relationships spanning Portfolio Management, Trading, Operations, and Accounting \u2014 communicating with authority and clarity on architecture decisions, delivery status, and platform capability.: 'team_lead'-tier agency claim exceeds evidence ceiling 'individual_contributor'",
+        "Express_Engine | shape: action -> object -> context -> outcome | claim ceiling: participation | agency ceiling: individual_contributor | fact: Applies knowledge of tools within the Software Development Life Cycle toolchain, including enterprise-authorized AI-assisted development and automation capabilities, to improve the value realized by automation at scale.: 'execution'-tier claim exceeds evidence ceiling 'participation'",
+        "Express_Engine | shape: action -> object -> context -> outcome | claim ceiling: participation | agency ceiling: individual_contributor | fact: Creates durable, reusable software frameworks that are leveraged across teams and functions.: 'implementation'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    },
+    "new": {
+      "latency_s": 51.8,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"UPS\",\n      \"text\": \"Managed senior relationships spanning Portfolio Management, Trading, Operations, and Accounting, communicating with authority and clarity on architecture decisions, delivery status, and platform capability.\"\n    },\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Created durable, reusable software frameworks that were leveraged across teams and functions.\"\n    },\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Utilized knowledge of tools within the Software Development Life Cycle toolchain, including enterprise-authorized AI-assisted development and automation capabilities, to improve the value realized by automation at scale.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 3,
+      "bullets_survived": 1,
+      "violations": [
+        "UPS: 'team_lead'-tier agency claim exceeds evidence ceiling 'individual_contributor'",
+        "Express_Engine: 'implementation'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    }
+  },
+  {
+    "job_id": 549,
+    "title": "Legal Recruiter (Contract)",
+    "old": {
+      "latency_s": 28.0,
+      "raw_output": "{\"summary\": \"Enhance candidate experience throughout the hiring process, from outreach to offer acceptance, by driving a diverse talent pipeline into the organization.\", \"bullets\": [{\"evidence\": \"AMP Smart\", \"text\": \"Drive a diverse talent pipeline into the organization ensuring a positive candidate experience at every touchpoint, from initial outreach to offer acceptance.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 1,
+      "bullets_survived": 1,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 33.6,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"AMP Smart | shape: [Action] [object] [context], [outcome]. | limits: took part in/was exposed to this -- did not build, own, or lead it; did this yourself -- did not lead/manage people\",\n      \"text\": \"Was exposed to AMP Smart's talent pipeline initiative, focusing on ensuring a positive candidate experience from initial outreach to offer acceptance.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 1,
+      "bullets_survived": 1,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 21159,
+    "title": "Lead Software Engineer, Back End",
+    "old": {
+      "latency_s": 14.9,
+      "raw_output": "{\n    \"summary\": \"Continued to develop and maintain software applications, contributing to the design and implementation of scalable systems.\",\n    \"bullets\": [\n        {\n            \"evidence\": \"Express_Engine\",\n            \"text\": \"Developed and maintained software applications, contributing to the design and implementation of scalable systems.\"\n        }\n    ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 1,
+      "bullets_survived": 0,
+      "violations": [
+        "Express_Engine: 'implementation'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    },
+    "new": {
+      "latency_s": 14.1,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Was exposed to Express.js framework, enhancing backend development skills.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 1,
+      "bullets_survived": 1,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 23794,
+    "title": "Packaged/SaaS Application Engineer",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  },
+  {
+    "job_id": 14942,
+    "title": "Jr. Audio/Visual Support Assistant",
+    "old": {
+      "latency_s": 20.6,
+      "raw_output": "{\"summary\": \"Provided support to users on collaboration platforms like Microsoft Teams and Zoom, ensuring smooth meetings and effective content sharing.\", \"bullets\": [{\"evidence\": \"Freelance Photography / Videography | shape: action -> object -> context -> outcome | fact: Support and guide users on collaboration platforms (e.g., Microsoft Teams, Zoom) including meeting start-up, joining, and content sharing | use these exact terms: content\", \"text\": \"Supported users in starting, joining meetings, and sharing content via platforms like Microsoft Teams and Zoom.\"}] }",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 1,
+      "bullets_survived": 1,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 22.7,
+      "raw_output": "{\n  \"summary\": \"Used collaboration platforms to support users in meetings and content sharing\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Freelance Photography / Videography | shape: [Action] [object] [context], [outcome]. | limits: took part in/was exposed to this -- did not build, own, or lead it; did this yourself -- did not lead/manage people\",\n      \"text\": \"Taught users how to start meetings, join, and share content effectively on collaboration platforms like Microsoft Teams and Zoom.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 1,
+      "bullets_survived": 1,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 22877,
+    "title": "Program Engineer",
+    "old": {
+      "latency_s": 21.1,
+      "raw_output": "{\"summary\": \"Contributed to design discussions to enhance manufacturability and producibility, working closely with the design team to identify and implement improvements.\", \"bullets\": [{\"evidence\": \"Web Design\", \"text\": \"Participated in design discussions to drive manufacturability and producibility\", \"agency_ceiling\": \"individual_contributor\"}, {\"evidence\": \"UPS\", \"text\": \"Assisted the Program Operations Manager in developing Risks & Opportunities and driving to IPTs\", \"agency_ceiling\": \"individual_contributor\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 2,
+      "bullets_survived": 1,
+      "violations": [
+        "UPS: 'implementation'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    },
+    "new": {
+      "latency_s": 20.3,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Web Design\",\n      \"text\": \"Participated in design discussions to drive manufacturability and producibility.\"\n    },\n    {\n      \"evidence\": \"UPS\",\n      \"text\": \"Assisted Program Operations Manager in development of Risks & Opportunities and drive to IPTs.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 2,
+      "bullets_survived": 2,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 15776,
+    "title": "Network Install Technician, Infrastructure Delivery",
+    "old": {
+      "latency_s": 26.0,
+      "raw_output": "{\n    \"summary\": \"Utilized power meter and OTDR equipment to troubleshoot and optimize network performance, contributing to the successful integration of new fiber optic cabling in a data center environment.\",\n    \"bullets\": [\n        {\n            \"evidence\": \"You Power You | shape: action -> object -> context -> outcome\",\n            \"text\": \"Diagnosed and resolved network issues using power meter and OTDR equipment in a data center environment.\"\n        },\n        {\n            \"evidence\": \"CAP Predictor | shape: action -> object -> context -> outcome\",\n            \"text\": \"Designed and implemented power distribution systems in critical environments, including data centers, to ensure reliable and efficient power supply.\"\n        }\n    ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 2,
+      "bullets_survived": 0,
+      "violations": [
+        "You Power You | shape: action -> object -> context -> outcome: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish",
+        "CAP Predictor | shape: action -> object -> context -> outcome: 'design'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    },
+    "new": {
+      "latency_s": 20.0,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"You Power You\",\n      \"text\": \"Cabled network infrastructure, including fiber optics and test equipment like VFL, power meter, and OTDR, for 2+ years.\"\n    },\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Worked in a data center environment, contributing to the design and architecture of the system.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 2,
+      "bullets_survived": 1,
+      "violations": [
+        "You Power You: number '2' in realized text is not present in the evidence text or known real_metrics"
+      ]
+    }
+  },
+  {
+    "job_id": 15256,
+    "title": "Reservation Manager",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  },
+  {
+    "job_id": 23899,
+    "title": "Custom Software Engineer",
+    "old": {
+      "latency_s": 24.4,
+      "raw_output": "{\n    \"summary\": \"I have experience in engineering where I have led the implementation of best practices and standards within the team to enhance software quality and maintainability, and I have coordinated cross-functional efforts to align software development with organizational goals and project timelines.\",\n    \"bullets\": [\n        {\n            \"evidence\": \"Express_Engine\",\n            \"text\": \"Lead the implementation of best practices and standards within the team to enhance software quality and maintainability in software projects.\"\n        },\n        {\n            \"evidence\": \"Express_Engine\",\n            \"text\": \"Coordinate cross-functional efforts to align software development with organizational goals and project timelines in software projects.\"\n        }\n    ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 2,
+      "bullets_survived": 2,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 22.1,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Led the implementation of best practices and standards within the team to enhance software quality and maintainability.\"\n    },\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Coordinate cross-functional efforts to align software development with organizational goals and project timelines.\"\n    }\n  ]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 2,
+      "bullets_survived": 1,
+      "violations": [
+        "Express_Engine: 'team_lead'-tier agency claim exceeds evidence ceiling 'individual_contributor'"
+      ]
+    }
+  },
+  {
+    "job_id": 24716,
+    "title": "Technical Lead - Application Development - Raleigh",
+    "old": {
+      "latency_s": 20.5,
+      "raw_output": "{\n    \"summary\": \"Contributed to the development and maintenance of automated test suites, ensuring software quality and adherence to best practices across the entire stack.\",\n    \"bullets\": [\n        {\n            \"evidence\": \"Express_Engine\",\n            \"text\": \"Built test automation across the full stack of our software and enforced engineering best practices.\"\n        },\n        {\n            \"evidence\": \"UPS\",\n            \"text\": \"Optimized application performance and reliability in a cloud environment.\"\n        }\n    ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 2,
+      "bullets_survived": 1,
+      "violations": [
+        "Express_Engine: 'design'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    },
+    "new": {
+      "latency_s": 22.3,
+      "raw_output": "{\n  \"summary\": \"Optimized application performance and reliability in a cloud environment.\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Tried out Express.js framework to handle API requests and responses.\"\n    },\n    {\n      \"evidence\": \"UPS\",\n      \"text\": \"Optimized application performance and reliability in a cloud environment, ensuring consistent service delivery.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 2,
+      "bullets_survived": 2,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 15163,
+    "title": "Data Center Technician",
+    "old": {
+      "latency_s": 17.8,
+      "raw_output": "{\"summary\": \"Played a key role in ensuring smooth communication between various stakeholders, focusing on software development and integration.\", \"bullets\": [{\"evidence\": \"Express_Engine\", \"text\": \"Served as a primary contact point for software engineers, developers, vendors, and contractors.\"}, {\"evidence\": \"Alex Prosperity Group / UST Logistics\", \"text\": \"Regularly participated in group lifts for up to 41 pounds.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 2,
+      "bullets_survived": 1,
+      "violations": [
+        "Alex Prosperity Group / UST Logistics: number '41' in realized text is not present in the evidence text or known real_metrics"
+      ]
+    },
+    "new": {
+      "latency_s": 22.8,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Served as a primary contact point for both internal and external stakeholders, including engineers, software developers, vendors, and contractors.\"\n    },\n    {\n      \"evidence\": \"Alex Prosperity Group / UST Logistics\",\n      \"text\": \"Regularly lift and/or move up to 40 pounds; and participate in group lifts for 41+ pounds.\"\n    }\n  ]",
+      "parseable": false,
+      "echoes_scaffolding": false,
+      "bullets_offered": 0,
+      "bullets_survived": 0,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 10236,
+    "title": "Software Dev Engineer II, Aurora Storage",
+    "old": {
+      "latency_s": 77.4,
+      "raw_output": "{\"summary\": \"I have experience in software development and design, having worked on various projects and systems, and I am proficient in multiple programming languages.\", \"bullets\": [{\"evidence\": \"Express_Engine\", \"text\": \"Developed software solutions using C#, C++, Java, and Perl experience.\"}, {\"evidence\": \"Express_Engine\", \"text\": \"Designed and developed large-scale, multi-tiered, multi-threaded, embedded or distributed software applications, tools, systems, and services.\"}, {\"evidence\": \"Express_Engine\", \"text\": \"Engaged in software development engineer or related occupational experience.\"}, {\"evidence\": \"Express_Engine\", \"text\": \"Designed and developed large-scale, multi-tiered, multi-threaded, embedded or distributed software applications, tools, systems, and services using: C#, C++, Java, or Perl experience.\"}, {\"evidence\": \"Express_Engine\", \"text\": \"Programmed with at least one software programming language.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 5,
+      "bullets_survived": 2,
+      "violations": [
+        "Express_Engine: 'implementation'-tier claim exceeds evidence ceiling 'participation'",
+        "Express_Engine: 'design'-tier claim exceeds evidence ceiling 'participation'",
+        "Express_Engine: 'design'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    },
+    "new": {
+      "latency_s": 73.5,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Participated in the design and development of software solutions using Express.js framework.\"\n    },\n    {\n      \"evidence\": \"UPS\",\n      \"text\": \"Assisted in the design and implementation of new and existing systems, focusing on reliability and scalability.\"\n    },\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Developed software solutions using Express.js framework, contributing to the overall software development process.\"\n    },\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Designed and developed large-scale, multi-tiered software applications using Express.js, C#, and Java.\"\n    },\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Programmed using at least one software programming language, contributing to the development of software applications.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 5,
+      "bullets_survived": 3,
+      "violations": [
+        "Express_Engine: 'implementation'-tier claim exceeds evidence ceiling 'participation'",
+        "Express_Engine: 'design'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    }
+  },
+  {
+    "job_id": 18412,
+    "title": "Full Stack Engineer",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  },
+  {
+    "job_id": 6471,
+    "title": "Instructor Specialist",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  }
+]

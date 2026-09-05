@@ -1,0 +1,13 @@
+{
+  "model_id": "Abhishek9998/t5-base-finetuned-resumes_t2json_large",
+  "sample_input": "Alignment Technician at National Tire and Battery / Mavis. Performed vehicle alignment and maintenance tasks including tires, shocks, struts, brakes, and fluids. Provided hands-on technical troubleshooting and customer service to ensure vehicle safety and satisfaction.",
+  "load_succeeded": true,
+  "load_tokenizer_s": 7.74,
+  "load_model_s": 43.54,
+  "param_count": 222903552,
+  "inference_succeeded": true,
+  "inference_latency_s": 4.48,
+  "output_text": "Tire and Battery / Mavis. vehicle alignment and maintenance tasks including tires, shocks, struts, brakes, fluids. Performed vehicle alignment and maintenance tasks including tires, shocks, struts, brakes, and fluids.",
+  "output_looks_like_json": false,
+  "total_wall_s": 55.76
+}

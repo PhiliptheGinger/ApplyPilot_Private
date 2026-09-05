@@ -1,0 +1,100 @@
+{
+  "experiment": "small_specialized_resume_model_bakeoff",
+  "continuation_of": "Q2 local-model planning A/B test (data/experiments/ab_tailor_27323_pair5_20260901_154146) and the prior agent's partial bakeoff (data/experiments/local_model_bakeoff_20260901_161413, _v2_20260901_161955)",
+  "objective": "Determine whether a genuinely small, resume-tailoring-SPECIALIZED model can (1) directly produce a useful truthful tailored resume, and (2) outperform qwen3:1.7b / the existing deterministic+cloud pipeline.",
+  "constraints_honored": {
+    "production_code_modified": false,
+    "production_db_mutations": false,
+    "commits_made": false,
+    "job_selection": "4 explicit real jobs from the live DB, different tailoring characteristics"
+  },
+  "jobs_tested": [
+    {"job_id": 27323, "title": "Software Engineer Graduate", "site": "Hewlett Packard Enterprise", "requirement_support": "1 supported / 3 ambiguous / 4 unsupported of 8"},
+    {"job_id": 7267, "title": "Software Development Engineer", "site": "Adobe", "requirement_support": "2 supported / 1 ambiguous / 5 unsupported of 8"},
+    {"job_id": 7406, "title": "Cloud Platform Engineer", "site": "Accenture", "requirement_support": "0 supported / 1 ambiguous / 7 unsupported of 8"},
+    {"job_id": 22916, "title": "Hotel Partner Solutions Specialist", "site": "Expedia Group", "requirement_support": "3 supported / 0 ambiguous / 5 unsupported of 8"}
+  ],
+  "specialized_candidates": [
+    {
+      "label": "TinyLlama Resume Tailor (1.1B LoRA)",
+      "exact_identifier": "akshayrinku/tinyllama-resume-tailor-lora",
+      "is_actually_specialized": true,
+      "verification": "Independently re-verified via HuggingFace API (huggingface.co/api/models/akshayrinku/tinyllama-resume-tailor-lora) in this session -- pipeline_tag=text-generation, library=peft, base_model=TinyLlama/TinyLlama-1.1B-Chat-v1.0, tags include 'resume'. Matches the prior agent's discovery exactly.",
+      "runnable_here": false,
+      "reason": "PEFT LoRA adapter, not a merged/GGUF model -- needs transformers+peft (not installed in this venv) to load+merge onto the base model, and is not loadable by Ollama directly.",
+      "recommendation": "reject (not runnable in this environment; would require installing a ~1GB+ Python ML stack to even test)"
+    },
+    {
+      "label": "T5-Base resume candidate (~220M)",
+      "exact_identifier": "Abhishek9998/t5-base-finetuned-resumes_t2json_large",
+      "is_actually_specialized": "unclear",
+      "verification": "Independently re-verified via HF API in this session -- pipeline_tag=text2text-generation, library=transformers, downloads=20. Matches prior discovery.",
+      "runnable_here": false,
+      "reason": "Same missing transformers stack; also the dataset name ('resumes_t2json_large') suggests a resume-to-JSON extraction fine-tune, not a tailoring/rewriting model -- likely the wrong task even if it could be loaded.",
+      "recommendation": "reject"
+    },
+    {
+      "label": "GPT-Neo resume assistant candidate (~1.3B)",
+      "exact_identifier": null,
+      "is_actually_specialized": "n/a -- does not exist",
+      "verification": "Independently re-verified via HF search API (models?search=gpt-neo+resume) in this session -- zero results, confirming the prior agent's finding. Per explicit instruction, not substituted with a generic GPT-Neo checkpoint.",
+      "runnable_here": false,
+      "reason": "No resume-specific GPT-Neo fine-tune exists on HuggingFace.",
+      "recommendation": "reject -- candidate does not exist"
+    },
+    {
+      "label": "Qwen2.5 Resume LoRA (~7B)",
+      "exact_identifier": "Ella0506/Qwen2.5-7B-Instruct-Resume-LoRA",
+      "is_actually_specialized": true,
+      "verification": "Independently re-verified via HF API in this session -- library=peft, base_model=Qwen/Qwen2.5-7B-Instruct, tags include llama-factory/lora, model card language describes resume optimization. Matches prior discovery.",
+      "runnable_here": false,
+      "reason": "PEFT adapter over a 7B base -- same missing transformers+peft stack, AND per explicit instruction not assumed practical: a 7B model (merged, fp16) needs ~14GB VRAM/RAM just to load, well beyond what this machine's Ollama setup currently runs (largest resident model here is qwen3:8b at 5.2GB quantized).",
+      "recommendation": "impractical_on_current_hardware -- would need a dedicated GPU box + the ML stack installed, and even then is 4x the qwen3:1.7b's per-call latency for whatever quality gain it might have"
+    },
+    {
+      "label": "qwen3:1.7b (generic, NOT resume-specialized)",
+      "exact_identifier": "qwen3:1.7b",
+      "is_actually_specialized": false,
+      "verification": "Locally installed in Ollama (`ollama list`). This is a general-purpose instruction model with thinking capability -- explicitly NOT fine-tuned for resumes. Included as the only runnable local baseline.",
+      "runnable_here": true,
+      "recommendation": "see results below"
+    }
+  ],
+  "qwen3_direct_tailoring_results": {
+    "method": "Ran the EXACT production degraded-mode call sequence (build_base_resume_model -> request_local_realization -> merge_realization -> validate_json_fields -> [judge_tailored_resume if validation passes]) against all 4 real jobs, using the real profile.json and a real (previously validated) base resume for this candidate.",
+    "per_job": [
+      {"job_id": 27323, "status": "local_realization_failed", "detail": "Model produced a bullet and a summary; BOTH rejected by the deterministic claim-strength safety net ('execution'-tier claim vs. 'participation'-tier evidence ceiling for the bullet; 'design'-tier claim vs. 'participation'-tier ceiling for the summary). Net output: zero usable content, base resume returned unchanged.", "latency_s": 62.8},
+      {"job_id": 7267, "status": "local_realization_failed", "detail": "Model's JSON response was malformed (JSONDecodeError at char 478) -- unparseable, discarded entirely. Base resume returned unchanged.", "latency_s": 61.5},
+      {"job_id": 7406, "status": "no_supported_evidence", "detail": "Deterministic schema layer found zero schema-supported requirements for this job -- local model was never even invoked (this is the gate working correctly, not a model failure).", "latency_s": 0.0},
+      {"job_id": 22916, "status": "local_realization_failed", "detail": "Model's JSON response was malformed (JSONDecodeError at char 591) -- unparseable, discarded entirely. Base resume returned unchanged.", "latency_s": 62.8}
+    ],
+    "aggregate": {
+      "jobs_tested": 4,
+      "jobs_where_model_was_invoked": 3,
+      "successful_realizations": 0,
+      "malformed_json_responses": 2,
+      "all_content_safety_rejected": 1,
+      "gated_before_model_call": 1,
+      "avg_latency_when_invoked_s": 62.4,
+      "validator_pass_rate": "0/0 (never reached -- no realization ever survived to be merged and validated)",
+      "judge_pass_rate": "0/0 (judge never reached -- same reason; judge is skipped after failed/absent realization by design)"
+    },
+    "independent_structural_finding": "A direct probe (title_inflation_probe.json) shows that even a HYPOTHETICAL perfect/clean local realization would still fail validation for 3 of the 4 jobs (27323, 7267, 7406), because merge_realization() copies the job posting's raw title verbatim into the resume header with no grounding check, and validate_json_fields' title-inflation guard (decision #62) then rejects any elevated word ('engineer') not present in this candidate's authoritative titles. This means the 0% success rate above is not just a qwen3 quality problem -- it is at least partly a model-agnostic architecture gap in degraded mode. See title_inflation_probe.json for the isolated repro."
+  },
+  "comparison_to_cloud_baseline": {
+    "note": "No cloud LLM call was made in this experiment for a fresh comparison (cloud providers were in fact live-attempted by request_local_realization's fallback chain and hit real daily quota limits before falling through to local -- see run.log). Comparison instead uses pre-existing, real cloud-tailored artifacts already on disk.",
+    "job_27323": {"cloud_source": "data/experiments/ab_tailor_27323_pair5_20260901_154146/pair4_A_deterministic.txt", "cloud_addressed_requirements": 7, "local_addressed_requirements": 0},
+    "job_7267": {"cloud_source": "data/resumes/applypilot/Philip_McLaughlin_Software_Development_Engineer_74c9630f.txt", "cloud_addressed_requirements": 7, "local_addressed_requirements": 0},
+    "job_7406": {"cloud_source": "data/resumes/applypilot/Philip_McLaughlin_Cloud_Platform_Engineer_1e7c9573.txt", "cloud_addressed_requirements": 8, "local_addressed_requirements": 0},
+    "job_22916": {"cloud_source": "none on disk -- job never reached tailoring in production before being archived", "cloud_addressed_requirements": null, "local_addressed_requirements": 0}
+  },
+  "recommendations": [
+    {"model": "TinyLlama Resume Tailor (1.1B LoRA)", "recommendation": "reject", "reason": "Not runnable without installing a new ML stack; even then, 1.1B is smaller than the already-failing qwen3:1.7b baseline and has no stronger safety architecture around it."},
+    {"model": "T5-Base resume candidate (~220M)", "recommendation": "reject", "reason": "Not runnable; likely wrong task (extraction, not tailoring)."},
+    {"model": "GPT-Neo resume assistant candidate (~1.3B)", "recommendation": "reject", "reason": "Does not exist as a real, verifiable candidate."},
+    {"model": "Qwen2.5 Resume LoRA (~7B)", "recommendation": "impractical_on_current_hardware", "reason": "Would need a GPU with ~14GB+ VRAM and the transformers/peft stack; not available here."},
+    {"model": "qwen3:1.7b (generic baseline, direct tailoring)", "recommendation": "reject", "reason": "0/4 real jobs produced usable output in this sample -- 2 malformed JSON, 1 fully safety-rejected, 1 correctly gated before the model ran. ~62s/job latency for zero yield. A structural title-grounding gap in merge_realization() means even a hypothetically perfect local model would still fail 3 of these 4 jobs today."},
+    {"model": "Existing deterministic + cloud pipeline", "recommendation": "best_available_by_wide_margin", "reason": "Cloud-tailored baselines for the same jobs addressed 7-8/8 requirements each vs. 0/8 for local-only in this sample. This matches the original Q2 A/B conclusion (local planning provided no coverage improvement and was 2x slower) and extends it: local-only DIRECT tailoring (no cloud involvement at all) is materially worse, not just neutral."}
+  ],
+  "answer_to_core_question": "No. No genuinely small resume-tailoring-specialized model was runnable in this environment to test directly (all 4 named candidates verified as either non-runnable without new infrastructure, non-existent, or impractically large for this hardware). The only runnable local model, qwen3:1.7b (a GENERIC model, not resume-specialized), produced zero usable tailored output across 4 real jobs with materially different characteristics -- worse than the already-unfavorable Q2 finding for it as a planning-signal model. The existing deterministic-extraction + cloud-realization architecture remains the only path in this system that reliably produces validated, truthful, requirement-covering tailored resumes; nothing tested here challenges that."
+}

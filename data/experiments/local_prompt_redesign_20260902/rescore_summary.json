@@ -1,0 +1,237 @@
+{
+  "overall": {
+    "github": {
+      "old": [
+        40,
+        3,
+        0
+      ],
+      "new": [
+        40,
+        2,
+        0
+      ]
+    },
+    "non_github": {
+      "old": [
+        29,
+        1,
+        0
+      ],
+      "new": [
+        30,
+        0,
+        0
+      ]
+    }
+  },
+  "flagged_examples": [
+    {
+      "model": "qwen3:1.7b",
+      "prompt": "old",
+      "job": "Research Engineer, Codex",
+      "evidence": "CAP Predictor",
+      "text": "Worked on data-driven early-training and alignment interventions, including data mixtures, objectives, synthetic data, and eval loops that shaped downstream agent behavior.",
+      "injected_terms": [
+        "agent",
+        "alignment",
+        "behavior.",
+        "downstream",
+        "early-training"
+      ]
+    },
+    {
+      "model": "qwen3:1.7b",
+      "prompt": "new",
+      "job": "Research Engineer, Codex",
+      "evidence": "CAP Predictor",
+      "text": "Worked on early-training and alignment interventions, including data mixtures, objectives, synthetic data, and eval loops that shape downstream agent behavior.",
+      "injected_terms": [
+        "agent",
+        "alignment",
+        "behavior.",
+        "downstream",
+        "early-training"
+      ]
+    },
+    {
+      "model": "qwen3:1.7b",
+      "prompt": "old",
+      "job": "Data Engineer",
+      "evidence": "CAP Predictor",
+      "text": "Diagnosed CAP Predictor proficiency, enabling accurate data context interpretation and outcome prediction through Databricks Unified Data Analytics Platform.",
+      "injected_terms": [
+        "databricks",
+        "platform.",
+        "proficiency",
+        "unified"
+      ]
+    },
+    {
+      "model": "qwen3:1.7b",
+      "prompt": "new",
+      "job": "Data Engineer",
+      "evidence": "CAP Predictor",
+      "text": "Designed and implemented the CAP Predictor, leveraging Databricks Unified Data Analytics Platform to analyze data patterns and predict outcomes.",
+      "injected_terms": [
+        "databricks",
+        "platform",
+        "unified"
+      ]
+    },
+    {
+      "model": "qwen3:1.7b",
+      "prompt": "new",
+      "job": "Data Engineer",
+      "evidence": "Must To Have Skills: Proficiency in Databricks Unified Data Analytics Platform",
+      "text": "Proficient in Databricks Unified Data Analytics Platform, enabling data-driven insights and efficient data processing.",
+      "injected_terms": [
+        "analytics",
+        "data",
+        "databricks",
+        "efficient",
+        "platform"
+      ]
+    },
+    {
+      "model": "qwen3:1.7b",
+      "prompt": "old",
+      "job": "System Engineer",
+      "evidence": "Web Design",
+      "text": "Collaborated with Technical Architects to assist in systems design, contributing to the development of user-facing web applications.",
+      "injected_terms": [
+        "architects",
+        "assist",
+        "design",
+        "systems",
+        "technical"
+      ]
+    },
+    {
+      "model": "qwen3:1.7b",
+      "prompt": "old",
+      "job": "System Engineer",
+      "evidence": "Express_Engine",
+      "text": "Supported server hardware infrastructure and software solutions across multiple platforms, ensuring seamless integration and operational efficiency.",
+      "injected_terms": [
+        "hardware",
+        "infrastructure",
+        "multiple",
+        "platforms",
+        "server"
+      ]
+    },
+    {
+      "model": "qwen3:1.7b",
+      "prompt": "new",
+      "job": "System Engineer",
+      "evidence": "Web Design",
+      "text": "Collaborated with Technical Architects to assist with systems design, enhancing the user experience and functionality of web-based applications.",
+      "injected_terms": [
+        "architects",
+        "assist",
+        "design",
+        "systems",
+        "technical"
+      ]
+    },
+    {
+      "model": "qwen3:1.7b",
+      "prompt": "new",
+      "job": "Multi Site Customer Service Coordinator",
+      "evidence": "UPS",
+      "text": "Traveled locally, including day trips to post offices and satellite office locations, to support client operations, enhancing operational efficiency.",
+      "injected_terms": [
+        "client",
+        "locally",
+        "locations",
+        "office",
+        "offices"
+      ]
+    },
+    {
+      "model": "qwen3:1.7b",
+      "prompt": "new",
+      "job": "Legal Recruiter (Contract)",
+      "evidence": "AMP Smart",
+      "text": "Driven a diverse talent pipeline into the organization, ensuring a positive candidate experience from initial outreach to offer acceptance, leveraging AMP Smart to improve engagement and retention.",
+      "injected_terms": [
+        "diverse",
+        "initial",
+        "offer",
+        "organization",
+        "pipeline"
+      ]
+    },
+    {
+      "model": "qwen3:1.7b",
+      "prompt": "old",
+      "job": "Jr. Audio/Visual Support Assistant",
+      "evidence": "Freelance Photography / Videography",
+      "text": "Diagnosed and supported users on collaboration platforms (e.g., Microsoft Teams, Zoom) including meeting start-up, joining, and content sharing, with a focus on content management and sharing.",
+      "injected_terms": [
+        "collaboration",
+        "e.g.",
+        "joining",
+        "management",
+        "meeting"
+      ]
+    },
+    {
+      "model": "qwen3:1.7b",
+      "prompt": "new",
+      "job": "Jr. Audio/Visual Support Assistant",
+      "evidence": "Freelance Photography / Videography",
+      "text": "Supported and guided users on collaboration platforms, including meeting start-up, joining, and content sharing, enhancing user experience and efficiency.",
+      "injected_terms": [
+        "collaboration",
+        "joining",
+        "meeting",
+        "platforms",
+        "sharing"
+      ]
+    },
+    {
+      "model": "qwen3:1.7b",
+      "prompt": "new",
+      "job": "Jr. Audio/Visual Support Assistant",
+      "evidence": "Support and guide users on collaboration platforms (e.g., Microsoft Teams, Zoom) including meeting start-up, joining, and content sharing",
+      "text": "Supported and guided users on collaboration platforms, including meeting start-up, joining, and content sharing, enhancing user experience and efficiency.",
+      "injected_terms": [
+        "collaboration",
+        "content",
+        "joining",
+        "meeting",
+        "platforms"
+      ]
+    },
+    {
+      "model": "qwen3:1.7b",
+      "prompt": "old",
+      "job": "Program Engineer",
+      "evidence": "Web Design",
+      "text": "Diagnosed web design challenges to drive manufacturability and producibility, leveraging design expertise to shape project outcomes.",
+      "injected_terms": [
+        "design",
+        "drive",
+        "expertise",
+        "leveraging",
+        "manufacturability"
+      ]
+    },
+    {
+      "model": "qwen3:1.7b",
+      "prompt": "new",
+      "job": "Program Engineer",
+      "evidence": "Web Design",
+      "text": "Participated in design discussions to drive manufacturability and producibility",
+      "injected_terms": [
+        "design",
+        "discussions",
+        "drive",
+        "manufacturability",
+        "producibility"
+      ]
+    }
+  ]
+}

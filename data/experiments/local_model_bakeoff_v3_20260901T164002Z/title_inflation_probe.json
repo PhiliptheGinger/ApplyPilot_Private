@@ -1,0 +1,20 @@
+{
+  "purpose": "Isolate whether degraded-mode validation failures are caused by qwen3's output quality, or by a structural issue in merge_realization()/validate_json_fields() independent of which local model is used.",
+  "method": "Called merge_realization(base_resume, synthetic_clean_realization, job) directly for all 4 test jobs, with a synthetic realization containing a truthful, grounded, zero-violation summary and zero bullets -- i.e. the best case any local model could produce. Then ran the real validate_json_fields() on the result.",
+  "finding": "0/4 jobs pass validation even with a hand-crafted clean realization. Two independent, model-agnostic causes found:",
+  "cause_1_title_inflation": {
+    "mechanism": "local_tailor.merge_realization() (line ~2115) sets data['title'] = job.get('title') unconditionally -- the raw job-posting title, with no grounding check against the candidate's authoritative titles.",
+    "impact": "validator.check_title_inflation (added 2026-08-25, decision #62) then hard-rejects any resume title containing an elevated/professional-identity word (e.g. 'engineer') that isn't among the candidate's authoritative experience_inventory titles.",
+    "confirmed_on": "jobs 27323 ('Software Engineer Graduate'), 7267 ('Software Development Engineer'), 7406 ('Cloud Platform Engineer') -- all fail solely/partly on this check. Job 22916 ('Hotel Partner Solutions Specialist') does NOT trigger it, since its title has no elevated word -- consistent with the mechanism.",
+    "scope": "Structural: applies regardless of local model choice (qwen3 or any hypothetical specialized model), since merge_realization never asks the model to produce a title at all. For this candidate's profile (service/retail background, no authoritative 'engineer' title), essentially any software-engineering job title reaching degraded mode is guaranteed to fail validation on this check alone. The cloud path avoids this because tailor.py's prompt (decision #62) explicitly instructs the LLM to derive a non-inflated title; merge_realization has no equivalent step.",
+    "production_code_modified": false,
+    "note": "Reported as a finding for follow-up, not fixed -- out of scope per task instructions (no production architecture changes)."
+  },
+  "cause_2_stale_base_resume_artifact": {
+    "mechanism": "The base resume text used in this experiment (a real, pre-existing cloud-tailored artifact, chosen as a substitute for the placeholder ~/.applypilot/resume.txt -- see prestate.json) contains 'Dates not specified' subtitle placeholders and an experience-header title ('Sales Consultant') that doesn't match the candidate's authoritative title ('Sales Representative / Sales Tech'). Both predate validator checks added 2026-08-25 (decision #62).",
+    "impact": "build_base_resume_model() parses this verbatim; merge_realization() only ever replaces bullets/summary, never subtitle/header formatting -- so these pre-existing issues survive into every degraded-mode result regardless of model output.",
+    "scope": "This is most likely specific to this experiment's choice of substitute base-resume file, not necessarily a production issue -- it depends on whether the real ~/.applypilot/resume.txt (once restored to real content) also contains stale placeholder patterns. Flagged as a caveat on this experiment's validator-fail counts, and as a reminder that degraded mode has no mechanism to repair a stale base resume, only to layer bullets on top of it.",
+    "production_code_modified": false
+  },
+  "conclusion": "In this environment/profile, degraded-mode (local-only) tailoring cannot reach a passing validation state for the tested engineering-titled jobs even in the best case, independent of model quality. This means the qwen3 failures reported in job_*.json are actually a LOWER bound on the real-world failure rate -- even a perfect local model would still fail on jobs 27323/7267/7406 via title inflation alone."
+}

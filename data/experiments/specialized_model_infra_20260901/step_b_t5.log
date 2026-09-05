@@ -1,0 +1,7 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/260 [00:00<?, ?it/s]Loading weights: 100%|##########| 260/260 [00:00<00:00, 11485.92it/s]
+job 27323: ok, 86.1s, 4 chars
+job 7267: ok, 1.4s, 4 chars
+job 7406: skipped (no supported requirements)
+job 22916: ok, 1.3s, 4 chars
+DONE

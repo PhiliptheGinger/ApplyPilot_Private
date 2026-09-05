@@ -1,0 +1,17 @@
+=== job 27323 ===
+gemini/gemini-3.6-flash hit quota limit (daily), marking exhausted for 24h
+gemini/gemini-3.5-flash hit quota limit (daily), marking exhausted for 24h
+openai/gpt-4.1-mini hit quota limit (daily), marking exhausted for 24h
+openai/gpt-4.1-nano hit quota limit (daily), marking exhausted for 24h
+Degraded-mode realization dropped a bullet for Software Engineer Graduate (Express_Engine): 'execution'-tier claim exceeds evidence ceiling 'participation'
+Degraded-mode realization dropped the summary for Software Engineer Graduate: 'design'-tier claim exceeds evidence ceiling 'participation'
+  status=local_realization_failed latency=62.8s (wall 65.2s)
+=== job 7267 ===
+Degraded-mode realization call failed for Software Development Engineer: JSONDecodeError: Expecting ',' delimiter: line 7 column 6 (char 478)
+  status=local_realization_failed latency=61.5s (wall 61.6s)
+=== job 7406 ===
+  status=no_supported_evidence latency=0.0s (wall 0.1s)
+=== job 22916 ===
+Degraded-mode realization call failed for Hotel Partner Solutions Specialist: JSONDecodeError: Expecting ',' delimiter: line 1 column 592 (char 591)
+  status=local_realization_failed latency=62.8s (wall 62.9s)
+DONE

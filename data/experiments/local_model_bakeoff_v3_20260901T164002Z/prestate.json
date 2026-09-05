@@ -1,0 +1,7 @@
+{
+  "resume_text_source": "C:\\Users\\phili\\Projects\\resume-agent\\data\\resumes\\applypilot\\Philip_McLaughlin_Software_Development_Engineer_74c9630f.txt",
+  "resume_text_source_note": "~/.applypilot/resume.txt on this machine is a stale placeholder identity ('Philip Ginger') unrelated to data/profile.json's real candidate ('Philip McLaughlin') -- substituted a real, previously cloud-validated McLaughlin resume instead so build_base_resume_model() parses correctly and results reflect the real candidate.",
+  "local_llm_url": "http://localhost:11434",
+  "local_llm_model": "qwen3:1.7b",
+  "ollama_list": "NAME                 ID              SIZE      MODIFIED     \nall-minilm:latest    1b226e2802db    45 MB     26 hours ago    \nqwen3:1.7b           8f68893c685c    1.4 GB    10 days ago     \nqwen3:8b             500a1f067a9f    5.2 GB    2 weeks ago     \n"
+}

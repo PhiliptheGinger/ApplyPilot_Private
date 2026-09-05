@@ -1,0 +1,622 @@
+{
+  "experiment": "controlled_real_data_local_model_bakeoff_v2",
+  "timestamp_utc": "2026-09-01T16:19:55.576083+00:00",
+  "mode": "read_only",
+  "job_ids": [
+    27323,
+    7267,
+    7406
+  ],
+  "candidates": [
+    {
+      "label": "TinyLlama Resume Tailor (1.1B LoRA)",
+      "exact_identifier": "akshayrinku/tinyllama-resume-tailor-lora",
+      "source": "https://huggingface.co/akshayrinku/tinyllama-resume-tailor-lora",
+      "size": "1.1B base + LoRA adapter",
+      "runnable_now": false,
+      "availability_reason": "PEFT adapter only; requires Transformers+PEFT stack not installed in repo venv, and not directly loadable by Ollama."
+    },
+    {
+      "label": "T5-Base resume candidate (~220M)",
+      "exact_identifier": "Abhishek9998/t5-base-finetuned-resumes_t2json_large",
+      "source": "https://huggingface.co/Abhishek9998/t5-base-finetuned-resumes_t2json_large",
+      "size": "~220M",
+      "runnable_now": false,
+      "availability_reason": "Transformers checkpoint; local Transformers stack absent. Model card indicates t2json dataset fine-tune, not clearly this tailoring task."
+    },
+    {
+      "label": "GPT-Neo resume assistant candidate (~1.3B)",
+      "exact_identifier": null,
+      "source": "HF search queries (gpt-neo resume / gpt neo resume assistant) returned zero resume-specific models",
+      "size": "~1.3B target",
+      "runnable_now": false,
+      "availability_reason": "No resume-specific GPT-Neo candidate verified; generic GPT-Neo excluded per instructions."
+    },
+    {
+      "label": "Qwen2.5 Resume LoRA (~7B)",
+      "exact_identifier": "Ella0506/Qwen2.5-7B-Instruct-Resume-LoRA",
+      "source": "https://huggingface.co/Ella0506/Qwen2.5-7B-Instruct-Resume-LoRA",
+      "size": "~7B base + LoRA adapter",
+      "runnable_now": false,
+      "availability_reason": "Adapter only, no direct Ollama run path, and 7B class on 12GB RAM CPU-only host is impractical/risky for stable test cycle."
+    },
+    {
+      "label": "qwen3 local baseline",
+      "exact_identifier": "qwen3:1.7b",
+      "source": "Local Ollama inventory",
+      "size": "2.0B Q4_K_M (1.4GB)",
+      "runnable_now": true,
+      "availability_reason": "Installed and queryable via ollama show."
+    }
+  ],
+  "results": [
+    {
+      "job_id": 27323,
+      "job_title": "Software Engineer Graduate",
+      "model": "qwen3 local baseline",
+      "exact_identifier": "qwen3:1.7b",
+      "source": "Local Ollama inventory",
+      "size": "2.0B Q4_K_M (1.4GB)",
+      "inference_succeeded": false,
+      "inference_error": "ReadTimeout: timed out",
+      "inference_latency_ms": 369194,
+      "resource": {
+        "vm_available_mb_before": 921.17,
+        "vm_available_mb_after": 720.65,
+        "vm_percent_before": 92.4,
+        "vm_percent_after": 94.0
+      },
+      "model_generated_content": {
+        "raw_response_file": "data/experiments/local_model_bakeoff_v2_20260901_161955/job_27323/qwen3_1.7b_raw.txt",
+        "parsed_json_file": "data/experiments/local_model_bakeoff_v2_20260901_161955/job_27323/qwen3_1.7b_json.json"
+      },
+      "deterministic_post_processing": {
+        "plan_valid": true,
+        "supported_requirements": 1,
+        "deterministic_guidance_file": "data/experiments/local_model_bakeoff_v2_20260901_161955/job_27323/deterministic_guidance.txt"
+      },
+      "validator": {
+        "passed": false,
+        "errors": [
+          "Missing required field: summary",
+          "Missing required field: skills",
+          "Missing required field: experience",
+          "Missing required field: education"
+        ],
+        "warnings": [
+          "Missing field: projects (optional, LLM may have folded into experience)"
+        ]
+      },
+      "judge": {
+        "passed": false,
+        "verdict": "FAIL",
+        "issues": "The tailored resume is completely empty (missing all sections: Summary, Technical Skills, Experience, Projects, and Education). Additionally, the job title \"Software Engineer Graduate\" is a claim of professional identity/seniority tier that is not supported by the candidate's actual employment history (which consists of manual labor, sales, and service roles)."
+      },
+      "grounding": {
+        "requirements_supported": 1,
+        "requirements_addressed": 4,
+        "omitted_useful_evidence": [],
+        "invented_unsupported_indicators": [],
+        "keyword_stuffing": {
+          "counts": {
+            "software": 1
+          },
+          "stuffing_risk": false,
+          "max_repeat": 1
+        }
+      },
+      "edits": {
+        "useful_rewrites": [],
+        "added_bullets": [],
+        "omitted_bullets": [
+          "Bachelor of Arts in Media Studies",
+          "Freelance Photographer / Videographer",
+          "Sales Representative / Sales Tech",
+          "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+          "Conduct in-person consultations.",
+          "Identify qualified leads.",
+          "Tailor proposals to homeowner needs and regional market conditions.",
+          "Packaging Associate / Warehouse Associate",
+          "Package handling",
+          "Efficiency in a high-volume operational environment",
+          "Alignment Technician",
+          "Vehicle alignment work",
+          "Tires",
+          "Shocks and struts",
+          "Brakes",
+          "Fluids",
+          "Customer relations",
+          "Moving Specialist / Installation Tech",
+          "Installed home appliances contracted through Lowe's",
+          "Server / Line Cook",
+          "Customer service",
+          "Order taking",
+          "High-volume food preparation",
+          "Shift Leader",
+          "Staff training",
+          "Task delegation",
+          "Team coordination during peak hours",
+          "Cashier",
+          "Register operations",
+          "Point-of-sale transactions",
+          "Customer service",
+          "Volunteer Teacher's Assistant",
+          "Classroom management",
+          "Lesson organization",
+          "Assisting lead instructors",
+          "Team Member",
+          "Currency and credit transactions",
+          "Fast-paced customer service",
+          "Customer retention",
+          "Public speaking",
+          "Verbal communication",
+          "Audience engagement",
+          "Writing",
+          "Performance",
+          "Adapting material based on audience response",
+          "Python",
+          "OCR",
+          "Image/document processing",
+          "Transcription",
+          "OCR tooling",
+          "Machine-learning experimentation",
+          "Human review workflows",
+          "Training-data preparation",
+          "Financial/news data",
+          "Data collection",
+          "Feature engineering",
+          "Sentiment analysis",
+          "Statistical/modeling experimentation",
+          "Data processing",
+          "Language-learning tools",
+          "Spaced repetition",
+          "Application architecture",
+          "Persistent data",
+          "CLI/application components",
+          "Website development",
+          "HTML/CSS/JavaScript",
+          "Server-side form handling",
+          "Qualification/submission workflow",
+          "Email notification integration",
+          "Processing exported social-media data",
+          "Filtering and retrieving relevant posts",
+          "Extracting useful information",
+          "Structured data",
+          "Media/comedy-oriented data processing"
+        ],
+        "reordered_count": 0,
+        "reordered_bullets": []
+      },
+      "output_resume_file": "data/experiments/local_model_bakeoff_v2_20260901_161955/job_27323/qwen3_1.7b_resume.txt"
+    },
+    {
+      "job_id": 7267,
+      "job_title": "Software Development Engineer",
+      "model": "qwen3 local baseline",
+      "exact_identifier": "qwen3:1.7b",
+      "source": "Local Ollama inventory",
+      "size": "2.0B Q4_K_M (1.4GB)",
+      "inference_succeeded": false,
+      "inference_error": "ReadTimeout: timed out",
+      "inference_latency_ms": 369125,
+      "resource": {
+        "vm_available_mb_before": 919.87,
+        "vm_available_mb_after": 441.32,
+        "vm_percent_before": 92.4,
+        "vm_percent_after": 96.3
+      },
+      "model_generated_content": {
+        "raw_response_file": "data/experiments/local_model_bakeoff_v2_20260901_161955/job_7267/qwen3_1.7b_raw.txt",
+        "parsed_json_file": "data/experiments/local_model_bakeoff_v2_20260901_161955/job_7267/qwen3_1.7b_json.json"
+      },
+      "deterministic_post_processing": {
+        "plan_valid": true,
+        "supported_requirements": 2,
+        "deterministic_guidance_file": "data/experiments/local_model_bakeoff_v2_20260901_161955/job_7267/deterministic_guidance.txt"
+      },
+      "validator": {
+        "passed": false,
+        "errors": [
+          "Missing required field: summary",
+          "Missing required field: skills",
+          "Missing required field: experience",
+          "Missing required field: education"
+        ],
+        "warnings": [
+          "Missing field: projects (optional, LLM may have folded into experience)"
+        ]
+      },
+      "judge": {
+        "passed": false,
+        "verdict": "FAIL",
+        "issues": "The tailored resume includes the title \"Software Development Engineer.\" According to the provided instructions, you must FAIL if the title claims a professional identity (Engineer) that the candidate's actual employment history does not support. The candidate's employment history consists of roles such as Photographer, Sales Representative, Warehouse Associate, Alignment Technician, Moving Specialist, Server, and Shift Leader; none of these support the professional identity of \"Software Development Engineer.\""
+      },
+      "grounding": {
+        "requirements_supported": 2,
+        "requirements_addressed": 1,
+        "omitted_useful_evidence": [
+          "CAP Predictor"
+        ],
+        "invented_unsupported_indicators": [],
+        "keyword_stuffing": {
+          "counts": {
+            "data": 0,
+            "software": 1
+          },
+          "stuffing_risk": false,
+          "max_repeat": 1
+        }
+      },
+      "edits": {
+        "useful_rewrites": [],
+        "added_bullets": [],
+        "omitted_bullets": [
+          "Bachelor of Arts in Media Studies",
+          "Freelance Photographer / Videographer",
+          "Sales Representative / Sales Tech",
+          "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+          "Conduct in-person consultations.",
+          "Identify qualified leads.",
+          "Tailor proposals to homeowner needs and regional market conditions.",
+          "Packaging Associate / Warehouse Associate",
+          "Package handling",
+          "Efficiency in a high-volume operational environment",
+          "Alignment Technician",
+          "Vehicle alignment work",
+          "Tires",
+          "Shocks and struts",
+          "Brakes",
+          "Fluids",
+          "Customer relations",
+          "Moving Specialist / Installation Tech",
+          "Installed home appliances contracted through Lowe's",
+          "Server / Line Cook",
+          "Customer service",
+          "Order taking",
+          "High-volume food preparation",
+          "Shift Leader",
+          "Staff training",
+          "Task delegation",
+          "Team coordination during peak hours",
+          "Cashier",
+          "Register operations",
+          "Point-of-sale transactions",
+          "Customer service",
+          "Volunteer Teacher's Assistant",
+          "Classroom management",
+          "Lesson organization",
+          "Assisting lead instructors",
+          "Team Member",
+          "Currency and credit transactions",
+          "Fast-paced customer service",
+          "Customer retention",
+          "Public speaking",
+          "Verbal communication",
+          "Audience engagement",
+          "Writing",
+          "Performance",
+          "Adapting material based on audience response",
+          "Python",
+          "OCR",
+          "Image/document processing",
+          "Transcription",
+          "OCR tooling",
+          "Machine-learning experimentation",
+          "Human review workflows",
+          "Training-data preparation",
+          "Financial/news data",
+          "Data collection",
+          "Feature engineering",
+          "Sentiment analysis",
+          "Statistical/modeling experimentation",
+          "Data processing",
+          "Language-learning tools",
+          "Spaced repetition",
+          "Application architecture",
+          "Persistent data",
+          "CLI/application components",
+          "Website development",
+          "HTML/CSS/JavaScript",
+          "Server-side form handling",
+          "Qualification/submission workflow",
+          "Email notification integration",
+          "Processing exported social-media data",
+          "Filtering and retrieving relevant posts",
+          "Extracting useful information",
+          "Structured data",
+          "Media/comedy-oriented data processing"
+        ],
+        "reordered_count": 0,
+        "reordered_bullets": []
+      },
+      "output_resume_file": "data/experiments/local_model_bakeoff_v2_20260901_161955/job_7267/qwen3_1.7b_resume.txt"
+    },
+    {
+      "job_id": 7406,
+      "job_title": "Cloud Platform Engineer",
+      "model": "qwen3 local baseline",
+      "exact_identifier": "qwen3:1.7b",
+      "source": "Local Ollama inventory",
+      "size": "2.0B Q4_K_M (1.4GB)",
+      "inference_succeeded": false,
+      "inference_error": "ReadTimeout: timed out",
+      "inference_latency_ms": 369179,
+      "resource": {
+        "vm_available_mb_before": 432.5,
+        "vm_available_mb_after": 1362.88,
+        "vm_percent_before": 96.4,
+        "vm_percent_after": 88.7
+      },
+      "model_generated_content": {
+        "raw_response_file": "data/experiments/local_model_bakeoff_v2_20260901_161955/job_7406/qwen3_1.7b_raw.txt",
+        "parsed_json_file": "data/experiments/local_model_bakeoff_v2_20260901_161955/job_7406/qwen3_1.7b_json.json"
+      },
+      "deterministic_post_processing": {
+        "plan_valid": true,
+        "supported_requirements": 0,
+        "deterministic_guidance_file": "data/experiments/local_model_bakeoff_v2_20260901_161955/job_7406/deterministic_guidance.txt"
+      },
+      "validator": {
+        "passed": false,
+        "errors": [
+          "Missing required field: summary",
+          "Missing required field: skills",
+          "Missing required field: experience",
+          "Missing required field: education"
+        ],
+        "warnings": [
+          "Missing field: projects (optional, LLM may have folded into experience)"
+        ]
+      },
+      "judge": {
+        "passed": false,
+        "verdict": "FAIL",
+        "issues": "The tailored resume claims the professional identity \"Cloud Platform Engineer\" in the title. The candidate's actual employment history consists of roles in photography, sales, warehouse operations, automotive repair, and food service. None of these roles support the professional identity of an \"Engineer.\" Additionally, the resume includes \"Sunburn\" as a project, which is explicitly listed as an unfinished project in the instructions and therefore forbidden."
+      },
+      "grounding": {
+        "requirements_supported": 0,
+        "requirements_addressed": 2,
+        "omitted_useful_evidence": [],
+        "invented_unsupported_indicators": [],
+        "keyword_stuffing": {
+          "counts": {},
+          "stuffing_risk": false,
+          "max_repeat": 0
+        }
+      },
+      "edits": {
+        "useful_rewrites": [],
+        "added_bullets": [],
+        "omitted_bullets": [
+          "Bachelor of Arts in Media Studies",
+          "Freelance Photographer / Videographer",
+          "Sales Representative / Sales Tech",
+          "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+          "Conduct in-person consultations.",
+          "Identify qualified leads.",
+          "Tailor proposals to homeowner needs and regional market conditions.",
+          "Packaging Associate / Warehouse Associate",
+          "Package handling",
+          "Efficiency in a high-volume operational environment",
+          "Alignment Technician",
+          "Vehicle alignment work",
+          "Tires",
+          "Shocks and struts",
+          "Brakes",
+          "Fluids",
+          "Customer relations",
+          "Moving Specialist / Installation Tech",
+          "Installed home appliances contracted through Lowe's",
+          "Server / Line Cook",
+          "Customer service",
+          "Order taking",
+          "High-volume food preparation",
+          "Shift Leader",
+          "Staff training",
+          "Task delegation",
+          "Team coordination during peak hours",
+          "Cashier",
+          "Register operations",
+          "Point-of-sale transactions",
+          "Customer service",
+          "Volunteer Teacher's Assistant",
+          "Classroom management",
+          "Lesson organization",
+          "Assisting lead instructors",
+          "Team Member",
+          "Currency and credit transactions",
+          "Fast-paced customer service",
+          "Customer retention",
+          "Public speaking",
+          "Verbal communication",
+          "Audience engagement",
+          "Writing",
+          "Performance",
+          "Adapting material based on audience response",
+          "Python",
+          "OCR",
+          "Image/document processing",
+          "Transcription",
+          "OCR tooling",
+          "Machine-learning experimentation",
+          "Human review workflows",
+          "Training-data preparation",
+          "Financial/news data",
+          "Data collection",
+          "Feature engineering",
+          "Sentiment analysis",
+          "Statistical/modeling experimentation",
+          "Data processing",
+          "Language-learning tools",
+          "Spaced repetition",
+          "Application architecture",
+          "Persistent data",
+          "CLI/application components",
+          "Website development",
+          "HTML/CSS/JavaScript",
+          "Server-side form handling",
+          "Qualification/submission workflow",
+          "Email notification integration",
+          "Processing exported social-media data",
+          "Filtering and retrieving relevant posts",
+          "Extracting useful information",
+          "Structured data",
+          "Media/comedy-oriented data processing"
+        ],
+        "reordered_count": 0,
+        "reordered_bullets": []
+      },
+      "output_resume_file": "data/experiments/local_model_bakeoff_v2_20260901_161955/job_7406/qwen3_1.7b_resume.txt"
+    }
+  ],
+  "cloud_comparison": [
+    {
+      "job_id": 27323,
+      "model": "qwen3:1.7b",
+      "cloud_source": "data\\experiments\\ab_tailor_27323_pair5_20260901_154146\\pair4_A_deterministic.txt",
+      "local_requirements_addressed": 4,
+      "cloud_requirements_addressed": 7,
+      "delta_local_minus_cloud": -3,
+      "local_validator_pass": false,
+      "local_judge_pass": false,
+      "cloud_judge_pass": false,
+      "cloud_judge_verdict": "FAIL",
+      "notes": "Cloud comparison uses existing stored cloud output for this job (read-only)."
+    },
+    {
+      "job_id": 7267,
+      "model": "qwen3:1.7b",
+      "cloud_source": "C:\\Users\\phili\\Projects\\resume-agent\\data\\resumes\\applypilot\\Philip_McLaughlin_Software_Development_Engineer_74c9630f.txt",
+      "local_requirements_addressed": 1,
+      "cloud_requirements_addressed": 7,
+      "delta_local_minus_cloud": -6,
+      "local_validator_pass": false,
+      "local_judge_pass": false,
+      "cloud_judge_pass": false,
+      "cloud_judge_verdict": "FAIL",
+      "notes": "Cloud comparison uses existing stored cloud output for this job (read-only)."
+    },
+    {
+      "job_id": 7406,
+      "model": "qwen3:1.7b",
+      "cloud_source": "C:\\Users\\phili\\Projects\\resume-agent\\data\\resumes\\applypilot\\Philip_McLaughlin_Cloud_Platform_Engineer_1e7c9573.txt",
+      "local_requirements_addressed": 2,
+      "cloud_requirements_addressed": 8,
+      "delta_local_minus_cloud": -6,
+      "local_validator_pass": false,
+      "local_judge_pass": false,
+      "cloud_judge_pass": false,
+      "cloud_judge_verdict": "FAIL",
+      "notes": "Cloud comparison uses existing stored cloud output for this job (read-only)."
+    }
+  ],
+  "notes": [
+    "No production code edits, no DB writes, no commits.",
+    "Only models marked runnable_now=True were executed.",
+    "Judge is stochastic and provider-dependent; results captured as observed."
+  ],
+  "summary_table": [
+    {
+      "model": "TinyLlama Resume Tailor (1.1B LoRA)",
+      "exact_identifier": "akshayrinku/tinyllama-resume-tailor-lora",
+      "size": "1.1B base + LoRA adapter",
+      "jobs_tested": 0,
+      "successful": 0,
+      "avg_latency_ms": null,
+      "validator_pass": "0/0",
+      "judge_pass": "0/0",
+      "grounding_issues": 0,
+      "useful_tailoring": 0,
+      "omitted_evidence": 0,
+      "overall": "unavailable",
+      "availability_reason": "PEFT adapter only; requires Transformers+PEFT stack not installed in repo venv, and not directly loadable by Ollama."
+    },
+    {
+      "model": "T5-Base resume candidate (~220M)",
+      "exact_identifier": "Abhishek9998/t5-base-finetuned-resumes_t2json_large",
+      "size": "~220M",
+      "jobs_tested": 0,
+      "successful": 0,
+      "avg_latency_ms": null,
+      "validator_pass": "0/0",
+      "judge_pass": "0/0",
+      "grounding_issues": 0,
+      "useful_tailoring": 0,
+      "omitted_evidence": 0,
+      "overall": "unavailable",
+      "availability_reason": "Transformers checkpoint; local Transformers stack absent. Model card indicates t2json dataset fine-tune, not clearly this tailoring task."
+    },
+    {
+      "model": "GPT-Neo resume assistant candidate (~1.3B)",
+      "exact_identifier": null,
+      "size": "~1.3B target",
+      "jobs_tested": 0,
+      "successful": 0,
+      "avg_latency_ms": null,
+      "validator_pass": "0/0",
+      "judge_pass": "0/0",
+      "grounding_issues": 0,
+      "useful_tailoring": 0,
+      "omitted_evidence": 0,
+      "overall": "unavailable",
+      "availability_reason": "No resume-specific GPT-Neo candidate verified; generic GPT-Neo excluded per instructions."
+    },
+    {
+      "model": "Qwen2.5 Resume LoRA (~7B)",
+      "exact_identifier": "Ella0506/Qwen2.5-7B-Instruct-Resume-LoRA",
+      "size": "~7B base + LoRA adapter",
+      "jobs_tested": 0,
+      "successful": 0,
+      "avg_latency_ms": null,
+      "validator_pass": "0/0",
+      "judge_pass": "0/0",
+      "grounding_issues": 0,
+      "useful_tailoring": 0,
+      "omitted_evidence": 0,
+      "overall": "unavailable",
+      "availability_reason": "Adapter only, no direct Ollama run path, and 7B class on 12GB RAM CPU-only host is impractical/risky for stable test cycle."
+    },
+    {
+      "model": "qwen3 local baseline",
+      "exact_identifier": "qwen3:1.7b",
+      "size": "2.0B Q4_K_M (1.4GB)",
+      "jobs_tested": 3,
+      "successful": 0,
+      "avg_latency_ms": 369166.0,
+      "validator_pass": "0/3",
+      "judge_pass": "0/3",
+      "grounding_issues": 0,
+      "useful_tailoring": 0,
+      "omitted_evidence": 1,
+      "overall": "tested",
+      "availability_reason": "Installed and queryable via ollama show."
+    }
+  ],
+  "recommendations": [
+    {
+      "model": "TinyLlama Resume Tailor (1.1B LoRA)",
+      "exact_identifier": "akshayrinku/tinyllama-resume-tailor-lora",
+      "recommendation": "reject"
+    },
+    {
+      "model": "T5-Base resume candidate (~220M)",
+      "exact_identifier": "Abhishek9998/t5-base-finetuned-resumes_t2json_large",
+      "recommendation": "reject"
+    },
+    {
+      "model": "GPT-Neo resume assistant candidate (~1.3B)",
+      "exact_identifier": null,
+      "recommendation": "reject"
+    },
+    {
+      "model": "Qwen2.5 Resume LoRA (~7B)",
+      "exact_identifier": "Ella0506/Qwen2.5-7B-Instruct-Resume-LoRA",
+      "recommendation": "impractical on current hardware"
+    },
+    {
+      "model": "qwen3 local baseline",
+      "exact_identifier": "qwen3:1.7b",
+      "recommendation": "best local candidate"
+    }
+  ]
+}

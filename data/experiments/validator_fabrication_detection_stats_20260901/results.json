@@ -1,0 +1,130 @@
+{
+  "seed": 20260901,
+  "sample_size": 200,
+  "skipped": {
+    "skill": 0,
+    "date": 0,
+    "keyword_injection": 0
+  },
+  "conditions": {
+    "clean_false_positive": {
+      "n": 200,
+      "hits": 0,
+      "false_positive_rate": 0.0,
+      "ci_95": [
+        0.0,
+        0.0188
+      ],
+      "ci_99": [
+        0.0,
+        0.0321
+      ]
+    },
+    "skill": {
+      "n": 200,
+      "hits": 200,
+      "catch_rate": 1.0,
+      "ci_95": [
+        0.9812,
+        1.0
+      ],
+      "ci_99": [
+        0.9679,
+        1.0
+      ]
+    },
+    "date": {
+      "n": 200,
+      "hits": 200,
+      "catch_rate": 1.0,
+      "ci_95": [
+        0.9812,
+        1.0
+      ],
+      "ci_99": [
+        0.9679,
+        1.0
+      ]
+    },
+    "bare_header": {
+      "n": 200,
+      "hits": 200,
+      "catch_rate": 1.0,
+      "ci_95": [
+        0.9812,
+        1.0
+      ],
+      "ci_99": [
+        0.9679,
+        1.0
+      ]
+    },
+    "keyword_injection": {
+      "n": 200,
+      "hits": 199,
+      "catch_rate": 0.995,
+      "ci_95": [
+        0.9722,
+        0.9991
+      ],
+      "ci_99": [
+        0.9588,
+        0.9994
+      ]
+    }
+  },
+  "misses": {
+    "skill": [],
+    "keyword_injection": [
+      {
+        "job": "Application Support Engineer",
+        "variant": [
+          {
+            "header": "Sales Representative / Sales Tech at AMP Smart",
+            "subtitle": "2025-06 - 2025-07",
+            "bullets": [
+              "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+              "Conduct in-person consultations.",
+              "Identify qualified leads.",
+              "Tailor proposals to homeowner needs and regional market conditions."
+            ]
+          },
+          {
+            "header": "Packaging Associate / Warehouse Associate at UPS",
+            "subtitle": "2024-05 - 2025-04",
+            "bullets": [
+              "Package handling",
+              "Efficiency in a high-volume operational environment"
+            ]
+          },
+          {
+            "header": "Alignment Technician at National Tire and Battery / Mavis",
+            "subtitle": "2022-10 - 2023-11",
+            "bullets": [
+              "Vehicle alignment work",
+              "Tires, utilizing troubleshooting and configure to support ancestry.",
+              "Shocks and struts",
+              "Brakes"
+            ]
+          },
+          {
+            "header": "Moving Specialist / Installation Tech at Alex Prosperity Group / UST Logistics",
+            "subtitle": "2023-11 - 2024-01",
+            "bullets": [
+              "Installed home appliances contracted through Lowe's"
+            ]
+          },
+          {
+            "header": "Server / Line Cook at Waffle House",
+            "subtitle": "2019-05 - 2020-02",
+            "bullets": [
+              "Customer service",
+              "Order taking",
+              "High-volume food preparation"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

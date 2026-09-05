@@ -1,0 +1,122 @@
+{
+  "t5": {
+    "27323": {
+      "latency_s": 86.12,
+      "safety_check_meta": {
+        "violations": 0,
+        "violation_reasons": [],
+        "parse_failed": true,
+        "parse_error": "JSONDecodeError: Expecting value: line 1 column 1 (char 0)"
+      },
+      "raw_output_preview": "True",
+      "status": "local_realization_failed"
+    },
+    "7267": {
+      "latency_s": 1.39,
+      "safety_check_meta": {
+        "violations": 0,
+        "violation_reasons": [],
+        "parse_failed": true,
+        "parse_error": "JSONDecodeError: Expecting value: line 1 column 1 (char 0)"
+      },
+      "raw_output_preview": "True",
+      "status": "local_realization_failed"
+    },
+    "7406": {
+      "status": "no_supported_evidence",
+      "note": "no_supported_evidence (matches production gate -- model not invoked)"
+    },
+    "22916": {
+      "latency_s": 1.28,
+      "safety_check_meta": {
+        "violations": 0,
+        "violation_reasons": [],
+        "parse_failed": true,
+        "parse_error": "JSONDecodeError: Expecting value: line 1 column 1 (char 0)"
+      },
+      "raw_output_preview": "True",
+      "status": "local_realization_failed"
+    }
+  },
+  "tinyllama": {
+    "27323": {
+      "latency_s": 151.95,
+      "safety_check_meta": {
+        "violations": 2,
+        "violation_reasons": [
+          "Express_Engine: 'implementation'-tier claim exceeds evidence ceiling 'participation'",
+          "summary: 'design'-tier claim exceeds evidence ceiling 'participation'"
+        ],
+        "parse_failed": false
+      },
+      "raw_output_preview": "{\n  \"summary\": \"Engineering capability transfer value\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Express_Engine | action -> object -> context -> outcome | claim ceiling: participation | agency ceiling: individual_contributor | fact: Codes and programs enhancements, upd",
+      "status": "all_content_safety_rejected"
+    },
+    "7267": {
+      "latency_s": 96.32,
+      "safety_check_meta": {
+        "violations": 2,
+        "violation_reasons": [
+          "Express_Engine: 'implementation'-tier claim exceeds evidence ceiling 'participation'",
+          "CAP Predictor: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish"
+        ],
+        "parse_failed": false
+      },
+      "raw_output_preview": "{\"summary\": \"Engineering\", \"bullets\": [\n  {\n    \"evidence\": \"Express_Engine\",\n    \"text\": \"Express_Engine | shape: action -> object -> context -> outcome | claim ceiling: participation | agency ceiling: individual_contributor | fact: Participate in all aspects of software development activities incl",
+      "validator": {
+        "passed": false,
+        "errors": [
+          "Resume title 'Software Development Engineer' uses role word(s) (engineer) not supported by any of the candidate's authoritative job titles -- invented/upgraded professional title",
+          "Fabricated date placeholder in subtitle for 'Sales Consultant at AMP Smart': 'Sales | Dates not specified'",
+          "Fabricated date placeholder in subtitle for 'Alignment Technician at National Tire and Battery / Mavis': 'Technical Support | Dates not specified'",
+          "Fabricated date placeholder in subtitle for 'Package Handler at UPS': 'Operations | Dates not specified'",
+          "Fabricated date placeholder in subtitle for 'Installer at Alex Prosperity Group / UST Logistics': 'Installation | Dates not specified'",
+          "Fabricated date placeholder in subtitle for 'Server / Line Cook at Waffle House': 'Customer Service | Dates not specified'",
+          "Fabricated date placeholder in subtitle for 'Stand-up Comedian': 'Public Speaking | Dates not specified'",
+          "Fabricated date placeholder in subtitle for 'Standup-OCR - OCR Tooling and Image Processing': 'Python | Dates not specified'",
+          "Fabricated date placeholder in subtitle for 'CAP Predictor - Data Analytics and Feature Engineering': 'Python | Dates not specified'",
+          "Fabricated date placeholder in subtitle for 'You Power You - Web Development Project': 'HTML/CSS/JavaScript | Dates not specified'",
+          "Experience header for 'AMP Smart' uses title 'Sales Consultant', which is not supported by the authoritative title 'Sales Representative / Sales Tech' -- invented/upgraded job title"
+        ],
+        "warnings": [
+          "Possible claim-strength inflation: resume uses a team lead-tier agency verb (led/managed/supervised/directed/spearheaded) but no profile evidence item's own description supports that level of people/organizational authority"
+        ]
+      },
+      "resume_text_out_preview": "Philip McLaughlin\nSoftware Development Engineer\nphilipthegingermclaughlin@gmail.com | (919) 986-0337\n\nSUMMARY\nEngineering\n\nTECHNICAL SKILLS\nLanguages: Python\nTools: Photography, Videography, Web Design, Public Speaking, Customer Service, Outreach, Sales Consultations\n\nEXPERIENCE\nSales Consultant at AMP Smart\nSales | Dates not specified\n- Developed and implemented targeted outreach and sales strate",
+      "status": "failed_validation"
+    },
+    "7406": {
+      "status": "no_supported_evidence",
+      "note": "no_supported_evidence (matches production gate -- model not invoked)"
+    },
+    "22916": {
+      "latency_s": 124.24,
+      "safety_check_meta": {
+        "violations": 0,
+        "violation_reasons": [],
+        "parse_failed": false
+      },
+      "raw_output_preview": "{\n  \"summary\": \"General\",\n  \"bullets\": [\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Problem -> Action -> Result\"\n    },\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Design\"\n    },\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Individual_contributor\"\n    },\n    {\n   ",
+      "validator": {
+        "passed": false,
+        "errors": [
+          "Fabricated date placeholder in subtitle for 'Sales Consultant at AMP Smart': 'Sales | Dates not specified'",
+          "Fabricated date placeholder in subtitle for 'Alignment Technician at National Tire and Battery / Mavis': 'Technical Support | Dates not specified'",
+          "Fabricated date placeholder in subtitle for 'Package Handler at UPS': 'Operations | Dates not specified'",
+          "Fabricated date placeholder in subtitle for 'Installer at Alex Prosperity Group / UST Logistics': 'Installation | Dates not specified'",
+          "Fabricated date placeholder in subtitle for 'Server / Line Cook at Waffle House': 'Customer Service | Dates not specified'",
+          "Fabricated date placeholder in subtitle for 'Stand-up Comedian': 'Public Speaking | Dates not specified'",
+          "Fabricated date placeholder in subtitle for 'Standup-OCR - OCR Tooling and Image Processing': 'Python | Dates not specified'",
+          "Fabricated date placeholder in subtitle for 'CAP Predictor - Data Analytics and Feature Engineering': 'Python | Dates not specified'",
+          "Fabricated date placeholder in subtitle for 'You Power You - Web Development Project': 'HTML/CSS/JavaScript | Dates not specified'",
+          "Experience header for 'AMP Smart' uses title 'Sales Consultant', which is not supported by the authoritative title 'Sales Representative / Sales Tech' -- invented/upgraded job title"
+        ],
+        "warnings": [
+          "Possible claim-strength inflation: resume uses a team lead-tier agency verb (led/managed/supervised/directed/spearheaded) but no profile evidence item's own description supports that level of people/organizational authority"
+        ]
+      },
+      "resume_text_out_preview": "Philip McLaughlin\nHotel Partner Solutions Specialist\nphilipthegingermclaughlin@gmail.com | (919) 986-0337\n\nSUMMARY\nGeneral\n\nTECHNICAL SKILLS\nLanguages: Python\nTools: Photography, Videography, Web Design, Public Speaking, Customer Service, Outreach, Sales Consultations\n\nEXPERIENCE\nSales Consultant at AMP Smart\nSales | Dates not specified\n- Developed and implemented targeted outreach and sales strat",
+      "status": "failed_validation"
+    }
+  }
+}

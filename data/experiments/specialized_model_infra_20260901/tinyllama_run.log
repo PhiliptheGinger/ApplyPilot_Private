@@ -1,0 +1,25 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+C:\Users\phili\Projects\resume-agent\data\experiments\specialized_model_infra_20260901\venv\Lib\site-packages\huggingface_hub\file_download.py:141: UserWarning: `huggingface_hub` cache-system uses symlinks by default to efficiently store duplicated files but your machine does not support them in C:\Users\phili\.cache\huggingface\hub\models--TinyLlama--TinyLlama-1.1B-Chat-v1.0. Caching files will still work but in a degraded version that might require more space on your disk. This warning can be disabled by setting the `HF_HUB_DISABLE_SYMLINKS_WARNING` environment variable. For more details, see https://huggingface.co/docs/huggingface_hub/how-to-cache#limitations.
+To support symlinks on Windows, you either need to activate Developer Mode or to run Python as an administrator. In order to activate developer mode, see this article: https://docs.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development
+  warnings.warn(message)
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|##########| 201/201 [00:00<00:00, 7428.19it/s]
+C:\Users\phili\Projects\resume-agent\data\experiments\specialized_model_infra_20260901\venv\Lib\site-packages\huggingface_hub\file_download.py:141: UserWarning: `huggingface_hub` cache-system uses symlinks by default to efficiently store duplicated files but your machine does not support them in C:\Users\phili\.cache\huggingface\hub\models--akshayrinku--tinyllama-resume-tailor-lora. Caching files will still work but in a degraded version that might require more space on your disk. This warning can be disabled by setting the `HF_HUB_DISABLE_SYMLINKS_WARNING` environment variable. For more details, see https://huggingface.co/docs/huggingface_hub/how-to-cache#limitations.
+To support symlinks on Windows, you either need to activate Developer Mode or to run Python as an administrator. In order to activate developer mode, see this article: https://docs.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development
+  warnings.warn(message)
+[transformers] Both `max_new_tokens` (=200) and `max_length`(=2048) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+{
+  "base_model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+  "adapter_id": "akshayrinku/tinyllama-resume-tailor-lora",
+  "sample_input": "Rewrite this resume bullet to be more concise, using only facts already present -- do not invent anything:\nAlignment Technician at National Tire and Battery / Mavis. Performed vehicle alignment and maintenance tasks including tires, shocks, struts, brakes, and fluids. Provided hands-on technical troubleshooting and customer service to ensure vehicle safety and satisfaction.",
+  "dtype": "bfloat16 (fp32 would need ~4.4GB, not available on this machine)",
+  "load_succeeded": true,
+  "load_tokenizer_s": 3.95,
+  "load_base_model_s": 218.34,
+  "load_adapter_s": 3.68,
+  "base_param_count": 1103112192,
+  "adapter_kept_separate": true,
+  "inference_succeeded": true,
+  "inference_latency_s": 28.83,
+  "output_text": "Alignment Technician at National Tire and Battery / Mavis, where I performed vehicle alignment and maintenance tasks, including tires, shocks, struts, brakes, and fluids. I provided hands-on technical troubleshooting and customer service to ensure vehicle safety and satisfaction.",
+  "total_wall_s": 254.8
+}

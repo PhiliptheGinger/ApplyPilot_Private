@@ -1,0 +1,230 @@
+{
+  "overall": {
+    "github": {
+      "old": [
+        14,
+        0
+      ],
+      "new": [
+        12,
+        0
+      ]
+    },
+    "non_github": {
+      "old": [
+        102,
+        0
+      ],
+      "new": [
+        95,
+        0
+      ]
+    }
+  },
+  "flagged_examples": [
+    {
+      "model": "qwen3",
+      "prompt": "old",
+      "job": "Research Engineer, Codex",
+      "evidence": "AMP Smart",
+      "text": "Partnered with Codex, API/platform, ChatGPT, and general-agent product teams to translate product signals into model improvements, focusing on product.",
+      "injected_terms": [
+        "chatgpt",
+        "codex",
+        "general-agent",
+        "improvements",
+        "model"
+      ]
+    },
+    {
+      "model": "qwen3",
+      "prompt": "old",
+      "job": "Research Engineer, Codex",
+      "evidence": "National Tire and Battery / Mavis",
+      "text": "Worked on early-training and alignment interventions, including data mixtures, objectives, synthetic data, and eval loops that shaped downstream agent behavior, focusing on alignment and work.",
+      "injected_terms": [
+        "agent",
+        "behavior",
+        "data",
+        "downstream",
+        "early-training"
+      ]
+    },
+    {
+      "model": "qwen3",
+      "prompt": "new",
+      "job": "Research Engineer, Codex",
+      "evidence": "AMP Smart",
+      "text": "Partnered with Codex, API/platform, ChatGPT, and general-agent product teams to understand what users need and translate product signal into model improvements.",
+      "injected_terms": [
+        "chatgpt",
+        "codex",
+        "general-agent",
+        "improvements.",
+        "model"
+      ]
+    },
+    {
+      "model": "qwen3",
+      "prompt": "new",
+      "job": "Research Engineer, Codex",
+      "evidence": "National Tire and Battery / Mavis",
+      "text": "Worked on early-training and alignment interventions, including data mixtures, objectives, synthetic data, and eval loops that shape downstream agent behavior.",
+      "injected_terms": [
+        "agent",
+        "behavior.",
+        "data",
+        "downstream",
+        "early-training"
+      ]
+    },
+    {
+      "model": "qwen3",
+      "prompt": "old",
+      "job": "Data Engineer",
+      "evidence": "Waffle House",
+      "text": "Engage with multiple teams and contribute on key decisions by coordinating cross-functional initiatives to align data engineering efforts with business objectives.",
+      "injected_terms": [
+        "align",
+        "business",
+        "contribute",
+        "cross-functional",
+        "data"
+      ]
+    },
+    {
+      "model": "qwen3",
+      "prompt": "old",
+      "job": "Data Engineer",
+      "evidence": "National Tire and Battery / Mavis",
+      "text": "Provide solutions to problems for their immediate team and across multiple teams by mentoring junior team members to enhance their technical skills and project contributions.",
+      "injected_terms": [
+        "contributions.",
+        "enhance",
+        "immediate",
+        "junior",
+        "members"
+      ]
+    },
+    {
+      "model": "qwen3",
+      "prompt": "old",
+      "job": "Data Engineer",
+      "evidence": "National Tire and Battery / Mavis",
+      "text": "Coordinate cross-functional initiatives to align data engineering efforts with business objectives by providing solutions to problems for their immediate team and across multiple teams.",
+      "injected_terms": [
+        "align",
+        "business",
+        "coordinate",
+        "cross-functional",
+        "data"
+      ]
+    },
+    {
+      "model": "qwen3",
+      "prompt": "old",
+      "job": "Data Engineer",
+      "evidence": "CAP Predictor",
+      "text": "Coordinate cross-functional initiatives to align data engineering efforts with business objectives by ensuring participation in data analytics through proficiency in Databricks Unified Data Analytics Platform.",
+      "injected_terms": [
+        "align",
+        "business",
+        "coordinate",
+        "cross-functional",
+        "databricks"
+      ]
+    },
+    {
+      "model": "qwen3",
+      "prompt": "old",
+      "job": "Data Engineer",
+      "evidence": "CAP Predictor",
+      "text": "Ensure participation in data analytics through proficiency in Databricks Unified Data Analytics Platform by coordinating cross-functional initiatives to align data engineering efforts with business objectives.",
+      "injected_terms": [
+        "align",
+        "business",
+        "cross-functional",
+        "databricks",
+        "efforts"
+      ]
+    },
+    {
+      "model": "qwen3",
+      "prompt": "new",
+      "job": "Data Engineer",
+      "evidence": "National Tire and Battery / Mavis",
+      "text": "Solved problems for their immediate team and across multiple teams, enhancing data-driven decision-making.",
+      "injected_terms": [
+        "immediate",
+        "multiple",
+        "teams"
+      ]
+    },
+    {
+      "model": "qwen3",
+      "prompt": "new",
+      "job": "Data Engineer",
+      "evidence": "National Tire and Battery / Mavis",
+      "text": "Mentored junior team members to enhance their technical skills and project contributions, fostering a collaborative environment.",
+      "injected_terms": [
+        "enhance",
+        "junior",
+        "members",
+        "project"
+      ]
+    },
+    {
+      "model": "qwen3",
+      "prompt": "new",
+      "job": "Data Engineer",
+      "evidence": "CAP Predictor",
+      "text": "Coordinate cross-functional initiatives to align data engineering efforts with business objectives, ensuring data accuracy and efficiency.",
+      "injected_terms": [
+        "align",
+        "business",
+        "coordinate",
+        "cross-functional",
+        "efforts"
+      ]
+    },
+    {
+      "model": "qwen3",
+      "prompt": "new",
+      "job": "Data Engineer",
+      "evidence": "CAP Predictor",
+      "text": "Must have skills in Databricks Unified Data Analytics Platform, enabling effective data processing and analysis.",
+      "injected_terms": [
+        "databricks",
+        "must",
+        "platform",
+        "unified"
+      ]
+    },
+    {
+      "model": "qwen3",
+      "prompt": "old",
+      "job": "System Engineer",
+      "evidence": "UPS",
+      "text": "Monitored systems performance, identified bottlenecks, and recommended upgrades to improve system efficiency and reliability.",
+      "injected_terms": [
+        "system",
+        "systems",
+        "upgrades"
+      ]
+    },
+    {
+      "model": "qwen3",
+      "prompt": "old",
+      "job": "System Engineer",
+      "evidence": "AMP Smart",
+      "text": "Provided support to OD users, assisting with troubleshooting and diagnosis of enterprise systems issues, ensuring smooth system operation.",
+      "injected_terms": [
+        "diagnosis",
+        "enterprise",
+        "issues",
+        "system",
+        "systems"
+      ]
+    }
+  ]
+}

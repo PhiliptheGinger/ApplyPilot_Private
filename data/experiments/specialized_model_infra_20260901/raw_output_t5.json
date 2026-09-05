@@ -1,0 +1,24 @@
+{
+  "model_key": "t5",
+  "jobs": {
+    "27323": {
+      "raw_output": "True",
+      "latency_s": 86.12,
+      "succeeded": true
+    },
+    "7267": {
+      "raw_output": "True",
+      "latency_s": 1.39,
+      "succeeded": true
+    },
+    "7406": {
+      "skipped": "no_supported_evidence (matches production gate -- model not invoked)"
+    },
+    "22916": {
+      "raw_output": "True",
+      "latency_s": 1.28,
+      "succeeded": true
+    }
+  },
+  "total_wall_s": 88.8
+}

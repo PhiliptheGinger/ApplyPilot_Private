@@ -1,0 +1,879 @@
+{
+  "profile_schema_version": 2,
+  "source_policy": {
+    "canonical_source": "data/profile.json",
+    "principle": "Store everything factual; select only what is relevant and defensible.",
+    "legacy_resume_files": [
+      "data/resumes/resume_technical.txt",
+      "data/resumes/resume_communication.txt"
+    ],
+    "legacy_resume_usage": "Reference evidence only; do not treat either file as a complete or authoritative profile."
+  },
+  "personal": {
+    "full_name": "Philip McLaughlin",
+    "preferred_name": "Philip",
+    "email": "philipthegingermclaughlin@gmail.com",
+    "phone": "(919) 986-0337",
+    "address": "3750 Mebane Rogers Road",
+    "city": "Mebane",
+    "province_state": "NC",
+    "postal_code": "27302",
+    "county": "Alamance County",
+    "country": "United States"
+  },
+  "education": [
+    {
+      "institution": "University of North Carolina at Greensboro",
+      "official_degree": "Bachelor of Arts in Media Studies",
+      "field_of_study": "Media Studies",
+      "start_year": 2019,
+      "end_year": 2022,
+      "gpa": 3.25,
+      "minor": null,
+      "concentration": null,
+      "honors": null,
+      "application_aliases": [
+        "Media Studies",
+        "Media",
+        "Film"
+      ],
+      "alias_policy": "Aliases are for application dropdown/category matching only and must not replace the official degree title."
+    }
+  ],
+  "experience": {
+    "years_of_experience_total": "",
+    "education_level": "Bachelor of Arts in Media Studies",
+    "current_job_title": "",
+    "current_company": "",
+    "target_role": ""
+  },
+  "experience_inventory": [
+    {
+      "name": "Freelance Photography / Videography",
+      "start_date": "2021-08",
+      "end_date": null,
+      "location": "",
+      "role_title": "Freelance Photographer / Videographer",
+      "role_type": "freelance experience",
+      "resume_allowed": true,
+      "relevance_categories": [
+        "media",
+        "content",
+        "communications",
+        "creative"
+      ],
+      "evidence_level": "demonstrated experience",
+      "description": "Competent use of DSLR equipment, multiple lenses, and off-camera lighting for photography and videography. Keep claims modest; do not describe extensive professional photography experience, a large portfolio, or expert-level photography."
+    },
+    {
+      "name": "AMP Smart",
+      "start_date": "2025-06",
+      "end_date": "2025-07",
+      "location": "North Carolina",
+      "role_title": "Sales Representative / Sales Tech",
+      "role_type": "outreach and sales",
+      "resume_allowed": true,
+      "relevance_categories": [
+        "sales",
+        "customer-facing",
+        "communications",
+        "outreach"
+      ],
+      "evidence_level": "work experience",
+      "responsibilities": [
+        "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+        "Conduct in-person consultations.",
+        "Identify qualified leads.",
+        "Tailor proposals to homeowner needs and regional market conditions."
+      ],
+      "constraints": [
+        "Do not invent sales metrics, conversion rates, revenue, quota attainment, or customer counts."
+      ]
+    },
+    {
+      "name": "UPS",
+      "start_date": "2024-05",
+      "end_date": "2025-04",
+      "location": "",
+      "role_title": "Packaging Associate / Warehouse Associate",
+      "role_type": "operations",
+      "resume_allowed": true,
+      "relevance_categories": [
+        "operations",
+        "high-volume work",
+        "reliability"
+      ],
+      "evidence_level": "work experience",
+      "responsibilities": [
+        "Package handling",
+        "Efficiency in a high-volume operational environment"
+      ],
+      "constraints": [
+        "Do not describe this as logistics management or supply-chain management."
+      ]
+    },
+    {
+      "name": "National Tire and Battery / Mavis",
+      "start_date": "2022-10",
+      "end_date": "2023-11",
+      "location": "Greensboro, NC",
+      "role_title": "Alignment Technician",
+      "resume_allowed": true,
+      "relevance_categories": [
+        "technical support",
+        "hands-on troubleshooting",
+        "customer service",
+        "automotive"
+      ],
+      "evidence_level": "work experience",
+      "responsibilities": [
+        "Vehicle alignment work",
+        "Tires",
+        "Shocks and struts",
+        "Brakes",
+        "Fluids",
+        "Customer relations"
+      ],
+      "constraints": [
+        "Do not invent certifications or advanced automotive expertise."
+      ]
+    },
+    {
+      "name": "Alex Prosperity Group / UST Logistics",
+      "start_date": "2023-11",
+      "end_date": "2024-01",
+      "location": "",
+      "role_title": "Moving Specialist / Installation Tech",
+      "role_type": "installation",
+      "resume_allowed": true,
+      "relevance_categories": [
+        "customer-facing",
+        "hands-on work",
+        "installation"
+      ],
+      "evidence_level": "work experience",
+      "responsibilities": [
+        "Installed home appliances contracted through Lowe's"
+      ],
+      "constraints": [
+        "Do not invent project-management responsibilities."
+      ]
+    },
+    {
+      "name": "Waffle House",
+      "start_date": "2019-05",
+      "end_date": "2020-02",
+      "location": "Apex, NC / Greensboro, NC",
+      "role_title": "Server / Line Cook",
+      "resume_allowed": true,
+      "relevance_categories": [
+        "customer service",
+        "high-volume operations",
+        "food service"
+      ],
+      "evidence_level": "work experience",
+      "responsibilities": [
+        "Customer service",
+        "Order taking",
+        "High-volume food preparation"
+      ]
+    }
+  ],
+  "historical_experience_inventory": [
+    {
+      "name": "Cold Stone Creamery",
+      "start_date": "2016-03",
+      "end_date": "2018-02",
+      "location": "Apex, NC",
+      "role_title": "Shift Leader",
+      "resume_allowed": true,
+      "default_selection": "selectively_include",
+      "relevance_categories": [
+        "leadership",
+        "training",
+        "customer service"
+      ],
+      "responsibilities": [
+        "Staff training",
+        "Task delegation",
+        "Team coordination during peak hours"
+      ]
+    },
+    {
+      "name": "Lowe's Foods",
+      "start_date": "circa 2016",
+      "end_date": "circa 2017",
+      "location": "Apex, NC",
+      "role_title": "Cashier",
+      "resume_allowed": true,
+      "default_selection": "selectively_include",
+      "relevance_categories": [
+        "customer service",
+        "point of sale",
+        "operations"
+      ],
+      "responsibilities": [
+        "Register operations",
+        "Point-of-sale transactions",
+        "Customer service"
+      ],
+      "date_precision": "circa"
+    },
+    {
+      "name": "Raleigh Little Theatre",
+      "start_date": "2017-11",
+      "end_date": "2017-11",
+      "location": "Raleigh, NC",
+      "role_title": "Volunteer Teacher's Assistant",
+      "resume_allowed": true,
+      "default_selection": "selectively_include",
+      "relevance_categories": [
+        "education",
+        "communication",
+        "theatre",
+        "classroom support"
+      ],
+      "responsibilities": [
+        "Classroom management",
+        "Lesson organization",
+        "Assisting lead instructors"
+      ]
+    },
+    {
+      "name": "McDonald's",
+      "start_date": "2018-03",
+      "end_date": "2019-01",
+      "location": "Apex, NC",
+      "role_title": "Team Member",
+      "resume_allowed": true,
+      "default_selection": "selectively_include",
+      "relevance_categories": [
+        "customer service",
+        "high-volume operations",
+        "transactions"
+      ],
+      "responsibilities": [
+        "Currency and credit transactions",
+        "Fast-paced customer service",
+        "Customer retention"
+      ]
+    }
+  ],
+  "qualifications": [
+    {
+      "name": "Stand-up comedy",
+      "resume_allowed": true,
+      "default_selection": "selectively_include",
+      "approximate_duration_years": 10,
+      "relevance_categories": [
+        "communications",
+        "media",
+        "public speaking",
+        "marketing",
+        "content",
+        "entertainment",
+        "customer-facing communication",
+        "creative"
+      ],
+      "evidence_level": "demonstrated experience",
+      "evidence": [
+        "Public speaking",
+        "Verbal communication",
+        "Audience engagement",
+        "Writing",
+        "Performance",
+        "Adapting material based on audience response"
+      ],
+      "constraints": [
+        "Do not describe the candidate as a touring, nationally recognized, published, paid-headliner, or television comedian unless separately documented.",
+        "Do not include automatically on technical resumes."
+      ]
+    }
+  ],
+  "certifications": [
+    {
+      "name": "CompTIA A+",
+      "official_credential_description": "CompTIA A+ Core 1 and Core 2 Certification Exams",
+      "exam_codes": [
+        "220-1201",
+        "220-1202"
+      ],
+      "status": "verified",
+      "earned_date": "2026-06-29",
+      "valid_through": "2029-06-29",
+      "verification_url": "http://verify.CompTIA.org",
+      "certificate_id": "COMP001023050683",
+      "source_file": "data/certifications/CompTIA A+ ce certificate.pdf",
+      "resume_allowed": true,
+      "relevance_categories": [
+        "technical support",
+        "IT",
+        "help desk",
+        "desktop support"
+      ],
+      "constraints": [
+        "Do not add other certifications or CS50."
+      ]
+    }
+  ],
+  "project_inventory": [
+    {
+      "name": "Standup-OCR",
+      "status": "completed_or_active_status_needs_confirmation",
+      "resume_allowed": true,
+      "relevance_categories": [
+        "Python",
+        "OCR",
+        "automation",
+        "media technology",
+        "image/document processing"
+      ],
+      "evidence_level": "technical project experience",
+      "factual_concepts": [
+        "Python",
+        "OCR",
+        "Image/document processing",
+        "Transcription",
+        "OCR tooling",
+        "Machine-learning experimentation",
+        "Human review workflows",
+        "Training-data preparation"
+      ],
+      "constraints": [
+        "Do not claim production deployment, commercial users, enterprise adoption, accuracy percentages, revenue, or business impact without explicit evidence."
+      ]
+    },
+    {
+      "name": "CAP Predictor",
+      "status": "technical_research_project",
+      "resume_allowed": true,
+      "relevance_categories": [
+        "Python",
+        "data",
+        "analytics",
+        "research",
+        "quantitative",
+        "feature engineering"
+      ],
+      "evidence_level": "technical project experience",
+      "factual_concepts": [
+        "Financial/news data",
+        "Data collection",
+        "Feature engineering",
+        "Sentiment analysis",
+        "Statistical/modeling experimentation",
+        "Data processing"
+      ],
+      "constraints": [
+        "Do not claim profitable trading, a successful investment strategy, prediction accuracy, financial returns, production deployment, or users."
+      ]
+    },
+    {
+      "name": "Express_Engine",
+      "status": "language_learning_software_project",
+      "resume_allowed": true,
+      "relevance_categories": [
+        "Python",
+        "software",
+        "automation",
+        "educational technology",
+        "language technology"
+      ],
+      "evidence_level": "technical project experience",
+      "factual_concepts": [
+        "Language-learning tools",
+        "Spaced repetition",
+        "Application architecture",
+        "Persistent data",
+        "CLI/application components"
+      ],
+      "constraints": [
+        "Do not represent this as professional software-engineering employment."
+      ]
+    },
+    {
+      "name": "You Power You",
+      "status": "web_project",
+      "resume_allowed": true,
+      "relevance_categories": [
+        "web",
+        "digital media",
+        "communications",
+        "marketing",
+        "customer-facing technical"
+      ],
+      "evidence_level": "project experience",
+      "factual_concepts": [
+        "Website development",
+        "HTML/CSS/JavaScript",
+        "Server-side form handling",
+        "Qualification/submission workflow",
+        "Email notification integration"
+      ],
+      "constraints": [
+        "Do not describe the candidate as an experienced professional full-stack engineer based on this project."
+      ]
+    },
+    {
+      "name": "I_hate_social_media",
+      "status": "social_media_data_processing_project",
+      "resume_allowed": true,
+      "relevance_categories": [
+        "media",
+        "social media",
+        "data processing",
+        "research",
+        "communications"
+      ],
+      "evidence_level": "project experience",
+      "factual_concepts": [
+        "Processing exported social-media data",
+        "Filtering and retrieving relevant posts",
+        "Extracting useful information",
+        "Structured data",
+        "Media/comedy-oriented data processing"
+      ]
+    },
+    {
+      "name": "Sunburn",
+      "status": "unfinished_experimental",
+      "resume_allowed": true,
+      "default_selection": "selectively_include",
+      "relevance_categories": [
+        "advertising technology",
+        "marketing technology",
+        "targeting",
+        "experimentation"
+      ],
+      "evidence_level": "unfinished project experience",
+      "constraints": [
+        "Never describe as successfully deployed.",
+        "Never invent metrics, users, revenue, conversion rates, engagement, or campaign results."
+      ]
+    },
+    {
+      "name": "ApplyPilot",
+      "status": "private",
+      "private": true,
+      "resume_allowed": false,
+      "default_selection": "exclude",
+      "relevance_categories": [
+        "private automation"
+      ],
+      "constraints": [
+        "Never include in resumes, cover letters, public portfolios, or application answers by default.",
+        "Do not use its technical stack as general resume skills."
+      ]
+    }
+  ],
+  "skills_inventory": [
+    {
+      "name": "Python",
+      "evidence_level": "demonstrated_project_use",
+      "proficiency": "learning_developing",
+      "resume_allowed": true,
+      "relevance_categories": [
+        "technical",
+        "automation",
+        "data",
+        "OCR"
+      ]
+    },
+    {
+      "name": "APIs",
+      "evidence_level": "learning_or_exposure",
+      "proficiency": "learning",
+      "resume_allowed": false,
+      "relevance_categories": [
+        "technical"
+      ]
+    },
+    {
+      "name": "REST",
+      "evidence_level": "learning_or_exposure",
+      "proficiency": "learning",
+      "resume_allowed": false,
+      "relevance_categories": [
+        "technical"
+      ]
+    },
+    {
+      "name": "JSON",
+      "evidence_level": "learning_or_exposure",
+      "proficiency": "learning",
+      "resume_allowed": false,
+      "relevance_categories": [
+        "technical"
+      ]
+    },
+    {
+      "name": "Scripting",
+      "evidence_level": "learning_or_exposure",
+      "proficiency": "learning",
+      "resume_allowed": false,
+      "relevance_categories": [
+        "technical",
+        "automation"
+      ]
+    },
+    {
+      "name": "Docker",
+      "evidence_level": "learning_or_exposure",
+      "proficiency": "learning",
+      "resume_allowed": false,
+      "relevance_categories": [
+        "technical",
+        "infrastructure"
+      ]
+    },
+    {
+      "name": "Photography",
+      "evidence_level": "demonstrated_experience",
+      "proficiency": "competent",
+      "resume_allowed": true,
+      "relevance_categories": [
+        "media",
+        "content",
+        "creative"
+      ]
+    },
+    {
+      "name": "Videography",
+      "evidence_level": "demonstrated_experience",
+      "proficiency": "competent",
+      "resume_allowed": true,
+      "relevance_categories": [
+        "media",
+        "content",
+        "creative"
+      ]
+    },
+    {
+      "name": "Web Design",
+      "evidence_level": "existing_resume_claim",
+      "proficiency": "unspecified",
+      "resume_allowed": true,
+      "relevance_categories": [
+        "web",
+        "media"
+      ]
+    }
+  ],
+  "skills_boundary": {
+    "demonstrated_projects": [
+      "Python"
+    ],
+    "media_creative": [
+      "Photography",
+      "Videography",
+      "Web Design"
+    ],
+    "communication": [
+      "Public speaking",
+      "Customer service",
+      "Outreach",
+      "Sales consultations"
+    ],
+    "learning_or_exposure_not_expertise": [
+      "APIs",
+      "REST",
+      "JSON",
+      "Scripting",
+      "Docker"
+    ]
+  },
+  "resume_facts": {
+    "preserved_companies": [
+      "AMP Smart",
+      "UPS",
+      "National Tire and Battery / Mavis",
+      "Alex Prosperity Group / UST Logistics",
+      "Waffle House"
+    ],
+    "preserved_projects": [
+      "Standup-OCR",
+      "CAP Predictor",
+      "Express_Engine",
+      "You Power You",
+      "I_hate_social_media",
+      "Sunburn"
+    ],
+    "preserved_school": "University of North Carolina at Greensboro",
+    "official_degree": "Bachelor of Arts in Media Studies",
+    "real_metrics": [],
+    "certifications": [
+      "CompTIA A+"
+    ],
+    "title_variants": {},
+    "private_projects": [
+      "ApplyPilot"
+    ],
+    "unfinished_projects": [
+      "Sunburn"
+    ]
+  },
+  "application_profile": {
+    "work_authorization": {
+      "authorized_to_work_us": true,
+      "requires_sponsorship": false
+    },
+    "location": {
+      "current_city": "Mebane",
+      "current_state": "NC",
+      "preferred_work_arrangement": "remote",
+      "willing_onsite": true,
+      "willing_hybrid": true,
+      "willing_to_relocate": true,
+      "relocation_preference": "North Carolina",
+      "willing_to_travel": true,
+      "travel_preference": "North Carolina",
+      "preferred_commute_minutes": 30,
+      "has_reliable_transportation": true,
+      "has_drivers_license": true
+    },
+    "employment": {
+      "earliest_start_date": "ASAP",
+      "preferred_employment_type": "full_time",
+      "open_to_other_employment_types": true
+    },
+    "background_check": {
+      "willing": true
+    },
+    "languages": {
+      "spanish": {
+        "cefr": "B1-B2"
+      }
+    },
+    "online_profiles": {
+      "website": "https://philiptheginger.github.io/",
+      "github": "https://github.com/PhiliptheGinger",
+      "linkedin": "https://www.linkedin.com/in/philip-m-2711b613a"
+    },
+    "compensation": {
+      "desired_salary": null,
+      "strategy": "job_specific",
+      "requires_human_review_when_insufficient_data": true
+    }
+  },
+  "employment_history": [
+    {
+      "exact_employer_name": "AMP Smart",
+      "job_title": "Sales Representative / Sales Tech",
+      "start_date": "2025-06",
+      "end_date": "2025-07",
+      "address": "North Carolina (Regional/Field Outreach)",
+      "city": "North Carolina",
+      "state": "NC",
+      "postal_code": null,
+      "supervisor_name": "Mike Womble",
+      "supervisor_phone": "(727) 488-7637",
+      "supervisor_email": null,
+      "may_contact_employer": true,
+      "reason_for_leaving": "Short-term sales role / End of seasonal outreach contract",
+      "employment_type": "full_time",
+      "starting_salary": null,
+      "ending_salary": "commission only",
+      "salary_currency": null,
+      "source": "user-provided"
+    },
+    {
+      "exact_employer_name": "United Parcel Service (UPS)",
+      "job_title": "Packaging Associate / Warehouse Associate",
+      "start_date": "2024-05",
+      "end_date": "2025-04",
+      "address": "UPS Distribution Center employee entrance / warehouse on Sen. Ralph Scott Pkwy",
+      "city": "Mebane",
+      "state": "NC",
+      "postal_code": null,
+      "supervisor_name": "Tyler",
+      "supervisor_phone": null,
+      "supervisor_email": null,
+      "may_contact_employer": true,
+      "reason_for_leaving": "Career transition / End of employment period",
+      "employment_type": "full_time",
+      "starting_salary": "23.50",
+      "ending_salary": "23.50",
+      "salary_currency": "USD",
+      "source": "user-provided"
+    },
+    {
+      "exact_employer_name": "National Tire and Battery / Mavis Discount Tire",
+      "job_title": "Alignment Technician",
+      "start_date": "2022-10",
+      "end_date": "2023-11",
+      "address": "105 College Road",
+      "city": "Greensboro",
+      "state": "NC",
+      "postal_code": "27410",
+      "supervisor_name": null,
+      "supervisor_phone": null,
+      "supervisor_email": null,
+      "may_contact_employer": true,
+      "reason_for_leaving": "Career advancement",
+      "employment_type": "full_time",
+      "starting_salary": "14.50",
+      "ending_salary": "14.50",
+      "salary_currency": "USD",
+      "source": "user-provided"
+    },
+    {
+      "exact_employer_name": "Alex Prosperity Group (UST Logistics)",
+      "job_title": "Moving Specialist / Installation Tech",
+      "start_date": "2023-11",
+      "end_date": "2024-01",
+      "address": "720 Pegg Road",
+      "city": "High Point",
+      "state": "NC",
+      "postal_code": "27409",
+      "supervisor_name": null,
+      "supervisor_phone": null,
+      "supervisor_email": null,
+      "may_contact_employer": true,
+      "reason_for_leaving": "End of seasonal installation contract",
+      "employment_type": "full_time/contract",
+      "starting_salary": null,
+      "ending_salary": null,
+      "salary_currency": null,
+      "source": "user-provided"
+    },
+    {
+      "exact_employer_name": "Waffle House, Inc.",
+      "job_title": "Server / Line Cook",
+      "start_date": "2019-05",
+      "end_date": "2020-02",
+      "address": "1417 E Williams St / Gate City Blvd",
+      "city": "Apex / Greensboro",
+      "state": "NC",
+      "postal_code": "27502",
+      "supervisor_name": "Apex Manager",
+      "supervisor_phone": "(910) 882-1702",
+      "supervisor_email": null,
+      "may_contact_employer": true,
+      "reason_for_leaving": "Relocation / Transition to studies",
+      "employment_type": "part_time",
+      "starting_salary": "4.25",
+      "ending_salary": "4.25",
+      "salary_currency": "USD",
+      "source": "user-provided"
+    },
+    {
+      "exact_employer_name": "Waffle House, Inc.",
+      "job_title": null,
+      "start_date": "2025-07",
+      "end_date": "2026-01",
+      "address": null,
+      "city": null,
+      "state": null,
+      "postal_code": null,
+      "supervisor_name": null,
+      "supervisor_phone": null,
+      "supervisor_email": null,
+      "may_contact_employer": null,
+      "reason_for_leaving": null,
+      "employment_type": null,
+      "starting_salary": null,
+      "ending_salary": null,
+      "salary_currency": null,
+      "source": "user-provided"
+    },
+    {
+      "exact_employer_name": "Cold Stone Creamery",
+      "job_title": "Shift Leader",
+      "start_date": "2016-03",
+      "end_date": "2018-02",
+      "address": "2050 Creekside Landing Dr",
+      "city": "Apex",
+      "state": "NC",
+      "postal_code": "27502",
+      "supervisor_name": null,
+      "supervisor_phone": null,
+      "supervisor_email": null,
+      "may_contact_employer": true,
+      "reason_for_leaving": "Transitioned to new employment opportunity",
+      "employment_type": "part_time",
+      "starting_salary": "7.25",
+      "ending_salary": "7.75",
+      "salary_currency": "USD",
+      "source": "user-provided"
+    },
+    {
+      "exact_employer_name": "Lowes Foods, LLC",
+      "job_title": "Cashier - LFS",
+      "start_date": "2016-01",
+      "end_date": "circa 2017",
+      "address": "5400 Apex Peakway",
+      "city": "Apex",
+      "state": "NC",
+      "postal_code": "27502",
+      "supervisor_name": null,
+      "supervisor_phone": null,
+      "supervisor_email": null,
+      "may_contact_employer": true,
+      "reason_for_leaving": "Transitioned to Shift Leader role at Cold Stone Creamery",
+      "employment_type": "part_time",
+      "starting_salary": "7.25",
+      "ending_salary": null,
+      "salary_currency": "USD",
+      "source": "user-provided"
+    },
+    {
+      "exact_employer_name": "McDonald's Corporation",
+      "job_title": "Team Member",
+      "start_date": "2018-03",
+      "end_date": "2019-01",
+      "address": "1305 E Williams St",
+      "city": "Apex",
+      "state": "NC",
+      "postal_code": "27502",
+      "store_phone": "919-303-1200",
+      "supervisor_name": null,
+      "supervisor_phone": null,
+      "supervisor_email": null,
+      "may_contact_employer": true,
+      "reason_for_leaving": "Transitioned to Waffle House",
+      "employment_type": "part_time",
+      "starting_salary": "7.25",
+      "ending_salary": null,
+      "salary_currency": "USD",
+      "source": "user-provided"
+    },
+    {
+      "exact_employer_name": "Raleigh Little Theatre",
+      "job_title": "Volunteer Teacher's Assistant",
+      "start_date": "2017-11",
+      "end_date": "2017-11",
+      "address": "301 Pogue St",
+      "city": "Raleigh",
+      "state": "NC",
+      "postal_code": "27607",
+      "supervisor_name": null,
+      "supervisor_phone": null,
+      "supervisor_email": null,
+      "may_contact_employer": true,
+      "reason_for_leaving": "Volunteer assignment completion",
+      "employment_type": "volunteer/part_time",
+      "starting_salary": "0.00",
+      "ending_salary": "0.00",
+      "salary_currency": "USD",
+      "source": "user-provided"
+    }
+  ],
+  "references": [],
+  "voluntary_eeo": {
+    "gender": "male",
+    "race": "white",
+    "hispanic_latino": false,
+    "veteran_status": "not_a_veteran",
+    "disability_status": "yes_past_or_present",
+    "note": "These voluntary EEO fields are application-only and must not appear on resumes."
+  },
+  "resume_policy": {
+    "selection_rule": "The resume is a truthful selection of the most relevant evidence for the job, not a biography.",
+    "omit_irrelevant_items": true,
+    "historical_experience_selectable": true,
+    "projects_selectable": true,
+    "standup_selectable": true,
+    "private_projects_default_excluded": true,
+    "learning_is_not_expertise": true
+  }
+}

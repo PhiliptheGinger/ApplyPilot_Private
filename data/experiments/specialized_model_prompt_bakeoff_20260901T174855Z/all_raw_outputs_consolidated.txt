@@ -1,0 +1,895 @@
+====================================================================================================
+MODEL: qwen3:1.7b (temp=0.3)
+====================================================================================================
+--- job 7267 / config native ---
+[latency=181.23s chars=0]
+
+
+--- job 7267 / config rewrite ---
+[latency=37.38s chars=279]
+- Ensured data consistency and validation through cleaning and normalization of financial and news datasets  
+- Implemented validation checks to maintain data consistency across predictive models  
+- Automated data validation processes to ensure consistency in analysis workflows
+
+--- job 7267 / config plan ---
+[latency=86.37s chars=0]
+
+
+--- job 22916 / config native ---
+[latency=117.46s chars=0]
+
+
+--- job 22916 / config rewrite ---
+[latency=65.98s chars=0]
+
+
+--- job 22916 / config plan ---
+[latency=80.05s chars=1293]
+EXPERIENCE  
+Sales Consultant at AMP Smart | Sales | Dates not specified  
+- Developed and implemented targeted outreach and sales strategies for residential solar solutions, increasing qualified lead identification.  
+- Conducted in-person consultations to assess homeowner needs and tailor proposals accordingly.  
+- Customized sales proposals based on regional market conditions and customer requirements.  
+- Maintained customer relationships to support ongoing sales and service efforts.  
+
+Alignment Technician at National Tire and Battery / Mavis | Technical Support | Dates not specified  
+- Performed vehicle alignment and maintenance tasks including tires, shocks, struts, brakes, and fluids.  
+- Provided hands-on technical troubleshooting and customer service to ensure vehicle safety and satisfaction.  
+- Managed customer relations through clear communication and service explanations.  
+- Maintained operational efficiency in a fast-paced automotive environment.  
+
+Package Handler at UPS | Operations | Dates not specified  
+- Handled package sorting and logistics in a high-volume operational setting.  
+- Maintained efficiency and reliability to meet tight delivery schedules.  
+- Supported team efforts to optimize workflow and reduce errors.  
+- Ensured adherence to safety
+
+--- job 27323 / config native ---
+[latency=124.24s chars=1004]
+**Philip McLaughlin**  
+**Software Development Engineer**  
+philipthegingermclaughlin@gmail.com | (919) 986-0337  
+
+---
+
+### **SUMMARY**  
+Experienced software developer with a foundation in Python and software engineering principles. Skilled in building scalable solutions and conducting data analysis to improve user experiences. Effective communicator with a background in customer-facing roles and public speaking.  
+
+---
+
+### **TECHNICAL SKILLS**  
+- **Languages**: Python, JavaScript, HTML/CSS  
+- **Tools**: Software development (Git, CI/CD), data analysis (Pandas, NumPy), cloud platforms (AWS, Azure), version control (Git)  
+- **Soft Skills**: Collaboration, communication, problem-solving, teamwork  
+
+---
+
+### **EXPERIENCE**  
+
+**Software Development Engineer**  
+*Alex Prosperity Group / UST Logistics*  
+*Installation | Dates not specified*  
+- Developed Python scripts for home appliance installation, focusing on user experience and quality control.  
+- Collaborated with cross-functional
+
+====================================================================================================
+MODEL: qwen2.5:3b (temp=0.3)
+====================================================================================================
+--- job 7267 / config native ---
+[latency=225.86s chars=3853]
+**Philip McLaughlin**
+**Software Development Engineer**
+**philipthegingermclaughlin@gmail.com | (919) 986-0337**
+
+**SUMMARY**
+Experienced in software development with a strong foundation in Python and software engineering principles. Skilled in building scalable solutions and conducting data analysis to improve user experiences. Effective communicator with experience in customer-facing roles and public speaking.
+
+**TECHNICAL SKILLS**
+- Languages: Python
+- Frameworks: Java, Spring Framework
+- Tools: AWS, New Relic, Splunk
+- Databases: SQL
+- Technologies: RESTful services, Microservices Architecture
+- Data Analysis: Data experimentation and analysis
+
+**EXPERIENCE**
+
+**Software Development Engineer at Adobe**
+**Subscription Life Cycle Services (SLS) Team** | **Full-time** | **Dates not specified**
+- Participated in all aspects of software development activities including design, coding, code review, unit-testing, integration testing, and bug fixing.
+- Worked independently to design and deliver medium to complex functionality.
+- Collaborated with team members to build a scalable and high-performance solution with low operational overhead.
+- Worked with multi-functional team members to ensure a superb end-to-end user experience for our customers.
+- Fast prototyping of ideas and concepts, and researching the latest industry trends.
+- Built features that make our products easier to use, and helped track metrics and formulate ideas to improve and increase adoption.
+- Performed analysis and experimentation for the data flowing through different systems/services.
+- Built a data consistency and validation feature in delivering high-quality data.
+
+**Sales Consultant at AMP Smart**
+**Sales** | **Dates not specified**
+- Developed and implemented targeted outreach and sales strategies for residential solar solutions, increasing qualified lead identification.
+- Conducted in-person consultations to assess homeowner needs and tailor proposals accordingly.
+- Customized sales proposals based on regional market conditions and customer requirements.
+- Maintained customer relationships to support ongoing sales and service efforts.
+
+**Alignment Technician at National Tire and Battery / Mavis**
+**Technical Support** | **Dates not specified**
+- Performed vehicle alignment and maintenance tasks including tires, shocks, struts, brakes, and fluids.
+- Provided hands-on technical troubleshooting and customer service to ensure vehicle safety and satisfaction.
+- Managed customer relations through clear communication and service explanations.
+- Maintained operational efficiency in a fast-paced automotive environment.
+
+**Package Handler at UPS**
+**Operations** | **Dates not specified**
+- Handled package sorting and logistics in a high-volume operational setting.
+- Maintained efficiency and reliability to meet tight delivery schedules.
+- Supported team efforts to optimize workflow and reduce errors.
+- Ensured adherence to safety and quality standards.
+
+**Installer at Alex Prosperity Group / UST Logistics**
+**Installation** | **Dates not specified**
+- Installed home appliances contracted through Lowe's with attention to detail and customer satisfaction.
+- Coordinated installation schedules and ensured proper setup and functionality.
+- Communicated effectively with customers to explain appliance operation and maintenance.
+- Maintained quality standards and resolved installation issues promptly.
+
+**Server / Line Cook at Waffle House**
+**Customer Service** | **Dates not specified**
+- Provided high-volume customer service including order taking and food preparation.
+- Managed multiple tasks efficiently during peak hours to maintain service quality.
+- Handled customer interactions with professionalism and responsiveness.
+- Contributed to team coordination to ensure smooth operations.
+
+**Stand-up Comedian**
+**Public Speaking
+
+--- job 7267 / config rewrite ---
+[latency=12.72s chars=369]
+- Built a data validation system to ensure consistency across financial and news datasets used for sentiment analysis and modeling.
+- Developed automated feature engineering and statistical validation pipelines to maintain data quality for predictive analytics.
+- Implemented data consistency checks in data processing pipelines to guarantee high-quality data delivery.
+
+--- job 7267 / config plan ---
+[latency=51.35s chars=1240]
+EXPERIENCE
+Sales Consultant at AMP Smart
+Sales | Dates not specified
+- Developed and implemented targeted outreach and sales strategies for residential solar solutions, increasing qualified lead identification.
+- Conducted in-person consultations to assess homeowner needs and tailor proposals accordingly.
+- Customized sales proposals based on regional market conditions and customer requirements.
+- Maintained customer relationships to support ongoing sales and service efforts.
+
+Installer at Alex Prosperity Group / UST Logistics
+Installation | Dates not specified
+- Installed home appliances contracted through Lowe's with attention to detail and customer satisfaction.
+- Coordinated installation schedules and ensured proper setup and functionality.
+- Communicated effectively with customers to explain appliance operation and maintenance.
+- Resolved installation issues promptly to ensure quality standards.
+
+Package Handler at UPS
+Operations | Dates not specified
+- Handled package sorting and logistics in a high-volume operational setting.
+- Maintained efficiency and reliability to meet tight delivery schedules.
+- Supported team efforts to optimize workflow and reduce errors.
+- Ensured adherence to safety and quality standards.
+
+--- job 22916 / config native ---
+[latency=149.35s chars=3268]
+**Philip McLaughlin**
+**Software Development Engineer**
+**philipthegingermclaughlin@gmail.com** | **(919) 986-0337**
+
+**SUMMARY**
+Experienced in Python programming with a strong foundation in software development principles. Skilled in building scalable solutions and conducting data analysis to improve user experiences. Effective communicator with experience in customer-facing roles and public speaking.
+
+**TECHNICAL SKILLS**
+- Languages: Python
+- Tools: Web Development (HTML, CSS, JavaScript), Data Analysis, Optical Character Recognition (OCR)
+
+**EXPERIENCE**
+**Hotel Partner Solutions Specialist at Expedia Group**
+- Assisted with issue or incident investigations by gathering and documenting necessary information.
+- Identified, researched, tested, and escalated bugs to the appropriate team for resolution.
+- Translated data analysis and findings into accessible visuals to identify chronic issues or product opportunities.
+- Understood how to proceed with collecting data on customer and employee satisfaction, and supported the data collection and analysis process.
+- Applied technical expertise to resolve service and system disruptions in coordination with technical teams.
+- Recommended interim and long-term solutions to complex problems to ensure successful resolution; guided the analysis of a problem all the way to a successful resolution.
+- Contacted required resources both inside and outside the company as necessary to resolve the problem.
+- Developed/maintained support documentation for use by all levels of support personnel.
+- Identified simple known patterns (a figure, object, word, or sound) that are hidden in other distracting material and understood opportunities for improving services and/or products.
+- Confirmed comprehension and understanding of complex information (e.g., legal, operational risk, and regulatory data) by correctly and clearly answering routine questions.
+- Created clear, concise, and organized communication materials (e.g., policies & procedures, guidelines, presentations, messages).
+- Considered and understood the audiences' specific needs and comprehension level to determine opportunities for improving services and/or products.
+
+**PROJECTS**
+**Standup-OCR - Optical Character Recognition Tooling and Image Processing**
+- Developed Python scripts for optical character recognition and transcription of images and documents.
+- Implemented human review workflows and training-data preparation to improve accuracy.
+- Experimented with machine learning techniques to enhance OCR performance.
+
+**CAP Predictor - Data Analytics and Feature Engineering**
+- Collected and processed financial and news data for sentiment analysis and modeling.
+- Engineered features and conducted statistical experimentation to support predictive analytics.
+- Automated data processing pipelines to streamline analysis workflows.
+
+**You Power You - Web Development Project**
+- Built a website with server-side form handling and email notification integration.
+- Designed qualification and submission workflows to support user interactions.
+- Implemented front-end and back-end components to enhance user experience.
+
+**EDUCATION**
+**University of North Carolina at Greensboro**
+- Bachelor of Arts in Media Studies
+- Graduated: 2022
+
+--- job 22916 / config rewrite ---
+[latency=14.53s chars=330]
+- Identified and escalated bugs in data processing pipelines to the appropriate development team for resolution.
+- Conducted thorough testing of engineered features to identify and report bugs to the relevant team.
+- Escalated issues found during sentiment analysis and modeling to the appropriate stakeholders for bug resolution.
+
+--- job 22916 / config plan ---
+[latency=66.74s chars=1828]
+EXPERIENCE
+Sales Consultant at AMP Smart
+Sales | Dates not specified
+- Developed and implemented targeted outreach and sales strategies for residential solar solutions, increasing qualified lead identification.
+- Conducted in-person consultations to assess homeowner needs and tailor proposals accordingly.
+- Customized sales proposals based on regional market conditions and customer requirements.
+- Maintained customer relationships to support ongoing sales and service efforts.
+
+Translator at Mavis (National Tire and Battery)
+Technical Support | Dates not specified
+- Performed vehicle alignment and maintenance tasks including tires, shocks, struts, brakes, and fluids.
+- Provided hands-on technical troubleshooting and customer service to ensure vehicle safety and satisfaction.
+- Managed customer relations through clear communication and service explanations.
+- Maintained operational efficiency in a fast-paced automotive environment.
+
+Data Analyst at UST Logistics
+Data Analysis | Dates not specified
+- Conducted data analysis and findings to identify customer and employee satisfaction trends.
+- Created accessible visuals to communicate data insights and highlight chronic issues or product opportunities.
+- Supported the data collection and analysis process by gathering relevant data from various sources.
+- Escalated identified issues to the appropriate teams for resolution.
+
+Installer at Alex Prosperity Group / UST Logistics
+Installation | Dates not specified
+- Installed home appliances contracted through Lowe's with attention to detail and customer satisfaction.
+- Coordinated installation schedules and ensured proper setup and functionality.
+- Communicated effectively with customers to explain appliance operation and maintenance.
+- Maintained quality standards and resolved installation issues promptly.
+
+--- job 27323 / config native ---
+[latency=166.71s chars=4005]
+**Philip McLaughlin**
+**Software Development Engineer**
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+**SUMMARY**
+Experienced in Python programming with a strong foundation in software development principles. Skilled in building scalable solutions and conducting data analysis to improve user experiences. Effective communicator with experience in customer-facing roles and public speaking.
+
+**TECHNICAL SKILLS**
+Languages: Python
+Tools: None listed
+
+**EXPERIENCE**
+**Sales Consultant at AMP Smart**
+**Sales** | Dates not specified
+- Developed and implemented targeted outreach and sales strategies for residential solar solutions, increasing qualified lead identification.
+- Conducted in-person consultations to assess homeowner needs and tailor proposals accordingly.
+- Customized sales proposals based on regional market conditions and customer requirements.
+- Maintained customer relationships to support ongoing sales and service efforts.
+
+**Alignment Technician at National Tire and Battery / Mavis**
+**Technical Support** | Dates not specified
+- Performed vehicle alignment and maintenance tasks including tires, shocks, struts, brakes, and fluids.
+- Provided hands-on technical troubleshooting and customer service to ensure vehicle safety and satisfaction.
+- Managed customer relations through clear communication and service explanations.
+- Maintained operational efficiency in a fast-paced automotive environment.
+
+**Package Handler at UPS**
+**Operations** | Dates not specified
+- Handled package sorting and logistics in a high-volume operational setting.
+- Maintained efficiency and reliability to meet tight delivery schedules.
+- Supported team efforts to optimize workflow and reduce errors.
+- Ensured adherence to safety and quality standards.
+
+**Installer at Alex Prosperity Group / UST Logistics**
+**Installation** | Dates not specified
+- Installed home appliances contracted through Lowe's with attention to detail and customer satisfaction.
+- Coordinated installation schedules and ensured proper setup and functionality.
+- Communicated effectively with customers to explain appliance operation and maintenance.
+- Maintained quality standards and resolved installation issues promptly.
+
+**Server / Line Cook at Waffle House**
+**Customer Service** | Dates not specified
+- Provided high-volume customer service including order taking and food preparation.
+- Managed multiple tasks efficiently during peak hours to maintain service quality.
+- Handled customer interactions with professionalism and responsiveness.
+- Contributed to team coordination to ensure smooth operations.
+
+**Stand-up Comedian**
+**Public Speaking** | Dates not specified
+- Delivered live performances requiring clear verbal communication and audience engagement.
+- Adapted material dynamically based on audience response to maintain interest.
+- Developed skills in public speaking, storytelling, and performance under pressure.
+- Enhanced ability to communicate complex ideas in an accessible and entertaining manner.
+
+**PROJECTS**
+**Standup-OCR - OCR Tooling and Image Processing**
+**Python** | Dates not specified
+- Developed Python scripts for optical character recognition and transcription of images and documents.
+- Implemented human review workflows and training-data preparation to improve accuracy.
+- Experimented with machine learning techniques to enhance OCR performance.
+
+**CAP Predictor - Data Analytics and Feature Engineering**
+**Python** | Dates not specified
+- Collected and processed financial and news data for sentiment analysis and modeling.
+- Engineered features and conducted statistical experimentation to support predictive analytics.
+- Automated data processing pipelines to streamline analysis workflows.
+
+**You Power You - Web Development Project**
+**HTML/CSS/JavaScript** | Dates not specified
+- Built a website with server-side form handling and email notification integration.
+- Designed qualification and submission workflows to support user interactions.
+- Implemented front
+
+====================================================================================================
+MODEL: hf.co/ahmadd46/apex-resume-qwen-3b:Q4_K_M (temp=0.3)
+====================================================================================================
+--- job 7267 / config native ---
+[latency=213.92s chars=4081]
+Philip McLaughlin
+Software Development Engineer
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Experienced in Python programming with a strong foundation in software development principles. Skilled in building scalable solutions and conducting data analysis to improve user experiences. Effective communicator with experience in customer-facing roles and public speaking.
+
+TECHNICAL SKILLS
+Languages: Python
+Tools: Photography, Videography, Web Design, Public Speaking, Customer Service, Outreach, Sales Consultations
+
+EXPERIENCE
+Sales Consultant at AMP Smart
+Sales | Dates not specified
+- Developed and implemented targeted outreach and sales strategies for residential solar solutions, increasing qualified lead identification.
+- Conducted in-person consultations to assess homeowner needs and tailor proposals accordingly.
+- Customized sales proposals based on regional market conditions and customer requirements.
+- Maintained customer relationships to support ongoing sales and service efforts.
+
+Alignment Technician at National Tire and Battery / Mavis
+Technical Support | Dates not specified
+- Performed vehicle alignment and maintenance tasks including tires, shocks, struts, brakes, and fluids.
+- Provided hands-on technical troubleshooting and customer service to ensure vehicle safety and satisfaction.
+- Managed customer relations through clear communication and service explanations.
+- Maintained operational efficiency in a fast-paced automotive environment.
+
+Package Handler at UPS
+Operations | Dates not specified
+- Handled package sorting and logistics in a high-volume operational setting.
+- Maintained efficiency and reliability to meet tight delivery schedules.
+- Supported team efforts to optimize workflow and reduce errors.
+- Ensured adherence to safety and quality standards.
+
+Installer at Alex Prosperity Group / UST Logistics
+Installation | Dates not specified
+- Installed home appliances contracted through Lowe's with attention to detail and customer satisfaction.
+- Coordinated installation schedules and ensured proper setup and functionality.
+- Communicated effectively with customers to explain appliance operation and maintenance.
+- Maintained quality standards and resolved installation issues promptly.
+
+Server / Line Cook at Waffle House
+Customer Service | Dates not specified
+- Provided high-volume customer service including order taking and food preparation.
+- Managed multiple tasks efficiently during peak hours to maintain service quality.
+- Handled customer interactions with professionalism and responsiveness.
+- Contributed to team coordination to ensure smooth operations.
+
+Stand-up Comedian
+Public Speaking | Dates not specified
+- Delivered live performances requiring clear verbal communication and audience engagement.
+- Adapted material dynamically based on audience response to maintain interest.
+- Developed skills in public speaking, storytelling, and performance under pressure.
+- Enhanced ability to communicate complex ideas in an accessible and entertaining manner.
+
+PROJECTS
+Standup-OCR - OCR Tooling and Image Processing
+Python | Dates not specified
+- Developed Python scripts for optical character recognition and transcription of images and documents.
+- Implemented human review workflows and training-data preparation to improve accuracy.
+- Experimented with machine learning techniques to enhance OCR performance.
+
+CAP Predictor - Data Analytics and Feature Engineering
+Python | Dates not specified
+- Collected and processed financial and news data for sentiment analysis and modeling.
+- Engineered features and conducted statistical experimentation to support predictive analytics.
+- Automated data processing pipelines to streamline analysis workflows.
+
+You Power You - Web Development Project
+HTML/CSS/JavaScript | Dates not specified
+- Built a website with server-side form handling and email notification integration.
+- Designed qualification and submission workflows to support user interactions.
+- Implemented front-end and back-end components to enhance user experience.
+
+EDUCATION
+University of
+
+--- job 7267 / config rewrite ---
+[latency=11.65s chars=260]
+- Collected and processed financial and news data for sentiment analysis and validation.
+- Engineered features and conducted statistical experimentation to validate predictive analytics.
+- Automated data processing pipelines to streamline validation workflows.
+
+--- job 7267 / config plan ---
+[latency=45.94s chars=941]
+EXPERIENCE
+Sales Consultant at AMP Smart
+Sales | Dates not specified
+- Developed and implemented targeted outreach and sales strategies for residential solar solutions, increasing qualified lead identification.
+- Conducted in-person consultations to assess homeowner needs and tailor proposals accordingly.
+- Customized sales proposals based on regional market conditions and customer requirements.
+- Maintained customer relationships to support ongoing sales and service efforts.
+
+Tailor: emphasize this requirement using only the evidence above.
+
+Package Handler at UPS
+Operations | Dates not specified
+- Handled package sorting and logistics in a high-volume operational setting.
+- Maintained efficiency and reliability to meet tight delivery schedules.
+- Supported team efforts to optimize workflow and reduce errors.
+- Ensured adherence to safety and quality standards.
+
+Tailor: emphasize this requirement using only the evidence above.
+
+--- job 22916 / config native ---
+[latency=158.08s chars=4056]
+Philip McLaughlin
+Software Development Engineer
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Experienced in Python programming with a strong foundation in software development principles. Skilled in building scalable solutions and conducting data analysis to improve user experiences. Effective communicator with experience in customer-facing roles and public speaking.
+
+TECHNICAL SKILLS
+Languages: Python
+Tools: Photography, Videography, Web Design, Public Speaking, Customer Service, Outreach, Sales Consultations
+
+EXPERIENCE
+Sales Consultant at AMP Smart
+Sales | Dates not specified
+- Developed and implemented targeted outreach and sales strategies for residential solar solutions, increasing qualified lead identification.
+- Conducted in-person consultations to assess homeowner needs and tailor proposals accordingly.
+- Customized sales proposals based on regional market conditions and customer requirements.
+- Maintained customer relationships to support ongoing sales and service efforts.
+
+Alignment Technician at National Tire and Battery / Mavis
+Technical Support | Dates not specified
+- Performed vehicle alignment and maintenance tasks including tires, shocks, struts, brakes, and fluids.
+- Provided hands-on technical troubleshooting and customer service to ensure vehicle safety and satisfaction.
+- Managed customer relations through clear communication and service explanations.
+- Maintained operational efficiency in a fast-paced automotive environment.
+
+Package Handler at UPS
+Operations | Dates not specified
+- Handled package sorting and logistics in a high-volume operational setting.
+- Maintained efficiency and reliability to meet tight delivery schedules.
+- Supported team efforts to optimize workflow and reduce errors.
+- Ensured adherence to safety and quality standards.
+
+Installer at Alex Prosperity Group / UST Logistics
+Installation | Dates not specified
+- Installed home appliances contracted through Lowe's with attention to detail and customer satisfaction.
+- Coordinated installation schedules and ensured proper setup and functionality.
+- Communicated effectively with customers to explain appliance operation and maintenance.
+- Maintained quality standards and resolved installation issues promptly.
+
+Server / Line Cook at Waffle House
+Customer Service | Dates not specified
+- Provided high-volume customer service including order taking and food preparation.
+- Managed multiple tasks efficiently during peak hours to maintain service quality.
+- Handled customer interactions with professionalism and responsiveness.
+- Contributed to team coordination to ensure smooth operations.
+
+Stand-up Comedian
+Public Speaking | Dates not specified
+- Delivered live performances requiring clear verbal communication and audience engagement.
+- Adapted material dynamically based on audience response to maintain interest.
+- Developed skills in public speaking, storytelling, and performance under pressure.
+- Enhanced ability to communicate complex ideas in an accessible and entertaining manner.
+
+PROJECTS
+Standup-OCR - OCR Tooling and Image Processing
+Python | Dates not specified
+- Developed Python scripts for optical character recognition and transcription of images and documents.
+- Implemented human review workflows and training-data preparation to improve accuracy.
+- Experimented with machine learning techniques to enhance OCR performance.
+
+CAP Predictor - Data Analytics and Feature Engineering
+Python | Dates not specified
+- Collected and processed financial and news data for sentiment analysis and modeling.
+- Engineered features and conducted statistical experimentation to support predictive analytics.
+- Automated data processing pipelines to streamline analysis workflows.
+
+You Power You - Web Development Project
+HTML/CSS/JavaScript | Dates not specified
+- Built a website with server-side form handling and email notification integration.
+- Designed qualification and submission workflows to support user interactions.
+- Implemented front-end and back-end components to enhance user experience.
+
+--- job 22916 / config rewrite ---
+[latency=11.22s chars=357]
+- Identified and escalated financial and news data issues to the appropriate team for resolution.
+- Engineered features and conducted statistical experimentation to test and escalate bugs to the appropriate team for resolution.
+- Automated data processing pipelines to streamline analysis workflows and escalated bugs to the appropriate team for resolution.
+
+--- job 22916 / config plan ---
+[latency=54.02s chars=1245]
+EXPERIENCE
+Sales Consultant at AMP Smart
+Sales | Dates not specified
+- Developed and implemented targeted outreach and sales strategies for residential solar solutions, increasing qualified lead identification.
+- Conducted in-person consultations to assess homeowner needs and tailor proposals accordingly.
+- Customized sales proposals based on regional market conditions and customer requirements.
+- Maintained customer relationships to support ongoing sales and service efforts.
+
+Package Handler at UPS
+Operations | Dates not specified
+- Handled package sorting and logistics in a high-volume operational setting.
+- Maintained efficiency and reliability to meet tight delivery schedules.
+- Supported team efforts to optimize workflow and reduce errors.
+- Ensured adherence to safety and quality standards.
+
+Installer at Alex Prosperity Group / UST Logistics
+Installation | Dates not specified
+- Installed home appliances contracted through Lowe's with attention to detail and customer satisfaction.
+- Coordinated installation schedules and ensured proper setup and functionality.
+- Communicated effectively with customers to explain appliance operation and maintenance.
+- Maintained quality standards and resolved installation issues promptly.
+
+--- job 27323 / config native ---
+[latency=145.36s chars=3042]
+Philip McLaughlin
+Software Development Engineer
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Experienced in Python programming with a strong foundation in software development principles. Skilled in building scalable solutions and conducting data analysis to improve user experiences. Effective communicator with experience in customer-facing roles and public speaking.
+
+TECHNICAL SKILLS
+Languages: Python
+Tools: Photography, Videography, Web Design, Public Speaking, Customer Service, Outreach, Sales Consultations
+
+EXPERIENCE
+Sales Consultant at AMP Smart
+Sales | Dates not specified
+- Developed and implemented targeted outreach and sales strategies for residential solar solutions, increasing qualified lead identification.
+- Conducted in-person consultations to assess homeowner needs and tailor proposals accordingly.
+- Customized sales proposals based on regional market conditions and customer requirements.
+- Maintained customer relationships to support ongoing sales and service efforts.
+
+Alignment Technician at National Tire and Battery / Mavis
+Technical Support | Dates not specified
+- Performed vehicle alignment and maintenance tasks including tires, shocks, struts, brakes, and fluids.
+- Provided hands-on technical troubleshooting and customer service to ensure vehicle safety and satisfaction.
+- Managed customer relations through clear communication and service explanations.
+- Maintained operational efficiency in a fast-paced automotive environment.
+
+Installer at Alex Prosperity Group / UST Logistics
+Installation | Dates not specified
+- Installed home appliances contracted through Lowe's with attention to detail and customer satisfaction.
+- Coordinated installation schedules and ensured proper setup and functionality.
+- Communicated effectively with customers to explain appliance operation and maintenance.
+- Maintained quality standards and resolved installation issues promptly.
+
+CAP Predictor - Data Analytics and Feature Engineering
+Python | Dates not specified
+- Collected and processed financial and news data for sentiment analysis and modeling.
+- Engineered features and conducted statistical experimentation to support predictive analytics.
+- Automated data processing pipelines to streamline analysis workflows.
+
+PROJECTS
+Standup-OCR - OCR Tooling and Image Processing
+Python | Dates not specified
+- Developed Python scripts for optical character recognition and transcription of images and documents.
+- Implemented human review workflows and training-data preparation to improve accuracy.
+- Experimented with machine learning techniques to enhance OCR performance.
+
+You Power You - Web Development Project
+HTML/CSS/JavaScript | Dates not specified
+- Built a website with server-side form handling and email notification integration.
+- Designed qualification and submission workflows to support user interactions.
+- Implemented front-end and back-end components to enhance user experience.
+
+EDUCATION
+University of North Carolina at Greensboro
+Bachelor of Arts in Media Studies
+2019-2022
+
+====================================================================================================
+MODEL: hf.co/abhaykanjoor/iteratecv-llama-3.2-3b-gguf:latest (temp=0.3)
+====================================================================================================
+--- job 7267 / config native ---
+[latency=189.51s chars=2364]
+Here is the rewritten resume tailored to the Software Development Engineer position:
+
+Philip McLaughlin
+Software Development Engineer
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Dedicated Software Development Engineer with over 5 years of experience in software engineering. Proven ability to plan, design, develop, and test software systems, with a strong foundation in Python programming and data analysis. Adept at collaborating with cross-functional teams to deliver scalable and high-performance solutions.
+
+TECHNICAL SKILLS
+Languages: Python
+Tools: Data Analysis, Machine Learning, RESTful Services, Databases (SQL), Agile Software Development
+
+EXPERIENCE
+Stand-up Comedian
+Public Speaking | Dates not specified
+- Delivered live performances requiring clear verbal communication and audience engagement.
+- Adapted material dynamically based on audience response to maintain interest.
+- Developed skills in public speaking, storytelling, and performance under pressure.
+
+Stand-up-OCR - OCR Tooling and Image Processing
+Python | Dates not specified
+- Developed Python scripts for optical character recognition and transcription of images and documents.
+- Implemented human review workflows and training-data preparation to improve accuracy.
+- Experimented with machine learning techniques to enhance OCR performance.
+
+CAP Predictor - Data Analytics and Feature Engineering
+Python | Dates not specified
+- Collected and processed financial and news data for sentiment analysis and modeling.
+- Engineered features and conducted statistical experimentation to support predictive analytics.
+- Automated data processing pipelines to streamline analysis workflows.
+
+You Power You - Web Development Project
+HTML/CSS/JavaScript | Dates not specified
+- Built a website with server-side form handling and email notification integration.
+- Designed qualification and submission workflows to support user interactions.
+- Implemented front-end and back-end components to enhance user experience.
+
+ALIGNMENT TECHNIQUES
+- Conducted data analysis and experimentation to improve software performance and user experience.
+- Built RESTful services to support scalable and high-performance solutions.
+- Utilized databases and SQL for data management and validation.
+
+EDUCATION
+University of North Carolina at Greensboro
+Bachelor of Arts in Media Studies
+2019-2022
+
+--- job 7267 / config rewrite ---
+[latency=13.47s chars=294]
+Rewritten bullet points:
+- Built a data consistency and validation feature to ensure high-quality data delivery.
+- Conducted statistical experimentation to validate data accuracy and support predictive analytics.
+- Automated data processing pipelines to maintain data integrity and consistency.
+
+--- job 7267 / config plan ---
+[latency=118.73s chars=3851]
+EXPERIENCE
+Sales Consultant at AMP Smart
+Sales | Dates not specified
+- Developed targeted outreach and sales strategies for residential solar solutions, focusing on delivering high-quality data to support sales efforts.
+- Conducted in-person consultations to assess homeowner needs and tailor proposals accordingly, ensuring data accuracy and relevance.
+- Customized sales proposals based on regional market conditions and customer requirements, emphasizing data consistency and validation.
+- Maintained customer relationships to support ongoing sales and service efforts, ensuring data integrity and effective communication.
+
+Alignment Technician at National Tire and Battery / Mavis
+Technical Support | Dates not specified
+- Performed vehicle alignment and maintenance tasks, which involved ensuring data accuracy and consistency in vehicle records.
+- Provided hands-on technical troubleshooting and customer service to ensure vehicle safety and satisfaction, utilizing data to inform solutions.
+- Managed customer relations through clear communication and service explanations, emphasizing the importance of data validation.
+- Maintained operational efficiency in a fast-paced automotive environment, demonstrating ability to handle high-volume data operations.
+
+Package Handler at UPS
+Operations | Dates not specified
+- Handled package sorting and logistics in a high-volume operational setting, ensuring data accuracy and timeliness in delivery schedules.
+- Maintained efficiency and reliability to meet tight delivery schedules, demonstrating attention to detail in data handling.
+- Supported team efforts to optimize workflow and reduce errors, contributing to data consistency and quality standards.
+- Ensured adherence to safety and quality standards, reflecting commitment to data integrity and customer satisfaction.
+
+Installer at Alex Prosperity Group / UST Logistics
+Installation | Dates not specified
+- Installed home appliances contracted through Lowe's with attention to detail and customer satisfaction, ensuring data accuracy in appliance setup and functionality.
+- Coordinated installation schedules and ensured proper setup and functionality, demonstrating ability to manage data effectively.
+- Communicated effectively with customers to explain appliance operation and maintenance, emphasizing the importance of data validation and consistency.
+- Maintained quality standards and resolved installation issues promptly, reflecting commitment to delivering high-quality data.
+
+Server / Line Cook at Waffle House
+Customer Service | Dates not specified
+- Provided high-volume customer service including order taking and food preparation, utilizing data to inform service decisions and ensure accuracy.
+- Managed multiple tasks efficiently during peak hours to maintain service quality, demonstrating ability to handle high-volume data operations.
+- Handled customer interactions with professionalism and responsiveness, emphasizing the importance of data accuracy and consistency.
+- Contributed to team coordination to ensure smooth operations, reflecting commitment to data integrity and effective communication.
+
+Stand-up Comedian
+Public Speaking | Dates not specified
+- Delivered live performances requiring clear verbal communication and audience engagement, utilizing data to inform comedic timing and audience connection.
+- Adapted material dynamically based on audience response to maintain interest, demonstrating ability to handle high-volume data operations under pressure.
+- Developed skills in public speaking, storytelling, and performance under pressure, enhancing ability to communicate complex ideas in an accessible and entertaining manner.
+- Enhanced ability to communicate complex ideas in an accessible and entertaining manner, reflecting commitment to delivering high-quality data through effective communication.
+
+--- job 22916 / config native ---
+[latency=162.76s chars=3501]
+Here is the tailored version of the resume:
+
+Philip McLaughlin
+Software Development Engineer
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Results-driven Software Development Engineer with a strong foundation in Python programming and data analysis. Proven ability to conduct data analysis and resolve service disruptions, with a focus on improving user experiences. Effective communicator with experience in customer-facing roles and public speaking.
+
+TECHNICAL SKILLS
+Languages: Python
+Tools: Data Analysis, Issue Investigations, Data Visualization, Customer Service, Public Speaking
+
+EXPERIENCE
+Sales Consultant at AMP Smart
+Sales | Dates not specified
+- Conducted data analysis to identify and resolve service disruptions in residential solar solutions, increasing qualified lead identification.
+- Developed targeted outreach and sales strategies to enhance customer satisfaction and engagement.
+- Created clear communication materials to support ongoing sales and service efforts.
+
+Alignment Technician at National Tire and Battery / Mavis
+Technical Support | Dates not specified
+- Performed vehicle alignment and maintenance tasks, ensuring operational efficiency in a fast-paced environment.
+- Provided hands-on technical troubleshooting and customer service to resolve issues and enhance user satisfaction.
+- Managed customer relations through clear communication and service explanations.
+
+Package Handler at UPS
+Operations | Dates not specified
+- Handled package sorting and logistics in a high-volume operational setting, ensuring tight delivery schedules and quality standards.
+- Supported team efforts to optimize workflow and reduce errors, enhancing overall service delivery.
+
+Installer at Alex Prosperity Group / UST Logistics
+Installation | Dates not specified
+- Installed home appliances, ensuring attention to detail and customer satisfaction.
+- Coordinated installation schedules and communicated effectively with customers to explain appliance operation and maintenance.
+
+Server / Line Cook at Waffle House
+Customer Service | Dates not specified
+- Provided high-volume customer service, managing multiple tasks efficiently during peak hours to maintain service quality.
+- Handled customer interactions with professionalism and responsiveness, contributing to team coordination for smooth operations.
+
+Stand-up Comedian
+Public Speaking | Dates not specified
+- Delivered live performances requiring clear verbal communication and audience engagement, enhancing ability to communicate complex ideas in an accessible manner.
+
+PROJECTS
+Standup-OCR - OCR Tooling and Image Processing
+Python | Dates not specified
+- Developed Python scripts for optical character recognition and transcription of images and documents, applying data analysis techniques to improve accuracy.
+
+CAP Predictor - Data Analytics and Feature Engineering
+Python | Dates not specified
+- Collected and processed financial and news data for sentiment analysis and modeling, conducting statistical experimentation to support predictive analytics.
+- Automated data processing pipelines to streamline analysis workflows, enhancing data visualization efforts.
+
+You Power You - Web Development Project
+HTML/CSS/JavaScript | Dates not specified
+- Built a website with server-side form handling and email notification integration, designing qualification and submission workflows to support user interactions.
+
+EDUCATION
+University of North Carolina at Greensboro
+Bachelor of Arts in Media Studies
+2019-2022
+
+--- job 22916 / config rewrite ---
+[latency=15.82s chars=401]
+- Researched and tested data sets to identify bugs and discrepancies in financial and news data for sentiment analysis and modeling.
+- Escalated issues to the appropriate team for resolution after conducting statistical experimentation and analyzing data for predictive analytics.
+- Streamlined analysis workflows by automating data processing pipelines to detect and report potential bugs and errors.
+
+--- job 22916 / config plan ---
+[latency=93.05s chars=2796]
+EXPERIENCE
+Sales Consultant at AMP Smart
+Sales | Dates not specified
+- Conducted in-person consultations to assess customer needs and tailor sales strategies accordingly.
+- Developed and implemented targeted outreach and sales strategies for residential solar solutions, increasing qualified lead identification.
+- Customized sales proposals based on regional market conditions and customer requirements.
+- Maintained customer relationships to support ongoing sales and service efforts, including data collection and analysis to identify chronic issues or product opportunities.
+
+Alignment Technician at National Tire and Battery / Mavis
+Technical Support | Dates not specified
+- Provided hands-on technical troubleshooting and customer service to ensure vehicle safety and satisfaction, translating data analysis into accessible visuals to identify chronic issues or product opportunities.
+- Managed customer relations through clear communication and service explanations, supporting the data collection and analysis process.
+- Maintained operational efficiency in a fast-paced automotive environment.
+
+Package Handler at UPS
+Operations | Dates not specified
+- Handled package sorting and logistics in a high-volume operational setting, ensuring adherence to safety and quality standards.
+- Maintained efficiency and reliability to meet tight delivery schedules, contributing to team efforts to optimize workflow and reduce errors.
+- Supported team efforts to optimize workflow and reduce errors, while ensuring data collection and analysis to identify chronic issues or product opportunities.
+
+Installer at Alex Prosperity Group / UST Logistics
+Installation | Dates not specified
+- Coordinated installation schedules and ensured proper setup and functionality, communicating effectively with customers to explain product operation and maintenance.
+- Maintained quality standards and resolved installation issues promptly, supporting data collection and analysis to identify chronic issues or product opportunities.
+
+Server / Line Cook at Waffle House
+Customer Service | Dates not specified
+- Managed multiple tasks efficiently during peak hours to maintain service quality, ensuring high-volume customer service including order taking and food preparation.
+- Handled customer interactions with professionalism and responsiveness, contributing to team coordination to ensure smooth operations.
+
+Stand-up Comedian
+Public Speaking | Dates not specified
+- Delivered live performances requiring clear verbal communication and audience engagement, developing skills in public speaking, storytelling, and performance under pressure.
+- Adapted material dynamically based on audience response to maintain interest, enhancing ability to communicate complex ideas in an accessible and entertaining manner.
+
+--- job 27323 / config native ---
+[latency=193.24s chars=3784]
+Here is the revised resume tailored to the Software Engineer Graduate role:
+
+Philip McLaughlin
+Software Engineer Graduate
+philipthegingermclaughlin@gmail.com | (919) 986-0337
+
+SUMMARY
+Detail-oriented Software Engineer Graduate with a strong foundation in software development principles and experience in Python programming. Proven ability to conduct data analysis and build scalable solutions to improve user experiences. Effective communicator with a background in customer-facing roles and public speaking.
+
+TECHNICAL SKILLS
+Languages: Python
+Tools: Data Analytics, Machine Learning, Web Development (HTML/CSS/JavaScript), Public Speaking
+
+EXPERIENCE
+Stand-up Comedian
+Public Speaking | Dates not specified
+- Delivered live performances requiring clear verbal communication and audience engagement.
+- Adapted material dynamically based on audience response to maintain interest.
+- Developed skills in public speaking, storytelling, and performance under pressure.
+- Enhanced ability to communicate complex ideas in an accessible and entertaining manner.
+
+Stand-up-OCR - OCR Tooling and Image Processing
+Python | Dates not specified
+- Developed Python scripts for optical character recognition and transcription of images and documents.
+- Implemented human review workflows and training-data preparation to improve accuracy.
+- Experimented with machine learning techniques to enhance OCR performance.
+
+CAP Predictor - Data Analytics and Feature Engineering
+Python | Dates not specified
+- Collected and processed financial and news data for sentiment analysis and modeling.
+- Engineered features and conducted statistical experimentation to support predictive analytics.
+- Automated data processing pipelines to streamline analysis workflows.
+
+You Power You - Web Development Project
+HTML/CSS/JavaScript | Dates not specified
+- Built a website with server-side form handling and email notification integration.
+- Designed qualification and submission workflows to support user interactions.
+- Implemented front-end and back-end components to enhance user experience.
+
+Alignment Technician at National Tire and Battery / Mavis
+Technical Support | Dates not specified
+- Performed vehicle alignment and maintenance tasks including tires, shocks, struts, brakes, and fluids.
+- Provided hands-on technical troubleshooting and customer service to ensure vehicle safety and satisfaction.
+- Managed customer relations through clear communication and service explanations.
+- Maintained operational efficiency in a fast-paced automotive environment.
+
+Package Handler at UPS
+Operations | Dates not specified
+- Handled package sorting and logistics in a high-volume operational setting.
+- Maintained efficiency and reliability to meet tight delivery schedules.
+- Supported team efforts to optimize workflow and reduce errors.
+- Ensured adherence to safety and quality standards.
+
+Installer at Alex Prosperity Group / UST Logistics
+Installation | Dates not specified
+- Installed home appliances contracted through Lowe's with attention to detail and customer satisfaction.
+- Coordinated installation schedules and ensured proper setup and functionality.
+- Communicated effectively with customers to explain appliance operation and maintenance.
+- Maintained quality standards and resolved installation issues promptly.
+
+Server / Line Cook at Waffle House
+Customer Service | Dates not specified
+- Provided high-volume customer service including order taking and food preparation.
+- Managed multiple tasks efficiently during peak hours to maintain service quality.
+- Handled customer interactions with professionalism and responsiveness.
+- Contributed to team coordination to ensure smooth operations.
+
+EDUCATION
+University of North Carolina at Greensboro
+Bachelor of Arts in Media Studies
+2019-2022

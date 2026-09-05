@@ -1,0 +1,521 @@
+[
+  {
+    "job_id": 28014,
+    "title": "Manager, Applied AI Architects",
+    "old": {
+      "latency_s": 109.1,
+      "raw_output": "{\"summary\": \"I am an applied AI engineer who builds with AMP Smart, CAP Predictor, and Model Arts. Strengths most relevant to this role include applied AI, model lifecycle, and machine learning. Background spans strategy, engineering, and product.\", \"bullets\": [{\"evidence\": \"AMP Smart\", \"text\": \"Hire, coach, and develop a high-performing team of Applied AI Architects, creating an environment of technical excellence, sound judgment, continuous learning, accountability, and strong customer stewardship. (develop, environment)\"}, {\"evidence\": \"AMP Smart\", \"text\": \"Define and continuously refine the strategy and operating model for Applied AI Architecture across Europe, aligning company priorities with the evolving needs of strategic customers and the regional go-to-market. (market, needs, regional)\"}, {\"evidence\": \"CAP Predictor\", \"text\": \"Build trusted relationships with C-suite and board-level stakeholders, as well as senior AI, technology, data, security, and engineering leaders, serving as an executive technical sponsor when needed. (data)\"}, {\"evidence\": \"AMP Smart\", \"text\": \"Translate patterns from the field into actionable feedback for Product, Engineering, Research, and go-to-market teams, while developing reusable architecture guidance and customer practices. (field, market, product, while)\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 4,
+      "bullets_survived": 1,
+      "violations": [
+        "AMP Smart: 'implementation'-tier claim exceeds evidence ceiling 'participation'",
+        "AMP Smart: 'execution'-tier claim exceeds evidence ceiling 'participation'",
+        "AMP Smart: 'implementation'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    },
+    "new": {
+      "latency_s": 53.2,
+      "raw_output": "{\"summary\": \"Hired as an Applied AI Architect, with a track record of strategy, and applied AI work. Strengths most relevant to this role include Applied AI, and model deployment. \", \"bullets\": [{\"evidence\": \"AMP Smart\", \"text\": \"Hire, coach, and develop a high-performing team of Applied AI Architects, creating an environment of technical excellence, sound judgment, continuous learning, accountability, and strong customer stewardship.\"}, {\"evidence\": \"AMP Smart\", \"text\": \"Define and continuously refine the strategy and operating model for Applied AI Architecture across Europe, aligning company priorities with the evolving needs of strategic customers and the regional go-to-market.\"}, {\"evidence\": \"CAP Predictor\", \"text\": \"Build trusted relationships with C-suite and board-level stakeholders, as well as senior AI, technology, data, security, and engineering leaders, serving as an executive technical sponsor when needed.\"}, {\"evidence\": \"AMP Smart\", \"text\": \"Translate patterns from the field into actionable feedback for Product, Engineering, Research, and go-to-market teams, while developing reusable architecture guidance and customer practices.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 4,
+      "bullets_survived": 1,
+      "violations": [
+        "AMP Smart: 'implementation'-tier claim exceeds evidence ceiling 'participation'",
+        "AMP Smart: 'execution'-tier claim exceeds evidence ceiling 'participation'",
+        "AMP Smart: 'implementation'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    }
+  },
+  {
+    "job_id": 9051,
+    "title": "Research Engineer, Codex",
+    "old": {
+      "latency_s": 44.2,
+      "raw_output": "{\"summary\": \"Background includes CAP Predictor, AMP Smart, National Tire and Battery / Mavis, and UPS, moving from data to reliability. Core stack relevant to this role spans CAP Predictor and AMP Smart.\", \"bullets\": [{\"evidence\": \"CAP Predictor\", \"text\": \"Own end-to-end improvements to the post-training stack, including RL, data pipelines, graders, reward signals, evals, diagnostics, and model-behavior analysis.\"}, {\"evidence\": \"CAP Predictor\", \"text\": \"Build evals and environments that expose the next set of model failures, then turn those failures into training data, product fixes, or new research directions.\"}, {\"evidence\": \"AMP Smart\", \"text\": \"Partner with Codex, API/platform, ChatGPT, and general-agent product teams to understand what users need and translate product signal into model improvements.\"}, {\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Work on early-training and alignment interventions, including data mixtures, objectives, synthetic data, and eval loops that shape downstream agent behavior.\"}, {\"evidence\": \"UPS\", \"text\": \"Improve the machinery for large-scale training and launch: experiment velocity, reliability, observability, reproducibility, cost, latency, and production readiness.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 5,
+      "bullets_survived": 4,
+      "violations": [
+        "CAP Predictor: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish"
+      ]
+    },
+    "new": {
+      "latency_s": 50.9,
+      "raw_output": "{\"summary\": \"Background includes CAP Predictor, working across model data and research. Background includes AMP Smart, partnering with product teams on model decisions. Background includes National Tire and Battery, on alignment from first prototype through deployment.\", \"bullets\": [{\"evidence\": \"CAP Predictor\", \"text\": \"Diagnosed API timeouts, traced to a pool leak, fixed it.\"}, {\"evidence\": \"CAP Predictor\", \"text\": \"Build evals and environments that expose the next set of model failures, then turn those failures into training data, product fixes, or new research directions.\"}, {\"evidence\": \"AMP Smart\", \"text\": \"Partner with Codex, API/platform, ChatGPT, and general-agent product teams to understand what users need and translate product signal into model improvements.\"}, {\"evidence\": \"National Tire and Battery\", \"text\": \"Work on early-training and alignment interventions, including data mixtures, objectives, synthetic data, and eval loops that shape downstream agent behavior.\"}, {\"evidence\": \"UPS\", \"text\": \"Improve the machinery for large-scale training and launch: experiment velocity, reliability, observability, reproducibility, cost, latency, and production readiness.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 5,
+      "bullets_survived": 3,
+      "violations": [
+        "CAP Predictor: 'execution'-tier claim exceeds evidence ceiling 'participation'",
+        "CAP Predictor: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish"
+      ]
+    }
+  },
+  {
+    "job_id": 20803,
+    "title": "Agentic AI Developer",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  },
+  {
+    "job_id": 25495,
+    "title": "Infrastructure Engineer \u2013 Automation",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  },
+  {
+    "job_id": 12070,
+    "title": "Data Engineer",
+    "old": {
+      "latency_s": 37.6,
+      "raw_output": "{\"summary\": \"Background includes data work focused on predictive analytics. Strengths most relevant to this role include data modeling, data engineering, and databricks. Recent work centers on analytics and spans implementation through execution.\", \"bullets\": [{\"evidence\": \"Waffle House |\", \"text\": \"Engage with multiple teams and contribute on key decisions. (multiple)\"}, {\"evidence\": \"National Tire and Battery / Mavis |\", \"text\": \"Provide solutions to problems for their immediate team and across multiple teams. (problems, solutions)\"}, {\"evidence\": \"National Tire and Battery / Mavis |\", \"text\": \"Mentor junior team members to enhance their technical skills and project contributions. (skills)\"}, {\"evidence\": \"CAP Predictor |\", \"text\": \"Coordinate cross-functional initiatives to align data engineering efforts with business objectives. (data)\"}, {\"evidence\": \"CAP Predictor |\", \"text\": \"Must To Have Skills: Proficiency in Databricks Unified Data Analytics Platform. (analytics, data)\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 5,
+      "bullets_survived": 5,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 43.7,
+      "raw_output": "{\"summary\": \"Background includes hands-on work as a data engineer, with a track record of delivering features end to end rather than just writing code.\", \"bullets\": [{\"evidence\": \"Waffle House\", \"text\": \"Engaged with multiple teams and contributed on key decisions.\"}, {\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Provides solutions to problems for their immediate team and across multiple teams.\"}, {\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Mentors junior team members to enhance their technical skills and project contributions.\"}, {\"evidence\": \"CAP Predictor\", \"text\": \"Coordinates cross-functional initiatives to align data engineering efforts with business objectives.\"}, {\"evidence\": \"CAP Predictor\", \"text\": \"Requires proficiency in Databricks Unified Data Analytics Platform, analytics.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 5,
+      "bullets_survived": 5,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 28152,
+    "title": "System Engineer",
+    "old": {
+      "latency_s": 24.9,
+      "raw_output": "{\"summary\": \"Background includes Express_Engine, UPS, AMP Smart, and National Tire and Battery / Mavis, working as an Express_Engine engineer focused on software.\", \"bullets\": [{\"evidence\": \"Express_Engine\", \"text\": \"Monitor systems infrastructure including hardware and software, software\"}, {\"evidence\": \"UPS\", \"text\": \"Monitor systems performance and recommend changes and upgrades based on utilization, performance\"}, {\"evidence\": \"AMP Smart\", \"text\": \"Provide support and assistance to OD users for systems needs, needs\"}, {\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Assist with troubleshooting and diagnosis of enterprise systems issues, issues\"}}]",
+      "parseable": false,
+      "echoes_scaffolding": false,
+      "bullets_offered": 0,
+      "bullets_survived": 0,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 30.9,
+      "raw_output": "{\"summary\": \"Monitors systems infrastructure with Express_Engine. Strengths relevant to this role include software and performance. Background includes UPS and AMP Smart. Recent work centers on needs.\", \"bullets\": [{\"evidence\": \"Express_Engine\", \"text\": \"Monitored systems infrastructure with Express_Engine.\"}, {\"evidence\": \"UPS\", \"text\": \"Monitors systems performance and recommends changes and upgrades based on utilization.\"}, {\"evidence: AMP_Smart\", \"text\": \"Provides support and assistance to OD users for systems needs.\"}, {\"evidence\": \"National_Tire_and_Battery / Mavis\", \"text\": \"Assisted with troubleshooting and diagnosis of enterprise systems issues.\"}]}",
+      "parseable": false,
+      "echoes_scaffolding": false,
+      "bullets_offered": 0,
+      "bullets_survived": 0,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 669,
+    "title": "Mechanical Engineer, Components and Propulsion",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  },
+  {
+    "job_id": 18933,
+    "title": "Administrateur Syst\u00e8mes Windows H/F",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  },
+  {
+    "job_id": 2902,
+    "title": "Senior Manager, Tax Technology",
+    "old": {
+      "latency_s": 46.0,
+      "raw_output": "{\"summary\": \"I have hands-on experience in tax, moving from accuracy and efficiency through implementation to research. Background spans D365, Salesforce, Vertex O Series, Sigma, Snowflake, and it transfers directly to this role.\", \"bullets\": [{\"evidence\": \"UPS |\", \"text\": \"Partner with the tax team to identify and implement process improvements, automation opportunities, and technology solutions that increase efficiency and accuracy. | use these exact terms: accuracy, efficiency\"}, {\"evidence\": \"CAP Predictor |\", \"text\": \"Evaluate end-to-end tax processes, data flows, and system dependencies to improve scalability across both manufacturing and SaaS business models. | use these exact terms: data\"}, {\"evidence\": \"National Tire and Battery / Mavis |\", \"text\": \"Support and enhance the tax technology stack, including D365, Salesforce, Vertex O Series, Sigma, Snowflake, and related platforms. | use these exact terms: related\"}, {\"evidence\": \"CAP Predictor |\", \"text\": \"Leverage AI and emerging technologies to improve workflows, documentation, research, and team productivity. | use these exact terms: research\"}, {\"evidence\": \"National Tire and Battery / Mavis |\", \"text\": \"Support reporting, testing, documentation, and change management related to tax technology initiatives. | use these exact terms: related\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 5,
+      "bullets_survived": 4,
+      "violations": [
+        "National Tire and Battery / Mavis |: number '365' in realized text is not present in the evidence text or known real_metrics"
+      ]
+    },
+    "new": {
+      "latency_s": 44.7,
+      "raw_output": "{\"summary\": \"Partnered with the tax team to identify and implement process improvements, automation opportunities, and technology solutions that increase efficiency and accuracy. That focus is exactly the kind of work this role calls for.\", \"bullets\": [{\"evidence\": \"UPS |\", \"text\": \"Partnered with the tax team to identify and implement process improvements, automation opportunities, and technology solutions that increase efficiency and accuracy.\"}, {\"evidence\": \"CAP Predictor |\", \"text\": \"Evaluate end-to-end tax processes, data flows, and system dependencies to improve scalability across both manufacturing and SaaS business models.\"}, {\"evidence\": \"National Tire and Battery / Mavis |\", \"text\": \"Support and enhance the tax technology stack, including D365, Salesforce, Vertex O Series, Sigma, Snowflake, and related platforms.\"}, {\"evidence\": \"CAP Predictor |\", \"text\": \"Leverage AI and emerging technologies to improve workflows, documentation, research, and team productivity.\"}, {\"evidence\": \"National Tire and Battery / Mavis |\", \"text\": \"Support reporting, testing, documentation, and change management related to tax technology initiatives.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 5,
+      "bullets_survived": 4,
+      "violations": [
+        "National Tire and Battery / Mavis |: number '365' in realized text is not present in the evidence text or known real_metrics"
+      ]
+    }
+  },
+  {
+    "job_id": 28656,
+    "title": "Multi Site Customer Service Coordinator",
+    "old": {
+      "latency_s": 15.9,
+      "raw_output": "{\"summary\": \"Diagnosed operations issues locally, including day trips to post offices and satellite office locations, as needed to support client operations. Background includes a bachelor's in business administration. Recent work centers on operations and can be framed that way.\", \"bullets\": [{\"evidence\": \"UPS\", \"text\": \"Travel locally, including day trips to post offices and satellite office locations, as needed to support client operations.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 1,
+      "bullets_survived": 1,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 17.0,
+      "raw_output": "{\"summary\": \"Traveled locally as needed to support client operations.\", \"bullets\": [{\"evidence\": \"UPS | shape: [Action] [object] [context], [outcome]. | limits: carried out this task -- did not own the whole solution; did this yourself -- did not lead/manage people\", \"text\": \"Travelled locally, including day trips to post offices and satellite office locations, as needed to support client operations.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 1,
+      "bullets_survived": 1,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 18139,
+    "title": "Senior Control Systems Integration Technical Specialist / Programmer",
+    "old": {
+      "latency_s": 20.5,
+      "raw_output": "{\"summary\": \"Background includes Python and AMP Smart, working as a Python engineer focused on automation. Core stack relevant to this role spans Python and Microsoft Office. Recent work centers on automation.\", \"bullets\": [{\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Using Microsoft Office to produce detail-oriented reports. \"}, {\"evidence\": \"Python\", \"text\": \"Automation. \"}, {\"evidence\": \"AMP Smart\", \"text\": \"Execute assigned tasks within scope, budget, and schedule. \"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 3,
+      "bullets_survived": 3,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 25.6,
+      "raw_output": "{\"summary\": \"Proficient in using Microsoft Office to produce detail-oriented reports. Knowledge of controls and automation principles and electrical circuits is desired. Execute assigned tasks within scope, budget, and schedule. \", \"bullets\": [{\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Diagnosed issues with Mavis using Microsoft Office, and produced detail-oriented reports.\"}, {\"evidence\": \"Python\", \"text\": \"Developed automation with Python, using automation.\"}, {\"evidence\": \"AMP Smart\", \"text\": \"Directed AMP Smart from first prototype through deployment, owning the project end to end.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 3,
+      "bullets_survived": 1,
+      "violations": [
+        "Python: 'implementation'-tier claim exceeds evidence ceiling 'participation'",
+        "AMP Smart: 'director'-tier agency claim exceeds evidence ceiling 'owner'"
+      ]
+    }
+  },
+  {
+    "job_id": 11564,
+    "title": "Executive Director Principal Software Engineer - Athena Platform",
+    "old": {
+      "latency_s": 27.5,
+      "raw_output": "{\"summary\": \"Brings hands-on engineering experience to product decisions, with a track record of shipping features end to end. Background includes AMP Smart, Waffle House, and UPS. Strengths most relevant to this role span quality and operations.\", \"bullets\": [{\"evidence\": \"UPS\", \"text\": \"Manages senior relationships spanning Portfolio Management, Trading, Operations, and Accounting \u2014 communicating with authority and clarity on architecture decisions, delivery status, and platform capability. operations\"}, {\"evidence\": \"Waffle House\", \"text\": \"Develops secure and high-quality production code, and reviews and debugs code written by others. quality\"}, {\"evidence\": \"AMP Smart\", \"text\": \"Influences leaders and senior stakeholders across business, product, and technology teams. product\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 3,
+      "bullets_survived": 1,
+      "violations": [
+        "UPS: 'team_lead'-tier agency claim exceeds evidence ceiling 'individual_contributor'",
+        "Waffle House: 'implementation'-tier claim exceeds evidence ceiling 'execution'"
+      ]
+    },
+    "new": {
+      "latency_s": 30.7,
+      "raw_output": "{\"summary\": \"Brings operations strength to Uber Engineering. Background includes UPS, Waffle House, and AMP Smart. Strengths most relevant to Uber include operations and quality. Recent work centres on operations and ownership.\", \"bullets\": [{\"evidence\": \"UPS\", \"text\": \"Manages operations relationships across Portfolio Management, Trading, Operations, and Accounting \u2014 communicating with authority and clarity on architecture decisions, delivery status, and platform capability.\"}, {\"evidence\": \"Waffle House\", \"text\": \"Develops secure and high-quality production code, and reviews and debugs code written by others.\"}, {\"evidence\": \"AMP Smart\", \"text\": \"Influences leaders and senior stakeholders across business, product, and technology teams.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 3,
+      "bullets_survived": 1,
+      "violations": [
+        "UPS: 'team_lead'-tier agency claim exceeds evidence ceiling 'individual_contributor'",
+        "Waffle House: 'implementation'-tier claim exceeds evidence ceiling 'execution'"
+      ]
+    }
+  },
+  {
+    "job_id": 549,
+    "title": "Legal Recruiter (Contract)",
+    "old": {
+      "latency_s": 34.4,
+      "raw_output": "{\"summary\": \"I am a legal recruiter who partners with in-house legal teams to hire the right people for their roles. Background includes AMP Smart, where I was an owner driving a diverse talent pipeline into the organization ensuring a positive candidate experience at every touchpoint, from initial outreach to offer acceptance. Target and engage passive legal talent using LinkedIn Recruiter, Boolean strings, referrals, SOBO campaigns, and specialized legal networks, using specialized.\", \"bullets\": [{\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Target and engage passive legal talent using LinkedIn Recruiter, Boolean strings, referrals, SOBO campaigns, and specialized legal networks, using specialized.\"}, {\"evidence\": \"AMP Smart\", \"text\": \"Drive a diverse talent pipeline into the organization ensuring a positive candidate experience at every touchpoint, from initial outreach to offer acceptance.\"}, {\"evidence\": \"AMP Smart\", \"text\": \"Leverage internal resources and market insights to build strategies around selling our value proposition to top-tier legal talent.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 3,
+      "bullets_survived": 3,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 33.3,
+      "raw_output": "{\"summary\": \"Brings LinkedIn Recruiter, Boolean strings, referrals, SOBO campaigns, and specialized legal networks, professional associations, and industry events to legal talent acquisition work. Background includes Mavis, National Tire and Battery. \", \"bullets\": [{\"evidence\": \"National Tire and Battery / Mavis |\", \"text\": \"Target and engage passive legal talent using LinkedIn Recruiter, Boolean strings, referrals, SOBO campaigns, and specialized legal networks, professional associations, and industry events.\"}, {\"evidence\": \"AMP Smart |\", \"text\": \"Drive a diverse talent pipeline into the organization ensuring a positive candidate experience at every touchpoint, from initial outreach to offer acceptance.\"}, {\"evidence\": \"AMP Smart |\", \"text\": \"Leverage internal resources and market insights to build strategies around selling our value proposition to top-tier legal talent.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 3,
+      "bullets_survived": 3,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 21159,
+    "title": "Lead Software Engineer, Back End",
+    "old": {
+      "latency_s": 18.5,
+      "raw_output": "{\"summary\": \"Background includes CAP Predictor, where Python was used. That experience taught me to write Python code.\", \"bullets\": [{\"evidence\": \"CAP Predictor\", \"text\": \"Utilize programming languages like Java, Python, SQL, Node, Go, and Scala, Open Source RDBMS and NoSQL databases, Container Orchestration services including Docker and Kubernetes, and a variety of AWS tools and services\"}, {\"evidence\": \"CAP Predictor\", \"text\": \"That experience taught me to write Python code.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 2,
+      "bullets_survived": 2,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 11.3,
+      "raw_output": "{\"summary\": \"Utilized Python for CAP Predictor work.\", \"bullets\": [{\"evidence\": \"CAP Predictor\", \"text\": \"Utilized Python for CAP Predictor work.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 1,
+      "bullets_survived": 1,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 23794,
+    "title": "Packaged/SaaS Application Engineer",
+    "old": {
+      "latency_s": 26.2,
+      "raw_output": "{\"summary\": \"I work as an operations professional focused on customer experience. Background includes Waffle House, National Tire and Battery / Mavis, and AMP Smart. Recent work centers on identify and multiple.\", \"bullets\": [{\"evidence\": \"Waffle House |\", \"text\": \"Engage with multiple teams and contribute on key decisions. | use these exact terms: multiple\"}, {\"evidence\": \"National Tire and Battery / Mavis |\", \"text\": \"Provide solutions to problems for their immediate team and across multiple teams. | use these exact terms: problems, solutions\"}, {\"evidence\": \"AMP Smart |\", \"text\": \"Lead efforts to identify process improvements and implement best practices within the team. | use these exact terms: identify\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 3,
+      "bullets_survived": 3,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 33.2,
+      "raw_output": "{\"summary\": \"Background includes hands-on experience in data engineering, with a track record of delivering features end to end.\", \"bullets\": [{\"evidence\": \"Waffle House\", \"text\": \"Engaged with multiple teams to diagnose and fix a reporting issue.\", \"limits\": \"carried out this task -- did not design or own the whole solution; owned this piece of work -- did not lead/manage people\"}, {\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Provided solutions to problems for their immediate team and across multiple teams.\", \"limits\": \"built/implemented this -- did not architect the whole system; owned this piece of work -- did not lead/manage people\"}, {\"evidence: AMP Smart\", \"text\": \"Lead efforts to identify process improvements and implement best practices within the team.\", \"limits\": \"took part in/was exposed to this -- did not build, own, or lead it; owned this piece of work -- did not lead/manage a team\"}]}",
+      "parseable": false,
+      "echoes_scaffolding": false,
+      "bullets_offered": 0,
+      "bullets_survived": 0,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 14942,
+    "title": "Jr. Audio/Visual Support Assistant",
+    "old": {
+      "latency_s": 49.0,
+      "raw_output": "{\"summary\": \"Background includes freelance photography and videography, with hands-on experience in AV support. Strengths most relevant to this role include troubleshooting and user support. Comfortable owning content from first prototype through deployment.\", \"bullets\": [{\"evidence\": \"National Tire and Battery / Mavis |\", \"text\": \"Set up and test AV equipment for conference rooms and corporate event spaces (displays/projectors, microphones, speakers, mixers, cameras, laptops, clickers, and adapters).\"}, {\"evidence\": \"National Tire and Battery / Mavis |\", \"text\": \"Perform basic troubleshooting for common issues (no audio, feedback, low mic levels, display connection problems, camera framing, network/stream interruptions) and escalate complex problems to the AV support specialists.\"}, {\"evidence\": \"Freelance Photography / Videography |\", \"text\": \"Support and guide users on collaboration platforms (e.g., Microsoft Teams, Zoom) including meeting start-up, joining, and content sharing.\"}, {\"evidence\": \"National Tire and Battery / Mavis |\", \"text\": \"Maintain AV inventory (cables, adapters, batteries, microphones) and ensure equipment is charged, labeled, clean, and stored appropriately.\"}, {\"evidence\": \"Waffle House |\", \"text\": \"Track incidents, requests, and resolutions in a ticketing system; document steps taken, outcomes, and follow-up actions.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 5,
+      "bullets_survived": 5,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 53.4,
+      "raw_output": "{\"summary\": \"Background includes National Tire and Battery / Mavis, working as an AV technician focused on equipment. Strengths most relevant to this role include troubleshooting, and content.\", \"bullets\": [{\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Set up and test AV equipment for conference rooms and corporate event spaces (displays/projectors, microphones, speakers, mixers, cameras, laptops, clickers, and adapters).\"}, {\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Support and guide users on collaboration platforms (e.g., Microsoft Teams, Zoom) including meeting start-up, joining, and content sharing.\"}, {\"evidence\": \"Freelance Photography / Videography\", \"text\": \"Maintain AV inventory (cables, adapters, batteries, microphones) and ensure equipment is charged, labeled, clean, and stored appropriately.\"}, {\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Track incidents, requests, and resolutions in a ticketing system; document steps taken, outcomes, and follow-up actions.\"}, {\"evidence\": \"Waffle House\", \"text\": \"Diagnosed incidents, traced the cause to a connection pool leak, and resolved them.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 5,
+      "bullets_survived": 4,
+      "violations": [
+        "Waffle House: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish"
+      ]
+    }
+  },
+  {
+    "job_id": 22877,
+    "title": "Program Engineer",
+    "old": {
+      "latency_s": 17.2,
+      "raw_output": "{\"summary\": \"Background includes hands-on work as a technical contributor focused on manufacturing. Strengths most relevant to this role include risk management and program execution. Recent work centers on operations.\", \"bullets\": [{\"evidence\": \"issues\", \"text\": \"Engaged in issues related to factory Manufacturing Engineers and technical experts to resolve technical issues.\"}, {\"evidence\": \"operations\", \"text\": \"Assisted Program Operations Manager in development of Risks & Opportunities and drive to IPTs.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 2,
+      "bullets_survived": 2,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 23.4,
+      "raw_output": "{\"summary\": \"Supported factory Manufacturing Engineers and technical experts to resolve issues by diagnosing API timeouts, traced the cause to a connection pool leak, and resolved it. Assisted Program Operations Manager in development of Risks & Opportunities and drive to IPTs.\", \"bullets\": [{\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Diagnosed API timeouts, traced to a pool leak, fixed it.\"}, {\"evidence \"UPS\", \"text\": \"Assisted Program Operations Manager in development of Risks & Opportunities and drive to IPTs.\"}]}",
+      "parseable": false,
+      "echoes_scaffolding": false,
+      "bullets_offered": 0,
+      "bullets_survived": 0,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 15776,
+    "title": "Network Install Technician, Infrastructure Delivery",
+    "old": {
+      "latency_s": 28.6,
+      "raw_output": "{\"summary\": \"Diagnosed environment issues and implemented solutions end to end. Background includes Mavis National Tire and Battery, with hands-on experience in equipment such as VFL, power meter, and OTDR. Currently completing certification in CCNA - Cisco Certified Network Associate.\", \"bullets\": [{\"evidence\": \"UPS |\", \"text\": \"Diagnosed environment issues and implemented solutions end to end.\"}, {\"evidence\": \"National Tire and Battery / Mavis |\", \"text\": \"Installed network cabling and fiber optics, and tested with VFL, power meter, and OTDR equipment.\"}, {\"evidence\": \"AMP Smart |\", \"text\": \"Certified in a relevant field (CCENT - Cisco Certified Entry Networking Technician, Network+, or CCNA - Cisco Certified Network Associate).\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 3,
+      "bullets_survived": 1,
+      "violations": [
+        "UPS |: 'implementation'-tier claim exceeds evidence ceiling 'participation'",
+        "National Tire and Battery / Mavis |: 'execution'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    },
+    "new": {
+      "latency_s": 29.6,
+      "raw_output": "{\"summary\": \"Diagnosed and fixed intermittent API timeouts, traced the cause to a connection pool leak, and resolved it. Migrated the reporting database to PostgreSQL, improving query speed. Certification in a relevant field (CCENT - Cisco Certified Entry Networking Technician, Network+, or CCNA - Cisco Certified Network Associate).\", \"bullets\": [{\"evidence\": \"UPS |\", \"text\": \"Diagnosed API timeouts, traced to a pool leak, fixed it.\"}, {\"evidence\": \"National Tire and Battery / Mavis |\", \"text\": \"Migrated the reporting database to PostgreSQL, improving query speed.\"}, {\"evidence\": \"AMP Smart |\", \"text\": \"Certified in a relevant field (CCENT - Cisco Certified Entry Networking Technician, Network+, or CCNA - Cisco Certified Network Associate).\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 3,
+      "bullets_survived": 1,
+      "violations": [
+        "UPS |: 'execution'-tier claim exceeds evidence ceiling 'participation'",
+        "National Tire and Battery / Mavis |: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish"
+      ]
+    }
+  },
+  {
+    "job_id": 15256,
+    "title": "Reservation Manager",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  },
+  {
+    "job_id": 23899,
+    "title": "Custom Software Engineer",
+    "old": {
+      "latency_s": 30.3,
+      "raw_output": "{\"summary\": \"Background includes hands-on work as an engineering professional, moving from implementation through design. Strengths most relevant to this role include problem-solving and software engineering.\", \"bullets\": [{\"text\": \"Engage with multiple teams and contribute on key decisions. (Waffle House)\", \"evidence\": \"Waffle House\"}, {\"text\": \"Provide solutions to problems for their immediate team and across multiple teams. (National Tire and Battery / Mavis)\", \"evidence\": \"National Tire and Battery / Mavis\"}, {\"text\": \"Lead the implementation of best practices and standards within the team to enhance software quality and maintainability. (Waffle House)\", \"evidence\": \"Waffle House\"}, {\"text\": \"Coordinate cross-functional efforts to align software development with organizational goals and project timelines. (Express_Engine)\", \"evidence\": \"Express_Engine\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 4,
+      "bullets_survived": 4,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 34.4,
+      "raw_output": "{\"summary\": \"Contributed to engineering projects at Express_Engine, moving work from prototype through deployment. Background includes work at Waffle House, National Tire and Battery / Mavis, and Waffle House. Strengths most relevant to Express_Engine include multiple, problems, and quality.\", \"bullets\": [{\"evidence\": \"Waffle House\", \"text\": \"Engage with multiple teams and contribute on key decisions.\"}, {\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Provide solutions to problems for their immediate team and across multiple teams.\"}, {\"evidence\": \"Waffle House\", \"text\": \"Lead the implementation of best practices and standards within the team to enhance software quality and maintainability.\"}, {\"evidence\": \"Express_Engine\", \"text\": \"Coordinate cross-functional efforts to align software development with organizational goals and project timelines.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 4,
+      "bullets_survived": 4,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 24716,
+    "title": "Technical Lead - Application Development - Raleigh",
+    "old": {
+      "latency_s": 29.6,
+      "raw_output": "{\"summary\": \"I work as a software engineer, bringing hands-on experience in automation to client problems. Background includes AMP Smart, Express_Engine, UPS, and Waffle House.\", \"bullets\": [{\"evidence\": \"AMP Smart\", \"text\": \"Collaborate with Product and UX teams to translate client needs into high-impact, high-visibility solutions. | needs, product\"}, {\"evidence\": \"Express_Engine\", \"text\": \"Build test automation across the full stack of our software and enforce engineering best practices. | automation, software\"}, {\"evidence\": \"UPS\", \"text\": \"Optimize application performance and reliability in a cloud environment. | environment, performance, reliability\"}, {\"evidence\": \"Waffle House\", \"text\": \"Ensure adherence to coding standards, architectural principles, and security best practices. | standards\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 4,
+      "bullets_survived": 3,
+      "violations": [
+        "Waffle House: 'implementation'-tier claim exceeds evidence ceiling 'execution'"
+      ]
+    },
+    "new": {
+      "latency_s": 32.8,
+      "raw_output": "{\"summary\": \"Collaborated with Product and UX teams to translate client needs into high-impact, high-visibility solutions. Background includes Express_Engine, and Waffle House. Strengths most relevant to this role span product and automation.\", \"bullets\": [{\"evidence\": \"AMP Smart\", \"text\": \"Collaborated with Product and UX teams to translate client needs into high-impact, high-visibility solutions.\"}, {\"evidence\": \"Express_Engine\", \"text\": \"Build test automation across the full stack of our software and enforce engineering best practices.\"}, {\"evidence: UPS\", \"text\": \"Optimize application performance and reliability in a cloud environment.\"}, {\"evidence\": \"Waffle House\", \"text\": \"Ensure adherence to coding standards, architectural principles, and security best practices.\"}]}",
+      "parseable": false,
+      "echoes_scaffolding": false,
+      "bullets_offered": 0,
+      "bullets_survived": 0,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 15163,
+    "title": "Data Center Technician",
+    "old": {
+      "latency_s": 21.9,
+      "raw_output": "{\"summary\": \"I currently work as a logistics professional focused on material handling. Background includes hands-on experience with group lifts at Alex Prosperity Group / UST Logistics. That work taught me to own delivery rather than just write code.\", \"bullets\": [{\"evidence\": \"Alex Prosperity Group / UST Logistics |\", \"text\": \"Regularly lift and/or move up to 40 pounds; and participate in group lifts for 41+ pounds | group\"}, {\"evidence\": \"UST Logistics |\", \"text\": \"Regularly lift and/or move up to 40 pounds; and participate in group lifts for 41+ pounds | group\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 2,
+      "bullets_survived": 0,
+      "violations": [
+        "Alex Prosperity Group / UST Logistics |: number '40' in realized text is not present in the evidence text or known real_metrics",
+        "UST Logistics |: number '40' in realized text is not present in the evidence text or known real_metrics"
+      ]
+    },
+    "new": {
+      "latency_s": 14.7,
+      "raw_output": "{\"summary\": \"Assists with physical labor, including group lifting up to 40 pounds.\", \"bullets\": [{\"evidence\": \"Alex Prosperity Group / UST Logistics\", \"text\": \"Regularly lift and/or move up to 40 pounds; and participate in group lifts for 41+ pounds.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 1,
+      "bullets_survived": 0,
+      "violations": [
+        "Alex Prosperity Group / UST Logistics: number '40' in realized text is not present in the evidence text or known real_metrics"
+      ]
+    }
+  },
+  {
+    "job_id": 29313,
+    "title": "Service Automation Manager",
+    "old": {
+      "latency_s": 19.4,
+      "raw_output": "{\"summary\": \"Supports operations by serving as the primary MTG contact for the client's Director of Digital Operations. Ensures all assigned personnel comply with the client's security requirements.\", \"bullets\": [{\"evidence\": \"UPS | operations\", \"text\": \"Serve as the primary MTG contact for the client's Director of Digital Operations.\"}, {\"evidence\": \"Alex Prosperity Group / UST Logistics | security\", \"text\": \"Ensure all assigned personnel comply with the client's security requirements.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 2,
+      "bullets_survived": 2,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 24.0,
+      "raw_output": "{\"summary\": \"Serve as the primary MTG contact for the client's Director of Digital Operations. Ensure all assigned personnel comply with the client's badging, site-access, security, safety, and contractor-identification requirements. \", \"bullets\": [{\"evidence\": \"UPS | Alex Prosperity Group / UST Logistics\", \"text\": \"Serve as the primary MTG contact for the client's Director of Digital Operations.\"}, {\"evidence\": \"UPS | Alex Prosperity Group / UST Logistics\", \"text\": \"Ensure all assigned personnel comply with the client's badging, site-access, security, safety, and contractor-identification requirements.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 2,
+      "bullets_survived": 2,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 10236,
+    "title": "Software Dev Engineer II, Aurora Storage",
+    "old": {
+      "latency_s": 27.2,
+      "raw_output": "{\"summary\": \"Brings reliability to design problems as a software engineer. Background includes hands-on implementation experience with C#, C++, Java, and Perl.\", \"bullets\": [{\"evidence\": \"UPS | reliability\", \"text\": \"Diagnosed reliability issues in UPS and resolved them.\", }, {\"evidence\": \"National Tire and Battery / Mavis | implementation\", \"text\": \"Developed software with C#, C++, Java, and Perl for Mavis.\", }, {\"evidence\": \"National Tire and Battery / Mavis | implementation\", \"text\": \"Designed and developed large-scale, multi-tiered, multi-threaded, embedded or distributed software applications, tools, systems, and services with C#, C++, Java, and Perl for Mavis.\"}]}",
+      "parseable": false,
+      "echoes_scaffolding": false,
+      "bullets_offered": 0,
+      "bullets_survived": 0,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 29.4,
+      "raw_output": "{\"summary\": \"Background includes hands-on experience in reliability, with a track record of shipping related features end to end.\", \"bullets\": [{\"evidence\": \"UPS\", \"text\": \"Migrated the reporting database to PostgreSQL, improving reliability.\"}, {\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Developed with C#, C++, Java, and Perl, shipping as part of a larger Mavis project.\"}, {\"evidence: \"National Tire and Battery / Mavis\", \"text\": \"Designed and developed large-scale, multi-tiered, multi-threaded, embedded or distributed software applications, tools, systems, and services using: C#, C++, Java, or Perl.\"}]}",
+      "parseable": false,
+      "echoes_scaffolding": false,
+      "bullets_offered": 0,
+      "bullets_survived": 0,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 18412,
+    "title": "Full Stack Engineer",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  }
+]

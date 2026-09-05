@@ -1,0 +1,19 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+C:\Users\phili\Projects\resume-agent\data\experiments\specialized_model_infra_20260901\venv\Lib\site-packages\huggingface_hub\file_download.py:141: UserWarning: `huggingface_hub` cache-system uses symlinks by default to efficiently store duplicated files but your machine does not support them in C:\Users\phili\.cache\huggingface\hub\models--Abhishek9998--t5-base-finetuned-resumes_t2json_large. Caching files will still work but in a degraded version that might require more space on your disk. This warning can be disabled by setting the `HF_HUB_DISABLE_SYMLINKS_WARNING` environment variable. For more details, see https://huggingface.co/docs/huggingface_hub/how-to-cache#limitations.
+To support symlinks on Windows, you either need to activate Developer Mode or to run Python as an administrator. In order to activate developer mode, see this article: https://docs.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development
+  warnings.warn(message)
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/260 [00:00<?, ?it/s]Loading weights: 100%|##########| 260/260 [00:00<00:00, 10673.68it/s]
+{
+  "model_id": "Abhishek9998/t5-base-finetuned-resumes_t2json_large",
+  "sample_input": "Alignment Technician at National Tire and Battery / Mavis. Performed vehicle alignment and maintenance tasks including tires, shocks, struts, brakes, and fluids. Provided hands-on technical troubleshooting and customer service to ensure vehicle safety and satisfaction.",
+  "load_succeeded": true,
+  "load_tokenizer_s": 7.74,
+  "load_model_s": 43.54,
+  "param_count": 222903552,
+  "inference_succeeded": true,
+  "inference_latency_s": 4.48,
+  "output_text": "Tire and Battery / Mavis. vehicle alignment and maintenance tasks including tires, shocks, struts, brakes, fluids. Performed vehicle alignment and maintenance tasks including tires, shocks, struts, brakes, and fluids.",
+  "output_looks_like_json": false,
+  "total_wall_s": 55.76
+}

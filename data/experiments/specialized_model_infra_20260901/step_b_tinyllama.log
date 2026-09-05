@@ -1,0 +1,10 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights:  40%|####      | 81/201 [00:00<00:00, 724.21it/s]Loading weights:  77%|#######6  | 154/201 [00:00<00:00, 249.26it/s]Loading weights:  97%|#########6| 194/201 [00:00<00:00, 227.31it/s]Loading weights: 100%|##########| 201/201 [00:00<00:00, 262.73it/s]
+[transformers] Both `max_new_tokens` (=600) and `max_length`(=2048) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+[transformers] Both `max_new_tokens` (=600) and `max_length`(=2048) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+[transformers] Both `max_new_tokens` (=600) and `max_length`(=2048) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+job 27323: ok, 151.9s, 555 chars
+job 7267: ok, 96.3s, 665 chars
+job 7406: skipped (no supported requirements)
+job 22916: ok, 124.2s, 840 chars
+DONE

@@ -1,0 +1,38 @@
+{
+  "experiment": "specialized_model_prompt_representation_bakeoff",
+  "continuation_of": "specialized_model_infra_20260901 (T5-base, TinyLlama+LoRA under ApplyPilot's own schema -- both unusable). This experiment tests different, more capable candidates under representations closer to their own documentation, specifically to separate model-capability failure from representation/prompt-mismatch failure.",
+  "constraints_honored": {
+    "production_code_modified": false,
+    "production_db_mutations": false,
+    "one_model_resident_at_a_time": true,
+    "explicit_unload_between_models": "ollama stop <model> issued and RAM-recovery confirmed after every model, not left to Ollama's default keep-alive timer",
+    "no_7b_download": true
+  },
+  "incident": {
+    "description": "Free RAM dropped to 0.42GB partway through the qwen3 sanity run because Ollama keeps a model resident for a keep-alive period after the last request, independent of the calling script exiting -- this stacked with the harness issuing 7 sequential calls.",
+    "disk_activity_at_the_time": "21.4% disk time, 65 pages/sec -- elevated but not full thrashing",
+    "resolution": "ollama stop <model> force-unloaded it; RAM recovered to 3.35GB within seconds. Not a machine-instability stop condition, but close enough to warrant explicit unload discipline for the rest of the run (adopted from that point on).",
+    "user_was_informed_in_real_time": true
+  },
+  "models_tested": [
+    {"label": "Apex Resume Qwen2.5-3B", "identifier": "ahmadd46/apex-resume-qwen-3b (Q4_K_M GGUF)", "specialized": true, "runnable": true},
+    {"label": "IterateCV Llama-3.2-3B", "identifier": "abhaykanjoor/iteratecv-llama-3.2-3b-gguf (Q4_K_M GGUF)", "specialized": true, "runnable": true},
+    {"label": "Qwen2.5-3B (control)", "identifier": "qwen2.5:3b", "specialized": false, "runnable": true},
+    {"label": "qwen3:1.7b (existing baseline)", "identifier": "qwen3:1.7b", "specialized": false, "runnable": true}
+  ],
+  "configs_tested": ["native (plain resume+JD, no ApplyPilot schema)", "rewrite (single requirement + matching existing bullets only)", "plan (all supported requirements, plain-language evidence blocks, whole EXPERIENCE section)"],
+  "jobs": {"primary_all_configs": [7267, 22916], "spotcheck_native_only": [27323]},
+  "headline_finding": "The single clearest, most consistent result across ALL FOUR models (2 specialized, 2 generic) and BOTH primary jobs: every model was safe and truthful in the narrow bullet-REWRITE config, and every model that was tested in native/whole-resume mode fabricated something at least once -- ranging from invented skills lists, to invented employment dates, to (twice, in qwen2.5:3b) an entire fictional prior job matching the TARGET company with duties copied from the job posting. This is a representation/architecture finding, not primarily a model-selection finding: asking any of these small models to plan+generate a whole resume is unsafe; asking the same models to rewrite a small, pre-selected, evidence-bounded span of text is not.",
+  "did_representation_change_matter": true,
+  "did_specialized_models_beat_generic": {
+    "apex_vs_qwen25_control": "Apex was SAFER (zero fabrication across 7 outputs vs. qwen2.5:3b's 2 severe fabrications) but also far LESS USEFUL (near-total no-op in native/plan modes vs. qwen2.5:3b's at least attempting curation). Apex's rewrite-config output was also a smaller edit than qwen2.5:3b's. Net: the specialization appears to have optimized for refusal-to-fabricate over usefulness, not for better tailoring quality.",
+    "iteratecv_vs_qwen25_control": "IterateCV was WORSE than the generic control -- it fabricated in native mode (fictional job + years-of-experience claim) AND showed a systematic, repeated keyword-injection fabrication pattern in plan mode that qwen2.5:3b did not show. 'Specialized' did not mean safer here.",
+    "verdict": "No. Neither specialized model was more truthful AND more useful than the generic same-size control. Apex traded usefulness for safety; IterateCV was worse on both axes."
+  },
+  "did_qwen3_get_beaten_by_larger_models": "Partially. The 3B models (all three) produced more substantial, more complete native-mode output than qwen3:1.7b's more clipped style, and qwen2.5:3b/Apex showed better document-level curation (section selection) in plan mode than qwen3 (which just echoed everything verbatim, twice). But qwen3 was not more fabrication-prone than the 3B models -- its single worst fabrication (invented employment dates) is serious, but so were qwen2.5:3b's two fictional-job fabrications and IterateCV's fictional-role + systematic keyword injection. Model size in the 1.7B-3B range did not reliably predict truthfulness in this sample.",
+  "rewrite_vs_whole_resume": {
+    "rewrite_config_fabrication_rate": "0 of 8 tested outputs (4 models x 2 jobs) contained an invented fact.",
+    "native_or_plan_config_fabrication_rate": "9 of 16 tested outputs (4 models x [2 native + 2 plan] jobs, plus the 4 spot-check native outputs) contained at least one invented fact, ranging from a fabricated skill to a fabricated employer.",
+    "conclusion": "This is the core, decisive finding of the experiment (Phase 4). Isolating the model to ONLY rewriting pre-selected, evidence-bounded text is dramatically safer than asking it to plan or select on its own, for every single model tested, specialized or not."
+  }
+}

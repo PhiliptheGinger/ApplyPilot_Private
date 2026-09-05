@@ -1,0 +1,536 @@
+[
+  {
+    "job_id": 28014,
+    "title": "Manager, Applied AI Architects",
+    "old": {
+      "latency_s": 98.9,
+      "raw_output": "{\"summary\": \"Led the development of a high-performing team of Applied AI Architects, creating an environment of technical excellence, sound judgment, continuous learning, accountability, and strong customer stewardship, while defining and continuously refining the strategy and operating model for Applied AI Architecture across Europe, aligning company priorities with the evolving needs of strategic customers and the regional go-to-market.\", \"bullets\": [{\"evidence\": \"AMP Smart\", \"text\": \"Develop, environment\"}, {\"evidence\": \"AMP Smart\", \"text\": \"Market, needs, regional\"}, {\"evidence\": \"CAP Predictor\", \"text\": \"Data, market\"}, {\"evidence\": \"AMP Smart\", \"text\": \"Field, market, product, while}\"]}",
+      "parseable": false,
+      "echoes_scaffolding": false,
+      "bullets_offered": 0,
+      "bullets_survived": 0,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 49.8,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"AMP Smart\",\n      \"text\": \"Developed an environment for a high-performing team of Applied AI Architects, creating an environment of technical excellence, sound judgment, continuous learning, accountability, and strong customer stewardship.\"\n    },\n    {\n      \"evidence\": \"AMP Smart\",\n      \"text\": \"Defined and continuously refined the strategy and operating model for Applied AI Architecture across Europe, aligning company priorities with the evolving needs of strategic customers and the regional go-to-market.\"\n    },\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Built trusted relationships with C-suite and board-level stakeholders, as well as senior AI, technology, data, security, and engineering leaders, serving as an executive technical sponsor when needed.\"\n    },\n    {\n      \"evidence\": \"AMP Smart\",\n      \"text\": \"Translated patterns from the field into actionable feedback for Product, Engineering, Research, and go-to-market teams, while developing reusable architecture guidance and customer practices.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 4,
+      "bullets_survived": 0,
+      "violations": [
+        "AMP Smart: 'implementation'-tier claim exceeds evidence ceiling 'participation'",
+        "AMP Smart: 'execution'-tier claim exceeds evidence ceiling 'participation'",
+        "CAP Predictor: 'implementation'-tier claim exceeds evidence ceiling 'participation'",
+        "AMP Smart: 'implementation'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    }
+  },
+  {
+    "job_id": 9051,
+    "title": "Research Engineer, Codex",
+    "old": {
+      "latency_s": 43.9,
+      "raw_output": "{\"summary\": \"Contributed to the development and improvement of machine learning models and their evaluation processes, collaborating with various teams to enhance product features and user experience.\", \"bullets\": [{\"evidence\": \"CAP Predictor\", \"text\": \"Own end-to-end improvements to the post-training stack, including RL, data pipelines, graders, reward signals, evals, diagnostics, and model-behavior analysis.\"}, {\"evidence\": \"CAP Predictor\", \"text\": \"Build evals and environments that expose the next set of model failures, then turn those failures into training data, product fixes, or new research directions.\"}, {\"evidence\": \"AMP Smart\", \"text\": \"Partner with Codex, API/platform, ChatGPT, and general-agent product teams to understand what users need and translate product signal into model improvements.\"}, {\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Work on early-training and alignment interventions, including data mixtures, objectives, synthetic data, and eval loops that shape downstream agent behavior.\"}, {\"evidence\": \"UPS\", \"text\": \"Improve the machinery for large-scale training and launch: experiment velocity, reliability, observability, reproducibility, cost, latency, and production readiness.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 5,
+      "bullets_survived": 4,
+      "violations": [
+        "CAP Predictor: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish"
+      ]
+    },
+    "new": {
+      "latency_s": 45.1,
+      "raw_output": "{\"summary\": \"...\", \"bullets\": [{\"evidence\": \"CAP Predictor\", \"text\": \"Built evals and environments that exposed the next set of model failures, then turned those failures into training data, product fixes, or new research directions, using data.\"}, {\"evidence\": \"AMP Smart\", \"text\": \"Partnered with Codex, API/platform, ChatGPT, and general-agent product teams to understand user needs and translate product signals into model improvements, using product.\"}, {\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Worked on early-training and alignment interventions, including data mixtures, objectives, synthetic data, and eval loops that shaped downstream agent behavior, using alignment and work.\"}, {\"evidence\": \"UPS\", \"text\": \"Improved the machinery for large-scale training and launch, including experiment velocity, reliability, observability, reproducibility, cost, latency, and production readiness, using reliability.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 4,
+      "bullets_survived": 2,
+      "violations": [
+        "CAP Predictor: 'implementation'-tier claim exceeds evidence ceiling 'participation'",
+        "UPS: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish"
+      ]
+    }
+  },
+  {
+    "job_id": 20803,
+    "title": "Agentic AI Developer",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  },
+  {
+    "job_id": 25495,
+    "title": "Infrastructure Engineer \u2013 Automation",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  },
+  {
+    "job_id": 12070,
+    "title": "Data Engineer",
+    "old": {
+      "latency_s": 32.5,
+      "raw_output": "{\"summary\": \"I have demonstrated strong execution and implementation skills in various roles, including mentoring junior team members and coordinating cross-functional initiatives to align data engineering efforts with business objectives.\", \"bullets\": [{\"evidence\": \"Waffle House\", \"text\": \"Engage with multiple teams and contribute on key decisions.\"}, {\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Provide solutions to problems for their immediate team and across multiple teams.\"}, {\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Mentor junior team members to enhance their technical skills and project contributions.\"}, {\"evidence\": \"CAP Predictor\", \"text\": \"Coordinate cross-functional initiatives to align data engineering efforts with business objectives.\"}, {\"evidence\": \"CAP Predictor\", \"text\": \"Must To Have Skills: Proficiency in Databricks Unified Data Analytics Platform.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 5,
+      "bullets_survived": 5,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 70.0,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Waffle House | shape: [Action] [object] [context], [outcome]. | limits: carried out this task -- did not design or own the whole solution; did this yourself -- did not lead/manage people\",\n      \"text\": \"Engage with multiple teams and contribute on key decisions.\"\n    },\n    {\n      \"evidence\": \"National Tire and Battery / Mavis | shape: [Action] [object] [context], [outcome]. | limits: built/implemented this -- did not architect the whole system; did this yourself -- did not lead/manage people\",\n      \"text\": \"Provide solutions to problems for their immediate team and across multiple teams.\"\n    },\n    {\n      \"evidence\": \"National Tire and Battery / Mavis | shape: [Action] [object] [context], [outcome]. | limits: built/implemented this -- did not architect the whole system; did this yourself -- did not lead/manage people\",\n      \"text\": \"Mentor junior team members to enhance their technical skills and project contributions.\"\n    },\n    {\n      \"evidence\": \"CAP Predictor | shape: [Action] [object] [context], [outcome]. | limits: took part in/was exposed to this -- did not build, own, or lead it; did this yourself -- did not lead/manage people\",\n      \"text\": \"Coordinate cross-functional initiatives to align data engineering efforts with business objectives.\"\n    },\n    {\n      \"evidence\": \"CAP Predictor | shape: [Action] [object] [context], [outcome]. | limits: took part in/was exposed to this -- did not build, own, or lead it; did this yourself -- did not lead/manage people\",\n      \"text\": \"Must To Have Skills: Proficiency in Databricks Unified Data Analytics Platform.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 5,
+      "bullets_survived": 5,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 28152,
+    "title": "System Engineer",
+    "old": {
+      "latency_s": 25.1,
+      "raw_output": "{\"summary\": \"Contributed to the monitoring and maintenance of software systems infrastructure, including hardware and software, and recommended changes and upgrades based on system performance.\", \"bullets\": [{\"evidence\": \"Express_Engine\", \"text\": \"Monitor and maintain systems infrastructure including hardware and software\"}, {\"evidence\": \"UPS\", \"text\": \"Monitor systems performance and recommend changes and upgrades based on utilization\"}, {\"evidence\": \"AMP_Smart\", \"text\": \"Provide support and assistance to OD users for systems needs\"}, {\"evidence\": \"National_Tire_and_Battery_Mavis\", \"text\": \"Assist with troubleshooting and diagnosis of enterprise systems issues, including issues and troubleshooting\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 4,
+      "bullets_survived": 4,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 59.2,
+      "raw_output": "{\n  \"summary\": \"Assisted with troubleshooting and diagnosis of enterprise systems issues, resolving performance problems and user needs.\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Express_Engine | shape: [Action] [object] [context], [outcome]. | limits: took part in/was exposed to this -- did not build, own, or lead it; did this yourself -- did not lead/manage this; use these exact terms: software\",\n      \"text\": \"Monitored and maintained software systems infrastructure, including hardware and software.\"\n    },\n    {\n      \"evidence\": \"UPS | shape: [Action] [object] [context], [outcome]. | limits: carried out this task -- did not design or own the whole solution; did this yourself -- did not lead/manage this; use these exact terms: performance\",\n      \"text\": \"Monitored systems performance and recommended changes and upgrades based on utilization.\"\n    },\n    {\n      \"evidence\": \"AMP Smart | shape: [Action] [object] [context], [outcome]. | limits: took part in/was exposed to this -- did not build, own, or lead it; owned this piece of work -- did not lead/manage a team; use these exact terms: needs\",\n      \"text\": \"Provided support and assistance to OD users for their systems needs.\"\n    },\n    {\n      \"evidence\": \"National Tire and Battery / Mavis | shape: [Diagnosed/identified problem], [action taken], [verified result]. | limits: built/implemented this -- did not architect the whole system; did this yourself -- did not lead/manage people; use these exact terms: issues, troubleshooting\",\n      \"text\": \"Diagnosed and identified issues in enterprise systems, and resolved them through troubleshooting.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 4,
+      "bullets_survived": 1,
+      "violations": [
+        "Express_Engine | shape: [Action] [object] [context], [outcome]. | limits: took part in/was exposed to this -- did not build, own, or lead it; did this yourself -- did not lead/manage this; use these exact terms: software: 'execution'-tier claim exceeds evidence ceiling 'participation'",
+        "UPS | shape: [Action] [object] [context], [outcome]. | limits: carried out this task -- did not design or own the whole solution; did this yourself -- did not lead/manage this; use these exact terms: performance: 'execution'-tier claim exceeds evidence ceiling 'participation'",
+        "National Tire and Battery / Mavis | shape: [Diagnosed/identified problem], [action taken], [verified result]. | limits: built/implemented this -- did not architect the whole system; did this yourself -- did not lead/manage people; use these exact terms: issues, troubleshooting: 'execution'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    }
+  },
+  {
+    "job_id": 669,
+    "title": "Mechanical Engineer, Components and Propulsion",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  },
+  {
+    "job_id": 18933,
+    "title": "Administrateur Syst\u00e8mes Windows H/F",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  },
+  {
+    "job_id": 2902,
+    "title": "Senior Manager, Tax Technology",
+    "old": {
+      "latency_s": 42.3,
+      "raw_output": "{\"summary\": \"I have experience in various tax technology implementations and improvements, using AI and emerging tools to enhance efficiency and accuracy.\", \"bullets\": [{\"evidence\": \"UPS | CAP Predictor | National Tire and Battery / Mavis\", \"text\": \"Support and enhance the tax technology stack, including D365, Salesforce, Vertex O Series, Sigma, Snowflake, and related platforms.\"}, {\"evidence\": \"UPS | CAP Predictor | National Tire and Battery / Mavis\", \"text\": \"Evaluate end-to-end tax processes, data flows, and system dependencies to improve scalability across both manufacturing and SaaS business models.\"}, {\"evidence\": \"UPS | CAP Predictor | National Tire and Battery / Mavis\", \"text\": \"Leverage AI and emerging technologies to improve workflows, documentation, research, and team productivity.\"}, {\"evidence\": \"UPS | CAP Predictor | National Tire and Battery / Mavis\", \"text\": \"Support reporting, testing, documentation, and change management related to tax technology initiatives.\"}, {\"evidence\": \"UPS | CAP Predictor | National Tire and Battery / Mavis\", \"text\": \"Partner with the tax team to identify and implement process improvements, automation opportunities, and technology solutions that increase efficiency and accuracy.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 5,
+      "bullets_survived": 4,
+      "violations": [
+        "UPS | CAP Predictor | National Tire and Battery / Mavis: number '365' in realized text is not present in the evidence text or known real_metrics"
+      ]
+    },
+    "new": {
+      "latency_s": 82.5,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"UPS | shape: [Action] [object] [context], [outcome]. | limits: carried out this task -- did not design or own the whole solution; did this yourself -- did not lead/manage people | fact: Partner with the tax team to identify and implement process improvements, automation opportunities, and technology solutions that increase efficiency and accuracy.\",\n      \"text\": \"Partnered with the tax team to implement process improvements and technology solutions, enhancing efficiency and accuracy.\"\n    },\n    {\n      \"evidence\": \"CAP Predictor | shape: [Action] [object] [context], [outcome]. | limits: took part in/was exposed to this -- did not build, own, or lead it; did this yourself -- did not lead/manage people | fact: Evaluate end-to-end tax processes, data flows, and system dependencies to improve scalability across both manufacturing and SaaS business models.\",\n      \"text\": \"Evaluated end-to-end tax processes and system dependencies to improve scalability in manufacturing and SaaS business models.\"\n    },\n    {\n      \"evidence\": \"National Tire and Battery / Mavis | shape: [Action] [object] [context], [outcome]. | limits: built/implemented this -- did not architect the whole system; did this yourself -- did not lead/manage people | fact: Support and enhance the tax technology stack, including D365, Salesforce, Vertex O Series, Sigma, Snowflake, and related platforms.\",\n      \"text\": \"Enhanced the tax technology stack by supporting and integrating various platforms such as D365, Salesforce, and Snowflake.\"\n    },\n    {\n      \"evidence\": \"CAP Predictor | shape: [Action] [object] [context], [outcome]. | limits: took part in/was exposed to this -- did not build, own, or lead it; did this yourself -- did not lead/manage people | fact: Leverage AI and emerging technologies to improve workflows, documentation, research, and team productivity.\",\n      \"text\": \"Used AI and emerging technologies to improve workflows, documentation, and team productivity.\"\n    },\n    {\n      \"evidence\": \"National Tire and Battery / Mavis | shape: [Action] [object] [context], [outcome]. | limits: built/implemented this -- did not architect the whole system; did this yourself -- did not lead/manage people | fact: Support reporting, testing, documentation, and change management related to tax technology initiatives.\",\n      \"text\": \"Supported tax technology initiatives by providing reporting, testing, documentation, and change management support.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 5,
+      "bullets_survived": 4,
+      "violations": [
+        "National Tire and Battery / Mavis | shape: [Action] [object] [context], [outcome]. | limits: built/implemented this -- did not architect the whole system; did this yourself -- did not lead/manage people | fact: Support and enhance the tax technology stack, including D365, Salesforce, Vertex O Series, Sigma, Snowflake, and related platforms.: 'implementation'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    }
+  },
+  {
+    "job_id": 28656,
+    "title": "Multi Site Customer Service Coordinator",
+    "old": {
+      "latency_s": 15.6,
+      "raw_output": "{\"summary\": \"Supported client operations by traveling locally, including day trips to post offices and satellite office locations.\", \"bullets\": [{\"evidence\": \"UPS | shape: action -> object -> context -> outcome | fact: Travel locally, including day trips to post offices and satellite office locations, as needed to support client operations.\", \"text\": \"Led operations by traveling locally, including day trips to post offices and satellite office locations.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 1,
+      "bullets_survived": 0,
+      "violations": [
+        "UPS | shape: action -> object -> context -> outcome | fact: Travel locally, including day trips to post offices and satellite office locations, as needed to support client operations.: 'team_lead'-tier agency claim exceeds evidence ceiling 'individual_contributor'"
+      ]
+    },
+    "new": {
+      "latency_s": 25.8,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"UPS | shape: [Action] [object] [context], [outcome]. | limits: carried out this task -- did not design or own the whole solution; did this yourself -- did not lead/manage people\",\n      \"text\": \"Travelled locally, including day trips to post offices and satellite office locations, as needed to support client operations.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 1,
+      "bullets_survived": 1,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 18139,
+    "title": "Senior Control Systems Integration Technical Specialist / Programmer",
+    "old": {
+      "latency_s": 23.4,
+      "raw_output": "{\"summary\": \"I have experience using Microsoft Office to produce detailed reports and have knowledge of automation principles and electrical circuits through my work with Python. I have also executed assigned tasks within scope, budget, and schedule in my role at AMP Smart.\", \"bullets\": [{\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Proficient in using Microsoft Office to produce detail-oriented reports using.\"}, {\"evidence\": \"Python\", \"text\": \"Knowledge of controls and automation principles and electrical circuits is desired.\"}, {\"evidence\": \"AMP Smart\", \"text\": \"Execute assigned tasks within scope, budget, and schedule.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 3,
+      "bullets_survived": 3,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 40.4,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"National Tire and Battery / Mavis | shape: [Action] [object] [context], [outcome]. | limits: built/implemented this -- did not architect the whole system; did this yourself -- did not lead/manage people\",\n      \"text\": \"Using Microsoft Office to produce detail-oriented reports.\"\n    },\n    {\n      \"evidence\": \"Python | shape: [Action] [object] [context], [outcome]. | limits: took part in/was exposed to this -- did not build, own, or lead it; did this yourself -- did not lead/manage people\",\n      \"text\": \"Knowledge of controls and automation principles and electrical circuits is desired.\"\n    },\n    {\n      \"evidence\": \"AMP Smart | shape: [Action] [object] [context], [outcome]. | limits: took part in/was exposed to this -- did not build, own, or lead it; owned this piece of work -- did not lead/manage a team\",\n      \"text\": \"Execute assigned tasks within scope, budget, and schedule.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 3,
+      "bullets_survived": 3,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 11564,
+    "title": "Executive Director Principal Software Engineer - Athena Platform",
+    "old": {
+      "latency_s": 46.0,
+      "raw_output": "{\n    \"summary\": \"I have experience managing senior relationships across various departments and influencing key stakeholders in product and technology teams, which has contributed to the development of secure and high-quality production code and the influence over leaders and senior stakeholders across business, product, and technology teams.\",\n    \"bullets\": [\n        {\n            \"evidence\": \"UPS | shape: action -> object -> context -> outcome | claim ceiling: execution | agency ceiling: individual_contributor | fact: You will manage senior relationships spanning Portfolio Management, Trading, Operations, and Accounting \u2014 communicating with authority and clarity on architecture decisions, delivery status, and platform capability.\",\n            \"text\": \"Manage senior relationships spanning Portfolio Management, Trading, Operations, and Accounting, communicating with authority and clarity on architecture decisions, delivery status, and platform capability.\"\n        },\n        {\n            \"evidence\": \"Waffle House | shape: action -> object -> context -> outcome | claim ceiling: execution | agency ceiling: individual_contributor | fact: Develops secure and high-quality production code, and reviews and debugs code written by others.\",\n            \"text\": \"Develops secure and high-quality production code, and reviews and debugs code written by others.\"\n        },\n        {\n            \"evidence\": \"AMP Smart | shape: action -> object -> context -> outcome | claim ceiling: participation | agency ceiling: owner | fact: Influences leaders and senior stakeholders across business, product, and technology teams.\",\n            \"text\": \"Influences leaders and senior stakeholders across business, product, and technology teams as a product owner.\"\n        }\n    ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 3,
+      "bullets_survived": 2,
+      "violations": [
+        "Waffle House | shape: action -> object -> context -> outcome | claim ceiling: execution | agency ceiling: individual_contributor | fact: Develops secure and high-quality production code, and reviews and debugs code written by others.: 'implementation'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    },
+    "new": {
+      "latency_s": 28.2,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"UPS\",\n      \"text\": \"Managed senior relationships spanning Portfolio Management, Trading, Operations, and Accounting, communicating with authority and clarity on architecture decisions, delivery status, and platform capability.\"\n    },\n    {\n      \"evidence\": \"Waffle House\",\n      \"text\": \"Develops secure and high-quality production code, and reviews and debugs code written by others.\"\n    },\n    {\n      \"evidence\": \"AMP Smart\",\n      \"text\": \"Influences leaders and senior stakeholders across business, product, and technology teams.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 3,
+      "bullets_survived": 1,
+      "violations": [
+        "UPS: 'team_lead'-tier agency claim exceeds evidence ceiling 'individual_contributor'",
+        "Waffle House: 'implementation'-tier claim exceeds evidence ceiling 'execution'"
+      ]
+    }
+  },
+  {
+    "job_id": 549,
+    "title": "Legal Recruiter (Contract)",
+    "old": {
+      "latency_s": 34.3,
+      "raw_output": "{\"summary\": \"I have experience in sourcing and engaging legal talent through various channels and have driven internal strategies to attract top-tier candidates.\", \"bullets\": [{\"evidence\": \"National Tire and Battery / Mavis |\", \"text\": \"Target and engage passive legal talent using LinkedIn Recruiter, Boolean strings, referrals, SOBO campaigns, and specialized legal networks, professional associations, and industry events in the context of the National Tire and Battery / Mavis |.\", \"use terms\": \"specialized, using\"}, {\"evidence\": \"AMP Smart |\", \"text\": \"Drive a diverse talent pipeline into the organization ensuring a positive candidate experience at every touchpoint, from initial outreach to offer acceptance in the context of AMP Smart |.\", \"use terms\": \"outreach\"}, {\"evidence\": \"AMP Smart |\", \"text\": \"Leverage internal resources and market insights to build strategies around selling our value proposition to top-tier legal talent in the context of AMP Smart |.\", \"use terms\": \"market, strategies\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 3,
+      "bullets_survived": 3,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 47.3,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"National Tire and Battery / Mavis | shape: [Action] [object] [context], [outcome]. | limits: took part in/was exposed to this -- did not build, own, or lead it; owned this piece of work -- did not lead/manage a team\",\n      \"text\": \"Used LinkedIn Recruiter, Boolean strings, referrals, SOBO campaigns, and specialized legal networks to target and engage passive legal talent.\"\n    },\n    {\n      \"evidence\": \"AMP Smart | shape: [Action] [object] [context], [outcome]. | limits: took part in/was exposed to this -- did not build, own, or lead it; owned this piece of work -- did not lead/manage a team\",\n      \"text\": \"Built strategies around selling our value proposition to top-tier legal talent using internal resources and market insights.\"\n    },\n    {\n      \"evidence\": \"AMP Smart | shape: [Action] [object] [context], [outcome]. | limits: took part in/was exposed to this -- did not build, own, or lead it; owned this piece of work -- did not lead/manage a team\",\n      \"text\": \"Leveraged internal resources and market insights to build strategies around selling our value proposition to top-tier legal talent.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 3,
+      "bullets_survived": 2,
+      "violations": [
+        "AMP Smart | shape: [Action] [object] [context], [outcome]. | limits: took part in/was exposed to this -- did not build, own, or lead it; owned this piece of work -- did not lead/manage a team: 'implementation'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    }
+  },
+  {
+    "job_id": 21159,
+    "title": "Lead Software Engineer, Back End",
+    "old": {
+      "latency_s": 10.7,
+      "raw_output": "{\"summary\": \"Utilized Python for developing and deploying microservices using Docker and Kubernetes on AWS.\", \"bullets\": [{\"evidence\": \"CAP Predictor\", \"text\": \"python was used for programming languages like Python\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 1,
+      "bullets_survived": 1,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 13.5,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Used Python for data processing and analysis in the CAP Predictor project.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 1,
+      "bullets_survived": 1,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 23794,
+    "title": "Packaged/SaaS Application Engineer",
+    "old": {
+      "latency_s": 26.7,
+      "raw_output": "{\"summary\": \"Continued my career in problem-solving and process improvement, leveraging my experience to contribute effectively and lead initiatives within teams.\", \"bullets\": [{\"evidence\": \"Waffle House | shape: action -> object -> context -> outcome\", \"text\": \"Engage with multiple teams and contribute on key decisions at Waffle House.\"}, {\"evidence\": \"National Tire and Battery / Mavis | shape: action -> object -> context -> outcome\", \"text\": \"Provide solutions to problems for their immediate team and across multiple teams at National Tire and Battery / Mavis.\"}, {\"evidence\": \"AMP Smart | shape: action -> object -> context -> outcome\", \"text\": \"Lead efforts to identify process improvements and implement best practices within the team at AMP Smart.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 3,
+      "bullets_survived": 3,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 39.0,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Waffle House | shape: [Action] [object] [context], [outcome]. | limits: carried out this task -- did not design or own the whole solution; did this yourself -- did not lead/manage people\",\n      \"text\": \"Engage with multiple teams and contribute on key decisions.\"\n    },\n    {\n      \"evidence\": \"National Tire and Battery / Mavis | shape: [Action] [object] [context], [outcome]. | limits: built/implemented this -- did not architect the whole system; did this yourself -- did not lead/manage people\",\n      \"text\": \"Provide solutions to problems for their immediate team and across multiple teams.\"\n    },\n    {\n      \"evidence\": \"AMP Smart | shape: [Action] [object] [context], [outcome]. | limits: took part in/was exposed to this -- did not build, own, or lead it; owned this piece of work -- did not lead/manage a team\",\n      \"text\": \"Lead efforts to identify process improvements and implement best practices within the team.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 3,
+      "bullets_survived": 3,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 14942,
+    "title": "Jr. Audio/Visual Support Assistant",
+    "old": {
+      "latency_s": 51.3,
+      "raw_output": "{\"summary\": \"I have experience in various domains, including AV support and photography, where I've implemented solutions for equipment issues and supported users in collaboration platforms. My contributions have ranged from basic troubleshooting and inventory management to managing incident tracking systems.\", \"bullets\": [{\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Set up and tested AV equipment such as displays, projectors, microphones, speakers, mixers, cameras, laptops, clickers, and adapters for conference rooms and corporate event spaces.\"}, {\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Performed basic troubleshooting for common issues like no audio, feedback, low mic levels, display connection problems, camera framing, and network/stream interruptions.\"}, {\"evidence\": \"Freelance Photography / Videography\", \"text\": \"Supported users on collaboration platforms like Microsoft Teams and Zoom, assisting with meeting start-up, joining, and content sharing.\"}, {\"evidence\": \"National Tire and Battery / Mavis\", \"text\": \"Maintained AV inventory by ensuring cables, adapters, batteries, microphones were charged, labeled, clean, and stored appropriately.\"}, {\"evidence\": \"Waffle House\", \"text\": \"Tracked incidents, requests, and resolutions in a ticketing system, documenting steps taken, outcomes, and follow-up actions for various issues.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 5,
+      "bullets_survived": 5,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 58.1,
+      "raw_output": "{\n  \"summary\": \"Supported AV equipment by setting up and testing displays, projectors, microphones, speakers, and other AV components for conference rooms and corporate events.\",\n  \"bullets\": [\n    {\n      \"evidence\": \"National Tire and Battery / Mavis\",\n      \"text\": \"Set up and tested AV equipment for conference rooms and corporate event spaces, including displays, projectors, microphones, speakers, mixers, cameras, laptops, clickers, and adapters.\"\n    },\n    {\n      \"evidence\": \"National Tire and Battery / Mavis\",\n      \"text\": \"Diagnosed and resolved common issues such as no audio, feedback, low mic levels, display connection problems, camera framing, and network/stream interruptions.\"\n    },\n    {\n      \"evidence\": \"Freelance Photography / Videography\",\n      \"text\": \"Supported users on collaboration platforms like Microsoft Teams and Zoom, guiding them through meeting start-up, joining, and content sharing.\"\n    },\n    {\n      \"evidence\": \"National Tire and Battery / Mavis\",\n      \"text\": \"Maintained AV inventory by ensuring cables, adapters, batteries, microphones were charged, labeled, clean, and stored appropriately.\"\n    },\n    {\n      \"evidence\": \"Waffle House\",\n      \"text\": \"Diagnosed and tracked incidents, requests, and resolutions in a ticketing system, documenting steps taken, outcomes, and follow-up actions.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 5,
+      "bullets_survived": 5,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 22877,
+    "title": "Program Engineer",
+    "old": {
+      "latency_s": 18.8,
+      "raw_output": "{\n    \"summary\": \"Contributed to the development of Risks & Opportunities and drove the Implementation of IPTs, enhancing Program Operations Manager's effectiveness.\",\n    \"bullets\": [\n        {\n            \"evidence\": \"National Tire and Battery / Mavis\",\n            \"text\": \"Engaged with factory Manufacturing Engineers and technical experts to resolve issues.\"\n        },\n        {\n            \"evidence\": \"UPS\",\n            \"text\": \"Assisted Program Operations Manager in developing Risks & Opportunities and driving the Implementation of IPTs in the operations context.\"\n        }\n    ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 2,
+      "bullets_survived": 1,
+      "violations": [
+        "UPS: 'implementation'-tier claim exceeds evidence ceiling 'execution'"
+      ]
+    },
+    "new": {
+      "latency_s": 27.1,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"National Tire and Battery / Mavis\",\n      \"text\": \"Engaged with factory Manufacturing Engineers and technical experts to resolve issues\"\n    },\n    {\n      \"evidence\": \"UPS\",\n      \"text\": \"Assisted Program Operations Manager in development of Risks & Opportunities and drive to IPTs\"\n    }\n  ]",
+      "parseable": false,
+      "echoes_scaffolding": false,
+      "bullets_offered": 0,
+      "bullets_survived": 0,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 15776,
+    "title": "Network Install Technician, Infrastructure Delivery",
+    "old": {
+      "latency_s": 50.1,
+      "raw_output": "{\n    \"summary\": \"With a strong background in technical roles, I've successfully managed and executed projects in various environments, from data centers to automotive, demonstrating a versatile skill set in hardware repair, network deployment, and infrastructure management.\",\n    \"bullets\": [\n        {\n            \"evidence\": \"UPS | shape: problem -> action -> result | claim ceiling: execution | agency ceiling: individual_contributor | fact: 2+ years of data center, critical environment, computer hardware repair, infrastructure cabling, network deployment, or data center operations experience, or experience in similar technical roles | use these exact terms: environment, operations\",\n            \"text\": \"Diagnosed and resolved hardware issues in data centers, improving network operations and ensuring reliable IT infrastructure.\"\n        },\n        {\n            \"evidence\": \"National Tire and Battery / Mavis | shape: action -> object -> context -> outcome | claim ceiling: implementation | agency ceiling: individual_contributor | fact: 2+ years of network cabling, fiber optics, and test equipment including VFL, power meter, and OTDR experience | use these exact terms: equipment\",\n            \"text\": \"Cabled and tested network infrastructure, including fiber optics and test equipment, to ensure optimal network performance and reliability.\"\n        },\n        {\n            \"evidence\": \"AMP Smart | shape: action -> object -> context -> outcome | claim ceiling: participation | agency ceiling: owner | fact: certification in a relevant field (CCENT - Cisco Certified Entry Networking Technician, Network+, or CCNA - Cisco Certified Network Associate) | use these exact terms: field\",\n            \"text\": \"Certified in network technology, leading the implementation of network solutions and ensuring compliance with industry standards.\"\n        }\n    ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 3,
+      "bullets_survived": 1,
+      "violations": [
+        "UPS | shape: problem -> action -> result | claim ceiling: execution | agency ceiling: individual_contributor | fact: 2+ years of data center, critical environment, computer hardware repair, infrastructure cabling, network deployment, or data center operations experience, or experience in similar technical roles | use these exact terms: environment, operations: 'execution'-tier claim exceeds evidence ceiling 'participation'",
+        "AMP Smart | shape: action -> object -> context -> outcome | claim ceiling: participation | agency ceiling: owner | fact: certification in a relevant field (CCENT - Cisco Certified Entry Networking Technician, Network+, or CCNA - Cisco Certified Network Associate) | use these exact terms: field: 'team_lead'-tier agency claim exceeds evidence ceiling 'individual_contributor'"
+      ]
+    },
+    "new": {
+      "latency_s": 37.0,
+      "raw_output": "{\n  \"summary\": \"Researched and resolved issues in a critical environment, improving system reliability and efficiency.\",\n  \"bullets\": [\n    {\n      \"evidence\": \"UPS | shape: [Diagnosed/identified problem], [action taken], [verified result].\",\n      \"text\": \"Diagnosed and resolved API timeouts, verified the fix by reducing the number of retries and improving the API's response time.\"\n    },\n    {\n      \"evidence\": \"National Tire and Battery / Mavis | shape: [Action] [object] [context], [outcome].\",\n      \"text\": \"Migrated the reporting database to PostgreSQL, improving query speed and reducing database load times.\"\n    },\n    {\n      \"evidence\": \"AMP Smart | shape: [Action] [object] [context], [outcome].\",\n      \"text\": \"Certified in CCNA, gained hands-on experience with network equipment such as VFL, power meter, and OTDR, and applied this knowledge to network cabling and deployment.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 3,
+      "bullets_survived": 0,
+      "violations": [
+        "UPS | shape: [Diagnosed/identified problem], [action taken], [verified result].: 'execution'-tier claim exceeds evidence ceiling 'participation'",
+        "National Tire and Battery / Mavis | shape: [Action] [object] [context], [outcome].: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish",
+        "AMP Smart | shape: [Action] [object] [context], [outcome].: 'execution'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    }
+  },
+  {
+    "job_id": 15256,
+    "title": "Reservation Manager",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  },
+  {
+    "job_id": 23899,
+    "title": "Custom Software Engineer",
+    "old": {
+      "latency_s": 36.0,
+      "raw_output": "{\n  \"summary\": \"Engineered solutions and best practices to enhance software quality and maintainability, coordinating cross-functional efforts to align with organizational goals and project timelines.\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Waffle House | shape: action -> object -> context -> outcome\",\n      \"text\": \"Engage with multiple teams and contribute on key decisions.\"\n    },\n    {\n      \"evidence\": \"National Tire and Battery / Mavis | shape: action -> object -> context -> outcome\",\n      \"text\": \"Provide solutions to problems for their immediate team and across multiple teams.\"\n    },\n    {\n      \"evidence\": \"Waffle House | shape: action -> object -> context -> outcome\",\n      \"text\": \"Lead the implementation of best practices and standards within the team to enhance software quality and maintainability.\"\n    },\n    {\n      \"evidence\": \"Express_Engine | shape: action -> object -> context -> outcome\",\n      \"text\": \"Coordinate cross-functional efforts to align software development with organizational goals and project timelines.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 4,
+      "bullets_survived": 4,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 63.2,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Waffle House | shape: [Action] [object] [context], [outcome]. | limits: carried out this task -- did not design or own the whole solution; did this yourself -- did not lead/manage people | fact: Engage with multiple teams and contribute on key decisions.\",\n      \"text\": \"Engaged with multiple teams to contribute to key decisions, improving overall team performance.\"\n    },\n    {\n      \"evidence\": \"National Tire and Battery / Mavis | shape: [Action] [object] [context], [outcome]. | limits: built/implemented this -- did not architect the whole system; did this yourself -- did not lead/manage people | fact: Provide solutions to problems for their immediate team and across multiple teams.\",\n      \"text\": \"Provided solutions to problems for their immediate team and across multiple teams, enhancing their efficiency and problem-solving capabilities.\"\n    },\n    {\n      \"evidence\": \"Waffle House | shape: [Action] [object] [context], [outcome]. | limits: carried out this task -- did not design or own the whole solution; did this yourself -- did not lead/manage people | fact: Lead the implementation of best practices and standards within the team to enhance software quality and maintainability.\",\n      \"text\": \"Led the implementation of best practices and standards within the team, significantly enhancing software quality and maintainability.\"\n    },\n    {\n      \"evidence\": \"Express_Engine | shape: [Action] [object] [context], [outcome]. | limits: took part in/was exposed to this -- did not build, own, or lead it; did this yourself -- did not lead/manage people | fact: Coordinate cross-functional efforts to align software development with organizational goals and project timelines.\",\n      \"text\": \"Coordinated cross-functional efforts to align software development with organizational goals and project timelines, ensuring project success and alignment.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 4,
+      "bullets_survived": 1,
+      "violations": [
+        "Waffle House | shape: [Action] [object] [context], [outcome]. | limits: carried out this task -- did not design or own the whole solution; did this yourself -- did not lead/manage people | fact: Engage with multiple teams and contribute on key decisions.: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish",
+        "National Tire and Battery / Mavis | shape: [Action] [object] [context], [outcome]. | limits: built/implemented this -- did not architect the whole system; did this yourself -- did not lead/manage people | fact: Provide solutions to problems for their immediate team and across multiple teams.: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish",
+        "Waffle House | shape: [Action] [object] [context], [outcome]. | limits: carried out this task -- did not design or own the whole solution; did this yourself -- did not lead/manage people | fact: Lead the implementation of best practices and standards within the team to enhance software quality and maintainability.: 'team_lead'-tier agency claim exceeds evidence ceiling 'individual_contributor'"
+      ]
+    }
+  },
+  {
+    "job_id": 24716,
+    "title": "Technical Lead - Application Development - Raleigh",
+    "old": {
+      "latency_s": 50.4,
+      "raw_output": "{\n  \"summary\": \"As an individual contributor, I have a strong background in various domains including software development, automation, and performance optimization, which has equipped me with the skills to effectively collaborate and execute tasks.\",\n  \"bullets\": [\n    {\n      \"evidence\": \"AMP Smart | shape: action -> object -> context -> outcome | claim ceiling: participation | agency ceiling: owner | fact: Collaborate with Product and UX teams to translate client needs into high-impact, high-visibility solutions.\",\n      \"text\": \"Collaborate with Product and UX teams to translate client needs into high-impact, high-visibility solutions.\"\n    },\n    {\n      \"evidence\": \"Express_Engine | shape: action -> object -> context -> outcome | claim ceiling: participation | agency ceiling: individual_contributor | fact: Build test automation across the full stack of our software and enforce engineering best practices.\",\n      \"text\": \"Build test automation across the full stack of our software and enforce engineering best practices.\"\n    },\n    {\n      \"evidence\": \"UPS | shape: action -> object -> context -> outcome | claim ceiling: execution | agency ceiling: individual_contributor | fact: Optimize application performance and reliability in a cloud environment.\",\n      \"text\": \"Optimize application performance and reliability in a cloud environment.\"\n    },\n    {\n      \"evidence\": \"Waffle House | shape: action -> object -> context -> outcome | claim ceiling: execution | agency ceiling: individual_contributor | fact: Ensure adherence to coding standards, architectural principles, and security best practices.\",\n      \"text\": \"Ensure adherence to coding standards, architectural principles, and security best practices.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 4,
+      "bullets_survived": 3,
+      "violations": [
+        "Waffle House | shape: action -> object -> context -> outcome | claim ceiling: execution | agency ceiling: individual_contributor | fact: Ensure adherence to coding standards, architectural principles, and security best practices.: 'implementation'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    },
+    "new": {
+      "latency_s": 30.0,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"AMP Smart\",\n      \"text\": \"Collaborate with Product and UX teams to translate client needs into high-impact, high-visibility solutions.\"\n    },\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Build test automation across the full stack of our software and enforce engineering best practices.\"\n    },\n    {\n      \"evidence\": \"UPS\",\n      \"text\": \"Optimize application performance and reliability in a cloud environment.\"\n    },\n    {\n      \"evidence\": \"Waffle House\",\n      \"text\": \"Ensure adherence to coding standards, architectural principles, and security best practices.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 4,
+      "bullets_survived": 3,
+      "violations": [
+        "Waffle House: 'implementation'-tier claim exceeds evidence ceiling 'execution'"
+      ]
+    }
+  },
+  {
+    "job_id": 15163,
+    "title": "Data Center Technician",
+    "old": {
+      "latency_s": 16.5,
+      "raw_output": "{\"summary\": \"I regularly participate in group lifts for items weighing up to 40 pounds and assist in group lifts for items weighing more than 40 pounds.\", \"bullets\": [{\"evidence\": \"Alex Prosperity Group / UST Logistics | shape: action -> object -> context -> outcome\", \"text\": \"I participate in group lifts for items weighing up to 40 pounds and assist in group lifts for items weighing more than 40 pounds.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 1,
+      "bullets_survived": 0,
+      "violations": [
+        "Alex Prosperity Group / UST Logistics | shape: action -> object -> context -> outcome: number '40' in realized text is not present in the evidence text or known real_metrics"
+      ]
+    },
+    "new": {
+      "latency_s": 22.8,
+      "raw_output": "{\n  \"summary\": \"Moved and participated in group lifts of up to 40 pounds, contributing to the logistics team's efficiency at Alex Prosperity Group / UST Logistics.\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Alex Prosperity Group / UST Logistics | shape: [Action] [object] [context], [outcome]. | limits: carried out this task -- did not design or own the whole solution; did this yourself -- did not lead/manage people\",\n      \"text\": \"Moved and participated in group lifts of up to 40 pounds, contributing to the logistics team's efficiency at Alex Prosperity Group / UST Logistics.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 1,
+      "bullets_survived": 0,
+      "violations": [
+        "Alex Prosperity Group / UST Logistics | shape: [Action] [object] [context], [outcome]. | limits: carried out this task -- did not design or own the whole solution; did this yourself -- did not lead/manage people: number '40' in realized text is not present in the evidence text or known real_metrics"
+      ]
+    }
+  },
+  {
+    "job_id": 29313,
+    "title": "Service Automation Manager",
+    "old": {
+      "latency_s": 21.7,
+      "raw_output": "{\"summary\": \"I support the operations of the client's Director of Digital Operations by serving as the primary MTG contact.\", \"bullets\": [{\"evidence\": \"UPS | shape: action -> object -> context -> outcome\", \"text\": \"I serve as the primary MTG contact for the client's Director of Digital Operations.\"}, {\"evidence\": \"Alex Prosperity Group / UST Logistics | shape: action -> object -> context -> outcome\", \"text\": \"I ensure all assigned personnel comply with the client's badging, site-access, security, safety, and contractor-identification requirements.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 2,
+      "bullets_survived": 2,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 36.5,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"UPS | shape: [Action] [object] [context], [outcome]. | limits: carried out this task -- did not design or own the whole solution; did this yourself -- did not lead/manage people | fact: Serve as the primary MTG contact for the client's Director of Digital Operations\",\n      \"text\": \"Served as the primary MTG contact for the client's Director of Digital Operations, ensuring all meetings were aligned with operations goals.\"\n    },\n    {\n      \"evidence\": \"Alex Prosperity Group / UST Logistics | shape: [Action] [object] [context], [outcome]. | limits: carried out this task -- did not design or own the whole solution; did this yourself -- did not lead/manage people | fact: Ensure all assigned personnel comply with the client's badging, site-access, security, safety, and contractor-identification requirements\",\n      \"text\": \"Ensured all assigned personnel complied with the client's badging, site-access, security, safety, and contractor-identification requirements as per the client's guidelines.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 2,
+      "bullets_survived": 2,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 10236,
+    "title": "Software Dev Engineer II, Aurora Storage",
+    "old": {
+      "latency_s": 47.5,
+      "raw_output": "{\"summary\": \"Focused on the design and implementation of software systems, leveraging diverse programming languages and frameworks to develop scalable and reliable applications.\", \"bullets\": [{\"evidence\": \"UPS | shape: action -> object -> context -> outcome | claim ceiling: execution | agency ceiling: individual_contributor | fact: 2+ years of non-internship design or architecture (design patterns, reliability and scaling) of new and existing systems experience | use these exact terms: reliability\", \"text\": \"Led the design and architecture of systems, ensuring reliability and scalability, with a focus on design patterns and reliability.\"}, {\"evidence\": \"National Tire and Battery / Mavis | shape: action -> object -> context -> outcome | claim ceiling: implementation | agency ceiling: individual_contributor | fact: 1+ years of software development engineer or related occupational experience | use these exact terms: related\", \"text\": \"Developed software solutions related to the automotive industry, contributing to the development of embedded systems and tools.\"}, {\"evidence\": \"National Tire and Battery / Mavis | shape: action -> object -> context -> outcome | claim ceiling: implementation | agency ceiling: individual_contributor | fact: 1+ years of designing and developing large-scale, multi-tiered, multi-threaded, embedded or distributed software applications, tools, systems, and services using: C#, C++, Java, or Perl experience | use these exact terms: using\", \"text\": \"Designed and developed multi-tiered software applications using C#, C++, and Java, focusing on reliability and scalability.\"}]}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 3,
+      "bullets_survived": 0,
+      "violations": [
+        "UPS | shape: action -> object -> context -> outcome | claim ceiling: execution | agency ceiling: individual_contributor | fact: 2+ years of non-internship design or architecture (design patterns, reliability and scaling) of new and existing systems experience | use these exact terms: reliability: 'team_lead'-tier agency claim exceeds evidence ceiling 'individual_contributor'",
+        "National Tire and Battery / Mavis | shape: action -> object -> context -> outcome | claim ceiling: implementation | agency ceiling: individual_contributor | fact: 1+ years of software development engineer or related occupational experience | use these exact terms: related: 'implementation'-tier claim exceeds evidence ceiling 'participation'",
+        "National Tire and Battery / Mavis | shape: action -> object -> context -> outcome | claim ceiling: implementation | agency ceiling: individual_contributor | fact: 1+ years of designing and developing large-scale, multi-tiered, multi-threaded, embedded or distributed software applications, tools, systems, and services using: C#, C++, Java, or Perl experience | use these exact terms: using: 'design'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    },
+    "new": {
+      "latency_s": 50.8,
+      "raw_output": "{\n  \"summary\": \"...\",\n  \"bullets\": [\n    {\n      \"evidence\": \"UPS | shape: [Action] [object] [context], [outcome]. | limits: carried out this task -- did not design or own the whole solution; did this yourself -- did not lead/manage people | fact: 2+ years of non-internship design or architecture (design patterns, reliability and scaling) of new and existing systems experience | use these exact terms: reliability\",\n      \"text\": \"Implemented reliability improvements to ensure consistent service delivery across UPS systems.\"\n    },\n    {\n      \"evidence\": \"National Tire and Battery / Mavis | shape: [Action] [object] [context], [outcome]. | limits: built/implemented this -- did not architect the whole system; did this yourself -- did not lead/manage people | fact: 1+ years of software development engineer or related occupational experience | use these exact terms: related\",\n      \"text\": \"Developed and implemented related software solutions to enhance customer service efficiency at Mavis.\"\n    },\n    {\n      \"evidence\": \"National Tire and Battery / Mavis | shape: [Action] [object] [context], [outcome]. | limits: built/implemented this -- did not architect the whole system; did this yourself -- did not lead/manage people | fact: 1+ years of designing and developing large-scale, multi-tiered, multi-threaded, embedded or distributed software applications, tools, systems, and services using: C#, C++, Java, or Perl experience | use these exact terms: using\",\n      \"text\": \"Designed and developed a multi-threaded software application using C# to improve data processing speed at Mavis.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": true,
+      "bullets_offered": 3,
+      "bullets_survived": 0,
+      "violations": [
+        "UPS | shape: [Action] [object] [context], [outcome]. | limits: carried out this task -- did not design or own the whole solution; did this yourself -- did not lead/manage people | fact: 2+ years of non-internship design or architecture (design patterns, reliability and scaling) of new and existing systems experience | use these exact terms: reliability: 'implementation'-tier claim exceeds evidence ceiling 'participation'",
+        "National Tire and Battery / Mavis | shape: [Action] [object] [context], [outcome]. | limits: built/implemented this -- did not architect the whole system; did this yourself -- did not lead/manage people | fact: 1+ years of software development engineer or related occupational experience | use these exact terms: related: 'implementation'-tier claim exceeds evidence ceiling 'participation'",
+        "National Tire and Battery / Mavis | shape: [Action] [object] [context], [outcome]. | limits: built/implemented this -- did not architect the whole system; did this yourself -- did not lead/manage people | fact: 1+ years of designing and developing large-scale, multi-tiered, multi-threaded, embedded or distributed software applications, tools, systems, and services using: C#, C++, Java, or Perl experience | use these exact terms: using: 'design'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    }
+  },
+  {
+    "job_id": 18412,
+    "title": "Full Stack Engineer",
+    "old": {
+      "skipped": "no_supported_requirements"
+    },
+    "new": {
+      "skipped": "no_supported_requirements"
+    }
+  }
+]

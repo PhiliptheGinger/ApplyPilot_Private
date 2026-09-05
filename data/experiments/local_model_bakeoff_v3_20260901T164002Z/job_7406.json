@@ -1,0 +1,29 @@
+{
+  "job_id": 7406,
+  "title": "Cloud Platform Engineer",
+  "site": "Accenture",
+  "fit_score": 8,
+  "standup_decision": "EXCLUDE",
+  "seniority_gate_would_block_in_production": false,
+  "requirement_coverage": {
+    "total": 8,
+    "supported": 0,
+    "ambiguous": 1,
+    "unsupported": 7,
+    "supported_texts": []
+  },
+  "is_local_configured": true,
+  "client_has_cloud_available": false,
+  "latency_s": 0.0,
+  "realization": null,
+  "realization_meta": {
+    "llm_called": false,
+    "realized_bullets": 0,
+    "prompt_chars": 0,
+    "max_tokens": 0,
+    "claim_strength_violations": 0,
+    "passive_voice_warnings": 0
+  },
+  "status": "no_supported_evidence",
+  "resume_text_out": "Philip McLaughlin\nSoftware Development Engineer\nphilipthegingermclaughlin@gmail.com | (919) 986-0337\n\nSUMMARY\nExperienced in Python programming with a strong foundation in software development principles. Skilled in building scalable solutions and conducting data analysis to improve user experiences. Effective communicator with experience in customer-facing roles and public speaking.\n\nTECHNICAL SKILLS\nLanguages: Python\nTools: Photography, Videography, Web Design, Public Speaking, Customer Service, Outreach, Sales Consultations\n\nEXPERIENCE\nSales Consultant at AMP Smart\nSales | Dates not specified\n- Developed and implemented targeted outreach and sales strategies for residential solar solutions, increasing qualified lead identification.\n- Conducted in-person consultations to assess homeowner needs and tailor proposals accordingly.\n- Customized sales proposals based on regional market conditions and customer requirements.\n- Maintained customer relationships to support ongoing sales and service efforts.\n\nAlignment Technician at National Tire and Battery / Mavis\nTechnical Support | Dates not specified\n- Performed vehicle alignment and maintenance tasks including tires, shocks, struts, brakes, and fluids.\n- Provided hands-on technical troubleshooting and customer service to ensure vehicle safety and satisfaction.\n- Managed customer relations through clear communication and service explanations.\n- Maintained operational efficiency in a fast-paced automotive environment.\n\nPackage Handler at UPS\nOperations | Dates not specified\n- Handled package sorting and logistics in a high-volume operational setting.\n- Maintained efficiency and reliability to meet tight delivery schedules.\n- Supported team efforts to optimize workflow and reduce errors.\n- Ensured adherence to safety and quality standards.\n\nInstaller at Alex Prosperity Group / UST Logistics\nInstallation | Dates not specified\n- Installed home appliances contracted through Lowe's with attention to detail and customer satisfaction.\n- Coordinated installation schedules and ensured proper setup and functionality.\n- Communicated effectively with customers to explain appliance operation and maintenance.\n- Maintained quality standards and resolved installation issues promptly.\n\nServer / Line Cook at Waffle House\nCustomer Service | Dates not specified\n- Provided high-volume customer service including order taking and food preparation.\n- Managed multiple tasks efficiently during peak hours to maintain service quality.\n- Handled customer interactions with professionalism and responsiveness.\n- Contributed to team coordination to ensure smooth operations.\n\nStand-up Comedian\nPublic Speaking | Dates not specified\n- Delivered live performances requiring clear verbal communication and audience engagement.\n- Adapted material dynamically based on audience response to maintain interest.\n- Developed skills in public speaking, storytelling, and performance under pressure.\n- Enhanced ability to communicate complex ideas in an accessible and entertaining manner.\n\nPROJECTS\nStandup-OCR - OCR Tooling and Image Processing\nPython | Dates not specified\n- Developed Python scripts for optical character recognition and transcription of images and documents.\n- Implemented human review workflows and training-data preparation to improve accuracy.\n- Experimented with machine learning techniques to enhance OCR performance.\n\nCAP Predictor - Data Analytics and Feature Engineering\nPython | Dates not specified\n- Collected and processed financial and news data for sentiment analysis and modeling.\n- Engineered features and conducted statistical experimentation to support predictive analytics.\n- Automated data processing pipelines to streamline analysis workflows.\n\nYou Power You - Web Development Project\nHTML/CSS/JavaScript | Dates not specified\n- Built a website with server-side form handling and email notification integration.\n- Designed qualification and submission workflows to support user interactions.\n- Implemented front-end and back-end components to enhance user experience.\n\nEDUCATION\nUniversity of North Carolina at Greensboro\nBachelor of Arts in Media Studies\n2019-2022"
+}

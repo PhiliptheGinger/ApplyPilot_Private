@@ -1,0 +1,112 @@
+[
+  {
+    "label": "qwen2.5:3b / 22916 / native -- fabricated 'Hotel Partner Solutions Specialist at Expedia Group'",
+    "passed": false,
+    "errors": [
+      "Unsupported technical skill in SKILLS section: 'css' (not resume_allowed, or only ever project-scoped evidence)",
+      "Unsupported technical skill in SKILLS section: 'html' (not resume_allowed, or only ever project-scoped evidence)",
+      "Unsupported technical skill in SKILLS section: 'javascript' (not resume_allowed, or only ever project-scoped evidence)",
+      "Unsupported technical skill in SKILLS section: 'ocr' (not resume_allowed, or only ever project-scoped evidence)",
+      "Skill claim not grounded in profile: 'data analysis' (no matching entry in skills_boundary/skills_inventory)",
+      "Skill claim not grounded in profile: 'optical character recognition' (no matching entry in skills_boundary/skills_inventory)",
+      "Resume title 'Software Development Engineer' uses role word(s) (engineer) not supported by any of the candidate's authoritative job titles -- invented/upgraded professional title"
+    ],
+    "warnings": [
+      "Company 'AMP Smart' not in experience or projects",
+      "Company 'UPS' not in experience or projects",
+      "Company 'National Tire and Battery / Mavis' not in experience or projects",
+      "Company 'Alex Prosperity Group / UST Logistics' not in experience or projects",
+      "Company 'Waffle House' not in experience or projects",
+      "Banned words (style): scalable solutions",
+      "Experience header may reference unrecognized employer: 'Expedia Group' (known: Amp Smart, Ups, National Tire And Battery / Mavis)"
+    ]
+  },
+  {
+    "label": "qwen2.5:3b / 22916 / plan -- 'Translator at Mavis' + fabricated 'Data Analyst at UST Logistics'",
+    "passed": false,
+    "errors": [
+      "Fabricated date placeholder in subtitle for 'Sales Consultant at AMP Smart': 'Sales | Dates not specified'",
+      "Fabricated date placeholder in subtitle for 'Translator at Mavis (National Tire and Battery)': 'Technical Support | Dates not specified'",
+      "Fabricated date placeholder in subtitle for 'Data Analyst at UST Logistics': 'Data Analysis | Dates not specified'",
+      "Fabricated date placeholder in subtitle for 'Installer at Alex Prosperity Group / UST Logistics': 'Installation | Dates not specified'",
+      "Experience header for 'AMP Smart' uses title 'Sales Consultant', which is not supported by the authoritative title 'Sales Representative / Sales Tech' -- invented/upgraded job title",
+      "Experience header for 'UST Logistics' uses title 'Data Analyst', which is not supported by the authoritative title 'Moving Specialist / Installation Tech' -- invented/upgraded job title"
+    ],
+    "warnings": [
+      "Missing field: projects (optional, LLM may have folded into experience)",
+      "Company 'UPS' not in experience or projects",
+      "Company 'National Tire and Battery / Mavis' not in experience or projects",
+      "Company 'Waffle House' not in experience or projects",
+      "Experience header may reference unrecognized employer: 'Mavis (National Tire and Battery)' (known: Amp Smart, Ups, National Tire And Battery / Mavis)",
+      "Experience header may reference unrecognized employer: 'UST Logistics' (known: Amp Smart, Ups, National Tire And Battery / Mavis)"
+    ]
+  },
+  {
+    "label": "IterateCV / 7267 / native -- fabricated 'ALIGNMENT TECHNIQUES' role + '5+ years' claim",
+    "passed": false,
+    "errors": [
+      "Skill claim not grounded in profile: 'machine learning' (no matching entry in skills_boundary/skills_inventory)",
+      "Skill claim not grounded in profile: 'sql' (no matching entry in skills_boundary/skills_inventory)",
+      "Skill claim not grounded in profile: 'agile software development' (no matching entry in skills_boundary/skills_inventory)",
+      "Resume title 'Software Development Engineer' uses role word(s) (engineer) not supported by any of the candidate's authoritative job titles -- invented/upgraded professional title",
+      "Fabricated date placeholder in subtitle for 'Stand-up Comedian': 'Public Speaking | Dates not specified'",
+      "Fabricated date placeholder in subtitle for 'Stand-up-OCR - OCR Tooling and Image Processing': 'Python | Dates not specified'"
+    ],
+    "warnings": [
+      "Company 'AMP Smart' not in experience or projects",
+      "Company 'UPS' not in experience or projects",
+      "Company 'National Tire and Battery / Mavis' not in experience or projects",
+      "Company 'Alex Prosperity Group / UST Logistics' not in experience or projects",
+      "Company 'Waffle House' not in experience or projects"
+    ]
+  },
+  {
+    "label": "IterateCV / 7267 / plan -- systematic 'data' keyword injection incl. Stand-up Comedian",
+    "passed": false,
+    "errors": [
+      "Fabricated date placeholder in subtitle for 'Alignment Technician at National Tire and Battery / Mavis': 'Technical Support | Dates not specified'",
+      "Fabricated date placeholder in subtitle for 'Stand-up Comedian': 'Public Speaking | Dates not specified'"
+    ],
+    "warnings": [
+      "Missing field: projects (optional, LLM may have folded into experience)",
+      "Company 'AMP Smart' not in experience or projects",
+      "Company 'UPS' not in experience or projects",
+      "Company 'Alex Prosperity Group / UST Logistics' not in experience or projects",
+      "Company 'Waffle House' not in experience or projects",
+      "Banned words (style): utilizing"
+    ]
+  },
+  {
+    "label": "qwen3:1.7b / 27323 / native -- fabricated employment DATES + fabricated skills (the worst single case)",
+    "passed": false,
+    "errors": [
+      "Fabricated skill: 'tensorflow'",
+      "Fabricated skill: 'aws'",
+      "Fabricated skill: 'azure'",
+      "Unsupported technical skill in SKILLS section: 'css' (not resume_allowed, or only ever project-scoped evidence)",
+      "Unsupported technical skill in SKILLS section: 'html' (not resume_allowed, or only ever project-scoped evidence)",
+      "Unsupported technical skill in SKILLS section: 'javascript' (not resume_allowed, or only ever project-scoped evidence)",
+      "Skill claim not grounded in profile: 'css software development tools' (no matching entry in skills_boundary/skills_inventory)",
+      "Skill claim not grounded in profile: 'version control' (no matching entry in skills_boundary/skills_inventory)",
+      "Skill claim not grounded in profile: 'git' (no matching entry in skills_boundary/skills_inventory)",
+      "Skill claim not grounded in profile: 'data analysis tools' (no matching entry in skills_boundary/skills_inventory)",
+      "Skill claim not grounded in profile: 'pandas' (no matching entry in skills_boundary/skills_inventory)",
+      "Skill claim not grounded in profile: 'numpy' (no matching entry in skills_boundary/skills_inventory)",
+      "Skill claim not grounded in profile: 'machine learning frameworks' (no matching entry in skills_boundary/skills_inventory)",
+      "Skill claim not grounded in profile: 'scikit-learn' (no matching entry in skills_boundary/skills_inventory)",
+      "Skill claim not grounded in profile: 'cloud platforms' (no matching entry in skills_boundary/skills_inventory)",
+      "Skill claim not grounded in profile: 'data visualization' (no matching entry in skills_boundary/skills_inventory)",
+      "Skill claim not grounded in profile: 'tableau' (no matching entry in skills_boundary/skills_inventory)",
+      "Skill claim not grounded in profile: 'power bi' (no matching entry in skills_boundary/skills_inventory)",
+      "Resume title 'Software Development Engineer' uses role word(s) (engineer) not supported by any of the candidate's authoritative job titles -- invented/upgraded professional title",
+      "Fabricated date(s) in subtitle for 'Alignment Technician at National Tire and Battery / Mavis': claims year(s) [2019, 2021], but the profile's authoritative record for this employer is 2022-10 to 2023-11",
+      "Fabricated date(s) in subtitle for 'Package Handler at UPS': claims year(s) [2018, 2019], but the profile's authoritative record for this employer is 2024-05 to 2025-04",
+      "Fabricated date(s) in subtitle for 'Installer at Alex Prosperity Group / UST Logistics': claims year(s) [2017, 2018], but the profile's authoritative record for this employer is 2023-11 to 2024-01"
+    ],
+    "warnings": [
+      "Missing field: projects (optional, LLM may have folded into experience)",
+      "Company 'AMP Smart' not in experience or projects",
+      "Company 'Waffle House' not in experience or projects"
+    ]
+  }
+]

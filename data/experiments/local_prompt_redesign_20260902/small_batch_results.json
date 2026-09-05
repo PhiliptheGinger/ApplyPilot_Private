@@ -1,0 +1,129 @@
+[
+  {
+    "job_id": 7267,
+    "title": "Software Development Engineer",
+    "old": {
+      "latency_s": 54.7,
+      "raw_output": "{\n  \"summary\": \"A software engineer with a strong identity domain in data consistency and validation, leveraging CAP Predictor to build high-quality data features, and participating in all aspects of software development, including design, coding, code review, unit-testing, integration testing, and bug fixing.\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Diagnosed Express_Engine, enabling participation in all aspects of software development activities including design, coding, code review, unit-testing, integration testing, and bug fixing.\"\n    },\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Built CAP Predictor, enabling data consistency and validation in delivering high-quality data.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 2,
+      "bullets_survived": 0,
+      "violations": [
+        "Express_Engine: 'implementation'-tier claim exceeds evidence ceiling 'participation'",
+        "CAP Predictor: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish"
+      ]
+    },
+    "new": {
+      "latency_s": 16.0,
+      "raw_output": "{\n  \"summary\": \"Focused on data consistency and validation to ensure high-quality data delivery, using a CAP Predictor to design and implement a robust system.\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Engineered a reporting database migration to PostgreSQL, improving query speed and system performance.\"\n    },\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Designed and implemented a data consistency and validation feature using the CAP Predictor, ensuring reliable data delivery.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 2,
+      "bullets_survived": 1,
+      "violations": [
+        "Express_Engine: 'design'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    }
+  },
+  {
+    "job_id": 22916,
+    "title": "Hotel Partner Solutions Specialist",
+    "old": {
+      "latency_s": 17.7,
+      "raw_output": "{\n  \"summary\": \"Demonstrates expertise in identifying and resolving technical issues, translating data into actionable insights, and supporting data collection and analysis processes, with a focus on customer and employee satisfaction.\",\n  \"bullets\": [\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Diagnosed bugs through research and escalation, ensuring resolution within the design claim ceiling.\"\n    },\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Translated data analysis into visuals, identifying chronic issues and product opportunities, aligning with design claim ceiling.\"\n    },\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Supported data collection and analysis, ensuring data integrity and accessibility, leveraging data and data collection capabilities within individual_contributor agency ceiling.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 3,
+      "bullets_survived": 3,
+      "violations": []
+    },
+    "new": {
+      "latency_s": 19.3,
+      "raw_output": "{\n  \"summary\": \"Identified and resolved chronic issues through data analysis, translated findings into visuals, and supported data collection and analysis processes.\",\n  \"bullets\": [\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Diagnosed API timeouts, traced to a pool leak, and verified the issue was resolved through research.\"\n    },\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Translated data analysis and findings into accessible visuals, identifying chronic issues or product opportunities through data.\"\n    },\n    {\n      \"evidence\": \"CAP Predictor\",\n      \"text\": \"Understood how to proceed with collecting data on customer and employee satisfaction, supporting the data collection and analysis process.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 3,
+      "bullets_survived": 2,
+      "violations": [
+        "CAP Predictor: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish"
+      ]
+    }
+  },
+  {
+    "job_id": 27323,
+    "title": "Software Engineer Graduate",
+    "old": {
+      "latency_s": 14.0,
+      "raw_output": "{\n  \"summary\": \"A software engineering professional with a focus on system software development, specializing in codes and programs enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools.\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Diagnosed and implemented software enhancements, updates, and changes for portions and subsystems of systems software, including operating systems, compliers, networking, utilities, databases, and Internet-related tools, demonstrating participation in software development.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 1,
+      "bullets_survived": 0,
+      "violations": [
+        "Express_Engine: 'implementation'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    },
+    "new": {
+      "latency_s": 12.8,
+      "raw_output": "{\n  \"summary\": \"Demonstrated capability in software engineering through the development and enhancement of systems software, including operating systems, compilers, networking, utilities, databases, and Internet-related tools.\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Engineered software enhancements, updates, and changes for systems software, including operating systems, compilers, networking, utilities, databases, and Internet-related tools, improving system performance and reliability.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 1,
+      "bullets_survived": 0,
+      "violations": [
+        "Express_Engine: 'design'-tier claim exceeds evidence ceiling 'participation'"
+      ]
+    }
+  },
+  {
+    "job_id": 23180,
+    "title": "MES Shop Floor Support - Holly Springs, NC (onsite)",
+    "old": {
+      "latency_s": 10.6,
+      "raw_output": "{\n  \"summary\": \"Demonstrates capability to facilitate effective communication between clients and technical teams, ensuring seamless operations, leveraging transferable experience in cross-functional collaboration.\",\n  \"bullets\": [\n    {\n      \"evidence\": \"UPS\",\n      \"text\": \"Diagnosed and resolved communication gaps between clients and technical teams, leading to improved operational efficiency and reduced downtime, leveraging transferable experience in cross-functional collaboration.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 1,
+      "bullets_survived": 0,
+      "violations": [
+        "UPS: 'team_lead'-tier agency claim exceeds evidence ceiling 'individual_contributor'"
+      ]
+    },
+    "new": {
+      "latency_s": 10.1,
+      "raw_output": "{\n  \"summary\": \"Facilitated effective communication between clients and technical teams to ensure seamless operations, leveraging UPS to enhance collaboration and efficiency.\",\n  \"bullets\": [\n    {\n      \"evidence\": \"UPS\",\n      \"text\": \"Facilitated effective communication between clients and technical teams to ensure seamless operations, leveraging UPS to enhance collaboration and efficiency.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 1,
+      "bullets_survived": 1,
+      "violations": []
+    }
+  },
+  {
+    "job_id": 10643,
+    "title": "Lead Simulation Software Engineer",
+    "old": {
+      "latency_s": 15.8,
+      "raw_output": "{\n  \"summary\": \"Identity domain strength evidence value: software engineering expertise, leading architecture and development plans, ensuring architectural and design consistency, and contributing to simulation frameworks.\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Diagnosed software development plan, including architecture, major components, and delivery milestones, led and approved by the program architect in collaboration with FSL teams.\"\n    },\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Ensured software teams develop, document, and maintain architecture, requirements, algorithms, interfaces, and designs for models and simulation frameworks.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 2,
+      "bullets_survived": 1,
+      "violations": [
+        "Express_Engine: 'team_lead'-tier agency claim exceeds evidence ceiling 'individual_contributor'"
+      ]
+    },
+    "new": {
+      "latency_s": 15.0,
+      "raw_output": "{\n  \"summary\": \"Identity domain strength evidence value\",\n  \"bullets\": [\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Led and approved the software development plan, including the architecture, major components, and delivery milestones in collaboration with the program architects and other FSL teams.\"\n    },\n    {\n      \"evidence\": \"Express_Engine\",\n      \"text\": \"Ensures software teams develop, document, and maintain architecture, requirements, algorithms, interfaces, and designs for models and simulation frameworks.\"\n    }\n  ]\n}",
+      "parseable": true,
+      "echoes_scaffolding": false,
+      "bullets_offered": 2,
+      "bullets_survived": 1,
+      "violations": [
+        "Express_Engine: 'team_lead'-tier agency claim exceeds evidence ceiling 'individual_contributor'"
+      ]
+    }
+  }
+]

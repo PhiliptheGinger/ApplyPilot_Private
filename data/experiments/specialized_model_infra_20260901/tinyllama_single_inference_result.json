@@ -1,0 +1,16 @@
+{
+  "base_model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+  "adapter_id": "akshayrinku/tinyllama-resume-tailor-lora",
+  "sample_input": "Rewrite this resume bullet to be more concise, using only facts already present -- do not invent anything:\nAlignment Technician at National Tire and Battery / Mavis. Performed vehicle alignment and maintenance tasks including tires, shocks, struts, brakes, and fluids. Provided hands-on technical troubleshooting and customer service to ensure vehicle safety and satisfaction.",
+  "dtype": "bfloat16 (fp32 would need ~4.4GB, not available on this machine)",
+  "load_succeeded": true,
+  "load_tokenizer_s": 3.95,
+  "load_base_model_s": 218.34,
+  "load_adapter_s": 3.68,
+  "base_param_count": 1103112192,
+  "adapter_kept_separate": true,
+  "inference_succeeded": true,
+  "inference_latency_s": 28.83,
+  "output_text": "Alignment Technician at National Tire and Battery / Mavis, where I performed vehicle alignment and maintenance tasks, including tires, shocks, struts, brakes, and fluids. I provided hands-on technical troubleshooting and customer service to ensure vehicle safety and satisfaction.",
+  "total_wall_s": 254.8
+}
