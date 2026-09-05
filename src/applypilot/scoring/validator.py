@@ -998,6 +998,24 @@ _DATE_PLACEHOLDER_RE = re.compile(r"dates?\s+(?:not\s+(?:specified|provided)|n/?
 _YEAR_RE = re.compile(r"\b(19\d{2}|20\d{2})\b")
 
 
+def _extract_year(date_str: str | None) -> int | None:
+    """Pull a 4-digit year out of a profile.json date field via _YEAR_RE,
+    rather than assuming the strict 'YYYY-MM' shape _authoritative_date_
+    ranges' docstring hopes for. 2026-09-04: found via a real production
+    crash -- historical_experience_inventory's "Lowe's Foods" entry has
+    start_date='circa 2016'/end_date='circa 2017' (legitimate real data;
+    someone genuinely doesn't remember the exact month), and the old code
+    did int(start[:4]) unconditionally, raising ValueError on 'circ' and
+    aborting the entire tailoring job. Returns None for anything with no
+    recognizable year (never raises) -- check_date_fabrication already
+    treats "no year on file" as "nothing to check," so this just extends
+    that same silent-skip behavior to malformed/approximate date text."""
+    if not date_str:
+        return None
+    match = _YEAR_RE.search(str(date_str))
+    return int(match.group(1)) if match else None
+
+
 def _authoritative_date_ranges(profile: dict) -> dict[str, tuple[str | None, str | None]]:
     """employer name (lowercased) -> (start_date, end_date) as 'YYYY-MM'
     strings (or None), from experience_inventory / historical_experience_
@@ -1051,13 +1069,15 @@ def check_date_fabrication(data: dict, profile: dict) -> list[str]:
                 continue
 
             start, end = matched_range
+            start_year = _extract_year(start)
+            end_year = _extract_year(end)
             allowed_years: set[int] = set()
-            if start:
-                allowed_years.add(int(start[:4]))
-            if end:
-                allowed_years.add(int(end[:4]))
-            if start and end:
-                allowed_years.update(range(int(start[:4]), int(end[:4]) + 1))
+            if start_year:
+                allowed_years.add(start_year)
+            if end_year:
+                allowed_years.add(end_year)
+            if start_year and end_year:
+                allowed_years.update(range(start_year, end_year + 1))
             if not allowed_years:
                 continue
 

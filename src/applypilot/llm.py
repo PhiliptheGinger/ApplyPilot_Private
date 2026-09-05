@@ -506,6 +506,8 @@ class LLMClient:
         temperature: float = 0.0,
         max_tokens: int = 4096,
         exclude_providers: frozenset[str] | None = None,
+        frequency_penalty: float | None = None,
+        presence_penalty: float | None = None,
     ) -> str:
         """Send a chat completion request with automatic cross-provider fallback.
 
@@ -517,6 +519,20 @@ class LLMClient:
         falling through to a slow local model it didn't intend to use for
         this particular call -- see tailor.py's tailor_resume() DEGRADED
         MODE handling.
+
+        frequency_penalty/presence_penalty (2026-09-04, added for the
+        sentence-diversity bake-off in data/experiments/
+        deterministic_slotfiller_20260902/): standard OpenAI-compatible
+        sampling params, forwarded as-is to _try_openai_compat (Gemini,
+        OpenAI, and Ollama's OpenAI-compat endpoint all speak this dialect).
+        None (default) means "omit the field," identical to today's
+        behavior for every existing caller -- this is purely additive.
+        Anthropic's Messages API has no equivalent parameter, so these are
+        silently unused on that path (_try_anthropic never receives them);
+        not applicable to claude_cli either. Untested against Gemini's/
+        Ollama's actual handling of these fields as of this writing --
+        forwarded honestly, not verified to change output, which is exactly
+        what the bake-off is for.
         """
         # Qwen3 /no_think handling lives in _try_openai_compat, keyed on the
         # actual entry being attempted (entry.name) rather than self.model --
@@ -591,7 +607,9 @@ class LLMClient:
 
         for idx, entry in enumerate(entries_to_try):
             is_last = idx == len(entries_to_try) - 1
-            result = self._try_entry(entry, messages, temperature, max_tokens, is_last)
+            result = self._try_entry(
+                entry, messages, temperature, max_tokens, is_last, frequency_penalty, presence_penalty
+            )
             if result is not None:
                 self.last_provider_used = entry.provider
                 self.last_model_used = entry.name
@@ -604,7 +622,14 @@ class LLMClient:
         )
 
     def _try_entry(
-        self, entry: ModelEntry, messages: list[dict], temperature: float, max_tokens: int, is_last: bool = False
+        self,
+        entry: ModelEntry,
+        messages: list[dict],
+        temperature: float,
+        max_tokens: int,
+        is_last: bool = False,
+        frequency_penalty: float | None = None,
+        presence_penalty: float | None = None,
     ) -> str | None:
         """Try a single model entry. Dispatches to the right provider."""
         if entry.provider == "anthropic":
@@ -612,10 +637,19 @@ class LLMClient:
         elif entry.provider == "claude_cli":
             return self._try_claude_cli(entry, messages, is_last)
         else:
-            return self._try_openai_compat(entry, messages, temperature, max_tokens, is_last)
+            return self._try_openai_compat(
+                entry, messages, temperature, max_tokens, is_last, frequency_penalty, presence_penalty
+            )
 
     def _try_openai_compat(
-        self, entry: ModelEntry, messages: list[dict], temperature: float, max_tokens: int, is_last: bool = False
+        self,
+        entry: ModelEntry,
+        messages: list[dict],
+        temperature: float,
+        max_tokens: int,
+        is_last: bool = False,
+        frequency_penalty: float | None = None,
+        presence_penalty: float | None = None,
     ) -> str | None:
         """Try an OpenAI-compatible endpoint (Gemini, OpenAI, local)."""
         headers: dict[str, str] = {"Content-Type": "application/json"}
@@ -646,11 +680,33 @@ class LLMClient:
         # Gemini/OpenAI rather than as the primary model. Builds a local
         # copy so the prefix doesn't mutate `messages`, which chat() reuses
         # for every remaining fallback attempt in the chain.
+        #
+        # 2026-09-04 bug (found via the proxy-label realization pilot,
+        # data/experiments/deterministic_slotfiller_20260902/
+        # proxy_label_pilot.py): this only ever checked messages[0]'s role
+        # -- any system+user prompt (e.g. local_tailor.request_local_
+        # realization's [{"role":"system",...},{"role":"user",...}] shape)
+        # has a SYSTEM message at index 0, so the "first.get('role') ==
+        # 'user'" check was always False and /no_think was never applied at
+        # all for that whole call shape. Silent, no exception -- qwen3 just
+        # spent its entire max_tokens budget on hidden <think> reasoning
+        # with nothing left for the actual answer, surfacing as "Null/empty
+        # content from local/qwen3:1.7b" failures. Real-data confirmation:
+        # 15/15 degraded-mode realization pilot calls failed regardless of
+        # evidence strength (8 were exactly this empty-content failure);
+        # a direct A/B request with vs. without a preceding system message
+        # showed the same trivial prompt taking 39s (system-first, bug
+        # present) vs. 17s (user-first, /no_think correctly applied).
+        # Fixed by searching for the first USER-role message anywhere in
+        # the list, not assuming it's at index 0.
         req_messages = messages
         if "qwen" in entry.name.lower() and messages:
-            first = messages[0]
-            if first.get("role") == "user" and not first["content"].startswith("/no_think"):
-                req_messages = [{"role": first["role"], "content": f"/no_think\n{first['content']}"}] + messages[1:]
+            for idx, msg in enumerate(messages):
+                if msg.get("role") == "user":
+                    if not msg["content"].startswith("/no_think"):
+                        req_messages = list(messages)
+                        req_messages[idx] = {"role": "user", "content": f"/no_think\n{msg['content']}"}
+                    break
 
         payload = {
             "model": entry.name,
@@ -658,6 +714,10 @@ class LLMClient:
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
+        if frequency_penalty is not None:
+            payload["frequency_penalty"] = frequency_penalty
+        if presence_penalty is not None:
+            payload["presence_penalty"] = presence_penalty
 
         # Local models may be slower; allow a configurable per-request timeout
         _req_timeout = (
@@ -764,11 +824,28 @@ class LLMClient:
                     else:
                         resp.raise_for_status()
 
-                if resp.status_code == 503 and attempt < _MAX_RETRIES - 1:
-                    wait = 2**attempt
-                    log.warning("%s/%s 503, retry in %ds", entry.provider, entry.name, wait)
-                    time.sleep(wait)
-                    continue
+                if resp.status_code == 503:
+                    # 2026-09-04 production crash: this only ever handled
+                    # "retry while attempts remain" -- once _MAX_RETRIES was
+                    # exhausted it fell straight through to the unconditional
+                    # raise_for_status() below regardless of is_last, unlike
+                    # the 429 branch above (which explicitly falls through to
+                    # the next fallback-chain entry via `elif not is_last:
+                    # return None`). Confirmed live: gemini-3.5-flash (not
+                    # the last entry -- gpt-4.1-mini/gpt-4.1-nano/qwen3:1.7b
+                    # were still available) hit repeated 503s and crashed the
+                    # whole tailoring job with an uncaught HTTPStatusError
+                    # instead of falling through to the next provider.
+                    if attempt < _MAX_RETRIES - 1:
+                        wait = 2**attempt
+                        log.warning("%s/%s 503, retry in %ds", entry.provider, entry.name, wait)
+                        time.sleep(wait)
+                        continue
+                    elif not is_last:
+                        log.warning("%s/%s still 503, trying next model", entry.provider, entry.name)
+                        return None
+                    else:
+                        resp.raise_for_status()
 
                 resp.raise_for_status()
                 data = resp.json()

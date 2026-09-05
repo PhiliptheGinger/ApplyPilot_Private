@@ -696,6 +696,37 @@ class TestDateFabricationAgainstAuthoritativeRange:
         data = {"experience": [{"header": "Packaging Associate / Warehouse Associate at UPS", "subtitle": "Logistics"}]}
         assert check_date_fabrication(data, _profile_with_dates()) == []
 
+    def test_approximate_date_text_does_not_crash(self):
+        """2026-09-04 production crash: a real profile.json entry
+        (historical_experience_inventory's "Lowe's Foods") has
+        start_date='circa 2016'/end_date='circa 2017' -- legitimate real
+        data (approximate recollection), not the 'YYYY-MM' shape
+        _authoritative_date_ranges' docstring assumes. The old code did
+        int(start[:4]) unconditionally and raised ValueError on 'circ',
+        aborting the whole tailoring job. Must degrade to extracting the
+        year it can find, not crash."""
+        profile = _profile()
+        profile["experience_inventory"][1]["start_date"] = "circa 2016"
+        profile["experience_inventory"][1]["end_date"] = "circa 2017"
+        data = {
+            "experience": [
+                {"header": "Packaging Associate / Warehouse Associate at UPS", "subtitle": "Logistics | 2016 - 2017"}
+            ]
+        }
+        assert check_date_fabrication(data, profile) == []  # correct years, extracted from approximate text
+
+    def test_approximate_date_text_still_catches_a_real_fabrication(self):
+        profile = _profile()
+        profile["experience_inventory"][1]["start_date"] = "circa 2016"
+        profile["experience_inventory"][1]["end_date"] = "circa 2017"
+        data = {
+            "experience": [
+                {"header": "Packaging Associate / Warehouse Associate at UPS", "subtitle": "Logistics | 2019 - 2021"}
+            ]
+        }
+        errors = check_date_fabrication(data, profile)
+        assert errors
+
     def test_validate_json_fields_rejects_invented_date_range(self):
         data = {
             "title": "Technical Support & Customer Service",

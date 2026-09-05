@@ -74,6 +74,46 @@ def _parse_qa_lines(output: str, job_url: str | None = None, ats_slug: str | Non
     return count
 
 
+
+# 2026-09-04, found via the architecture review (this function was flagged
+# as "closer to reinventing structured output with duct tape" -- checking
+# it against realistic examples surfaced a real, concrete false-positive
+# rather than just a theoretical one): a negated sentence describing a
+# FAILURE can still contain a literal success phrase as a substring, e.g.
+# "I was unable to get the application submitted successfully due to a
+# CAPTCHA" contains "application submitted successfully" verbatim. Without
+# a guard, that's misread as "applied" -- a real failed application could
+# get marked applied in the DB and never retried. Deliberately narrow: a
+# small, explicit list of common negation/failure cues checked in the text
+# immediately preceding the matched phrase (same discipline as this
+# codebase's other curated-list checks, not a general sentiment classifier).
+_NEGATION_CUES = (
+    "unable to",
+    "couldn't",
+    "could not",
+    "did not",
+    "didn't",
+    "failed to",
+    "was not",
+    "wasn't",
+    "not get",
+    "not able",
+    "never got",
+    "cannot",
+    "can't",
+)
+_NEGATION_WINDOW = 40
+
+
+def _is_negated_context(lower_text: str, phrase_start: int) -> bool:
+    """True if a negation cue appears shortly before the matched phrase,
+    within the same clause -- checked on the text BEFORE the match only
+    (a negation appearing only after the phrase, in an unrelated later
+    clause, shouldn't suppress an otherwise-genuine positive)."""
+    window = lower_text[max(0, phrase_start - _NEGATION_WINDOW) : phrase_start]
+    return any(cue in window for cue in _NEGATION_CUES)
+
+
 def _infer_result_from_output(output: str) -> str | None:
     """Infer a result from agent output when no RESULT line was emitted.
 
@@ -103,10 +143,15 @@ def _infer_result_from_output(output: str) -> str | None:
         "successfully submitted",
     ]
     for phrase in strong_success:
-        if phrase in lower:
+        idx = lower.find(phrase)
+        if idx != -1 and not _is_negated_context(lower, idx):
             return "applied"
-    # Weaker indicators need 2+ matches
-    success_count = sum(1 for p in success_phrases if p in lower)
+    # Weaker indicators need 2+ matches, each individually not negated
+    success_count = 0
+    for p in success_phrases:
+        idx = lower.find(p)
+        if idx != -1 and not _is_negated_context(lower, idx):
+            success_count += 1
     if success_count >= 2:
         return "applied"
 

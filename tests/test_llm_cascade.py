@@ -31,26 +31,6 @@ def _local_ollama_reachable() -> bool:
         return False
 
 
-@pytest.fixture(autouse=True)
-def _isolate_llm_exhaustion_state(tmp_path, monkeypatch):
-    """Every test in this module gets its own isolated exhaustion-state
-    file. LLMClient._mark_exhausted (2026-09-02) persists exhaustion
-    timestamps to ~/.applypilot/llm_exhaustion_state.json by default so a
-    restarted process doesn't re-discover known-exhausted providers via a
-    real call -- but dozens of tests in this file construct LLMClient
-    directly (not just through _make_client below), and without this
-    autouse fixture, state one test writes would leak into unrelated
-    tests sharing the real file within the same pytest run (confirmed:
-    several TestFullCascadeIntegration/TestLocalExcludedFrom... tests
-    started failing with "All LLM providers are on quota cooldown" once
-    persistence was added, purely from run-order pollution). tmp_path is
-    function-scoped (fresh per test) and monkeypatch auto-reverts, so this
-    needs no manual setUp/tearDown anywhere else in the file."""
-    import applypilot.llm as llm_mod
-
-    monkeypatch.setattr(llm_mod, "_EXHAUSTION_STATE_PATH", tmp_path / "llm_exhaustion_state.json")
-
-
 def _make_client(n_models: int = 2):
     """Instantiate an LLMClient with fake models injected directly into the chain."""
     from applypilot.llm import LLMClient, ModelEntry
@@ -81,7 +61,7 @@ class TestModelExhaustion(unittest.TestCase):
 
         tried = []
 
-        def fake_try(entry, messages, temperature, max_tokens, is_last):
+        def fake_try(entry, messages, temperature, max_tokens, is_last, frequency_penalty=None, presence_penalty=None):
             tried.append(entry.name)
             return "ok"
 
@@ -101,7 +81,7 @@ class TestModelExhaustion(unittest.TestCase):
 
         tried = []
 
-        def fake_try(entry, messages, temperature, max_tokens, is_last):
+        def fake_try(entry, messages, temperature, max_tokens, is_last, frequency_penalty=None, presence_penalty=None):
             tried.append(entry.name)
             return "ok"
 
@@ -119,7 +99,7 @@ class TestModelExhaustion(unittest.TestCase):
 
         call_count = {"n": 0}
 
-        def fake_try(entry, messages, temperature, max_tokens, is_last):
+        def fake_try(entry, messages, temperature, max_tokens, is_last, frequency_penalty=None, presence_penalty=None):
             call_count["n"] += 1
             return "ok"
 
@@ -136,7 +116,7 @@ class TestModelExhaustion(unittest.TestCase):
         second_name = client._fallback_chain[1].name
         call_order = []
 
-        def fake_try(entry, messages, temperature, max_tokens, is_last):
+        def fake_try(entry, messages, temperature, max_tokens, is_last, frequency_penalty=None, presence_penalty=None):
             call_order.append(entry.name)
             if entry.name == first_name:
                 return None  # simulate failure
@@ -803,6 +783,52 @@ class TestLocalExcludedFromScoringButAvailableForExplicitLocalTasks(unittest.Tes
         # a later fallback attempt needed the prefix.
         self.assertEqual(original_messages, original_snapshot)
 
+    def test_no_think_applied_when_system_message_precedes_user_message(self):
+        """2026-09-04 regression, found via a real degraded-mode realization
+        pilot run (data/experiments/deterministic_slotfiller_20260902/
+        proxy_label_pilot.py): the /no_think injection only ever checked
+        messages[0]'s role, so any system+user prompt (exactly the shape
+        local_tailor.request_local_realization sends -- [{"role":"system"},
+        {"role":"user"}]) had its SYSTEM message at index 0, and the
+        'first.get("role") == "user"' check was always False -- /no_think
+        silently never applied at all for that call shape. Confirmed live:
+        15/15 real degraded-mode realization pilot calls failed regardless
+        of evidence strength, 8 with exactly 'Null/empty content' (qwen3
+        spending its whole max_tokens budget on unsuppressed <think>
+        reasoning); a direct A/B (system-first vs. user-first, same
+        trivial prompt) showed 39s vs. 17s, consistent with thinking left
+        enabled. Fix: search for the first user-role message anywhere in
+        the list, not just index 0."""
+        from applypilot.llm import LLMClient, ModelEntry
+
+        fake_chain = [ModelEntry("qwen3:1.7b", "local", "http://localhost:11434/v1", "")]
+        with patch("applypilot.llm._build_fallback_chain", return_value=fake_chain):
+            client = LLMClient(base_url="http://localhost:11434/v1", model="qwen3:1.7b", api_key="", quality=True)
+
+        messages = [
+            {"role": "system", "content": "You are a resume assistant."},
+            {"role": "user", "content": "Realize this bullet."},
+        ]
+        calls = []
+
+        def fake_post(url, **kwargs):
+            calls.append(kwargs["json"])
+            resp = MagicMock()
+            resp.status_code = 200
+            resp.raise_for_status.return_value = None
+            resp.json.return_value = {"choices": [{"message": {"content": "ok"}}]}
+            return resp
+
+        with patch.object(client._client, "post", side_effect=fake_post):
+            client.chat(messages)
+
+        self.assertEqual(len(calls), 1)
+        sent = calls[0]["messages"]
+        self.assertEqual(sent[0]["role"], "system")
+        self.assertFalse(sent[0]["content"].startswith("/no_think"))
+        self.assertEqual(sent[1]["role"], "user")
+        self.assertTrue(sent[1]["content"].startswith("/no_think"))
+
     # 7. The local diagnostic log still receives successful local responses
     #    (and only local responses -- never cloud ones).
     def test_7_successful_local_response_reaches_the_diagnostic_logger(self):
@@ -1462,9 +1488,11 @@ class TestExhaustionPersistence(unittest.TestCase):
     """Exhaustion state survives a process restart (2026-09-02) -- a fresh
     LLMClient should start already knowing what a previous instance
     learned, instead of re-discovering it via a real call every restart.
-    Relies on the module-level _isolate_llm_exhaustion_state autouse
-    fixture (applies to unittest.TestCase methods too) for a fresh,
-    isolated state path per test -- no manual setUp/tearDown needed."""
+    Relies on conftest.py's suite-wide _isolate_llm_exhaustion_state
+    autouse fixture (applies to unittest.TestCase methods too, and to
+    every test file, not just this one -- see conftest.py for the
+    2026-09-04 leak this was promoted to fix) for a fresh, isolated state
+    path per test -- no manual setUp/tearDown needed."""
 
     def _state_path(self):
         import applypilot.llm as llm_mod
@@ -1531,6 +1559,126 @@ class TestExhaustionPersistence(unittest.TestCase):
         with patch.object(Path, "write_text", side_effect=OSError("disk full")):
             client._mark_exhausted(client._fallback_chain[0].name, time.time())  # must not raise
         self.assertIn(client._fallback_chain[0].name, client._exhausted, "in-memory state still updates")
+
+
+class TestPersistent503FallsThroughToNextProvider(unittest.TestCase):
+    """2026-09-04 production crash: a real `applypilot run tailor` run hit
+    gemini-3.5-flash returning 503 three times in a row (exhausting
+    _MAX_RETRIES) while it was NOT the last entry in the fallback chain --
+    gpt-4.1-mini/gpt-4.1-nano/qwen3:1.7b were still available -- and the
+    whole job crashed with an uncaught httpx.HTTPStatusError instead of
+    falling through. Root cause: the 503 branch in _try_openai_compat only
+    ever handled "retry while attempts remain," then fell straight into an
+    unconditional resp.raise_for_status() once retries were exhausted,
+    regardless of is_last -- unlike the 429 branch a few lines above it,
+    which explicitly has a third `elif not is_last: return None` case.
+    Fixed by giving 503 the same three-way structure as 429."""
+
+    def _persistent_503_response(self):
+        resp = MagicMock()
+        resp.status_code = 503
+        resp.text = "Service Unavailable"
+
+        def _raise():
+            import httpx as httpx_mod
+
+            raise httpx_mod.HTTPStatusError("503", request=MagicMock(), response=resp)
+
+        resp.raise_for_status.side_effect = _raise
+        return resp
+
+    def _ok_response(self, content="ok"):
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = {"choices": [{"message": {"content": content}}]}
+        return resp
+
+    def test_persistent_503_on_non_last_entry_falls_through(self):
+        client = _make_client(2)
+        first_name = client._fallback_chain[0].name
+
+        def fake_post(url, **kwargs):
+            if kwargs["json"]["model"] == first_name:
+                return self._persistent_503_response()
+            return self._ok_response("second provider answered")
+
+        with patch.object(client._client, "post", side_effect=fake_post), patch("time.sleep"):
+            result = client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertEqual(result, "second provider answered")
+
+    def test_persistent_503_on_last_entry_raises(self):
+        """When there's truly nowhere else to fall through to, the 503
+        must still surface as an error -- this fix only adds the missing
+        middle case, it doesn't remove the legitimate last-resort raise."""
+        client = _make_client(1)
+        with patch.object(client._client, "post", return_value=self._persistent_503_response()), patch("time.sleep"):
+            with self.assertRaises(Exception):
+                client.chat([{"role": "user", "content": "hi"}])
+
+    def test_503_that_resolves_within_retries_still_succeeds(self):
+        """Regression guard for the retry-then-succeed path this fix sits
+        next to -- must not have been broken by restructuring the branch."""
+        client = _make_client(1)
+        call_count = {"n": 0}
+
+        def fake_post(url, **kwargs):
+            call_count["n"] += 1
+            if call_count["n"] < 2:
+                return self._persistent_503_response()
+            return self._ok_response("recovered")
+
+        with patch.object(client._client, "post", side_effect=fake_post), patch("time.sleep"):
+            result = client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertEqual(result, "recovered")
+        self.assertEqual(call_count["n"], 2)
+
+
+class TestFrequencyPresencePenaltyPassthrough(unittest.TestCase):
+    """2026-09-04, added for the sentence-diversity bake-off: chat() can
+    forward frequency_penalty/presence_penalty to an OpenAI-compatible
+    endpoint. Purely additive -- omitted by default, must not change
+    payloads for any caller that doesn't pass them."""
+
+    def _ok_response(self):
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = {"choices": [{"message": {"content": "ok"}}]}
+        return resp
+
+    def test_omitted_by_default_not_sent(self):
+        client = _make_client(1)
+        with patch.object(client._client, "post", return_value=self._ok_response()) as mock_post:
+            client.chat([{"role": "user", "content": "hi"}])
+        payload = mock_post.call_args.kwargs["json"]
+        self.assertNotIn("frequency_penalty", payload)
+        self.assertNotIn("presence_penalty", payload)
+
+    def test_forwarded_when_provided(self):
+        client = _make_client(1)
+        with patch.object(client._client, "post", return_value=self._ok_response()) as mock_post:
+            client.chat(
+                [{"role": "user", "content": "hi"}],
+                frequency_penalty=0.6,
+                presence_penalty=0.4,
+            )
+        payload = mock_post.call_args.kwargs["json"]
+        self.assertEqual(payload["frequency_penalty"], 0.6)
+        self.assertEqual(payload["presence_penalty"], 0.4)
+
+    def test_zero_is_forwarded_not_treated_as_omitted(self):
+        """0.0 is a meaningful, explicit value (the OpenAI-compat default),
+        distinct from None (field omitted entirely) -- must not be dropped
+        by an `if frequency_penalty:` falsy check."""
+        client = _make_client(1)
+        with patch.object(client._client, "post", return_value=self._ok_response()) as mock_post:
+            client.chat([{"role": "user", "content": "hi"}], frequency_penalty=0.0)
+        payload = mock_post.call_args.kwargs["json"]
+        self.assertIn("frequency_penalty", payload)
+        self.assertEqual(payload["frequency_penalty"], 0.0)
 
 
 if __name__ == "__main__":

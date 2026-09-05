@@ -19,6 +19,35 @@ import pytest
 _seed_counter = [0]
 
 
+@pytest.fixture(autouse=True)
+def _isolate_llm_exhaustion_state(tmp_path, monkeypatch):
+    """Every test in the suite gets its own isolated LLM exhaustion-state
+    file. LLMClient._mark_exhausted (2026-09-02) persists exhaustion
+    timestamps to ~/.applypilot/llm_exhaustion_state.json by default so a
+    restarted process doesn't re-discover known-exhausted providers via a
+    real call -- but any test that builds a real LLMClient and drives it
+    through the real 429-handling path in chat() (not just tests that poke
+    client._exhausted directly, which stays in-memory) writes into that
+    REAL file unless this is patched first.
+
+    2026-09-04: found this leaking from tests/test_local_llm.py::
+    TestDailyExhaustionNotReset (never isolated) into the actual user's
+    ~/.applypilot/llm_exhaustion_state.json -- fake provider names
+    "cloud-0"/"cloud-1" ended up permanently marked exhausted on a real
+    machine, and a later run of the SAME test then self-poisoned by
+    loading its own prior run's leftover state back in and failing before
+    it reached the behavior under test. tests/test_llm_cascade.py had
+    already discovered and fixed this exact failure mode for itself
+    (2026-09-02, see git blame) with a fixture of this same shape, but
+    file-local -- promoted here to conftest.py so every test file gets it
+    automatically instead of each one needing to remember to opt in.
+    tmp_path is function-scoped (fresh per test) and monkeypatch
+    auto-reverts, so no manual setUp/tearDown is needed anywhere."""
+    import applypilot.llm as llm_mod
+
+    monkeypatch.setattr(llm_mod, "_EXHAUSTION_STATE_PATH", tmp_path / "llm_exhaustion_state.json")
+
+
 @pytest.fixture
 def tmp_db(tmp_path, monkeypatch):
     """Yield a factory that returns a fresh sqlite3.Connection backed by a tmp file.
