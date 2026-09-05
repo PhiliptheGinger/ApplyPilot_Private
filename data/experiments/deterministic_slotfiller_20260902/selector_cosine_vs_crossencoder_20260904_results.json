@@ -1,0 +1,170 @@
+{
+  "n_jobs": 25,
+  "agreements": 7,
+  "disagreements": [
+    {
+      "job_title": "Medical Equipment Technician",
+      "fit_score": 7,
+      "requirement": "Maintain home oxygen systems through scheduled patient visits",
+      "cosine_pick": "Conducted installations for home appliances through Lowe's",
+      "cosine_score": 0.271,
+      "cross_encoder_pick": "Maintained clear communication with clients during installations",
+      "cross_encoder_score": 0.0
+    },
+    {
+      "job_title": "Maintenance Mechanic I",
+      "fit_score": 9,
+      "requirement": "Perform maintenance projects as assigned on: conveyor systems; to include installation, removal, and process improvement changes.",
+      "cosine_pick": "Executed installation tasks in accordance with customer specifications and company protocols",
+      "cosine_score": 0.391,
+      "cross_encoder_pick": "Carried out installation work adhering to customer instructions and established guidelines",
+      "cross_encoder_score": 0.0
+    },
+    {
+      "job_title": "Field Services Technician",
+      "fit_score": 6,
+      "requirement": "Travel to customer sites as needed to support project installations",
+      "cosine_pick": "Executed installation tasks in accordance with customer specifications and company protocols",
+      "cosine_score": 0.439,
+      "cross_encoder_pick": "Carried out installation work adhering to customer instructions and established guidelines",
+      "cross_encoder_score": 0.0
+    },
+    {
+      "job_title": "Network Engineer - Hybrid",
+      "fit_score": 5,
+      "requirement": "Participate in the installation, support and maintenance of network infrastructure",
+      "cosine_pick": "Executed installation tasks in accordance with customer specifications and company protocols",
+      "cosine_score": 0.483,
+      "cross_encoder_pick": "Carried out installation work adhering to customer instructions and established guidelines",
+      "cross_encoder_score": 0.0
+    },
+    {
+      "job_title": "Field Engineer",
+      "fit_score": 7,
+      "requirement": "Experience with physical Installation Wireless AP\u2019s.",
+      "cosine_pick": "Maintained clear communication with clients during installations",
+      "cosine_score": 0.322,
+      "cross_encoder_pick": "Conducted installations for home appliances through Lowe's",
+      "cross_encoder_score": 0.0
+    },
+    {
+      "job_title": "Mask Manufacturing Technician",
+      "fit_score": 5,
+      "requirement": "Candidate must possess a High school Diploma or GED AND 1+ years of relevant experience in one or more of the following:",
+      "cosine_pick": "Ensured proper execution of installation work according to customer requirements",
+      "cosine_score": 0.205,
+      "cross_encoder_pick": "Conducted installations for home appliances through Lowe's",
+      "cross_encoder_score": 0.0
+    },
+    {
+      "job_title": "Executive Assistant, Marketing",
+      "fit_score": 5,
+      "requirement": "Own complex travel and logistics with zero missed connections, and close expenses same-day",
+      "cosine_pick": "Facilitated effective dialogue with customers during setup processes",
+      "cosine_score": 0.179,
+      "cross_encoder_pick": "Conducted installations for home appliances through Lowe's",
+      "cross_encoder_score": 0.0
+    },
+    {
+      "job_title": "Principal Platform DeveSecOps Engineer. (Onsite)",
+      "fit_score": 4,
+      "requirement": "Experience in the installation, configuration, and maintenance of RedHat Linux operating systems",
+      "cosine_pick": "Executed installation tasks in accordance with customer specifications and company protocols",
+      "cosine_score": 0.409,
+      "cross_encoder_pick": "Conducted installations for home appliances through Lowe's",
+      "cross_encoder_score": 0.0
+    },
+    {
+      "job_title": "Applied Scientist, Shopping AI",
+      "fit_score": 8,
+      "requirement": "Optimize how and when homes are displayed to users, ensuring relevance and context in every interaction.",
+      "cosine_pick": "Facilitated effective dialogue with customers during setup processes",
+      "cosine_score": 0.291,
+      "cross_encoder_pick": "Conducted installations for home appliances through Lowe's",
+      "cross_encoder_score": 0.0
+    },
+    {
+      "job_title": "Senior Fullstack Software Development Engineer",
+      "fit_score": 4,
+      "requirement": "3+ years of hands-on React or React Native development experience, and experience building customer-facing experiences at product scale.",
+      "cosine_pick": "Facilitated effective dialogue with customers during setup processes",
+      "cosine_score": 0.235,
+      "cross_encoder_pick": "Conducted installations for home appliances through Lowe's",
+      "cross_encoder_score": 0.0
+    },
+    {
+      "job_title": "Software Engineer II (Hybrid - Aguadilla, PR)",
+      "fit_score": 8,
+      "requirement": "Please consider the following role type definition as you apply for this role.",
+      "cosine_pick": "Executed installation tasks in accordance with customer specifications and company protocols",
+      "cosine_score": 0.221,
+      "cross_encoder_pick": "Conducted installations for home appliances through Lowe's",
+      "cross_encoder_score": 0.0
+    },
+    {
+      "job_title": "Senior Software Engineer (Hybrid - Aguadilla, PR)",
+      "fit_score": 4,
+      "requirement": "Please consider the following role type definition as you apply for this role.",
+      "cosine_pick": "Executed installation tasks in accordance with customer specifications and company protocols",
+      "cosine_score": 0.221,
+      "cross_encoder_pick": "Conducted installations for home appliances through Lowe's",
+      "cross_encoder_score": 0.0
+    },
+    {
+      "job_title": "DevSecOps Software Engineer (Experienced or Senior)",
+      "fit_score": 4,
+      "requirement": "Performs installation and configuration of an integrated software engineering environment based upon the DevSecOps framework",
+      "cosine_pick": "Executed installation tasks in accordance with customer specifications and company protocols",
+      "cosine_score": 0.393,
+      "cross_encoder_pick": "Carried out installation work adhering to customer instructions and established guidelines",
+      "cross_encoder_score": 0.0
+    },
+    {
+      "job_title": "Software Application Development Engineer",
+      "fit_score": 8,
+      "requirement": "Develop automation applications for new product introduction workflows, execution readiness, build logistics, and Design of Experiments (DOE) planning",
+      "cosine_pick": "Executed installation tasks in accordance with customer specifications and company protocols",
+      "cosine_score": 0.43,
+      "cross_encoder_pick": "Conducted installations for home appliances through Lowe's",
+      "cross_encoder_score": 0.0
+    },
+    {
+      "job_title": "Sr. Professional Services Engineer Consultant",
+      "fit_score": 8,
+      "requirement": "7+ years of experience in a customer-facing technical role within B2B SaaS, with hands-on experience writing custom code and building integrations.",
+      "cosine_pick": "Executed installation tasks in accordance with customer specifications and company protocols",
+      "cosine_score": 0.364,
+      "cross_encoder_pick": "Conducted installations for home appliances through Lowe's",
+      "cross_encoder_score": 0.0
+    },
+    {
+      "job_title": "Senior Site Reliability Engineer",
+      "fit_score": 4,
+      "requirement": "Extra credit if you have experience in the following",
+      "cosine_pick": "Carried out installation work adhering to customer instructions and established guidelines",
+      "cosine_score": 0.234,
+      "cross_encoder_pick": "Conducted installations for home appliances through Lowe's",
+      "cross_encoder_score": 0.0
+    },
+    {
+      "job_title": "Lead Logistics Engineer",
+      "fit_score": 4,
+      "requirement": "Logistics Engineering & Network Optimization",
+      "cosine_pick": "Executed installation tasks in accordance with customer specifications and company protocols",
+      "cosine_score": 0.269,
+      "cross_encoder_pick": "Conducted installations for home appliances through Lowe's",
+      "cross_encoder_score": 0.0
+    },
+    {
+      "job_title": "Lead Logistics Engineer",
+      "fit_score": 4,
+      "requirement": "Logistics Engineering & Network Optimization",
+      "cosine_pick": "Executed installation tasks in accordance with customer specifications and company protocols",
+      "cosine_score": 0.269,
+      "cross_encoder_pick": "Conducted installations for home appliances through Lowe's",
+      "cross_encoder_score": 0.0
+    }
+  ],
+  "cosine_total_time_s": 78.63,
+  "cross_encoder_total_time_s": 168.73
+}

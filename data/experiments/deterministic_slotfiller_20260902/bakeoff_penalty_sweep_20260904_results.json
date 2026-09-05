@@ -1,0 +1,59 @@
+{
+  "baseline": {
+    "frequency_penalty": null,
+    "presence_penalty": null,
+    "elapsed_s": 96.6,
+    "n_candidates": 15,
+    "candidates": [
+      "Purchased home appliances from Lowe's and set them up according to customer specifications and company protocols.",
+      "Completed hands-on installation tasks for residential appliances, adhering to established procedures and customer instructions.",
+      "Explained installation steps to customers during service visits, ensuring clarity and alignment with project requirements.",
+      "Performed appliance installations while following manufacturer guidelines and customer-defined operational standards.",
+      "Set up home appliances using tools and techniques specified in the installation manual, following established workflows.",
+      "Completed installation work for contracted residential appliances, ensuring proper functionality and customer satisfaction.",
+      "Followed company procedures to install home appliances, maintaining accuracy and consistency with customer expectations.",
+      "Set up and tested residential appliances during installations, verifying compliance with safety and performance benchmarks.",
+      "Provided clear instructions to customers during appliance installations, ensuring accurate execution of service tasks.",
+      "Completed installation tasks for contracted appliances, maintaining quality standards and meeting customer service goals.",
+      "Followed established protocols to install home appliances, ensuring alignment with both company policies and customer needs.",
+      "Set up and configured residential appliances during installations, adhering to technical specifications and customer requirements.",
+      "Performed installation work for contracted appliances, ensuring proper functionality and adherence to service standards.",
+      "Explained installation processes to customers during service visits, emphasizing key steps and safety precautions.",
+      "Completed installation tasks for home appliances, maintaining accuracy and consistency with customer service expectations."
+    ],
+    "n_pairs": 105,
+    "mean_pairwise_similarity": 0.648,
+    "max_pairwise_similarity": 0.901,
+    "n_pairs_over_0.90": 1,
+    "n_pairs_over_0.84": 5
+  },
+  "elevated_penalty": {
+    "frequency_penalty": 0.6,
+    "presence_penalty": 0.6,
+    "elapsed_s": 65.4,
+    "n_candidates": 16,
+    "candidates": [
+      "Delivered home appliances purchased from Lowe's",
+      "Processed home appliance installations via Lowe's",
+      "Carried out on-site installation tasks adhering to client specifications and company protocols",
+      "Carried out installation work in accordance with customer instructions and established guidelines",
+      "Completed installation tasks following established procedures and customer requirements",
+      "Performed hands-on installation work while adhering to customer specifications and company protocols",
+      "Conducted installations by following established procedures and client requirements",
+      "Delivered installation services in compliance with customer instructions and company policies",
+      "Carried out installation work in alignment with customer expectations and established guidelines",
+      "Maintained clear communication with clients during installation processes",
+      "Ensured effective dialogue with customers during service deliveries",
+      "Processed home appliance installations through Lowe's procurement system",
+      "Carried out installation tasks in accordance with customer specifications and company protocols",
+      "Delivered installation services in compliance with established procedures and client requirements",
+      "Conducted installations by following customer instructions and company guidelines",
+      "Maintained clear communication with clients during installation processes"
+    ],
+    "n_pairs": 120,
+    "mean_pairwise_similarity": 0.565,
+    "max_pairwise_similarity": 1.0,
+    "n_pairs_over_0.90": 2,
+    "n_pairs_over_0.84": 6
+  }
+}

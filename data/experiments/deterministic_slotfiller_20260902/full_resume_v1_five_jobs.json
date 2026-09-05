@@ -1,0 +1,677 @@
+[
+  {
+    "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5167055007?gh_jid=5167055007",
+    "title": "Autonomy Lead",
+    "n_evidence_realized": 3,
+    "n_requirements_supported_eligible": 3,
+    "validation_passed": false,
+    "validation_errors": [
+      "Missing required field: summary"
+    ],
+    "validation_warnings": [],
+    "resume": {
+      "title": "Autonomy Lead",
+      "summary": "",
+      "skills": {
+        "Demonstrated Projects": "Python",
+        "Media Creative": "Photography, Videography, Web Design",
+        "Communication": "Public speaking, Customer service, Outreach, Sales consultations",
+        "Learning Or Exposure Not Expertise": "APIs, REST, JSON, Scripting, Docker"
+      },
+      "experience": [
+        {
+          "header": "Freelance Photography / Videography",
+          "subtitle": "Freelance Photographer / Videographer | 2021-08 - Present",
+          "bullets": [
+            "Competent use of DSLR equipment, multiple lenses, and off-camera lighting for photography and videography."
+          ]
+        },
+        {
+          "header": "AMP Smart",
+          "subtitle": "Sales Representative / Sales Tech | 2025-06 - 2025-07",
+          "bullets": [
+            "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+            "Conduct in-person consultations.",
+            "Identify qualified leads."
+          ]
+        },
+        {
+          "header": "UPS",
+          "subtitle": "Packaging Associate / Warehouse Associate | 2024-05 - 2025-04",
+          "bullets": [
+            "Worked efficiently in a high-volume operational environment where reliability, accuracy, and consistent performance were essential.",
+            "Package handling",
+            "Efficiency in a high-volume operational environment"
+          ]
+        },
+        {
+          "header": "National Tire and Battery / Mavis",
+          "subtitle": "Alignment Technician | 2022-10 - 2023-11",
+          "bullets": [
+            "Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures.",
+            "Vehicle alignment work",
+            "Tires"
+          ]
+        },
+        {
+          "header": "Alex Prosperity Group / UST Logistics",
+          "subtitle": "Moving Specialist / Installation Tech | 2023-11 - 2024-01",
+          "bullets": [
+            "Installed home appliances contracted through Lowe's",
+            "Performed hands-on installation work while following customer requirements and established procedures.",
+            "Communicated clearly with customers throughout installations."
+          ]
+        },
+        {
+          "header": "Waffle House",
+          "subtitle": "Server / Line Cook | 2019-05 - 2020-02",
+          "bullets": [
+            "Customer service",
+            "Order taking",
+            "High-volume food preparation",
+            "Prepared menu items to order in a fast-paced, high-volume kitchen environment."
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "header": "Standup-OCR",
+          "subtitle": "",
+          "bullets": [
+            "Python",
+            "OCR",
+            "Image/document processing",
+            "Transcription"
+          ]
+        },
+        {
+          "header": "CAP Predictor",
+          "subtitle": "",
+          "bullets": [
+            "Financial/news data",
+            "Data collection",
+            "Feature engineering",
+            "Sentiment analysis"
+          ]
+        },
+        {
+          "header": "Express_Engine",
+          "subtitle": "",
+          "bullets": [
+            "Language-learning tools",
+            "Spaced repetition",
+            "Application architecture",
+            "Persistent data"
+          ]
+        },
+        {
+          "header": "You Power You",
+          "subtitle": "",
+          "bullets": [
+            "Website development",
+            "HTML/CSS/JavaScript",
+            "Server-side form handling",
+            "Qualification/submission workflow"
+          ]
+        },
+        {
+          "header": "I_hate_social_media",
+          "subtitle": "",
+          "bullets": [
+            "Processing exported social-media data",
+            "Filtering and retrieving relevant posts",
+            "Extracting useful information",
+            "Structured data"
+          ]
+        },
+        {
+          "header": "Sunburn",
+          "subtitle": "",
+          "bullets": []
+        }
+      ],
+      "education": "Bachelor of Arts in Media Studies, University of North Carolina at Greensboro, 2019-2022"
+    }
+  },
+  {
+    "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5211980007?gh_jid=5211980007",
+    "title": "Deployment Lead, West Coast",
+    "n_evidence_realized": 0,
+    "n_requirements_supported_eligible": 0,
+    "validation_passed": false,
+    "validation_errors": [
+      "Missing required field: summary"
+    ],
+    "validation_warnings": [],
+    "resume": {
+      "title": "Deployment Lead, West Coast",
+      "summary": "",
+      "skills": {
+        "Demonstrated Projects": "Python",
+        "Media Creative": "Photography, Videography, Web Design",
+        "Communication": "Public speaking, Customer service, Outreach, Sales consultations",
+        "Learning Or Exposure Not Expertise": "APIs, REST, JSON, Scripting, Docker"
+      },
+      "experience": [
+        {
+          "header": "Freelance Photography / Videography",
+          "subtitle": "Freelance Photographer / Videographer | 2021-08 - Present",
+          "bullets": [
+            "Competent use of DSLR equipment, multiple lenses, and off-camera lighting for photography and videography."
+          ]
+        },
+        {
+          "header": "AMP Smart",
+          "subtitle": "Sales Representative / Sales Tech | 2025-06 - 2025-07",
+          "bullets": [
+            "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+            "Conduct in-person consultations.",
+            "Identify qualified leads.",
+            "Tailor proposals to homeowner needs and regional market conditions."
+          ]
+        },
+        {
+          "header": "UPS",
+          "subtitle": "Packaging Associate / Warehouse Associate | 2024-05 - 2025-04",
+          "bullets": [
+            "Package handling",
+            "Efficiency in a high-volume operational environment",
+            "Worked efficiently in a high-volume operational environment where reliability, accuracy, and consistent performance were essential.",
+            "Adapted quickly to changing workloads and priorities while maintaining productivity."
+          ]
+        },
+        {
+          "header": "National Tire and Battery / Mavis",
+          "subtitle": "Alignment Technician | 2022-10 - 2023-11",
+          "bullets": [
+            "Vehicle alignment work",
+            "Tires",
+            "Shocks and struts",
+            "Brakes"
+          ]
+        },
+        {
+          "header": "Alex Prosperity Group / UST Logistics",
+          "subtitle": "Moving Specialist / Installation Tech | 2023-11 - 2024-01",
+          "bullets": [
+            "Installed home appliances contracted through Lowe's",
+            "Performed hands-on installation work while following customer requirements and established procedures.",
+            "Communicated clearly with customers throughout installations."
+          ]
+        },
+        {
+          "header": "Waffle House",
+          "subtitle": "Server / Line Cook | 2019-05 - 2020-02",
+          "bullets": [
+            "Customer service",
+            "Order taking",
+            "High-volume food preparation",
+            "Prepared menu items to order in a fast-paced, high-volume kitchen environment."
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "header": "Standup-OCR",
+          "subtitle": "",
+          "bullets": [
+            "Python",
+            "OCR",
+            "Image/document processing",
+            "Transcription"
+          ]
+        },
+        {
+          "header": "CAP Predictor",
+          "subtitle": "",
+          "bullets": [
+            "Financial/news data",
+            "Data collection",
+            "Feature engineering",
+            "Sentiment analysis"
+          ]
+        },
+        {
+          "header": "Express_Engine",
+          "subtitle": "",
+          "bullets": [
+            "Language-learning tools",
+            "Spaced repetition",
+            "Application architecture",
+            "Persistent data"
+          ]
+        },
+        {
+          "header": "You Power You",
+          "subtitle": "",
+          "bullets": [
+            "Website development",
+            "HTML/CSS/JavaScript",
+            "Server-side form handling",
+            "Qualification/submission workflow"
+          ]
+        },
+        {
+          "header": "I_hate_social_media",
+          "subtitle": "",
+          "bullets": [
+            "Processing exported social-media data",
+            "Filtering and retrieving relevant posts",
+            "Extracting useful information",
+            "Structured data"
+          ]
+        },
+        {
+          "header": "Sunburn",
+          "subtitle": "",
+          "bullets": []
+        }
+      ],
+      "education": "Bachelor of Arts in Media Studies, University of North Carolina at Greensboro, 2019-2022"
+    }
+  },
+  {
+    "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5153901007?gh_jid=5153901007",
+    "title": "Developer Experience Engineer",
+    "n_evidence_realized": 2,
+    "n_requirements_supported_eligible": 2,
+    "validation_passed": false,
+    "validation_errors": [
+      "Missing required field: summary"
+    ],
+    "validation_warnings": [],
+    "resume": {
+      "title": "Developer Experience Engineer",
+      "summary": "",
+      "skills": {
+        "Demonstrated Projects": "Python",
+        "Media Creative": "Photography, Videography, Web Design",
+        "Communication": "Public speaking, Customer service, Outreach, Sales consultations",
+        "Learning Or Exposure Not Expertise": "APIs, REST, JSON, Scripting, Docker"
+      },
+      "experience": [
+        {
+          "header": "Freelance Photography / Videography",
+          "subtitle": "Freelance Photographer / Videographer | 2021-08 - Present",
+          "bullets": [
+            "Competent use of DSLR equipment, multiple lenses, and off-camera lighting for photography and videography."
+          ]
+        },
+        {
+          "header": "AMP Smart",
+          "subtitle": "Sales Representative / Sales Tech | 2025-06 - 2025-07",
+          "bullets": [
+            "Tailor proposals to homeowner needs and regional market conditions.",
+            "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+            "Conduct in-person consultations."
+          ]
+        },
+        {
+          "header": "UPS",
+          "subtitle": "Packaging Associate / Warehouse Associate | 2024-05 - 2025-04",
+          "bullets": [
+            "Package handling",
+            "Efficiency in a high-volume operational environment",
+            "Worked efficiently in a high-volume operational environment where reliability, accuracy, and consistent performance were essential.",
+            "Adapted quickly to changing workloads and priorities while maintaining productivity."
+          ]
+        },
+        {
+          "header": "National Tire and Battery / Mavis",
+          "subtitle": "Alignment Technician | 2022-10 - 2023-11",
+          "bullets": [
+            "Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures.",
+            "Vehicle alignment work",
+            "Tires"
+          ]
+        },
+        {
+          "header": "Alex Prosperity Group / UST Logistics",
+          "subtitle": "Moving Specialist / Installation Tech | 2023-11 - 2024-01",
+          "bullets": [
+            "Installed home appliances contracted through Lowe's",
+            "Performed hands-on installation work while following customer requirements and established procedures.",
+            "Communicated clearly with customers throughout installations."
+          ]
+        },
+        {
+          "header": "Waffle House",
+          "subtitle": "Server / Line Cook | 2019-05 - 2020-02",
+          "bullets": [
+            "Customer service",
+            "Order taking",
+            "High-volume food preparation",
+            "Prepared menu items to order in a fast-paced, high-volume kitchen environment."
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "header": "Standup-OCR",
+          "subtitle": "",
+          "bullets": [
+            "Python",
+            "OCR",
+            "Image/document processing",
+            "Transcription"
+          ]
+        },
+        {
+          "header": "CAP Predictor",
+          "subtitle": "",
+          "bullets": [
+            "Financial/news data",
+            "Data collection",
+            "Feature engineering",
+            "Sentiment analysis"
+          ]
+        },
+        {
+          "header": "Express_Engine",
+          "subtitle": "",
+          "bullets": [
+            "Language-learning tools",
+            "Spaced repetition",
+            "Application architecture",
+            "Persistent data"
+          ]
+        },
+        {
+          "header": "You Power You",
+          "subtitle": "",
+          "bullets": [
+            "Website development",
+            "HTML/CSS/JavaScript",
+            "Server-side form handling",
+            "Qualification/submission workflow"
+          ]
+        },
+        {
+          "header": "I_hate_social_media",
+          "subtitle": "",
+          "bullets": [
+            "Processing exported social-media data",
+            "Filtering and retrieving relevant posts",
+            "Extracting useful information",
+            "Structured data"
+          ]
+        },
+        {
+          "header": "Sunburn",
+          "subtitle": "",
+          "bullets": []
+        }
+      ],
+      "education": "Bachelor of Arts in Media Studies, University of North Carolina at Greensboro, 2019-2022"
+    }
+  },
+  {
+    "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/4676612007?gh_jid=4676612007",
+    "title": " Development Test Engineer",
+    "n_evidence_realized": 3,
+    "n_requirements_supported_eligible": 5,
+    "validation_passed": false,
+    "validation_errors": [
+      "Missing required field: summary"
+    ],
+    "validation_warnings": [],
+    "resume": {
+      "title": " Development Test Engineer",
+      "summary": "",
+      "skills": {
+        "Demonstrated Projects": "Python",
+        "Media Creative": "Photography, Videography, Web Design",
+        "Communication": "Public speaking, Customer service, Outreach, Sales consultations",
+        "Learning Or Exposure Not Expertise": "APIs, REST, JSON, Scripting, Docker"
+      },
+      "experience": [
+        {
+          "header": "Freelance Photography / Videography",
+          "subtitle": "Freelance Photographer / Videographer | 2021-08 - Present",
+          "bullets": [
+            "Competent use of DSLR equipment, multiple lenses, and off-camera lighting for photography and videography."
+          ]
+        },
+        {
+          "header": "AMP Smart",
+          "subtitle": "Sales Representative / Sales Tech | 2025-06 - 2025-07",
+          "bullets": [
+            "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+            "Conduct in-person consultations.",
+            "Identify qualified leads."
+          ]
+        },
+        {
+          "header": "UPS",
+          "subtitle": "Packaging Associate / Warehouse Associate | 2024-05 - 2025-04",
+          "bullets": [
+            "Efficiency in a high-volume operational environment",
+            "Package handling",
+            "Worked efficiently in a high-volume operational environment where reliability, accuracy, and consistent performance were essential."
+          ]
+        },
+        {
+          "header": "National Tire and Battery / Mavis",
+          "subtitle": "Alignment Technician | 2022-10 - 2023-11",
+          "bullets": [
+            "Performed hands-on work involving tires, brakes, shocks and struts, fluids, and related vehicle systems.",
+            "Vehicle alignment work",
+            "Tires"
+          ]
+        },
+        {
+          "header": "Alex Prosperity Group / UST Logistics",
+          "subtitle": "Moving Specialist / Installation Tech | 2023-11 - 2024-01",
+          "bullets": [
+            "Installed home appliances contracted through Lowe's",
+            "Performed hands-on installation work while following customer requirements and established procedures.",
+            "Communicated clearly with customers throughout installations."
+          ]
+        },
+        {
+          "header": "Waffle House",
+          "subtitle": "Server / Line Cook | 2019-05 - 2020-02",
+          "bullets": [
+            "Customer service",
+            "Order taking",
+            "High-volume food preparation",
+            "Prepared menu items to order in a fast-paced, high-volume kitchen environment."
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "header": "Standup-OCR",
+          "subtitle": "",
+          "bullets": [
+            "Python",
+            "OCR",
+            "Image/document processing",
+            "Transcription"
+          ]
+        },
+        {
+          "header": "CAP Predictor",
+          "subtitle": "",
+          "bullets": [
+            "Financial/news data",
+            "Data collection",
+            "Feature engineering",
+            "Sentiment analysis"
+          ]
+        },
+        {
+          "header": "Express_Engine",
+          "subtitle": "",
+          "bullets": [
+            "Language-learning tools",
+            "Spaced repetition",
+            "Application architecture",
+            "Persistent data"
+          ]
+        },
+        {
+          "header": "You Power You",
+          "subtitle": "",
+          "bullets": [
+            "Website development",
+            "HTML/CSS/JavaScript",
+            "Server-side form handling",
+            "Qualification/submission workflow"
+          ]
+        },
+        {
+          "header": "I_hate_social_media",
+          "subtitle": "",
+          "bullets": [
+            "Processing exported social-media data",
+            "Filtering and retrieving relevant posts",
+            "Extracting useful information",
+            "Structured data"
+          ]
+        },
+        {
+          "header": "Sunburn",
+          "subtitle": "",
+          "bullets": []
+        }
+      ],
+      "education": "Bachelor of Arts in Media Studies, University of North Carolina at Greensboro, 2019-2022"
+    }
+  },
+  {
+    "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5166948007?gh_jid=5166948007",
+    "title": "Endurance Systems Lead",
+    "n_evidence_realized": 2,
+    "n_requirements_supported_eligible": 4,
+    "validation_passed": false,
+    "validation_errors": [
+      "Missing required field: summary"
+    ],
+    "validation_warnings": [],
+    "resume": {
+      "title": "Endurance Systems Lead",
+      "summary": "",
+      "skills": {
+        "Demonstrated Projects": "Python",
+        "Media Creative": "Photography, Videography, Web Design",
+        "Communication": "Public speaking, Customer service, Outreach, Sales consultations",
+        "Learning Or Exposure Not Expertise": "APIs, REST, JSON, Scripting, Docker"
+      },
+      "experience": [
+        {
+          "header": "Freelance Photography / Videography",
+          "subtitle": "Freelance Photographer / Videographer | 2021-08 - Present",
+          "bullets": [
+            "Competent use of DSLR equipment, multiple lenses, and off-camera lighting for photography and videography."
+          ]
+        },
+        {
+          "header": "AMP Smart",
+          "subtitle": "Sales Representative / Sales Tech | 2025-06 - 2025-07",
+          "bullets": [
+            "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+            "Conduct in-person consultations.",
+            "Identify qualified leads.",
+            "Tailor proposals to homeowner needs and regional market conditions."
+          ]
+        },
+        {
+          "header": "UPS",
+          "subtitle": "Packaging Associate / Warehouse Associate | 2024-05 - 2025-04",
+          "bullets": [
+            "Worked efficiently in a high-volume operational environment where reliability, accuracy, and consistent performance were essential.",
+            "Package handling",
+            "Efficiency in a high-volume operational environment"
+          ]
+        },
+        {
+          "header": "National Tire and Battery / Mavis",
+          "subtitle": "Alignment Technician | 2022-10 - 2023-11",
+          "bullets": [
+            "Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures.",
+            "Vehicle alignment work",
+            "Tires"
+          ]
+        },
+        {
+          "header": "Alex Prosperity Group / UST Logistics",
+          "subtitle": "Moving Specialist / Installation Tech | 2023-11 - 2024-01",
+          "bullets": [
+            "Installed home appliances contracted through Lowe's",
+            "Performed hands-on installation work while following customer requirements and established procedures.",
+            "Communicated clearly with customers throughout installations."
+          ]
+        },
+        {
+          "header": "Waffle House",
+          "subtitle": "Server / Line Cook | 2019-05 - 2020-02",
+          "bullets": [
+            "Customer service",
+            "Order taking",
+            "High-volume food preparation",
+            "Prepared menu items to order in a fast-paced, high-volume kitchen environment."
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "header": "Standup-OCR",
+          "subtitle": "",
+          "bullets": [
+            "Python",
+            "OCR",
+            "Image/document processing",
+            "Transcription"
+          ]
+        },
+        {
+          "header": "CAP Predictor",
+          "subtitle": "",
+          "bullets": [
+            "Financial/news data",
+            "Data collection",
+            "Feature engineering",
+            "Sentiment analysis"
+          ]
+        },
+        {
+          "header": "Express_Engine",
+          "subtitle": "",
+          "bullets": [
+            "Language-learning tools",
+            "Spaced repetition",
+            "Application architecture",
+            "Persistent data"
+          ]
+        },
+        {
+          "header": "You Power You",
+          "subtitle": "",
+          "bullets": [
+            "Website development",
+            "HTML/CSS/JavaScript",
+            "Server-side form handling",
+            "Qualification/submission workflow"
+          ]
+        },
+        {
+          "header": "I_hate_social_media",
+          "subtitle": "",
+          "bullets": [
+            "Processing exported social-media data",
+            "Filtering and retrieving relevant posts",
+            "Extracting useful information",
+            "Structured data"
+          ]
+        },
+        {
+          "header": "Sunburn",
+          "subtitle": "",
+          "bullets": []
+        }
+      ],
+      "education": "Bachelor of Arts in Media Studies, University of North Carolina at Greensboro, 2019-2022"
+    }
+  }
+]

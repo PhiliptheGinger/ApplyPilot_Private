@@ -1,0 +1,332 @@
+[
+  {
+    "job_id": 28014,
+    "title": "Manager, Applied AI Architects",
+    "bullets": [
+      {
+        "requirement": "Hire, coach, and develop a high-performing team of Applied AI Architects, creati",
+        "bullet": "Used develop and environment.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "AMP Smart"
+      },
+      {
+        "requirement": "Define and continuously refine the strategy and operating model for Applied AI A",
+        "bullet": "Used market, needs, and regional.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "AMP Smart"
+      },
+      {
+        "requirement": "Build trusted relationships with C-suite and board-level stakeholders, as well a",
+        "bullet": "Used data, financial/news data, and data collection.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "CAP Predictor"
+      },
+      {
+        "requirement": "Translate patterns from the field into actionable feedback for Product, Engineer",
+        "bullet": "Used field, market, and product.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "AMP Smart"
+      }
+    ]
+  },
+  {
+    "job_id": 9051,
+    "title": "Research Engineer, Codex",
+    "bullets": [
+      {
+        "requirement": "Own end-to-end improvements to the post-training stack, including RL, data pipel",
+        "bullet": "Used data, financial/news data, and data collection.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "CAP Predictor"
+      },
+      {
+        "requirement": "Build evals and environments that expose the next set of model failures, then tu",
+        "bullet": "Used data, research, and financial/news data.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "CAP Predictor"
+      },
+      {
+        "requirement": "Partner with Codex, API/platform, ChatGPT, and general-agent product teams to un",
+        "bullet": "Used product.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "AMP Smart"
+      },
+      {
+        "requirement": "Work on early-training and alignment interventions, including data mixtures, obj",
+        "bullet": "Built alignment and work.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "National Tire and Battery / Mavis"
+      },
+      {
+        "requirement": "Improve the machinery for large-scale training and launch: experiment velocity, ",
+        "bullet": "Operated reliability.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "UPS"
+      },
+      {
+        "requirement": "Take on cross-functional projects that touch model training, product infrastruct",
+        "bullet": "Used product.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "AMP Smart"
+      }
+    ]
+  },
+  {
+    "job_id": 12070,
+    "title": "Data Engineer",
+    "bullets": [
+      {
+        "requirement": "Engage with multiple teams and contribute on key decisions.",
+        "bullet": "Operated multiple.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "Waffle House"
+      },
+      {
+        "requirement": "Provide solutions to problems for their immediate team and across multiple teams",
+        "bullet": "Built problems and solutions.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "National Tire and Battery / Mavis"
+      },
+      {
+        "requirement": "Mentor junior team members to enhance their technical skills and project contrib",
+        "bullet": "Built skills.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "National Tire and Battery / Mavis"
+      },
+      {
+        "requirement": "Coordinate cross-functional initiatives to align data engineering efforts with b",
+        "bullet": "Used data, financial/news data, and data collection.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "CAP Predictor"
+      },
+      {
+        "requirement": "Must To Have Skills: Proficiency in Databricks Unified Data Analytics Platform.",
+        "bullet": "Used analytics, data, and financial/news data.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "CAP Predictor"
+      }
+    ]
+  },
+  {
+    "job_id": 28152,
+    "title": "System Engineer",
+    "bullets": [
+      {
+        "requirement": "Monitor and maintain systems infrastructure including hardware and software",
+        "bullet": "Used software, language-learning tools, and spaced repetition.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "Express_Engine"
+      },
+      {
+        "requirement": "Monitor systems performance and recommend changes and upgrades based on utilizat",
+        "bullet": "Operated performance.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "UPS"
+      },
+      {
+        "requirement": "Provide support and assistance to OD users for systems needs",
+        "bullet": "Used needs.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "AMP Smart"
+      },
+      {
+        "requirement": "Assist with troubleshooting and diagnosis of enterprise systems issues",
+        "bullet": "Built issues and troubleshooting.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "National Tire and Battery / Mavis"
+      }
+    ]
+  },
+  {
+    "job_id": 2902,
+    "title": "Senior Manager, Tax Technology",
+    "bullets": [
+      {
+        "requirement": "Partner with the tax team to identify and implement process improvements, automa",
+        "bullet": "Operated accuracy and efficiency.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "UPS"
+      },
+      {
+        "requirement": "Evaluate end-to-end tax processes, data flows, and system dependencies to improv",
+        "bullet": "Used data, financial/news data, and data collection.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "CAP Predictor"
+      },
+      {
+        "requirement": "Support and enhance the tax technology stack, including D365, Salesforce, Vertex",
+        "bullet": "Built related.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "National Tire and Battery / Mavis"
+      },
+      {
+        "requirement": "Leverage AI and emerging technologies to improve workflows, documentation, resea",
+        "bullet": "Used research, financial/news data, and data collection.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "CAP Predictor"
+      },
+      {
+        "requirement": "Support reporting, testing, documentation, and change management related to tax ",
+        "bullet": "Built related.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "National Tire and Battery / Mavis"
+      }
+    ]
+  },
+  {
+    "job_id": 28656,
+    "title": "Multi Site Customer Service Coordinator",
+    "bullets": [
+      {
+        "requirement": "Travel locally, including day trips to post offices and satellite office locatio",
+        "bullet": "Operated operations.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "UPS"
+      }
+    ]
+  },
+  {
+    "job_id": 18139,
+    "title": "Senior Control Systems Integration Technical Specialist / Programmer",
+    "bullets": [
+      {
+        "requirement": "Proficient in using Microsoft Office to produce detail-oriented reports.",
+        "bullet": "Built using.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "National Tire and Battery / Mavis"
+      },
+      {
+        "requirement": "Knowledge of controls and automation principles and electrical circuits is desir",
+        "bullet": null,
+        "reason": "evidence_not_found_in_profile"
+      },
+      {
+        "requirement": "Execute assigned tasks within scope, budget, and schedule.",
+        "bullet": "Used execute.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "AMP Smart"
+      }
+    ]
+  },
+  {
+    "job_id": 11564,
+    "title": "Executive Director Principal Software Engineer - Athena Platform",
+    "bullets": [
+      {
+        "requirement": "You will manage senior relationships spanning Portfolio Management, Trading, Ope",
+        "bullet": "Operated operations.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "UPS"
+      },
+      {
+        "requirement": "Develops secure and high-quality production code, and reviews and debugs code wr",
+        "bullet": "Operated quality.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "Waffle House"
+      },
+      {
+        "requirement": "Influences leaders and senior stakeholders across business, product, and technol",
+        "bullet": "Used product.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "AMP Smart"
+      }
+    ]
+  },
+  {
+    "job_id": 549,
+    "title": "Legal Recruiter (Contract)",
+    "bullets": [
+      {
+        "requirement": "Target and engage passive legal talent using LinkedIn Recruiter, Boolean strings",
+        "bullet": "Built specialized and using.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "National Tire and Battery / Mavis"
+      },
+      {
+        "requirement": "Drive a diverse talent pipeline into the organization ensuring a positive candid",
+        "bullet": "Used outreach.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "AMP Smart"
+      },
+      {
+        "requirement": "Leverage internal resources and market insights to build strategies around selli",
+        "bullet": "Used market and strategies.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "AMP Smart"
+      }
+    ]
+  },
+  {
+    "job_id": 21159,
+    "title": "Lead Software Engineer, Back End",
+    "bullets": [
+      {
+        "requirement": "Utilize programming languages like Java, Python, SQL, Node, Go, and Scala, Open ",
+        "bullet": "Used python, financial/news data, and data collection.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "CAP Predictor"
+      }
+    ]
+  },
+  {
+    "job_id": 23794,
+    "title": "Packaged/SaaS Application Engineer",
+    "bullets": [
+      {
+        "requirement": "Engage with multiple teams and contribute on key decisions.",
+        "bullet": "Operated multiple.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "Waffle House"
+      },
+      {
+        "requirement": "Provide solutions to problems for their immediate team and across multiple teams",
+        "bullet": "Built problems and solutions.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "National Tire and Battery / Mavis"
+      },
+      {
+        "requirement": "Lead efforts to identify process improvements and implement best practices withi",
+        "bullet": "Used identify.",
+        "reason": "ok",
+        "object_source": "factual_concepts/exact_keywords",
+        "evidence": "AMP Smart"
+      }
+    ]
+  }
+]

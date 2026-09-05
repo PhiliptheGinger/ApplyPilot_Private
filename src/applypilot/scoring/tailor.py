@@ -462,6 +462,9 @@ def _build_canonical_inventory_block(profile: dict) -> str:
             evidence = item.get("factual_concepts") or item.get("evidence") or item.get("responsibilities")
             if evidence:
                 lines.append(f"  Evidence: {'; '.join(str(x) for x in evidence)}")
+            for c in item.get("constraints") or []:
+                if isinstance(c, str) and c.strip():
+                    lines.append(f"  Constraint: {c.strip()}")
 
     lines.append("SKILL EVIDENCE (use ONLY resume_allowed=true items as resume skills):")
     disallowed_skills: list[str] = []

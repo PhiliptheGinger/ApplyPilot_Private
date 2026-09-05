@@ -44,6 +44,19 @@ def test_canonical_inventory_excludes_private_project():
     assert "AMP Smart" in block
 
 
+def test_canonical_inventory_renders_experience_constraints():
+    """2026-09-03 regression: a per-item `constraints` note (e.g. "keep
+    claims modest") used to only be rendered for project_inventory entries
+    -- the cloud tailoring prompt (the primary pipeline) never saw
+    experience_inventory constraints at all, and previously the only place
+    such a note could live was inline in `description`, where it risked
+    being treated as resume-worthy evidence text instead of guidance."""
+    profile = _profile()
+    profile["experience_inventory"][0]["constraints"] = ["Keep claims modest; do not overstate scope."]
+    block = _build_canonical_inventory_block(profile)
+    assert "Constraint: Keep claims modest; do not overstate scope." in block
+
+
 def test_tailor_prompt_preserves_official_degree_and_skill_evidence():
     prompt = _build_tailor_prompt(_profile(), standup_decision="EXCLUDE")
     assert "Bachelor of Arts in Media Studies" in prompt

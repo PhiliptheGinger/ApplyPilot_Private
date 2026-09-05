@@ -587,6 +587,79 @@ class TestBuildBaseResumeModel(unittest.TestCase):
             self.assertIn(key, model)
 
 
+class TestBuildBaseResumeModelFallsBackToProfileStructure(unittest.TestCase):
+    """2026-09-04 regression: real production degraded-mode calls pass
+    resume_router.load_resume_text_for_job's "CANONICAL PROFILE REFERENCE"
+    rendering as resume_text -- a flat, profile-derived text with no
+    EXPERIENCE/EDUCATION/SUMMARY section headers at all. parse_resume/
+    parse_entries found nothing to parse and silently returned EMPTY
+    experience/education every time, confirmed against a real production
+    call (0 experience entries, empty education string) -- meaning
+    degraded mode has been merging realized bullets onto a base resume
+    with no work history at all, independent of whether the local model's
+    realization step itself worked. Fixed by falling back to constructing
+    entries directly from the STRUCTURED profile (already a function
+    parameter) when text-parsing yields nothing -- same pattern already
+    established for `skills` just above."""
+
+    FLAT_PROFILE_TEXT = (
+        "CANONICAL PROFILE REFERENCE\n"
+        "education: Some University\n"
+        "- Bachelor of Arts in Media Studies\n"
+        "experience_inventory: Auto Shop Diagnostic Tech\n"
+        "- Diagnosed and repaired vehicle electrical faults.\n"
+    )
+
+    def test_experience_falls_back_to_profile_when_no_experience_section_parses(self):
+        model = local_tailor.build_base_resume_model(self.FLAT_PROFILE_TEXT, PROFILE)
+        self.assertEqual(len(model["experience"]), 1)
+        entry = model["experience"][0]
+        self.assertEqual(entry["title"], "Auto Shop Diagnostic Tech")
+        self.assertTrue(entry["bullets"])
+
+    def test_education_falls_back_to_profile_when_no_education_section_parses(self):
+        profile_with_education = {
+            **PROFILE,
+            "education": [
+                {"official_degree": "Bachelor of Arts in Media Studies", "institution": "Some University", "start_year": 2019, "end_year": 2022}
+            ],
+        }
+        model = local_tailor.build_base_resume_model(self.FLAT_PROFILE_TEXT, profile_with_education)
+        self.assertIn("Media Studies", model["education"])
+        self.assertIn("Some University", model["education"])
+
+    def test_fallback_experience_entry_still_matches_realization_by_fuzzy_name(self):
+        """The whole point: a realized bullet keyed by evidence name must
+        still land on the right entry after the fallback construction, not
+        just produce non-empty entries that realization can't attach to."""
+        model = local_tailor.build_base_resume_model(self.FLAT_PROFILE_TEXT, PROFILE)
+        realization = {"summary": None, "bullets": {"Auto Shop Diagnostic Tech": "Realized bullet text."}}
+        merged = local_tailor.merge_realization(model, realization, JOB)
+        entry = next(e for e in merged["experience"] if e["header"] == "Auto Shop Diagnostic Tech")
+        self.assertIn("Realized bullet text.", entry["bullets"])
+
+    def test_project_entries_fall_back_to_profile_factual_concepts(self):
+        profile_with_project = {
+            **PROFILE,
+            "project_inventory": [
+                {"name": "Standup-OCR", "resume_allowed": True, "factual_concepts": ["Python", "OCR tooling"]}
+            ],
+        }
+        model = local_tailor.build_base_resume_model(self.FLAT_PROFILE_TEXT, profile_with_project)
+        self.assertEqual(len(model["projects"]), 1)
+        self.assertEqual(model["projects"][0]["title"], "Standup-OCR")
+        self.assertIn("Python", model["projects"][0]["bullets"])
+
+    def test_real_resume_document_still_parses_normally_unaffected_by_the_fallback(self):
+        """The fallback must never fire when the text genuinely IS a
+        parseable resume document -- RESUME_TEXT's real EXPERIENCE section
+        must still win over the profile fallback."""
+        model = local_tailor.build_base_resume_model(RESUME_TEXT, PROFILE)
+        self.assertEqual(len(model["experience"]), 1)
+        self.assertIn("Some Garage", model["experience"][0]["title"])
+        self.assertEqual(model["experience"][0]["subtitle"], "2018 - 2020")
+
+
 class TestMergeRealization(unittest.TestCase):
     """merge_realization: deterministic, never drops an untouched section."""
 
@@ -958,6 +1031,255 @@ class TestNoSupportedEvidenceAndRealizationFailureStatuses(unittest.TestCase):
         self.assertEqual(report["status"], "failed_validation")
         self.assertIsNotNone(report["validator"])
         client.chat.assert_called_once()
+
+
+class TestBuildPoolRealization(unittest.TestCase):
+    """2026-09-04: deterministic counterpart to request_local_realization
+    -- selects from an already-generated, already-diversity-filtered
+    sentence pool instead of calling an LLM. Same output contract as
+    request_local_realization ({"bullets": {...}}), so it plugs into the
+    existing, unchanged merge_realization. Embeddings are mocked
+    throughout -- no real Ollama call required, matching the convention
+    in test_local_llm.py's semantic_match-adjacent tests."""
+
+    def _patched_embed(self, dim=64):
+        """Fixed-size hashed bag-of-words fake embedding. build_pool_
+        realization calls embed_texts separately for the pool and for each
+        requirement (different calls), so a fake embedding with a
+        dynamically-growing per-call vocabulary produces DIFFERENT vector
+        lengths across calls -- cosine_similarity's own contract returns
+        0.0 for any length mismatch, silently making every comparison tie
+        at 0.0 (an earlier version of this test had exactly that bug: it
+        always "selected" the first pool sentence regardless of wording,
+        because a stable sort over all-zero scores just preserves input
+        order). Fixed dimensionality (hash each word into one of `dim`
+        buckets by character-ordinal sum, not a growing index) guarantees
+        every call produces same-length vectors regardless of call order,
+        so real word overlap between a requirement and a pool sentence
+        actually shows up as nonzero cosine similarity."""
+
+        def _bucket(word: str) -> int:
+            return sum(ord(c) for c in word) % dim
+
+        def _embed(texts):
+            vectors = []
+            for t in texts:
+                vec = [0.0] * dim
+                for w in t.lower().split():
+                    vec[_bucket(w)] = 1.0
+                vectors.append(vec)
+            return vectors
+
+        return _embed
+
+    def test_no_pools_returns_none(self):
+        schema = {"requirements": [{"supported": True, "requirement": "x", "resume_evidence": ["Acme"]}]}
+        self.assertIsNone(local_tailor.build_pool_realization(schema, None))
+        self.assertIsNone(local_tailor.build_pool_realization(schema, {}))
+
+    def test_unsupported_requirement_skipped(self):
+        schema = {"requirements": [{"supported": False, "requirement": "handle customer calls", "resume_evidence": ["Acme"]}]}
+        pools = {"Acme": ["Handled customer calls daily."]}
+        with patch("applypilot.scoring.semantic_match.embed_texts", side_effect=self._patched_embed()):
+            self.assertIsNone(local_tailor.build_pool_realization(schema, pools))
+
+    def test_evidence_with_no_pool_is_skipped(self):
+        schema = {"requirements": [{"supported": True, "requirement": "handle customer calls", "resume_evidence": ["OtherCo"]}]}
+        pools = {"Acme": ["Handled customer calls daily."]}
+        with patch("applypilot.scoring.semantic_match.embed_texts", side_effect=self._patched_embed()):
+            self.assertIsNone(local_tailor.build_pool_realization(schema, pools))
+
+    def test_selects_best_matching_pool_sentence(self):
+        schema = {
+            "requirements": [
+                {"supported": True, "requirement": "communicate clearly with customers", "resume_evidence": ["Acme"]},
+            ]
+        }
+        pools = {
+            "Acme": [
+                "Followed established company protocols during installation work.",
+                "Maintained clear communication with customers throughout service visits.",
+            ]
+        }
+        with patch("applypilot.scoring.semantic_match.embed_texts", side_effect=self._patched_embed()):
+            result = local_tailor.build_pool_realization(schema, pools)
+        self.assertIsNotNone(result)
+        self.assertEqual(result["bullets"]["Acme"], "Maintained clear communication with customers throughout service visits.")
+
+    def test_different_requirement_wording_selects_different_sentence(self):
+        """The actual point of this function: two differently-worded
+        requirements against the SAME pool pick DIFFERENT sentences."""
+        pools = {
+            "Acme": [
+                "Followed established company protocols during installation work.",
+                "Maintained clear communication with customers throughout service visits.",
+            ]
+        }
+        schema_communication = {
+            "requirements": [{"supported": True, "requirement": "communicate clearly with customers", "resume_evidence": ["Acme"]}]
+        }
+        schema_protocols = {
+            "requirements": [{"supported": True, "requirement": "follow established company protocols", "resume_evidence": ["Acme"]}]
+        }
+        with patch("applypilot.scoring.semantic_match.embed_texts", side_effect=self._patched_embed()):
+            result_a = local_tailor.build_pool_realization(schema_communication, pools)
+            result_b = local_tailor.build_pool_realization(schema_protocols, pools)
+        self.assertNotEqual(result_a["bullets"]["Acme"], result_b["bullets"]["Acme"])
+
+    def test_first_matched_requirement_wins_for_an_entry_not_overwritten_by_a_later_one(self):
+        schema = {
+            "requirements": [
+                {"supported": True, "requirement": "communicate clearly with customers", "resume_evidence": ["Acme"]},
+                {"supported": True, "requirement": "follow established company protocols", "resume_evidence": ["Acme"]},
+            ]
+        }
+        pools = {
+            "Acme": [
+                "Followed established company protocols during installation work.",
+                "Maintained clear communication with customers throughout service visits.",
+            ]
+        }
+        with patch("applypilot.scoring.semantic_match.embed_texts", side_effect=self._patched_embed()):
+            result = local_tailor.build_pool_realization(schema, pools)
+        self.assertEqual(result["bullets"]["Acme"], "Maintained clear communication with customers throughout service visits.")
+
+    def test_embedding_failure_degrades_to_none_not_a_crash(self):
+        schema = {"requirements": [{"supported": True, "requirement": "x", "resume_evidence": ["Acme"]}]}
+        pools = {"Acme": ["some sentence"]}
+        with patch("applypilot.scoring.semantic_match.embed_texts", return_value=None):
+            self.assertIsNone(local_tailor.build_pool_realization(schema, pools))
+
+    def test_plugs_into_existing_merge_realization_unchanged(self):
+        """Integration: build_pool_realization's output flows through the
+        SAME merge_realization every other realization source already
+        uses -- no new merge path was written for this."""
+        base_resume = {
+            "title": "Old Title",
+            "summary": "Old summary.",
+            "skills": {"Languages": "Python"},
+            "experience": [
+                {"title": "Acme", "subtitle": "Installer | 2020-2021", "meta": "", "bullets": ["Original bullet one.", "Original bullet two."]}
+            ],
+            "projects": [],
+            "education": "Some University",
+        }
+        schema = {
+            "requirements": [{"supported": True, "requirement": "communicate clearly with customers", "resume_evidence": ["Acme"]}]
+        }
+        pools = {
+            "Acme": [
+                "Followed established company protocols during installation work.",
+                "Maintained clear communication with customers throughout service visits.",
+            ]
+        }
+        with patch("applypilot.scoring.semantic_match.embed_texts", side_effect=self._patched_embed()):
+            realization = local_tailor.build_pool_realization(schema, pools)
+        merged = local_tailor.merge_realization(base_resume, realization, {"title": "New Job Title"})
+        self.assertEqual(merged["experience"][0]["bullets"][0],
+                          "Maintained clear communication with customers throughout service visits.")
+        # summary/education untouched -- build_pool_realization doesn't set "summary",
+        # so merge_realization's existing base-resume fallback applies unchanged.
+        self.assertEqual(merged["summary"], "Old summary.")
+        self.assertEqual(merged["education"], "Some University")
+
+
+class TestEditSentenceForRequirement(unittest.TestCase):
+    """2026-09-04: editor mode -- reword ONE already-true sentence instead
+    of writing a new one from evidence. Direct response to a real near-miss
+    where the writer prompt (request_local_realization) invented "Built and
+    implemented the tracking system... managing lanes, shoes, and other
+    equipment" for Mavis -- caught by the agency check, but a dropped
+    bullet costs the same as no bullet. Smaller task, smaller surface."""
+
+    def test_returns_stripped_text_on_success(self):
+        client = MagicMock()
+        client.chat.return_value = '"Diagnosed vehicle alignment issues using specialized equipment."'
+        result = local_tailor.edit_sentence_for_requirement(client, "orig", "req")
+        self.assertEqual(result, "Diagnosed vehicle alignment issues using specialized equipment.")
+
+    def test_returns_none_on_call_failure(self):
+        client = MagicMock()
+        client.chat.side_effect = RuntimeError("boom")
+        self.assertIsNone(local_tailor.edit_sentence_for_requirement(client, "orig", "req"))
+
+    def test_returns_none_on_empty_response(self):
+        client = MagicMock()
+        client.chat.return_value = "   "
+        self.assertIsNone(local_tailor.edit_sentence_for_requirement(client, "orig", "req"))
+
+
+class TestEditSentenceWithRetry(unittest.TestCase):
+    _MAVIS = {
+        "name": "National Tire and Battery / Mavis",
+        "responsibilities": [
+            "Diagnosed and corrected vehicle alignment issues using specialized equipment and "
+            "established troubleshooting procedures.",
+        ],
+    }
+
+    def test_first_attempt_passing_returns_immediately(self):
+        client = MagicMock()
+        client.chat.return_value = "Diagnosed vehicle alignment issues using specialized diagnostic equipment."
+        sentence, was_edited, attempts = local_tailor.edit_sentence_with_retry(
+            client, self._MAVIS["responsibilities"][0], "vehicle diagnostics", self._MAVIS, max_attempts=3
+        )
+        self.assertTrue(was_edited)
+        self.assertEqual(attempts, 1)
+        self.assertEqual(client.chat.call_count, 1)
+
+    def test_retries_until_a_passing_edit_then_stops(self):
+        client = MagicMock()
+        client.chat.side_effect = [
+            "Managed and led the vehicle alignment program.",  # attempt 1: agency violation
+            "Diagnosed vehicle alignment issues using specialized diagnostic tools.",  # attempt 2: passes
+        ]
+        sentence, was_edited, attempts = local_tailor.edit_sentence_with_retry(
+            client, self._MAVIS["responsibilities"][0], "vehicle diagnostics", self._MAVIS, max_attempts=3
+        )
+        self.assertTrue(was_edited)
+        self.assertEqual(attempts, 2)
+        self.assertEqual(client.chat.call_count, 2)
+        self.assertIn("diagnostic tools", sentence)
+
+    def test_exhausting_all_attempts_falls_back_to_original_unchanged(self):
+        """The actual fix for the real near-miss: never return nothing --
+        guaranteed non-empty, guaranteed true (it's the untouched original)."""
+        client = MagicMock()
+        client.chat.return_value = "Built and implemented the tracking system, managing the whole team."
+        original = self._MAVIS["responsibilities"][0]
+        sentence, was_edited, attempts = local_tailor.edit_sentence_with_retry(
+            client, original, "vehicle diagnostics", self._MAVIS, max_attempts=3
+        )
+        self.assertFalse(was_edited)
+        self.assertEqual(attempts, 3)
+        self.assertEqual(sentence, original)
+        self.assertEqual(client.chat.call_count, 3)
+
+    def test_call_failures_count_as_attempts_and_still_fall_back_safely(self):
+        client = MagicMock()
+        client.chat.side_effect = RuntimeError("local model unreachable")
+        original = self._MAVIS["responsibilities"][0]
+        sentence, was_edited, attempts = local_tailor.edit_sentence_with_retry(
+            client, original, "vehicle diagnostics", self._MAVIS, max_attempts=2
+        )
+        self.assertFalse(was_edited)
+        self.assertEqual(sentence, original)
+        self.assertEqual(client.chat.call_count, 2)
+
+    def test_real_near_miss_sentence_is_correctly_rejected(self):
+        """Direct regression pin for the actual sentence produced live
+        tonight -- confirms edit_sentence_with_retry's checks reject it
+        exactly like request_local_realization's did."""
+        client = MagicMock()
+        client.chat.return_value = (
+            "Built and implemented the tracking system for National Tire and Battery / Mavis, "
+            "improving efficiency by managing lanes, shoes, and other equipment."
+        )
+        sentence, was_edited, _ = local_tailor.edit_sentence_with_retry(
+            client, self._MAVIS["responsibilities"][0], "resource tracking", self._MAVIS, max_attempts=1
+        )
+        self.assertFalse(was_edited)
+        self.assertEqual(sentence, self._MAVIS["responsibilities"][0])
 
 
 if __name__ == "__main__":

@@ -1,0 +1,1025 @@
+[
+  {
+    "stem": "homeowner",
+    "terms": [
+      "homeowner"
+    ],
+    "idf": 7.052,
+    "overlap": 0.0214,
+    "n": 15
+  },
+  {
+    "stem": "specializ",
+    "terms": [
+      "specialized"
+    ],
+    "idf": 3.523,
+    "overlap": 0.0243,
+    "n": 15
+  },
+  {
+    "stem": "recommend",
+    "terms": [
+      "recommended"
+    ],
+    "idf": 3.565,
+    "overlap": 0.0243,
+    "n": 15
+  },
+  {
+    "stem": "perform",
+    "terms": [
+      "performed"
+    ],
+    "idf": 2.014,
+    "overlap": 0.0261,
+    "n": 15
+  },
+  {
+    "stem": "isolat",
+    "terms": [
+      "isolating"
+    ],
+    "idf": 5.992,
+    "overlap": 0.0262,
+    "n": 15
+  },
+  {
+    "stem": "sale",
+    "terms": [
+      "sales"
+    ],
+    "idf": 2.685,
+    "overlap": 0.0273,
+    "n": 15
+  },
+  {
+    "stem": "install",
+    "terms": [
+      "installed"
+    ],
+    "idf": 3.752,
+    "overlap": 0.0286,
+    "n": 15
+  },
+  {
+    "stem": "symptom",
+    "terms": [
+      "symptoms"
+    ],
+    "idf": 7.508,
+    "overlap": 0.0322,
+    "n": 15
+  },
+  {
+    "stem": "analytic",
+    "terms": [
+      "analytics"
+    ],
+    "idf": 3.117,
+    "overlap": 0.0334,
+    "n": 15
+  },
+  {
+    "stem": "tailor",
+    "terms": [
+      "tailor"
+    ],
+    "idf": 3.484,
+    "overlap": 0.0342,
+    "n": 15
+  },
+  {
+    "stem": "procedur",
+    "terms": [
+      "procedures"
+    ],
+    "idf": 2.703,
+    "overlap": 0.0363,
+    "n": 15
+  },
+  {
+    "stem": "transcription",
+    "terms": [
+      "transcription"
+    ],
+    "idf": 8.18,
+    "overlap": 0.0384,
+    "n": 15
+  },
+  {
+    "stem": "communicat",
+    "terms": [
+      "communicated"
+    ],
+    "idf": 2.507,
+    "overlap": 0.0391,
+    "n": 15
+  },
+  {
+    "stem": "food",
+    "terms": [
+      "food"
+    ],
+    "idf": 4.658,
+    "overlap": 0.0411,
+    "n": 15
+  },
+  {
+    "stem": "workload",
+    "terms": [
+      "workloads"
+    ],
+    "idf": 4.166,
+    "overlap": 0.0417,
+    "n": 15
+  },
+  {
+    "stem": "creativ",
+    "terms": [
+      "creative"
+    ],
+    "idf": 2.427,
+    "overlap": 0.0423,
+    "n": 15
+  },
+  {
+    "stem": "lowe",
+    "terms": [
+      "lowe"
+    ],
+    "idf": 7.11,
+    "overlap": 0.0428,
+    "n": 15
+  },
+  {
+    "stem": "diagnos",
+    "terms": [
+      "diagnosed"
+    ],
+    "idf": 3.92,
+    "overlap": 0.043,
+    "n": 15
+  },
+  {
+    "stem": "content",
+    "terms": [
+      "content"
+    ],
+    "idf": 3.972,
+    "overlap": 0.0438,
+    "n": 15
+  },
+  {
+    "stem": "battery",
+    "terms": [
+      "battery"
+    ],
+    "idf": 5.388,
+    "overlap": 0.0453,
+    "n": 15
+  },
+  {
+    "stem": "quality",
+    "terms": [
+      "quality"
+    ],
+    "idf": 2.055,
+    "overlap": 0.0456,
+    "n": 15
+  },
+  {
+    "stem": "quickly",
+    "terms": [
+      "quickly"
+    ],
+    "idf": 3.33,
+    "overlap": 0.0459,
+    "n": 15
+  },
+  {
+    "stem": "automation",
+    "terms": [
+      "automation"
+    ],
+    "idf": 2.491,
+    "overlap": 0.0484,
+    "n": 15
+  },
+  {
+    "stem": "reliability",
+    "terms": [
+      "reliability"
+    ],
+    "idf": 2.736,
+    "overlap": 0.05,
+    "n": 15
+  },
+  {
+    "stem": "coordinat",
+    "terms": [
+      "coordinated"
+    ],
+    "idf": 2.702,
+    "overlap": 0.0502,
+    "n": 15
+  },
+  {
+    "stem": "alex",
+    "terms": [
+      "alex"
+    ],
+    "idf": 9.118,
+    "overlap": 0.0504,
+    "n": 13
+  },
+  {
+    "stem": "quantitativ",
+    "terms": [
+      "quantitative"
+    ],
+    "idf": 4.89,
+    "overlap": 0.0506,
+    "n": 15
+  },
+  {
+    "stem": "handl",
+    "terms": [
+      "handling",
+      "handled"
+    ],
+    "idf": 2.717,
+    "overlap": 0.0509,
+    "n": 15
+  },
+  {
+    "stem": "operational",
+    "terms": [
+      "operational"
+    ],
+    "idf": 2.174,
+    "overlap": 0.051,
+    "n": 15
+  },
+  {
+    "stem": "web",
+    "terms": [
+      "web"
+    ],
+    "idf": 3.2,
+    "overlap": 0.0513,
+    "n": 15
+  },
+  {
+    "stem": "group",
+    "terms": [
+      "group"
+    ],
+    "idf": 2.595,
+    "overlap": 0.052,
+    "n": 15
+  },
+  {
+    "stem": "accurately",
+    "terms": [
+      "accurately"
+    ],
+    "idf": 3.781,
+    "overlap": 0.0532,
+    "n": 15
+  },
+  {
+    "stem": "approach",
+    "terms": [
+      "approach"
+    ],
+    "idf": 2.776,
+    "overlap": 0.0533,
+    "n": 15
+  },
+  {
+    "stem": "accuracy",
+    "terms": [
+      "accuracy"
+    ],
+    "idf": 3.499,
+    "overlap": 0.0557,
+    "n": 15
+  },
+  {
+    "stem": "experimentation",
+    "terms": [
+      "experimentation"
+    ],
+    "idf": 4.851,
+    "overlap": 0.0568,
+    "n": 15
+  },
+  {
+    "stem": "tire",
+    "terms": [
+      "tire",
+      "tires"
+    ],
+    "idf": 7.531,
+    "overlap": 0.0589,
+    "n": 15
+  },
+  {
+    "stem": "correctiv",
+    "terms": [
+      "corrective"
+    ],
+    "idf": 4.03,
+    "overlap": 0.059,
+    "n": 15
+  },
+  {
+    "stem": "involv",
+    "terms": [
+      "involving"
+    ],
+    "idf": 2.528,
+    "overlap": 0.0602,
+    "n": 15
+  },
+  {
+    "stem": "efficiency",
+    "terms": [
+      "efficiency"
+    ],
+    "idf": 2.965,
+    "overlap": 0.0607,
+    "n": 15
+  },
+  {
+    "stem": "brak",
+    "terms": [
+      "brakes"
+    ],
+    "idf": 6.642,
+    "overlap": 0.061,
+    "n": 15
+  },
+  {
+    "stem": "target",
+    "terms": [
+      "targeted",
+      "targeting"
+    ],
+    "idf": 3.273,
+    "overlap": 0.0613,
+    "n": 15
+  },
+  {
+    "stem": "relation",
+    "terms": [
+      "relations"
+    ],
+    "idf": 4.905,
+    "overlap": 0.0616,
+    "n": 15
+  },
+  {
+    "stem": "consistent",
+    "terms": [
+      "consistent"
+    ],
+    "idf": 2.821,
+    "overlap": 0.0625,
+    "n": 15
+  },
+  {
+    "stem": "research",
+    "terms": [
+      "research"
+    ],
+    "idf": 2.712,
+    "overlap": 0.0641,
+    "n": 15
+  },
+  {
+    "stem": "priority",
+    "terms": [
+      "priorities"
+    ],
+    "idf": 3.045,
+    "overlap": 0.0647,
+    "n": 15
+  },
+  {
+    "stem": "establish",
+    "terms": [
+      "established"
+    ],
+    "idf": 2.585,
+    "overlap": 0.0652,
+    "n": 15
+  },
+  {
+    "stem": "residential",
+    "terms": [
+      "residential"
+    ],
+    "idf": 5.739,
+    "overlap": 0.0655,
+    "n": 15
+  },
+  {
+    "stem": "execut",
+    "terms": [
+      "execute"
+    ],
+    "idf": 2.655,
+    "overlap": 0.0657,
+    "n": 15
+  },
+  {
+    "stem": "comptia",
+    "terms": [
+      "comptia"
+    ],
+    "idf": 4.881,
+    "overlap": 0.0662,
+    "n": 15
+  },
+  {
+    "stem": "contract",
+    "terms": [
+      "contracted"
+    ],
+    "idf": 3.285,
+    "overlap": 0.0674,
+    "n": 15
+  },
+  {
+    "stem": "logistic",
+    "terms": [
+      "logistics"
+    ],
+    "idf": 4.261,
+    "overlap": 0.0678,
+    "n": 15
+  },
+  {
+    "stem": "different",
+    "terms": [
+      "different"
+    ],
+    "idf": 2.914,
+    "overlap": 0.0678,
+    "n": 15
+  },
+  {
+    "stem": "alignment",
+    "terms": [
+      "alignment"
+    ],
+    "idf": 3.191,
+    "overlap": 0.0688,
+    "n": 15
+  },
+  {
+    "stem": "ust",
+    "terms": [
+      "ust"
+    ],
+    "idf": 9.706,
+    "overlap": 0.0692,
+    "n": 15
+  },
+  {
+    "stem": "server",
+    "terms": [
+      "servers"
+    ],
+    "idf": 3.48,
+    "overlap": 0.0703,
+    "n": 15
+  },
+  {
+    "stem": "efficiently",
+    "terms": [
+      "efficiently"
+    ],
+    "idf": 3.994,
+    "overlap": 0.0708,
+    "n": 15
+  },
+  {
+    "stem": "throughout",
+    "terms": [
+      "throughout"
+    ],
+    "idf": 2.948,
+    "overlap": 0.0723,
+    "n": 15
+  },
+  {
+    "stem": "adapt",
+    "terms": [
+      "adapted",
+      "adapting"
+    ],
+    "idf": 3.709,
+    "overlap": 0.0732,
+    "n": 15
+  },
+  {
+    "stem": "prepar",
+    "terms": [
+      "prepared"
+    ],
+    "idf": 3.289,
+    "overlap": 0.0755,
+    "n": 15
+  },
+  {
+    "stem": "freelanc",
+    "terms": [
+      "freelance"
+    ],
+    "idf": 8.319,
+    "overlap": 0.0773,
+    "n": 15
+  },
+  {
+    "stem": "coworker",
+    "terms": [
+      "coworkers"
+    ],
+    "idf": 6.331,
+    "overlap": 0.0775,
+    "n": 15
+  },
+  {
+    "stem": "explain",
+    "terms": [
+      "explained"
+    ],
+    "idf": 4.109,
+    "overlap": 0.0781,
+    "n": 15
+  },
+  {
+    "stem": "field",
+    "terms": [
+      "field"
+    ],
+    "idf": 2.212,
+    "overlap": 0.0803,
+    "n": 15
+  },
+  {
+    "stem": "practical",
+    "terms": [
+      "practical"
+    ],
+    "idf": 3.36,
+    "overlap": 0.0856,
+    "n": 15
+  },
+  {
+    "stem": "item",
+    "terms": [
+      "items"
+    ],
+    "idf": 4.278,
+    "overlap": 0.0862,
+    "n": 15
+  },
+  {
+    "stem": "troubleshoot",
+    "terms": [
+      "troubleshooting"
+    ],
+    "idf": 2.121,
+    "overlap": 0.09,
+    "n": 15
+  },
+  {
+    "stem": "consistency",
+    "terms": [
+      "consistency"
+    ],
+    "idf": 4.341,
+    "overlap": 0.0902,
+    "n": 15
+  },
+  {
+    "stem": "clearly",
+    "terms": [
+      "clearly"
+    ],
+    "idf": 2.944,
+    "overlap": 0.0916,
+    "n": 15
+  },
+  {
+    "stem": "qualify",
+    "terms": [
+      "qualified"
+    ],
+    "idf": 2.075,
+    "overlap": 0.0927,
+    "n": 15
+  },
+  {
+    "stem": "python",
+    "terms": [
+      "python"
+    ],
+    "idf": 2.677,
+    "overlap": 0.093,
+    "n": 15
+  },
+  {
+    "stem": "equipment",
+    "terms": [
+      "equipment"
+    ],
+    "idf": 2.641,
+    "overlap": 0.0968,
+    "n": 15
+  },
+  {
+    "stem": "installation",
+    "terms": [
+      "installation"
+    ],
+    "idf": 3.572,
+    "overlap": 0.0991,
+    "n": 15
+  },
+  {
+    "stem": "independently",
+    "terms": [
+      "independently"
+    ],
+    "idf": 2.875,
+    "overlap": 0.1015,
+    "n": 15
+  },
+  {
+    "stem": "accurat",
+    "terms": [
+      "accurate"
+    ],
+    "idf": 3.157,
+    "overlap": 0.1019,
+    "n": 15
+  },
+  {
+    "stem": "amp",
+    "terms": [
+      "amp"
+    ],
+    "idf": 6.221,
+    "overlap": 0.1021,
+    "n": 15
+  },
+  {
+    "stem": "regional",
+    "terms": [
+      "regional"
+    ],
+    "idf": 4.237,
+    "overlap": 0.1023,
+    "n": 15
+  },
+  {
+    "stem": "shock",
+    "terms": [
+      "shocks"
+    ],
+    "idf": 6.849,
+    "overlap": 0.1045,
+    "n": 15
+  },
+  {
+    "stem": "proposal",
+    "terms": [
+      "proposals"
+    ],
+    "idf": 4.175,
+    "overlap": 0.1071,
+    "n": 15
+  },
+  {
+    "stem": "smart",
+    "terms": [
+      "smart"
+    ],
+    "idf": 4.318,
+    "overlap": 0.1081,
+    "n": 15
+  },
+  {
+    "stem": "moving",
+    "terms": [
+      "moving"
+    ],
+    "idf": 4.044,
+    "overlap": 0.1095,
+    "n": 15
+  },
+  {
+    "stem": "vehicl",
+    "terms": [
+      "vehicle"
+    ],
+    "idf": 3.684,
+    "overlap": 0.1121,
+    "n": 15
+  },
+  {
+    "stem": "automotiv",
+    "terms": [
+      "automotive"
+    ],
+    "idf": 4.497,
+    "overlap": 0.113,
+    "n": 15
+  },
+  {
+    "stem": "preparation",
+    "terms": [
+      "preparation"
+    ],
+    "idf": 4.429,
+    "overlap": 0.1252,
+    "n": 15
+  },
+  {
+    "stem": "staff",
+    "terms": [
+      "staff"
+    ],
+    "idf": 3.233,
+    "overlap": 0.1261,
+    "n": 15
+  },
+  {
+    "stem": "cleanliness",
+    "terms": [
+      "cleanliness"
+    ],
+    "idf": 5.645,
+    "overlap": 0.1286,
+    "n": 15
+  },
+  {
+    "stem": "applianc",
+    "terms": [
+      "appliances"
+    ],
+    "idf": 5.987,
+    "overlap": 0.1333,
+    "n": 15
+  },
+  {
+    "stem": "ocr",
+    "terms": [
+      "ocr"
+    ],
+    "idf": 7.849,
+    "overlap": 0.1414,
+    "n": 15
+  },
+  {
+    "stem": "fluid",
+    "terms": [
+      "fluids"
+    ],
+    "idf": 5.814,
+    "overlap": 0.1477,
+    "n": 15
+  },
+  {
+    "stem": "photography",
+    "terms": [
+      "photography"
+    ],
+    "idf": 8.18,
+    "overlap": 0.1529,
+    "n": 15
+  },
+  {
+    "stem": "order",
+    "terms": [
+      "orders",
+      "order"
+    ],
+    "idf": 3.083,
+    "overlap": 0.1598,
+    "n": 15
+  },
+  {
+    "stem": "power",
+    "terms": [
+      "power"
+    ],
+    "idf": 2.174,
+    "overlap": 0.1623,
+    "n": 15
+  },
+  {
+    "stem": "keep",
+    "terms": [
+      "keep"
+    ],
+    "idf": 2.579,
+    "overlap": 0.1689,
+    "n": 15
+  },
+  {
+    "stem": "prosperity",
+    "terms": [
+      "prosperity"
+    ],
+    "idf": 8.482,
+    "overlap": 0.1758,
+    "n": 15
+  },
+  {
+    "stem": "taking",
+    "terms": [
+      "taking"
+    ],
+    "idf": 3.944,
+    "overlap": 0.1761,
+    "n": 15
+  },
+  {
+    "stem": "market",
+    "terms": [
+      "market",
+      "marketing"
+    ],
+    "idf": 2.266,
+    "overlap": 0.2093,
+    "n": 15
+  },
+  {
+    "stem": "cap",
+    "terms": [
+      "cap"
+    ],
+    "idf": 5.204,
+    "overlap": 0.2233,
+    "n": 15
+  },
+  {
+    "stem": "menu",
+    "terms": [
+      "menu"
+    ],
+    "idf": 6.661,
+    "overlap": 0.233,
+    "n": 15
+  },
+  {
+    "stem": "kitchen",
+    "terms": [
+      "kitchen"
+    ],
+    "idf": 6.298,
+    "overlap": 0.2523,
+    "n": 15
+  },
+  {
+    "stem": "simultaneou",
+    "terms": [
+      "simultaneous"
+    ],
+    "idf": 6.958,
+    "overlap": 0.2526,
+    "n": 15
+  },
+  {
+    "stem": "hous",
+    "terms": [
+      "house"
+    ],
+    "idf": 5.334,
+    "overlap": 0.3038,
+    "n": 15
+  },
+  {
+    "stem": "conduct",
+    "terms": [
+      "conduct"
+    ],
+    "idf": 2.483,
+    "overlap": 0.3628,
+    "n": 15
+  },
+  {
+    "stem": "correct",
+    "terms": [
+      "corrected"
+    ],
+    "idf": 4.464,
+    "overlap": 0.3836,
+    "n": 15
+  },
+  {
+    "stem": "predictor",
+    "terms": [
+      "predictor"
+    ],
+    "idf": 9.236,
+    "overlap": 0.3939,
+    "n": 7
+  },
+  {
+    "stem": "outreach",
+    "terms": [
+      "outreach"
+    ],
+    "idf": 3.262,
+    "overlap": 0.4174,
+    "n": 15
+  },
+  {
+    "stem": "solar",
+    "terms": [
+      "solar"
+    ],
+    "idf": 6.751,
+    "overlap": 0.5336,
+    "n": 15
+  },
+  {
+    "stem": "home",
+    "terms": [
+      "home"
+    ],
+    "idf": 3.211,
+    "overlap": 0.5801,
+    "n": 15
+  },
+  {
+    "stem": "busy",
+    "terms": [
+      "busy"
+    ],
+    "idf": 5.652,
+    "overlap": 0.6289,
+    "n": 15
+  },
+  {
+    "stem": "request",
+    "terms": [
+      "requests"
+    ],
+    "idf": 2.049,
+    "overlap": 0.629,
+    "n": 15
+  },
+  {
+    "stem": "multipl",
+    "terms": [
+      "multiple"
+    ],
+    "idf": 2.047,
+    "overlap": 0.6298,
+    "n": 15
+  },
+  {
+    "stem": "packag",
+    "terms": [
+      "package"
+    ],
+    "idf": 2.109,
+    "overlap": 0.8667,
+    "n": 15
+  },
+  {
+    "stem": "media",
+    "terms": [
+      "media"
+    ],
+    "idf": 3.246,
+    "overlap": 0.8695,
+    "n": 15
+  },
+  {
+    "stem": "during",
+    "terms": [
+      "during"
+    ],
+    "idf": 2.302,
+    "overlap": 0.8698,
+    "n": 15
+  },
+  {
+    "stem": "appropriat",
+    "terms": [
+      "appropriate"
+    ],
+    "idf": 2.682,
+    "overlap": 1.0,
+    "n": 15
+  }
+]

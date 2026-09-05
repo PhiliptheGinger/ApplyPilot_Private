@@ -617,6 +617,154 @@ _NAME_TOKEN_STOPWORDS = frozenset(
         "not",
         "but",
         "can",
+        # 2026-09-04: found via a real production false positive -- "Pay
+        # Increases throughout the first year of employment and annual
+        # merit increases" (a benefits blurb from an unrelated job, not a
+        # skill requirement) matched Alex Prosperity Group's installation
+        # evidence SOLELY via the shared word "throughout" (from "...
+        # Communicated clearly with customers throughout installations.").
+        # "throughout" is a common preposition with zero domain-
+        # discriminating signal -- it should never have survived
+        # _item_terms' word-splitting of `responsibilities` text in the
+        # first place. Unlike _GENERIC_EVIDENCE_TERMS (deliberately
+        # narrow, grown only from domain-word collisions like "it"/
+        # "technical"/"ups"), this list was always meant to be an ordinary
+        # English stopword list -- it was just an incomplete one,
+        # originally covering only what happened to appear in early
+        # profile.json name/responsibilities text rather than common
+        # English function words generally. Expanded here to a standard
+        # small stopword set (prepositions, conjunctions, common
+        # pronouns/determiners, auxiliary verbs) rather than adding
+        # "throughout" alone and waiting to find the next one the same way.
+        "throughout",
+        "during",
+        "within",
+        "under",
+        "over",
+        "about",
+        "before",
+        "after",
+        "between",
+        "through",
+        "against",
+        "without",
+        "upon",
+        "toward",
+        "towards",
+        "among",
+        "amongst",
+        "across",
+        "beyond",
+        "along",
+        "amid",
+        "above",
+        "below",
+        "behind",
+        "beside",
+        "besides",
+        "despite",
+        "except",
+        "inside",
+        "outside",
+        "near",
+        "off",
+        "per",
+        "since",
+        "than",
+        "until",
+        "via",
+        "while",
+        "or",
+        "if",
+        "when",
+        "because",
+        "although",
+        "though",
+        "whether",
+        "unless",
+        "so",
+        "yet",
+        "nor",
+        "them",
+        "they",
+        "which",
+        "who",
+        "whom",
+        "whose",
+        "what",
+        "there",
+        "here",
+        "then",
+        "as",
+        "of",
+        "to",
+        "in",
+        "on",
+        "at",
+        "by",
+        "be",
+        "is",
+        "am",
+        "do",
+        "does",
+        "did",
+        "will",
+        "would",
+        "should",
+        "could",
+        "may",
+        "might",
+        "must",
+        "shall",
+        "a",
+        "an",
+        "all",
+        "any",
+        "each",
+        "every",
+        "both",
+        "few",
+        "more",
+        "most",
+        "other",
+        "some",
+        "such",
+        "no",
+        "own",
+        "same",
+        "too",
+        "very",
+        "just",
+        "also",
+        # 2026-09-04: found via a real production false positive -- "Alex
+        # Prosperity Group / UST Logistics" (the employer's own name)
+        # contributed the bare word "group" as a matchable term via
+        # _item_terms' name-splitting, which then matched an unrelated
+        # "Senior Manager, Machine Learning Ops Engineering" job's
+        # requirement ("Lead and grow a high-performing MLOps engineering
+        # GROUP...") purely because both happen to contain the word
+        # "group". "group" has idf=2.90 -- legitimately ABOVE the IDF-
+        # generic threshold (2.0) from a pure corpus-rarity standpoint, so
+        # the IDF check added earlier today doesn't catch this; the actual
+        # problem is different -- these are generic BUSINESS-ENTITY-NAME
+        # suffix words (like "Inc."/"LLC"/"Corp."), not domain vocabulary,
+        # and they only ever leak in via the NAME field specifically, not
+        # from responsibilities/factual_concepts text (nobody writes "I
+        # performed group" as a responsibility). Scoped to the same
+        # discipline as the rest of this list: real business-entity
+        # designations, not a guess at every possible company-name word.
+        "group",
+        "groups",
+        "inc",
+        "llc",
+        "corp",
+        "corporation",
+        "company",
+        "co",
+        "ltd",
+        "limited",
+        "holdings",
+        "enterprises",
     }
 )
 
@@ -650,18 +798,97 @@ _NAME_TOKEN_STOPWORDS = frozenset(
 # false-positive is observed (as both of these were), not speculatively --
 # this is a short, explainable exception list, not a general stopword
 # dictionary standing in for real domain-specificity judgment.
-_GENERIC_EVIDENCE_TERMS = frozenset({"it", "technical"})
+#
+# "ups" (2026-09-04, found via the rarity-weighting bake-off): the UPS
+# experience_inventory entry's whole-name term, lowercased to "ups",
+# survives the length floor (len==3) and word-boundary-matches ANY word
+# ending in "-ups" -- "follow-ups", "backups", "startups", "wake-ups" --
+# because a hyphen is a word boundary for \b, so "post-launch fixes and
+# follow-ups" contains "ups" as its own token. Not fixable by raising the
+# length floor (that would also drop genuinely valuable 3-letter technical
+# acronyms like "aws"/"sql"/"api"/"css") -- this is a curation problem
+# (a real word colliding with a real acronym), same shape as "it"/
+# "technical" above, so it belongs in this list, not a length-rule change.
+# UPS-the-employer stays fully matchable via its other, more specific
+# terms ("package", "handling", "operations", etc.) -- see _item_terms.
+_GENERIC_EVIDENCE_TERMS = frozenset({"it", "technical", "ups"})
+
+# 2026-09-04: data-driven complement to the curated list above, not a
+# replacement for it. Real production run found "customer" alone (no other
+# overlapping term) was enough to mark 248 jobs (out of 1477 scanned) as
+# "supported" by Alex Prosperity Group evidence, including obviously
+# unrelated postings (an AI-tools requirement for a "Customer Experience
+# Associate" role, generic "1+ years experience" boilerplate) -- the same
+# failure shape as "it"/"technical" (a real word too generic to carry
+# domain-discriminating signal on its own), but discovered by real-data
+# whack-a-mole one word at a time, same as every entry in
+# _GENERIC_EVIDENCE_TERMS so far. Reuses idf_weights.json, a real artifact
+# already computed from 30,184 real job postings during a PRIOR, separate
+# investigation (data/experiments/deterministic_slotfiller_20260902/
+# v6_idf_gate_validation_report.md) that gated SYNONYM substitution with
+# it and found -- for that different, broader use case -- no threshold both
+# blocked every bad hit and preserved yield, because IDF conflates
+# "globally rare" with "domain-specific" (a polysemous word like
+# "alignment" is rare for the wrong reason). That report explicitly
+# flagged THIS narrower use -- replacing raw keyword counting in
+# corroboration-strength checks like this one -- as a separate, deferred
+# idea, not the failed one. Confirmed against the real weights before
+# trusting them here: it=1.63, technical=1.35, customer=1.80, using=1.81
+# (all already-known-or-newly-found generic words) cluster clearly below
+# problems=2.11/troubleshooting=2.48/python=2.68/alignment=3.19 (genuinely
+# specific terms) -- 2.0 sits in the real gap between those two clusters.
+# Same caveats as that report, deliberately NOT used to replace the two
+# curated exceptions IDF can't see: "ups" has HIGH idf (6.28 -- rare
+# because it collides with a common word-ending, not because it's
+# specific) and "throughout" has moderate idf (2.95 -- a meaningless
+# preposition that just doesn't happen to appear in every posting) --
+# both still need _GENERIC_EVIDENCE_TERMS / _NAME_TOKEN_STOPWORDS
+# respectively; this only ever ADDS exclusions, never removes one from
+# a term IDF would call "specific."
+_IDF_GENERIC_THRESHOLD = 2.0
+_idf_weights_cache: dict[str, float] | None = None
+_idf_weights_load_failed = False
+
+
+def _idf_weights() -> dict[str, float]:
+    """Best-effort load of the precomputed IDF weights, cached for the
+    life of the process. Missing/corrupt file degrades to an empty dict
+    (never raises) -- _is_generic_evidence_term then just falls back to
+    the curated _GENERIC_EVIDENCE_TERMS list alone, exactly today's
+    behavior before this data-driven layer existed."""
+    global _idf_weights_cache, _idf_weights_load_failed
+    if _idf_weights_load_failed:
+        return {}
+    if _idf_weights_cache is None:
+        try:
+            from applypilot.config import CONFIG_DIR
+
+            _idf_weights_cache = json.loads((CONFIG_DIR / "idf_weights.json").read_text(encoding="utf-8"))
+        except Exception as exc:  # noqa: BLE001 -- optional data file; any failure must degrade to "no IDF signal," never break evidence matching
+            log.warning("local_tailor: failed to load idf_weights.json (%s: %s) -- IDF-based generic-term filtering disabled", type(exc).__name__, exc)
+            _idf_weights_load_failed = True
+            return {}
+    return _idf_weights_cache
 
 
 def _is_generic_evidence_term(term: str) -> bool:
     """True if `term` (an already-normalized name/category/concept term)
     is too generic to serve as a standalone evidence-match signal -- see
-    _GENERIC_EVIDENCE_TERMS. Multi-word terms are never caught by this:
-    a category like "customer service" or "technical support" is always
-    well over the length floor and never equals one of the bare single
-    words in the exception set, so only a truly bare, truly generic term
-    is excluded."""
-    return len(term) < 3 or term in _GENERIC_EVIDENCE_TERMS
+    _GENERIC_EVIDENCE_TERMS (curated exceptions IDF can't see) and
+    _IDF_GENERIC_THRESHOLD (data-driven complement, single-word terms
+    only). Multi-word terms are never caught by either check: a category
+    like "customer service" or "technical support" is always well over
+    the length floor, never equals one of the bare single words in the
+    exception set, and is never looked up in idf_weights.json (that file
+    only has single-word entries), so only a truly bare, truly generic
+    term is excluded."""
+    if len(term) < 3 or term in _GENERIC_EVIDENCE_TERMS:
+        return True
+    if " " not in term:
+        idf = _idf_weights().get(term)
+        if idf is not None and idf < _IDF_GENERIC_THRESHOLD:
+            return True
+    return False
 
 
 def _item_terms(item: dict) -> set[str]:
@@ -708,11 +935,50 @@ def _item_terms(item: dict) -> set[str]:
     return {t for t in terms if t and not _is_generic_evidence_term(t)}
 
 
+# Same-root word families that aren't simple suffix variants (so the
+# plain pluralization check in _term_in_text below wouldn't catch them).
+# 2026-09-03: found via real near-miss mining across a 100-job sample
+# (data/experiments/deterministic_slotfiller_20260902/build_and_test_v4_synonyms.py)
+# -- a requirement wanted "operations" and the candidate's own evidence
+# said "operational", the same root, but not a suffix variant of each
+# other. Deliberately tiny and grown only from observed real misses --
+# NOT a general stemmer (a stemmer would risk exactly the false-positive
+# collisions _CLAIM_VERB_PATTERNS/_AGENCY_VERB_PATTERNS have already been
+# burned by, e.g. a loose "us\w*" stem matching "user").
+_ROOT_FAMILIES: list[frozenset[str]] = [
+    frozenset({"operation", "operations", "operational"}),
+]
+
+
 def _term_in_text(term: str, haystack_lower: str) -> bool:
-    """Word-boundary containment check -- cheap and deterministic, not fuzzy."""
+    """Word-boundary containment check -- cheap and deterministic, not fuzzy.
+
+    Inflection-tolerant (2026-09-03): also matches ordinary singular/plural
+    variants (add/strip a trailing "s"/"es") and same-root forms in the
+    small curated _ROOT_FAMILIES table above. This is NOT a stemmer -- no
+    loose prefix/suffix stripping beyond plain pluralization, and root
+    families are an explicit, hand-verified word list, same discipline as
+    _CLAIM_VERB_PATTERNS/_AGENCY_VERB_PATTERNS. No text is ever rewritten
+    by this function; it only changes whether a keyword counts as already
+    present, so there is no fabrication risk from this change -- unlike
+    _synonym_hit below (a different word/phrase, not just a different
+    inflection of the SAME word), this is safe to use everywhere
+    _term_in_text already is, including rank_profile_evidence's relevance
+    scoring, not just the downstream per-line re-check.
+    """
     if not term or len(term) < 2:
         return False
-    return re.search(rf"\b{re.escape(term)}\b", haystack_lower) is not None
+    term_l = term.lower()
+    variants = {term_l}
+    if term_l.endswith("s"):
+        variants.add(term_l[:-1])
+    else:
+        variants.add(term_l + "s")
+        variants.add(term_l + "es")
+    for family in _ROOT_FAMILIES:
+        if term_l in family:
+            variants |= family
+    return any(re.search(rf"\b{re.escape(v)}\b", haystack_lower) is not None for v in variants)
 
 
 def _job_text_lower(job: dict) -> str:
@@ -812,6 +1078,9 @@ def format_evidence_for_prompt(ranked: list[dict]) -> str:
             role_type = item.get("role_type", "")
             header = f"{idx} [experience] {name}" + (f" ({role_type})" if role_type else "")
             lines.append(header + (f": {desc}" if desc else ""))
+            for c in item.get("constraints") or []:
+                if isinstance(c, str) and c.strip():
+                    lines.append(f"    constraint: {c.strip()}")
     return "\n".join(lines)
 
 
@@ -1007,6 +1276,16 @@ def _semantic_expand_evidence(
 # ---------------------------------------------------------------------------
 
 # Controlled concept-synonym vocabulary.
+#
+# 2026-09-03: this table is for a DIFFERENT WORD/PHRASE expressing the same
+# concept (e.g. "telephone inquiries" for "customer service") -- see
+# _term_in_text above for the separate, narrower mechanism that handles the
+# SAME word in a different inflection (e.g. "customer" for "customers").
+# Keep that distinction: inflection tolerance carries no meaning-change risk
+# and is safe everywhere _term_in_text already runs (job-level relevance
+# ranking included); a curated paraphrase here is a genuinely different
+# string and stays confined to this table's one downstream re-check
+# (_pair_candidate_evidence), never promoted into job-level ranking.
 #
 # _pair_candidate_evidence (below) only recognizes a requirement/evidence
 # relationship when the requirement line LITERALLY contains one of the
@@ -1925,6 +2204,70 @@ def _fuzzy_evidence_match(header: str, evidence_name: str) -> bool:
     return e in h or h in e
 
 
+def _date_range(item: dict) -> str:
+    start = item.get("start_date")
+    if not start:
+        return ""
+    end = item.get("end_date") or "Present"
+    return f"{start} - {end}"
+
+
+def _experience_entries_from_profile(profile: dict) -> list[dict]:
+    """Fallback experience entries built DIRECTLY from the structured
+    profile, for when resume_text doesn't parse into a recognizable
+    EXPERIENCE section (see build_base_resume_model's 2026-09-04 fix
+    below). `title` is set to the item's own `name` (not `role_title`) so
+    merge_realization's _fuzzy_evidence_match -- which matches a schema
+    entry's `resume_evidence` name against this title -- actually lines
+    bullets up with the right entry; role_title/dates go in subtitle
+    instead, same information, just not the field used for matching."""
+    entries: list[dict] = []
+    for item in profile.get("experience_inventory") or []:
+        if not isinstance(item, dict) or item.get("resume_allowed") is False:
+            continue
+        name = item.get("name")
+        if not isinstance(name, str) or not name.strip():
+            continue
+        subtitle = " | ".join(p for p in (item.get("role_title"), _date_range(item)) if p)
+        bullets = [r.strip() for r in (item.get("responsibilities") or []) if isinstance(r, str) and r.strip()]
+        if not bullets:
+            desc = item.get("description")
+            if isinstance(desc, str) and desc.strip():
+                bullets = [desc.strip()]
+        entries.append({"title": name, "subtitle": subtitle, "meta": "", "bullets": bullets})
+    return entries
+
+
+def _project_entries_from_profile(profile: dict) -> list[dict]:
+    """Fallback project entries built directly from the structured
+    profile -- project_inventory items have factual_concepts (short noun
+    phrases), not full sentences, since they were never meant to be
+    resume-ready prose on their own; used verbatim here, same as the
+    experience-entry fallback, never fabricated."""
+    entries: list[dict] = []
+    for item in profile.get("project_inventory") or []:
+        if not isinstance(item, dict) or item.get("resume_allowed") is False:
+            continue
+        name = item.get("name")
+        if not isinstance(name, str) or not name.strip():
+            continue
+        bullets = [str(c).strip() for c in (item.get("factual_concepts") or []) if isinstance(c, str) and c.strip()]
+        entries.append({"title": name, "subtitle": "", "meta": "", "bullets": bullets})
+    return entries
+
+
+def _education_from_profile(profile: dict) -> str:
+    lines: list[str] = []
+    for item in profile.get("education") or []:
+        if not isinstance(item, dict):
+            continue
+        years = "-".join(str(y) for y in (item.get("start_year"), item.get("end_year")) if y)
+        line = ", ".join(p for p in (item.get("official_degree"), item.get("institution"), years) if p)
+        if line:
+            lines.append(line)
+    return "\n".join(lines)
+
+
 def build_base_resume_model(resume_text: str, profile: dict) -> dict:
     """Deterministically parse the ORIGINAL resume into a COMPLETE resume
     model. No LLM call. Always has every key (title/summary/skills/
@@ -1939,11 +2282,29 @@ def build_base_resume_model(resume_text: str, profile: dict) -> dict:
     tailor.py JSON contract's {"header", "subtitle", "bullets"} -- see
     merge_realization, which does that translation at the one place it's
     needed.
+
+    2026-09-04 fix: `resume_text` in REAL production usage is
+    resume_router.load_resume_text_for_job's "CANONICAL PROFILE REFERENCE"
+    rendering (a flat, profile-derived text with no EXPERIENCE/EDUCATION/
+    SUMMARY headers at all -- render_profile_reference was changed to
+    render this way at some point after this function was written, and
+    nothing kept them in sync), not an actual resume document.
+    scoring/pdf.py's parse_resume/parse_entries expect real section
+    headers, found none, and silently returned EMPTY experience/education
+    every time -- confirmed live: a real production call returned 0
+    experience entries and an empty education string. Since degraded
+    mode's ENTIRE point is to be a safe last-resort fallback, an empty
+    base resume defeats that purpose regardless of whether the local
+    model's realization step works. Same fallback pattern the `skills`
+    handling just above already established (parse first, fall back to
+    the structured profile when parsing yields nothing) -- extended here
+    to experience/projects/education, which didn't have it.
     """
     from applypilot.scoring.pdf import parse_entries, parse_resume, parse_skills
 
     parsed = parse_resume(resume_text or "")
     sections = parsed.get("sections") or {}
+    profile = profile or {}
 
     skills = {cat: val for cat, val in parse_skills(sections.get("TECHNICAL SKILLS", ""))}
     if not skills:
@@ -1951,18 +2312,22 @@ def build_base_resume_model(resume_text: str, profile: dict) -> dict:
         # format) -- fall back to the profile's own skills_boundary rather
         # than a structurally-present-but-empty skills dict (validate_
         # json_fields treats an empty "skills" the same as a missing one).
-        boundary = (profile or {}).get("skills_boundary") or {}
+        boundary = profile.get("skills_boundary") or {}
         for category, items in boundary.items():
             if isinstance(items, list) and items:
                 skills[category.replace("_", " ").title()] = ", ".join(items)
+
+    experience = parse_entries(sections.get("EXPERIENCE", "")) or _experience_entries_from_profile(profile)
+    projects = parse_entries(sections.get("PROJECTS", "")) or _project_entries_from_profile(profile)
+    education = sections.get("EDUCATION", "") or _education_from_profile(profile)
 
     return {
         "title": parsed.get("title") or "",
         "summary": sections.get("SUMMARY", ""),
         "skills": skills,
-        "experience": parse_entries(sections.get("EXPERIENCE", "")),
-        "projects": parse_entries(sections.get("PROJECTS", "")),
-        "education": sections.get("EDUCATION", ""),
+        "experience": experience,
+        "projects": projects,
+        "education": education,
     }
 
 
@@ -2187,6 +2552,204 @@ def request_local_realization(
     if not bullets and not summary:
         return None, meta
     return {"summary": summary, "bullets": bullets}, meta
+
+
+def build_pool_realization(
+    job_schema: dict,
+    sentence_pools: dict[str, list[str]] | None,
+) -> dict | None:
+    """Deterministic counterpart to request_local_realization: instead of
+    asking an LLM to WRITE new bullet text, SELECTS the best-matching
+    sentence from an already-generated, already-diversity-filtered
+    sentence pool (data/experiments/deterministic_slotfiller_20260902/) for
+    each schema-supported requirement whose evidence has a pool available.
+    Zero LLM calls -- ranking is cosine similarity via semantic_match,
+    the same primitive select_diverse_indices/is_duplicate_pair already
+    use elsewhere in this codebase.
+
+    Returns the SAME shape request_local_realization returns
+    ({"bullets": {evidence_name: selected_text}}, no "summary" key --
+    pool-based summary selection isn't implemented yet, so merge_
+    realization's existing "keep the base model's summary" fallback
+    applies), so it plugs into the EXISTING, tested merge_realization
+    unchanged -- this function only replaces WHERE the bullet text comes
+    from, not how it gets merged into the resume.
+
+    sentence_pools is caller-supplied, not read from profile.json
+    automatically -- tonight's generated pools (e.g. Alex Prosperity
+    Group's 8-sentence pool) haven't been human-reviewed into profile.json
+    yet, and this function must never silently promote unreviewed content
+    into a live tailoring run. A caller wires in whatever pools have
+    actually been approved.
+
+    Returns None (mirrors request_local_realization's "nothing safely
+    groundable" contract) when sentence_pools is empty, no requirement
+    matches a pooled entry, or embedding calls fail -- merge_realization
+    already treats None as "keep the base resume's bullets verbatim,"
+    which is exactly the safe behavior when this can't select anything."""
+    if not sentence_pools:
+        return None
+
+    from applypilot.scoring import semantic_match
+
+    pool_embeddings_cache: dict[str, list[list[float]] | None] = {}
+
+    def _pool_embeddings(name: str) -> list[list[float]] | None:
+        if name not in pool_embeddings_cache:
+            pool = sentence_pools.get(name) or []
+            pool_embeddings_cache[name] = semantic_match.embed_texts(pool) if pool else None
+        return pool_embeddings_cache[name]
+
+    bullets: dict[str, str] = {}
+    for req in job_schema.get("requirements") or []:
+        if not req.get("supported"):
+            continue
+        # 2026-09-04: the schema representation's public key is
+        # "requirement", not "text" -- "text" was a local variable name
+        # during schemas.py's OWN construction of this dict (build_job_
+        # schema_representation's internal `line["text"]`), not the key
+        # it's stored under in the dict it returns. Caught only by running
+        # this against a REAL job's schema output, not by the unit tests
+        # below (which hand-built fixture dicts using the wrong key and so
+        # never exercised the mismatch) -- fixed here AND in the tests.
+        req_text = req.get("requirement") or ""
+        if not req_text:
+            continue
+        req_embedding: list[float] | None = None
+        for evidence_name in req.get("resume_evidence") or []:
+            if evidence_name in bullets or evidence_name not in sentence_pools:
+                continue
+            embeddings = _pool_embeddings(evidence_name)
+            if not embeddings:
+                continue
+            if req_embedding is None:
+                req_emb_list = semantic_match.embed_texts([req_text])
+                if not req_emb_list:
+                    break  # embedding call failed -- nothing else this loop iteration can do
+                req_embedding = req_emb_list[0]
+            pool = sentence_pools[evidence_name]
+            scored = [(s, semantic_match.cosine_similarity(req_embedding, e)) for s, e in zip(pool, embeddings)]
+            scored.sort(key=lambda pair: pair[1], reverse=True)
+            bullets[evidence_name] = scored[0][0]
+
+    return {"bullets": bullets} if bullets else None
+
+
+# ---------------------------------------------------------------------------
+# Editor mode (2026-09-04): a narrower, safer alternative to asking the
+# local model to WRITE a bullet from evidence (request_local_realization's
+# approach). Direct response to a real near-miss found the same night:
+# given Mavis's evidence and a job requirement, the writer prompt invented
+# "Built and implemented the tracking system... managing lanes, shoes, and
+# other equipment" -- the claim-strength check passed (Mavis's own ceiling
+# allows "implementation"-tier language), but the AGENCY check correctly
+# caught it (both proposed bullets read as team_lead-tier ownership claims
+# against an individual_contributor ceiling) and dropped both. Real,
+# working safety net -- but a dropped bullet and no bullet produce the
+# same resume, so the near-miss cost real time for zero gain.
+#
+# The editor prompt below is a fundamentally smaller task: rephrase ONE
+# sentence that is ALREADY TRUE (either the selector's pool pick, via
+# build_pool_realization, or an entry's own original responsibility text)
+# to better fit a requirement's phrasing -- never asked to synthesize a
+# new claim about what happened or who was in charge, only to reword
+# something already stated. Smaller hallucination surface by construction,
+# not by a stronger prompt instruction alone.
+_EDITOR_SYSTEM = """You are editing ONE existing, true sentence from a resume so it reads better \
+against a specific job requirement's own phrasing and emphasis.
+
+STRICT RULES:
+- You may ONLY reword the sentence you are given. Do not synthesize a new sentence from scratch.
+- NEVER add a fact, tool, technology, number, outcome, responsibility, or role that is not already \
+stated in the original sentence.
+- NEVER change who did the work, or imply more authority/independence/ownership than the original \
+sentence already states (e.g. do not turn "performed" or "assisted with" into "managed," "led," \
+"built," or "implemented").
+- If the original sentence is already clear and well-suited, return it unchanged.
+- Output ONLY the edited sentence -- no explanation, no quotation marks, no markdown."""
+
+
+def edit_sentence_for_requirement(
+    client,
+    original_sentence: str,
+    requirement_text: str,
+    max_tokens: int = 300,
+) -> str | None:
+    """The one LLM call in editor mode: reword `original_sentence` (already
+    known-true) toward `requirement_text`'s phrasing. Returns None on any
+    call failure or empty response -- never raises, mirrors every other
+    LLM-call wrapper in this module."""
+    user = (
+        f'REQUIREMENT: "{requirement_text}"\n\n'
+        f'ORIGINAL SENTENCE (reword this only -- do not add anything new):\n"{original_sentence}"'
+    )
+    try:
+        raw = client.chat(
+            [{"role": "system", "content": _EDITOR_SYSTEM}, {"role": "user", "content": user}],
+            max_tokens=max_tokens,
+            temperature=0.3,
+        )
+    except Exception as exc:  # noqa: BLE001 -- must degrade to None, never break the caller's retry loop
+        log.warning("edit_sentence_for_requirement: call failed (%s: %s)", type(exc).__name__, exc)
+        return None
+    text = (raw or "").strip().strip('"').strip()
+    return text or None
+
+
+def edit_sentence_with_retry(
+    client,
+    original_sentence: str,
+    requirement_text: str,
+    evidence_item: dict,
+    profile: dict | None = None,
+    max_attempts: int = 3,
+) -> tuple[str, bool, int]:
+    """Bounded-retry wrapper around edit_sentence_for_requirement: tries up
+    to `max_attempts` times to produce an edit that passes the SAME claim/
+    agency/causal/metric checks request_local_realization already enforces,
+    and falls back to `original_sentence` UNCHANGED (guaranteed true,
+    guaranteed non-empty) if every attempt fails -- directly closes the
+    "dropped output == no output" gap: a caller always gets a real
+    sentence back, never nothing.
+
+    Returns (final_sentence, was_edited, attempts_used) so a caller can
+    log/inspect what happened rather than only seeing the end result.
+    """
+    from applypilot.scoring.schemas import (
+        _evidence_own_text,
+        agency_ceiling_for_evidence,
+        check_agency_strength,
+        check_causal_claim,
+        check_claim_strength,
+        check_metric_fabrication,
+        claim_ceiling_for_evidence,
+    )
+
+    claim_ceiling = claim_ceiling_for_evidence(evidence_item)
+    agency_ceiling = agency_ceiling_for_evidence(evidence_item)
+    evidence_text = _evidence_own_text(evidence_item)
+    known_metrics = ((profile or {}).get("resume_facts") or {}).get("real_metrics") or []
+
+    for attempt in range(1, max_attempts + 1):
+        candidate = edit_sentence_for_requirement(client, original_sentence, requirement_text)
+        if candidate is None:
+            continue
+        checks = (
+            check_claim_strength(candidate, claim_ceiling),
+            check_agency_strength(candidate, agency_ceiling),
+            check_causal_claim(candidate, evidence_text),
+            check_metric_fabrication(candidate, evidence_text, known_metrics),
+        )
+        if all(c.get("passed", True) for c in checks):
+            return candidate, True, attempt
+        log.info(
+            "edit_sentence_with_retry: attempt %d/%d rejected (%s)",
+            attempt,
+            max_attempts,
+            "; ".join(c["violation"] for c in checks if not c.get("passed", True)),
+        )
+
+    return original_sentence, False, max_attempts
 
 
 def merge_realization(base_resume: dict, realization: dict | None, job: dict) -> dict:

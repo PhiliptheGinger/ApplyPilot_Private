@@ -46,6 +46,16 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0", "ruff>=0.1"]
+# 2026-09-04 sentence-diversity bake-off (data/experiments/
+# deterministic_slotfiller_20260902/): cross-encoder/quora-distilroberta-
+# base beat cosine similarity, per-batch embedding centering, and LLM-as-
+# judge on a real hand-labeled precision/recall comparison. Optional, not
+# a base dependency -- pulls in torch, ~865MB on disk (measured: torch
+# ~543MB + model weights ~318MB), and semantic_match.py's cross-encoder
+# functions degrade gracefully (return None) when this extra isn't
+# installed, exactly like embed_texts already does for a down Ollama.
+# Install with: pip install -e ".[cross_encoder]"
+cross_encoder = ["sentence-transformers>=3.0"]
 
 [project.scripts]
 applypilot = "applypilot.cli:app"
@@ -63,7 +73,7 @@ build-backend = "hatchling.build"
 packages = ["src/applypilot"]
 
 [tool.hatch.build]
-artifacts = ["src/applypilot/config/*.yaml"]
+artifacts = ["src/applypilot/config/*.yaml", "src/applypilot/config/*.json"]
 
 [tool.ruff]
 target-version = "py311"

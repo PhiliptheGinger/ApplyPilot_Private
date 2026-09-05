@@ -1,0 +1,182 @@
+[
+  {
+    "title": "Senior Principal Engineer - Lubrication Systems (O",
+    "requirement": "Strengthen technical leadership, mentoring, risk management, and cross-functiona",
+    "keywords": [
+      "skills"
+    ],
+    "weight": 1.266,
+    "attempted": true,
+    "survived": false,
+    "violations": 0,
+    "elapsed_s": 68.5
+  },
+  {
+    "title": "Associate Product Engineer",
+    "requirement": "Design and implement cloud-native software used by top-tier financial institutio",
+    "keywords": [
+      "software"
+    ],
+    "weight": 1.625,
+    "attempted": true,
+    "survived": false,
+    "violations": 0,
+    "elapsed_s": 58.4
+  },
+  {
+    "title": "Custom Software Engineer",
+    "requirement": "Must To Have Skills: Proficiency in Workday Core HCM.",
+    "keywords": [
+      "skills"
+    ],
+    "weight": 1.266,
+    "attempted": true,
+    "survived": false,
+    "violations": 0,
+    "elapsed_s": 59.7
+  },
+  {
+    "title": "Senior Software Engineer, Networking",
+    "requirement": "Working on data forwarding on Ethernet switching platforms as well as on SmartNI",
+    "keywords": [
+      "data"
+    ],
+    "weight": 1.405,
+    "attempted": true,
+    "survived": false,
+    "violations": 1,
+    "elapsed_s": 45.7
+  },
+  {
+    "title": "Senior AI Engineer",
+    "requirement": "Excellent C++ skills with experience developing AI gameplay mechanics and tools",
+    "keywords": [
+      "skills"
+    ],
+    "weight": 1.266,
+    "attempted": true,
+    "survived": false,
+    "violations": 0,
+    "elapsed_s": 367.1
+  },
+  {
+    "title": "Custom Software Engineer",
+    "requirement": "Engage with multiple teams and contribute on key decisions.",
+    "keywords": [
+      "multiple"
+    ],
+    "weight": 2.047,
+    "attempted": true,
+    "survived": false,
+    "violations": 1,
+    "elapsed_s": 88.9
+  },
+  {
+    "title": "Custom Software Engineer",
+    "requirement": "Engage with multiple teams & clients, and contribute to key decisions",
+    "keywords": [
+      "multiple"
+    ],
+    "weight": 2.047,
+    "attempted": true,
+    "survived": false,
+    "violations": 0,
+    "elapsed_s": 56.1
+  },
+  {
+    "title": "Custom Software Engineering Lead",
+    "requirement": "Engage with multiple teams and contribute on key decisions.",
+    "keywords": [
+      "multiple"
+    ],
+    "weight": 2.047,
+    "attempted": true,
+    "survived": false,
+    "violations": 2,
+    "elapsed_s": 52.0
+  },
+  {
+    "title": "Electrical Engineer II - Hardware Design (ONSITE)",
+    "requirement": "Perform validation and verification activities to ensure products meet design sp",
+    "keywords": [
+      "product"
+    ],
+    "weight": 1.886,
+    "attempted": true,
+    "survived": false,
+    "violations": 0,
+    "elapsed_s": 59.0
+  },
+  {
+    "title": "DevOps/Cloud Infrastructure Developer",
+    "requirement": "Experience managing CI/CD platform infrastructure, including pipeline templates,",
+    "keywords": [
+      "service"
+    ],
+    "weight": 1.798,
+    "attempted": true,
+    "survived": false,
+    "violations": 0,
+    "elapsed_s": 301.5
+  },
+  {
+    "title": "Associate Product Engineer",
+    "requirement": "Engage in continuous learning -- about new tech, financial markets, and emerging",
+    "keywords": [
+      "market"
+    ],
+    "weight": 2.541,
+    "attempted": true,
+    "survived": false,
+    "violations": 1,
+    "elapsed_s": 44.5
+  },
+  {
+    "title": "Associate Avionics Repair and Modification Technic",
+    "requirement": "Ability and understanding of routing instructions and handling of harnesses.",
+    "keywords": [
+      "handling"
+    ],
+    "weight": 3.335,
+    "attempted": true,
+    "survived": false,
+    "violations": 0,
+    "elapsed_s": 178.1
+  },
+  {
+    "title": "Al Developer - Document Intelligence & Validation",
+    "requirement": "Generate field-level and record-level confidence scores",
+    "keywords": [
+      "field"
+    ],
+    "weight": 2.291,
+    "attempted": true,
+    "survived": false,
+    "violations": 0,
+    "elapsed_s": 68.1
+  },
+  {
+    "title": "Pre-sales Manager, Field Engineering - Named Accou",
+    "requirement": "Enhance team effectiveness by establishing and iterating on best practices that ",
+    "keywords": [
+      "efficiency"
+    ],
+    "weight": 3.019,
+    "attempted": true,
+    "survived": false,
+    "violations": 2,
+    "elapsed_s": 56.2
+  },
+  {
+    "title": "Infra Tech Support Practitioner",
+    "requirement": "Maintain accurate documentation of incidents, resolutions, and system configurat",
+    "keywords": [
+      "accurate"
+    ],
+    "weight": 3.157,
+    "attempted": true,
+    "survived": false,
+    "violations": 0,
+    "elapsed_s": 60.3
+  }
+]

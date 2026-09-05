@@ -1,0 +1,29 @@
+{
+  "n": 267,
+  "mean_baseline": 1.2284644194756553,
+  "mean_inflected": 1.250936329588015,
+  "mean_final": 1.2584269662921348,
+  "improved_by_inflection": 6,
+  "improved_by_synonym": 2,
+  "rejected_by_safety_check": 0,
+  "substitution_examples": [
+    {
+      "title": "Forward Deployed Software Engineer, New Grad - US ",
+      "requirement": "Interest in working with and using large scale data to solve valuable business problems.",
+      "before": "Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures.",
+      "after": "Diagnosed and corrected vehicle alignment problems using specialized equipment and established troubleshooting procedures.",
+      "substitutions": [
+        "issues -> problems"
+      ]
+    },
+    {
+      "title": "Principal Product Manager, Enterprise Applications",
+      "requirement": "Lead strategic engagements with business stakeholders to understand priorities, define pro",
+      "before": "Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures.",
+      "after": "Diagnosed and corrected vehicle alignment problems using specialized equipment and established troubleshooting procedures.",
+      "substitutions": [
+        "issues -> problems"
+      ]
+    }
+  ]
+}

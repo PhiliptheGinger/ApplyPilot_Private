@@ -1,0 +1,360 @@
+[
+  {
+    "job_id": 28014,
+    "title": "Manager, Applied AI Architects",
+    "bullets": [
+      {
+        "requirement": "Hire, coach, and develop a high-performing team of Applied AI Architects, creati",
+        "bullet": "Worked independently in a field environment while adapting communication and approach to different customers.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "AMP Smart"
+      },
+      {
+        "requirement": "Define and continuously refine the strategy and operating model for Applied AI A",
+        "bullet": "Tailor proposals to homeowner needs and regional market conditions.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 3,
+        "evidence": "AMP Smart"
+      },
+      {
+        "requirement": "Build trusted relationships with C-suite and board-level stakeholders, as well a",
+        "bullet": "Used financial/news data.",
+        "reason": "ok",
+        "method": "single_concept_template",
+        "evidence": "CAP Predictor"
+      },
+      {
+        "requirement": "Translate patterns from the field into actionable feedback for Product, Engineer",
+        "bullet": "Worked independently in a field environment while adapting communication and approach to different customers.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 2,
+        "evidence": "AMP Smart"
+      }
+    ]
+  },
+  {
+    "job_id": 9051,
+    "title": "Research Engineer, Codex",
+    "bullets": [
+      {
+        "requirement": "Own end-to-end improvements to the post-training stack, including RL, data pipel",
+        "bullet": "Used financial/news data.",
+        "reason": "ok",
+        "method": "single_concept_template",
+        "evidence": "CAP Predictor"
+      },
+      {
+        "requirement": "Build evals and environments that expose the next set of model failures, then tu",
+        "bullet": "Used financial/news data.",
+        "reason": "ok",
+        "method": "single_concept_template",
+        "evidence": "CAP Predictor"
+      },
+      {
+        "requirement": "Partner with Codex, API/platform, ChatGPT, and general-agent product teams to un",
+        "bullet": "Communicated technical product information clearly to residential customers.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "AMP Smart"
+      },
+      {
+        "requirement": "Work on early-training and alignment interventions, including data mixtures, obj",
+        "bullet": "Vehicle alignment work",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 2,
+        "evidence": "National Tire and Battery / Mavis"
+      },
+      {
+        "requirement": "Improve the machinery for large-scale training and launch: experiment velocity, ",
+        "bullet": "Worked efficiently in a high-volume operational environment where reliability, accuracy, and consistent performance were essential.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "UPS"
+      },
+      {
+        "requirement": "Take on cross-functional projects that touch model training, product infrastruct",
+        "bullet": "Communicated technical product information clearly to residential customers.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "AMP Smart"
+      }
+    ]
+  },
+  {
+    "job_id": 12070,
+    "title": "Data Engineer",
+    "bullets": [
+      {
+        "requirement": "Engage with multiple teams and contribute on key decisions.",
+        "bullet": "Handled multiple simultaneous customer requests accurately during busy periods.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "Waffle House"
+      },
+      {
+        "requirement": "Provide solutions to problems for their immediate team and across multiple teams",
+        "bullet": "Developed practical troubleshooting skills by identifying symptoms, isolating problems, and applying corrective actions.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "National Tire and Battery / Mavis"
+      },
+      {
+        "requirement": "Mentor junior team members to enhance their technical skills and project contrib",
+        "bullet": "Developed practical troubleshooting skills by identifying symptoms, isolating problems, and applying corrective actions.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "National Tire and Battery / Mavis"
+      },
+      {
+        "requirement": "Coordinate cross-functional initiatives to align data engineering efforts with b",
+        "bullet": "Used financial/news data.",
+        "reason": "ok",
+        "method": "single_concept_template",
+        "evidence": "CAP Predictor"
+      },
+      {
+        "requirement": "Must To Have Skills: Proficiency in Databricks Unified Data Analytics Platform.",
+        "bullet": "Used financial/news data.",
+        "reason": "ok",
+        "method": "single_concept_template",
+        "evidence": "CAP Predictor"
+      }
+    ]
+  },
+  {
+    "job_id": 28152,
+    "title": "System Engineer",
+    "bullets": [
+      {
+        "requirement": "Monitor and maintain systems infrastructure including hardware and software",
+        "bullet": "Used language-learning tools.",
+        "reason": "ok",
+        "method": "single_concept_template",
+        "evidence": "Express_Engine"
+      },
+      {
+        "requirement": "Monitor systems performance and recommend changes and upgrades based on utilizat",
+        "bullet": "Worked efficiently in a high-volume operational environment where reliability, accuracy, and consistent performance were essential.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "UPS"
+      },
+      {
+        "requirement": "Provide support and assistance to OD users for systems needs",
+        "bullet": "Tailor proposals to homeowner needs and regional market conditions.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "AMP Smart"
+      },
+      {
+        "requirement": "Assist with troubleshooting and diagnosis of enterprise systems issues",
+        "bullet": "Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 2,
+        "evidence": "National Tire and Battery / Mavis"
+      }
+    ]
+  },
+  {
+    "job_id": 2902,
+    "title": "Senior Manager, Tax Technology",
+    "bullets": [
+      {
+        "requirement": "Partner with the tax team to identify and implement process improvements, automa",
+        "bullet": "Worked efficiently in a high-volume operational environment where reliability, accuracy, and consistent performance were essential.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "UPS"
+      },
+      {
+        "requirement": "Evaluate end-to-end tax processes, data flows, and system dependencies to improv",
+        "bullet": "Used financial/news data.",
+        "reason": "ok",
+        "method": "single_concept_template",
+        "evidence": "CAP Predictor"
+      },
+      {
+        "requirement": "Support and enhance the tax technology stack, including D365, Salesforce, Vertex",
+        "bullet": "Performed hands-on work involving tires, brakes, shocks and struts, fluids, and related vehicle systems.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "National Tire and Battery / Mavis"
+      },
+      {
+        "requirement": "Leverage AI and emerging technologies to improve workflows, documentation, resea",
+        "bullet": "Used financial/news data.",
+        "reason": "ok",
+        "method": "single_concept_template",
+        "evidence": "CAP Predictor"
+      },
+      {
+        "requirement": "Support reporting, testing, documentation, and change management related to tax ",
+        "bullet": "Performed hands-on work involving tires, brakes, shocks and struts, fluids, and related vehicle systems.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "National Tire and Battery / Mavis"
+      }
+    ]
+  },
+  {
+    "job_id": 28656,
+    "title": "Multi Site Customer Service Coordinator",
+    "bullets": [
+      {
+        "requirement": "Travel locally, including day trips to post offices and satellite office locatio",
+        "bullet": "Followed established procedures and coordinated with coworkers to keep operations moving efficiently.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "UPS"
+      }
+    ]
+  },
+  {
+    "job_id": 18139,
+    "title": "Senior Control Systems Integration Technical Specialist / Programmer",
+    "bullets": [
+      {
+        "requirement": "Proficient in using Microsoft Office to produce detail-oriented reports.",
+        "bullet": "Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "National Tire and Battery / Mavis"
+      },
+      {
+        "requirement": "Knowledge of controls and automation principles and electrical circuits is desir",
+        "bullet": null,
+        "reason": "evidence_not_found_in_profile"
+      },
+      {
+        "requirement": "Execute assigned tasks within scope, budget, and schedule.",
+        "bullet": "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "AMP Smart"
+      }
+    ]
+  },
+  {
+    "job_id": 11564,
+    "title": "Executive Director Principal Software Engineer - Athena Platform",
+    "bullets": [
+      {
+        "requirement": "You will manage senior relationships spanning Portfolio Management, Trading, Ope",
+        "bullet": "Followed established procedures and coordinated with coworkers to keep operations moving efficiently.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "UPS"
+      },
+      {
+        "requirement": "Develops secure and high-quality production code, and reviews and debugs code wr",
+        "bullet": "Maintained food quality, consistency, and cleanliness standards during busy service periods.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "Waffle House"
+      },
+      {
+        "requirement": "Influences leaders and senior stakeholders across business, product, and technol",
+        "bullet": "Communicated technical product information clearly to residential customers.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "AMP Smart"
+      }
+    ]
+  },
+  {
+    "job_id": 549,
+    "title": "Legal Recruiter (Contract)",
+    "bullets": [
+      {
+        "requirement": "Target and engage passive legal talent using LinkedIn Recruiter, Boolean strings",
+        "bullet": "Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 2,
+        "evidence": "National Tire and Battery / Mavis"
+      },
+      {
+        "requirement": "Drive a diverse talent pipeline into the organization ensuring a positive candid",
+        "bullet": "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "AMP Smart"
+      },
+      {
+        "requirement": "Leverage internal resources and market insights to build strategies around selli",
+        "bullet": "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "AMP Smart"
+      }
+    ]
+  },
+  {
+    "job_id": 21159,
+    "title": "Lead Software Engineer, Back End",
+    "bullets": [
+      {
+        "requirement": "Utilize programming languages like Java, Python, SQL, Node, Go, and Scala, Open ",
+        "bullet": "Used financial/news data.",
+        "reason": "ok",
+        "method": "single_concept_template",
+        "evidence": "CAP Predictor"
+      }
+    ]
+  },
+  {
+    "job_id": 23794,
+    "title": "Packaged/SaaS Application Engineer",
+    "bullets": [
+      {
+        "requirement": "Engage with multiple teams and contribute on key decisions.",
+        "bullet": "Handled multiple simultaneous customer requests accurately during busy periods.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "Waffle House"
+      },
+      {
+        "requirement": "Provide solutions to problems for their immediate team and across multiple teams",
+        "bullet": "Developed practical troubleshooting skills by identifying symptoms, isolating problems, and applying corrective actions.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "National Tire and Battery / Mavis"
+      },
+      {
+        "requirement": "Lead efforts to identify process improvements and implement best practices withi",
+        "bullet": "Identify qualified leads.",
+        "reason": "ok",
+        "method": "sentence_selection",
+        "match_score": 1,
+        "evidence": "AMP Smart"
+      }
+    ]
+  }
+]

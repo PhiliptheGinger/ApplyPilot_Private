@@ -1,0 +1,32 @@
+{
+  "sample_n": 100,
+  "jobs_considered": 100,
+  "jobs_with_gated": 96,
+  "v2": {
+    "total_composed": 288,
+    "sentence_selection_count": 264,
+    "distinct_sentences": 24,
+    "score_distribution": {
+      "0": 5,
+      "1": 203,
+      "2": 44,
+      "3": 12
+    },
+    "weak_match_count": 208,
+    "weak_match_pct": 78.8
+  },
+  "v3": {
+    "total_composed": 294,
+    "sentence_selection_count": 294,
+    "distinct_sentences": 23,
+    "score_distribution": {
+      "0": 35,
+      "1": 203,
+      "2": 44,
+      "3": 12
+    },
+    "weak_match_count": 238,
+    "weak_match_pct": 81.0
+  },
+  "source_changed": 54
+}

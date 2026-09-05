@@ -1,0 +1,39 @@
+{
+  "n": 300,
+  "would_fire": 3,
+  "applied": [
+    {
+      "title": "Principal Product Manager, Enterprise Applications",
+      "requirement": "Lead strategic engagements with business stakeholders to understand priorities, define pro",
+      "exact_keywords": [
+        "alignment",
+        "problems"
+      ],
+      "weighted_score": 5.303,
+      "before": "Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures.",
+      "after": "Diagnosed and corrected vehicle alignment problems using specialized equipment and established troubleshooting procedures."
+    },
+    {
+      "title": "Product Support Specialist",
+      "requirement": "Support implementation of hotfixes and patches to minimize risk of unexpected issues and e",
+      "exact_keywords": [
+        "customer",
+        "issues",
+        "problems"
+      ],
+      "weighted_score": 5.869,
+      "before": "Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures.",
+      "after": "Diagnosed and corrected vehicle alignment problems using specialized equipment and established troubleshooting procedures."
+    }
+  ],
+  "blocked": [
+    {
+      "title": "Forward Deployed Software Engineer, New Grad - US Gover",
+      "exact_keywords": [
+        "problems",
+        "using"
+      ],
+      "weighted_score": 3.914
+    }
+  ]
+}

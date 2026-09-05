@@ -199,9 +199,18 @@ class TestKeywordPreservation(unittest.TestCase):
         matching only re-scores evidence ALREADY found relevant to the job
         as a whole against one specific requirement line; it never invents
         job-level relevance on its own (see local_tailor.py's module
-        comment above _CONCEPT_SYNONYM_PATTERNS)."""
+        comment above _CONCEPT_SYNONYM_PATTERNS).
+
+        Uses "clients" rather than "customers" in the first line deliberately
+        (2026-09-03): _term_in_text is now inflection-tolerant, so "customer"
+        (one of the "Customer Service" skill's own matched_terms) would
+        otherwise literally match "customers" via plain pluralization,
+        turning this into a literal match and defeating the point of this
+        test. "clients" has zero word-level relationship to "customer" and
+        still trips the same curated pattern via "telephone inquiries" /
+        "clients in a polite manner", so the synonym-only path stays clean."""
         job = _job(
-            "- Accept and respond to telephone inquiries from customers in a polite manner\n"
+            "- Accept and respond to telephone inquiries from clients in a polite manner\n"
             "- Prior customer service experience needed\n"
         )
         profile = {
@@ -226,12 +235,206 @@ class TestKeywordPreservation(unittest.TestCase):
         self.assertIn("Customer Service", req["synonym_concepts"])
         self.assertEqual(req["schema"]["cognitive_schema"], "domain_transfer")
 
+    def test_inflected_match_still_recorded_as_exact_keyword(self):
+        """2026-09-03: an inflected (plural/singular) literal match must be
+        classified as "literal" / land in exact_keywords, not fall through
+        to synonym_concepts -- _term_in_text's inflection tolerance is a
+        same-word variant, not a different word, so it should behave exactly
+        like any other literal hit from _match_kind's perspective.
+
+        2026-09-04: swapped the fixture word from "customer"/"customers" to
+        "database"/"databases" -- "customer" (idf=1.80) is now excluded by
+        the separate IDF-based generic-term check added the same day (see
+        test_local_llm.py::TestGenericEvidenceTermFiltering), which would
+        make this item unsupported for an unrelated reason and defeat the
+        actual thing this test checks. "database" (idf=3.50) isn't generic,
+        so it isolates the inflection-tolerance behavior cleanly."""
+        job = _job("- Prior experience working with databases is required\n")
+        profile = {
+            "experience_inventory": [],
+            "project_inventory": [],
+            "skills_inventory": [
+                {
+                    "name": "Database",
+                    "relevance_categories": ["database administration"],
+                    "resume_allowed": True,
+                    "evidence_level": "expert",
+                },
+            ],
+            "certifications": [],
+        }
+        rep = schemas.build_job_schema_representation(job, profile)
+        req = rep["requirements"][0]
+        self.assertTrue(req["supported"])
+        self.assertIn("database", req["exact_keywords"])
+        self.assertEqual(req["synonym_concepts"], [])
+
     def test_format_schema_guidance_surfaces_exact_keywords_verbatim(self):
         job = _job(JOB_DESCRIPTION)
         rep = schemas.build_job_schema_representation(job, TROUBLESHOOTING_PROFILE)
         guidance = schemas.format_schema_guidance(rep)
         self.assertIn("root cause", guidance)
         self.assertIn("use these exact terms", guidance)
+
+    def test_cross_domain_ambiguous_term_dropped_from_exact_keywords(self):
+        """2026-09-04 regression: 'alignment' is globally common vocabulary
+        in two unrelated domains (corporate 'strategic alignment' vs.
+        automotive 'wheel alignment') -- a real case found via the v6 IDF-
+        gate experiment (v6_idf_gate_validation_report.md), where an auto-
+        repair sentence got cited as evidence for a Product Manager
+        requirement purely because both texts happen to contain the word
+        'alignment'. The two usages share no other local context, so
+        _context_senses_agree must reject it -- 'alignment' should not
+        appear in exact_keywords even though it's a literal string match."""
+        job = _job(
+            "- Lead strategic engagements with stakeholders to drive organizational "
+            "alignment on business priorities\n"
+        )
+        profile = {
+            "experience_inventory": [
+                {
+                    "name": "Auto Shop",
+                    "relevance_categories": ["automotive"],
+                    "resume_allowed": True,
+                    "responsibilities": [
+                        "Diagnosed and corrected vehicle alignment issues using specialized "
+                        "equipment and established troubleshooting procedures."
+                    ],
+                },
+            ],
+            "project_inventory": [],
+            "skills_inventory": [],
+            "certifications": [],
+        }
+        rep = schemas.build_job_schema_representation(job, profile)
+        req = rep["requirements"][0]
+        self.assertTrue(req["supported"])
+        self.assertNotIn("alignment", req["exact_keywords"])
+        # "alignment" was the ONLY literal term this evidence item shared
+        # with the requirement -- with it correctly dropped, exact_keywords
+        # is empty and the tier must demote all the way to "unsupported"
+        # (a zero-keyword "literal" match is no match at all, not a weaker
+        # one -- see classify_category_tier's 2026-09-04 handling of
+        # exact_keyword_count == 0).
+        self.assertEqual(req["exact_keywords"], [])
+        self.assertEqual(req["category_tier"], "unsupported")
+
+    def test_same_domain_ambiguous_term_still_counted(self):
+        """Mirror case: when both texts genuinely use 'alignment' in the
+        SAME (automotive) sense, the context check must not over-block it
+        -- this is the false-negative side of the same mechanism."""
+        job = _job("- Perform wheel alignment and diagnose vehicle alignment issues\n")
+        profile = {
+            "experience_inventory": [
+                {
+                    "name": "Auto Shop",
+                    "relevance_categories": ["automotive"],
+                    "resume_allowed": True,
+                    "responsibilities": [
+                        "Diagnosed and corrected vehicle alignment issues using specialized "
+                        "equipment and established troubleshooting procedures."
+                    ],
+                },
+            ],
+            "project_inventory": [],
+            "skills_inventory": [],
+            "certifications": [],
+        }
+        rep = schemas.build_job_schema_representation(job, profile)
+        req = rep["requirements"][0]
+        self.assertIn("alignment", req["exact_keywords"])
+
+    def test_installation_cross_domain_ambiguous_term_dropped(self):
+        """2026-09-04 regression: found via a real batch scan of 1477 DB
+        jobs during the deterministic-selector work -- "install"/
+        "installation" is the same shape of collision as "alignment":
+        Alex Prosperity Group's evidence is genuinely about PHYSICAL
+        appliance installation, but the literal word also appears in
+        totally unrelated SOFTWARE installation contexts (this fixture
+        mirrors a real hit: "RedHat Linux operating systems" installation)."""
+        job = _job(
+            "- Experience in the installation, configuration, and maintenance of "
+            "RedHat Linux operating systems\n"
+        )
+        profile = {
+            "experience_inventory": [
+                {
+                    "name": "Alex Prosperity Group / UST Logistics",
+                    "resume_allowed": True,
+                    "responsibilities": [
+                        "Installed home appliances contracted through Lowe's",
+                        "Performed hands-on installation work while following customer "
+                        "requirements and established procedures.",
+                        "Communicated clearly with customers throughout installations.",
+                    ],
+                },
+            ],
+            "project_inventory": [],
+            "skills_inventory": [],
+            "certifications": [],
+        }
+        rep = schemas.build_job_schema_representation(job, profile)
+        req = rep["requirements"][0]
+        self.assertNotIn("installation", req["exact_keywords"])
+        self.assertEqual(req["exact_keywords"], [])
+        self.assertEqual(req["category_tier"], "unsupported")
+        # NOTE: req["supported"] stays True here -- same as the existing
+        # "alignment" test above. The ambiguous-term check demotes
+        # category_tier (the confidence label) but does not flip the
+        # top-level `supported` flag set earlier by local_tailor.py's
+        # _auto_resolve_requirements, which has no knowledge of
+        # _AMBIGUOUS_TERMS. This is a real, pre-existing gap (not
+        # introduced by this test) -- consumers that gate on `supported`
+        # (e.g. local_tailor.build_pool_realization) are NOT actually
+        # blocked by this safety net, only schemas.py's own reported
+        # confidence fields are. Documented, not fixed, here.
+
+    def test_installation_same_domain_still_counted(self):
+        """Mirror case: a job genuinely about physical/appliance
+        installation must still match -- the context check shouldn't
+        over-block legitimate same-domain hits."""
+        job = _job("- Install home appliances per manufacturer specifications and customer requirements\n")
+        profile = {
+            "experience_inventory": [
+                {
+                    "name": "Alex Prosperity Group / UST Logistics",
+                    "resume_allowed": True,
+                    "responsibilities": [
+                        "Installed home appliances contracted through Lowe's",
+                        "Performed hands-on installation work while following customer "
+                        "requirements and established procedures.",
+                    ],
+                },
+            ],
+            "project_inventory": [],
+            "skills_inventory": [],
+            "certifications": [],
+        }
+        rep = schemas.build_job_schema_representation(job, profile)
+        req = rep["requirements"][0]
+        self.assertTrue(req["supported"])
+
+    def test_context_senses_agree_direct(self):
+        """Direct unit coverage of the helper, independent of the full
+        schema-build pipeline."""
+        # same sense (both automotive) -> agree
+        self.assertTrue(
+            schemas._context_senses_agree(
+                "Perform wheel alignment and brake inspections on vehicles",
+                "Diagnosed vehicle alignment issues using specialized equipment",
+                "alignment",
+            )
+        )
+        # different senses (corporate vs. automotive) -> disagree
+        self.assertFalse(
+            schemas._context_senses_agree(
+                "Drive organizational alignment on strategic business priorities",
+                "Diagnosed vehicle alignment issues using specialized equipment",
+                "alignment",
+            )
+        )
+        # no context to compare on one side -> conservative False, not True
+        self.assertFalse(schemas._context_senses_agree("alignment.", "Diagnosed vehicle alignment issues.", "alignment"))
 
 
 # ---------------------------------------------------------------------------

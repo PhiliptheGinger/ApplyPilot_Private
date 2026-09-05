@@ -1,0 +1,71 @@
+{
+  "target": "Alex Prosperity Group / UST Logistics",
+  "target_survivor_count": 6,
+  "diversity_threshold": 0.9,
+  "rounds": [
+    {
+      "round": 1,
+      "generation_elapsed_s": 47.2,
+      "n_generated": 15,
+      "n_fabrication_survived": 12,
+      "fabrication_rejected": [
+        {
+          "sentence": "Delivered home appliances from Lowe's",
+          "failures": [
+            "claim: 'implementation'-tier claim exceeds evidence ceiling 'execution'",
+            "causal: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish"
+          ]
+        },
+        {
+          "sentence": "Completed installation tasks following established procedures",
+          "failures": [
+            "causal: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish"
+          ]
+        },
+        {
+          "sentence": "Delivered home appliances from Lowe's",
+          "failures": [
+            "claim: 'implementation'-tier claim exceeds evidence ceiling 'execution'",
+            "causal: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish"
+          ]
+        }
+      ],
+      "n_diversity_kept": 8,
+      "similarity_rejected": [
+        "Performed installation tasks in accordance with customer specifications and company protocols",
+        "Carried out installation work adhering to customer instructions and established guidelines",
+        "Maintained clear communication with clients during installations",
+        "Facilitated effective dialogue with customers during setup processes"
+      ],
+      "raw_response_if_unparsed": null
+    }
+  ],
+  "final_accepted": [
+    "Conducted installations for home appliances through Lowe's",
+    "Executed installation tasks in accordance with customer specifications and company protocols",
+    "Carried out installation work adhering to customer instructions and established guidelines",
+    "Maintained clear communication with clients during installations",
+    "Facilitated effective dialogue with customers during setup processes",
+    "Ensured proper execution of installation work according to customer requirements",
+    "Provided clear instructions to customers during installation sessions",
+    "Set up home appliances from Lowe's"
+  ],
+  "target_reached": true,
+  "closest_surviving_pairs": [
+    {
+      "score": 0.842,
+      "a": "Conducted installations for home appliances through Lowe's",
+      "b": "Set up home appliances from Lowe's"
+    },
+    {
+      "score": 0.784,
+      "a": "Executed installation tasks in accordance with customer specifications and company protocols",
+      "b": "Ensured proper execution of installation work according to customer requirements"
+    },
+    {
+      "score": 0.777,
+      "a": "Carried out installation work adhering to customer instructions and established guidelines",
+      "b": "Provided clear instructions to customers during installation sessions"
+    }
+  ]
+}

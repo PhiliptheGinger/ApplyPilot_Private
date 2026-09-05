@@ -144,9 +144,11 @@ from collections import Counter
 
 from applypilot.scoring.local_tailor import (
     _auto_resolve_requirements,
+    _NAME_TOKEN_STOPWORDS,
     _split_requirement_lines,
     _synonym_hit,
     _term_in_text,
+    _TERM_WORD_RE,
     rank_profile_evidence,
 )
 
@@ -478,6 +480,15 @@ def classify_category_tier(match_kind: str, exact_keyword_count: int) -> str:
     pairing. match_kind is local_tailor's own literal/synonym/semantic/
     unknown classification (see _match_kind below)."""
     if match_kind == "literal":
+        # 2026-09-04: exact_keyword_count can now legitimately be 0 even
+        # when match_kind == "literal" -- build_job_schema_representation's
+        # ambiguous-term context check (_context_senses_agree) can drop
+        # every literal hit if the only one(s) found were a cross-domain
+        # collision (e.g. "alignment") that failed to verify. Zero verified
+        # keywords is not a weaker literal match, it's no literal match at
+        # all -- "unsupported", not "near_prototype".
+        if exact_keyword_count == 0:
+            return "unsupported"
         return "prototype" if exact_keyword_count >= 2 else "near_prototype"
     if match_kind == "synonym":
         return "peripheral"
@@ -729,8 +740,15 @@ AGENCY_TIERS = ("individual_contributor", "owner", "team_lead", "director")
 _AGENCY_TIER_RANK = {tier: i for i, tier in enumerate(AGENCY_TIERS)}
 
 _AGENCY_VERB_PATTERNS: dict[str, re.Pattern] = {
+    # "independently" deliberately excluded (2026-09-03, found reviewing
+    # real profile.json responsibilities text): "worked independently" is
+    # common, benign individual-contributor phrasing meaning "without
+    # needing supervision," not an ownership/authority claim -- the
+    # opposite of what this tier is meant to catch. It was flagging a
+    # true, low-agency sentence ("Worked independently in a field
+    # environment...") as an 'owner'-tier overclaim.
     "owner": re.compile(
-        r"\b(owned|owning|owns|independently|solely|individually)\b",
+        r"\b(owned|owning|owns|solely|individually)\b",
         re.IGNORECASE,
     ),
     "team_lead": re.compile(
@@ -1006,12 +1024,106 @@ def flag_repetition(requirements: list[dict]) -> None:
 # 10. Deterministic classification and selection -- no LLM call below.
 # ---------------------------------------------------------------------------
 
+# Cross-domain-ambiguous terms: a word that is genuinely common vocabulary
+# in two or more UNRELATED domains (e.g. "alignment" -- automotive wheel
+# alignment vs. corporate/strategic alignment). Found 2026-09-04 via the
+# v6 IDF-gate experiment (data/experiments/deterministic_slotfiller_20260902/
+# v6_idf_gate_validation_report.md): "alignment" had HIGH corpus-wide IDF
+# not because it's a rare, specific signal, but because it's globally
+# uncommon for TWO DIFFERENT REASONS in two different domains -- IDF alone
+# can't tell those apart, and general word-sense disambiguation research
+# (the Lesk algorithm and its descendants) only reaches ~55-68% accuracy on
+# standard benchmarks even with a full WordNet gloss comparison, not
+# reliable enough to trust as a blanket import here. A literal match on one
+# of these terms is therefore not accepted as corroborating evidence on its
+# own -- _context_senses_agree (below) must also confirm the two specific
+# usages share real local context. Deliberately tiny and grown only from a
+# real observed collision, same discipline as every other curated table in
+# this module (_CLAIM_VERB_PATTERNS, _AGENCY_VERB_PATTERNS,
+# local_tailor.py's _CONCEPT_SYNONYM_PATTERNS).
+# "install"/"installation" family (2026-09-04, found via a real batch scan
+# during the deterministic-selector work): Alex Prosperity Group's
+# evidence text ("Installed home appliances...", "...installation
+# work...", "...throughout installations.") is genuinely about PHYSICAL
+# appliance installation, but the literal words also legitimately appear
+# in totally unrelated SOFTWARE/SYSTEM installation contexts (RedHat Linux
+# installation, DevSecOps framework installation, network infrastructure
+# installation) -- the exact same shape of collision as "alignment"
+# (wheel alignment vs. corporate alignment), just discovered via a
+# different real example. Includes the trailing-period variants
+# _TERM_WORD_RE's punctuation-inclusive matching can produce (e.g.
+# "installations." when the word ends a sentence) so the ambiguity check
+# isn't defeated by that quirk.
+_AMBIGUOUS_TERMS = frozenset(
+    {
+        "alignment",
+        "install",
+        "installs",
+        "installed",
+        "installing",
+        "installation",
+        "installations",
+        "installation.",
+        "installations.",
+        "installer",
+        "installers",
+    }
+)
+
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+
+
+def _local_context_words(text: str, term: str) -> set[str]:
+    """Content words from the sentence(s) that actually contain `term`'s
+    occurrence in `text` -- a narrow, per-occurrence context window, not
+    the whole text (a diluted whole-item context would blur exactly the
+    signal this needs). Excludes `term` itself, generic connector words,
+    and words <=2 characters. Returns an empty set if `term` doesn't
+    literally appear anywhere in `text`.
+
+    Words are stripped of a single trailing "s" before being added (same
+    ordinary-pluralization tolerance as _term_in_text) so "vehicle" and
+    "vehicles" count as the same context word -- without this, the overlap
+    check below would spuriously disagree on two genuinely-same-sense
+    usages just because one text happened to pluralize a shared word."""
+    term_l = term.lower()
+    words: set[str] = set()
+    for sentence in _SENTENCE_SPLIT_RE.split(text or ""):
+        if re.search(rf"\b{re.escape(term_l)}\b", sentence.lower()):
+            for w in _TERM_WORD_RE.findall(sentence):
+                wl = w.lower()
+                if wl != term_l and wl not in _NAME_TOKEN_STOPWORDS and len(wl) > 2:
+                    words.add(wl[:-1] if wl.endswith("s") and len(wl) > 3 else wl)
+    return words
+
+
+def _context_senses_agree(requirement_text: str, evidence_text: str, term: str) -> bool:
+    """Adapted-Lesk-style check, deliberately narrowed from general word-
+    sense disambiguation (pick the right one of N dictionary senses -- the
+    hard, ~55-68%-accurate problem) to a much easier binary question: do
+    these two SPECIFIC texts use `term` in the same sense as each other.
+    Compares the local context around `term`'s occurrence in each text;
+    requires at least one shared content word as evidence the two usages
+    are topically related, not just lexically identical. Conservative on
+    ties: no shared context (or no context to compare at all) means NOT
+    agreeing -- silence is never license to trust the match, same
+    philosophy as claim_ceiling_for_evidence's own default."""
+    req_ctx = _local_context_words(requirement_text, term)
+    ev_ctx = _local_context_words(evidence_text, term)
+    if not req_ctx or not ev_ctx:
+        return False
+    return bool(req_ctx & ev_ctx)
+
 
 def _match_kind(requirement_text: str, evidence_item: dict) -> str:
     """Classify HOW an already-resolved requirement/evidence pair matched:
-    "literal" (an exact term from the evidence appears in the requirement
-    text), "synonym" (matched only via local_tailor.py's curated paraphrase
-    table), "semantic" (evidence_item carries local_tailor.py's
+    "literal" (a term from the evidence appears in the requirement text --
+    2026-09-03: _term_in_text is inflection-tolerant, so this now includes
+    ordinary plural/singular and small root-family variants, e.g. "customer"
+    evidence against a "customers" requirement, not only byte-identical
+    strings), "synonym" (matched only via local_tailor.py's curated paraphrase
+    table -- a genuinely different word/phrase, not an inflection of the
+    SAME word), "semantic" (evidence_item carries local_tailor.py's
     semantic_match.py provenance marker and has no literal/synonym term
     overlap), or "unknown" (matched some other way -- treated
     conservatively, same as synonym, by callers).
@@ -1147,13 +1259,6 @@ def build_job_schema_representation(job: dict, profile: dict) -> dict:
             entry["supported"] = True
             entry["resume_evidence"] = [item["name"]]
             entry["frame"] = frame
-            if kind == "literal":
-                entry["exact_keywords"] = sorted(
-                    t for t in (item.get("matched_terms") or []) if _term_in_text(t, line["text"].lower())
-                )
-            else:
-                entry["synonym_concepts"] = [item["name"]]
-            entry["category_tier"] = classify_category_tier(kind, len(entry["exact_keywords"]))
 
             # rank_profile_evidence wraps the raw profile.json item under
             # item["item"] (item itself is {"type", "name", "score",
@@ -1167,6 +1272,25 @@ def build_job_schema_representation(job: dict, profile: dict) -> dict:
             # .get("description") on the wrapper is always None).
             raw_item = item.get("item") or {}
             evidence_text = _evidence_own_text(raw_item)
+
+            if kind == "literal":
+                # 2026-09-04: a matched term in _AMBIGUOUS_TERMS (see the
+                # table above) is not trusted on lexical overlap alone --
+                # it must also pass _context_senses_agree, or it's dropped
+                # from exact_keywords entirely (never demoted to
+                # synonym_concepts either -- a failed cross-domain
+                # collision check isn't evidence of a legitimate transfer,
+                # it's evidence of no real corroboration at all).
+                entry["exact_keywords"] = sorted(
+                    t
+                    for t in (item.get("matched_terms") or [])
+                    if _term_in_text(t, line["text"].lower())
+                    and (t.lower() not in _AMBIGUOUS_TERMS or _context_senses_agree(line["text"], evidence_text, t))
+                )
+            else:
+                entry["synonym_concepts"] = [item["name"]]
+            entry["category_tier"] = classify_category_tier(kind, len(entry["exact_keywords"]))
+
             entry["event_type"] = classify_event_type(evidence_text)
             force_relation = detect_force_relation(evidence_text)
             entry["force_relation"] = force_relation

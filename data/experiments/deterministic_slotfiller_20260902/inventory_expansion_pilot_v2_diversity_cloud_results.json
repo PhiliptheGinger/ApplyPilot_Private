@@ -1,0 +1,78 @@
+{
+  "target": "Alex Prosperity Group / UST Logistics",
+  "target_survivor_count": 6,
+  "diversity_threshold": 0.9,
+  "fallback_chain": [
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gpt-4.1-mini",
+    "gpt-4.1-nano",
+    "qwen3:1.7b"
+  ],
+  "rounds": [
+    {
+      "round": 1,
+      "model_used": "gemini-3.6-flash",
+      "generation_elapsed_s": 15.6,
+      "n_generated": 15,
+      "n_fabrication_survived": 12,
+      "fabrication_rejected": [
+        {
+          "sentence": "Completed hands-on home appliance installations for Lowe's contracts, adhering strictly to established procedures and customer requirements while maintaining clear communication.",
+          "failures": [
+            "causal: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish"
+          ]
+        },
+        {
+          "sentence": "Adhered to established procedures and customer requirements while completing hands-on installation of home appliances for Lowe's.",
+          "failures": [
+            "causal: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish"
+          ]
+        },
+        {
+          "sentence": "Delivered clear customer communication during the hands-on installation of home appliances contracted through Lowe's.",
+          "failures": [
+            "claim: 'implementation'-tier claim exceeds evidence ceiling 'execution'",
+            "causal: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish"
+          ]
+        }
+      ],
+      "n_diversity_kept": 9,
+      "similarity_rejected": [
+        "Performed hands-on residential appliance installations under Lowe's contracts, ensuring clear communication with customers throughout the process.",
+        "Followed customer requirements and standard procedures to complete hands-on home appliance installations contracted via Lowe's.",
+        "Performed hands-on home appliance installations for Lowe's contracts, keeping customers clearly informed and following set procedures."
+      ],
+      "raw_response_if_unparsed": null
+    }
+  ],
+  "final_accepted": [
+    "Maintained clear customer communication while executing hands-on home appliance installations for Lowe's contracts according to established guidelines.",
+    "Executed hands-on installation of residential appliances under Lowe's contracts, following set procedures and communicating clearly with customers.",
+    "Followed established procedures and customer specifications to perform hands-on home appliance installations contracted through Lowe's.",
+    "Provided clear communication to customers while carrying out hands-on appliance installations contracted through Lowe's in accordance with standard procedures.",
+    "Installed home appliances contracted by Lowe's, adhering to explicit customer requests and established protocols through hands-on work.",
+    "Communicated clearly with clients during hands-on home appliance installations performed for Lowe's contracts.",
+    "Carried out hands-on home appliance installations contracted through Lowe's, maintaining active communication with customers and adhering to standard procedures.",
+    "Executed appliance installations contracted through Lowe's by performing hands-on work in line with standard procedures and customer instructions.",
+    "Maintained clear dialogue with customers throughout hands-on home appliance installation work for Lowe's contracts."
+  ],
+  "target_reached": true,
+  "closest_surviving_pairs": [
+    {
+      "score": 0.889,
+      "a": "Maintained clear customer communication while executing hands-on home appliance installations for Lowe's contracts according to established guidelines.",
+      "b": "Maintained clear dialogue with customers throughout hands-on home appliance installation work for Lowe's contracts."
+    },
+    {
+      "score": 0.884,
+      "a": "Maintained clear customer communication while executing hands-on home appliance installations for Lowe's contracts according to established guidelines.",
+      "b": "Communicated clearly with clients during hands-on home appliance installations performed for Lowe's contracts."
+    },
+    {
+      "score": 0.88,
+      "a": "Provided clear communication to customers while carrying out hands-on appliance installations contracted through Lowe's in accordance with standard procedures.",
+      "b": "Communicated clearly with clients during hands-on home appliance installations performed for Lowe's contracts."
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "_note": "Hand-labeled (with 2026-09-04 user review/correction) same-claim/different-claim pairs for scoring the diversity-detection bake-off. Deliberately small -- a directional check of each technique's precision/recall against a real answer key, not a statistically rigorous benchmark. Free to extend later (no new LLM calls needed; sentences are either already-generated tonight or already-authored profile.json text).",
+  "pairs": [
+    {
+      "id": 1,
+      "a": "Maintained clear and effective communication with customers during installation processes.",
+      "b": "Maintained effective communication with customers during installation processes.",
+      "label": "SAME",
+      "source": "local_run_1",
+      "raw_cosine": 0.977
+    },
+    {
+      "id": 2,
+      "a": "Adhered to customer requirements and company procedures during installation tasks.",
+      "b": "Adhered to customer specifications and company protocols during installation tasks.",
+      "label": "SAME",
+      "source": "local_run_1",
+      "raw_cosine": 0.930
+    },
+    {
+      "id": 3,
+      "a": "Maintained clear customer communication while executing hands-on home appliance installations for Lowe's contracts according to established guidelines.",
+      "b": "Maintained clear dialogue with customers throughout hands-on home appliance installation work for Lowe's contracts.",
+      "label": "SAME",
+      "source": "cloud_run",
+      "raw_cosine": 0.889
+    },
+    {
+      "id": 4,
+      "a": "Conducted installation activities in compliance with customer specifications and established procedures.",
+      "b": "Performed installation activities while following customer guidelines and company procedures.",
+      "label": "SAME",
+      "source": "local_run_1",
+      "raw_cosine": 0.851
+    },
+    {
+      "id": 5,
+      "a": "Adhered to customer requirements and company procedures during installation tasks.",
+      "b": "Carried out installation work in accordance with established procedures and customer requirements.",
+      "label": "SAME",
+      "source": "local_run_1",
+      "raw_cosine": 0.840
+    },
+    {
+      "id": 6,
+      "a": "Maintained clear customer communication while executing hands-on home appliance installations for Lowe's contracts according to established guidelines.",
+      "b": "Executed appliance installations contracted through Lowe's by performing hands-on work in line with standard procedures and customer instructions.",
+      "label": "DIFFERENT",
+      "source": "cloud_run",
+      "raw_cosine": 0.744,
+      "note": "User correction 2026-09-04: 'feels different enough to pass' -- overrides my draft SAME (low confidence).",
+      "acceptable_system_error": "A technique that instead calls this pair too-similar (predicts SAME) is tolerated -- user 2026-09-04: 'comfortable with #6 being marked as too similar, some margin of error could be useful.' The label above is the honest ground-truth answer for scoring; this field records that a false-reject specifically on this pair is a fine failure mode in practice, not a flaw to optimize away."
+    },
+    {
+      "id": 7,
+      "a": "Explained technical issues and recommended appropriate solutions to customers.",
+      "b": "Adhered to customer specifications and company protocols during installation tasks.",
+      "label": "DIFFERENT",
+      "source": "mavis_vs_alex",
+      "raw_cosine": 0.522,
+      "note": "Unrelated jobs; moderate score is a pure vocabulary-overlap artifact (\"customer\") -- stress test."
+    },
+    {
+      "id": 8,
+      "a": "Handled the installation of home appliances sourced from Lowe's.",
+      "b": "Adhered to customer specifications and company protocols during installation tasks.",
+      "label": "DIFFERENT",
+      "source": "local_run_1_internal",
+      "raw_cosine": 0.458,
+      "note": "Same entry, different sub-fact (sourcing vs. process compliance)."
+    },
+    {
+      "id": 9,
+      "a": "Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures.",
+      "b": "Developed practical troubleshooting skills by identifying symptoms, isolating problems, and applying corrective actions.",
+      "label": "DIFFERENT",
+      "source": "mavis_internal",
+      "raw_cosine": 0.448
+    },
+    {
+      "id": 10,
+      "a": "Explained technical issues and recommended appropriate solutions to customers.",
+      "b": "Developed practical troubleshooting skills by identifying symptoms, isolating problems, and applying corrective actions.",
+      "label": "DIFFERENT",
+      "source": "mavis_internal",
+      "raw_cosine": 0.400
+    },
+    {
+      "id": 11,
+      "a": "Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures.",
+      "b": "Performed hands-on work involving tires, brakes, shocks and struts, fluids, and related vehicle systems.",
+      "label": "DIFFERENT",
+      "source": "mavis_internal",
+      "raw_cosine": 0.248
+    },
+    {
+      "id": 12,
+      "a": "Explained technical issues and recommended appropriate solutions to customers.",
+      "b": "Maintained clear customer communication while executing hands-on home appliance installations for Lowe's contracts according to established guidelines.",
+      "label": "DIFFERENT",
+      "source": "mavis_vs_alex",
+      "raw_cosine": 0.084
+    }
+  ]
+}

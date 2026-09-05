@@ -1,0 +1,787 @@
+[
+  {
+    "term": "explained",
+    "avg_overlap": 0.0059,
+    "n_samples": 7
+  },
+  {
+    "term": "design",
+    "avg_overlap": 0.0166,
+    "n_samples": 15
+  },
+  {
+    "term": "while",
+    "avg_overlap": 0.0177,
+    "n_samples": 15
+  },
+  {
+    "term": "develop",
+    "avg_overlap": 0.0181,
+    "n_samples": 15
+  },
+  {
+    "term": "adapted",
+    "avg_overlap": 0.0194,
+    "n_samples": 15
+  },
+  {
+    "term": "performance",
+    "avg_overlap": 0.0202,
+    "n_samples": 15
+  },
+  {
+    "term": "customers",
+    "avg_overlap": 0.0209,
+    "n_samples": 15
+  },
+  {
+    "term": "data",
+    "avg_overlap": 0.0215,
+    "n_samples": 15
+  },
+  {
+    "term": "customer",
+    "avg_overlap": 0.0222,
+    "n_samples": 15
+  },
+  {
+    "term": "sales",
+    "avg_overlap": 0.0237,
+    "n_samples": 15
+  },
+  {
+    "term": "through",
+    "avg_overlap": 0.0282,
+    "n_samples": 15
+  },
+  {
+    "term": "analytics",
+    "avg_overlap": 0.0299,
+    "n_samples": 15
+  },
+  {
+    "term": "diagnosed",
+    "avg_overlap": 0.0319,
+    "n_samples": 10
+  },
+  {
+    "term": "identify",
+    "avg_overlap": 0.0325,
+    "n_samples": 15
+  },
+  {
+    "term": "tire",
+    "avg_overlap": 0.033,
+    "n_samples": 15
+  },
+  {
+    "term": "service",
+    "avg_overlap": 0.0334,
+    "n_samples": 15
+  },
+  {
+    "term": "symptoms",
+    "avg_overlap": 0.0337,
+    "n_samples": 15
+  },
+  {
+    "term": "requirements",
+    "avg_overlap": 0.0339,
+    "n_samples": 15
+  },
+  {
+    "term": "where",
+    "avg_overlap": 0.0341,
+    "n_samples": 15
+  },
+  {
+    "term": "product",
+    "avg_overlap": 0.0344,
+    "n_samples": 15
+  },
+  {
+    "term": "problems",
+    "avg_overlap": 0.0356,
+    "n_samples": 15
+  },
+  {
+    "term": "transcription",
+    "avg_overlap": 0.0359,
+    "n_samples": 15
+  },
+  {
+    "term": "homeowner",
+    "avg_overlap": 0.0365,
+    "n_samples": 9
+  },
+  {
+    "term": "procedures",
+    "avg_overlap": 0.0365,
+    "n_samples": 15
+  },
+  {
+    "term": "priorities",
+    "avg_overlap": 0.0373,
+    "n_samples": 15
+  },
+  {
+    "term": "efficiency",
+    "avg_overlap": 0.0375,
+    "n_samples": 15
+  },
+  {
+    "term": "solutions",
+    "avg_overlap": 0.0378,
+    "n_samples": 15
+  },
+  {
+    "term": "content",
+    "avg_overlap": 0.038,
+    "n_samples": 15
+  },
+  {
+    "term": "battery",
+    "avg_overlap": 0.0384,
+    "n_samples": 15
+  },
+  {
+    "term": "applying",
+    "avg_overlap": 0.0385,
+    "n_samples": 15
+  },
+  {
+    "term": "using",
+    "avg_overlap": 0.0396,
+    "n_samples": 15
+  },
+  {
+    "term": "creative",
+    "avg_overlap": 0.0397,
+    "n_samples": 15
+  },
+  {
+    "term": "food",
+    "avg_overlap": 0.0399,
+    "n_samples": 15
+  },
+  {
+    "term": "menu",
+    "avg_overlap": 0.0402,
+    "n_samples": 15
+  },
+  {
+    "term": "marketing",
+    "avg_overlap": 0.0407,
+    "n_samples": 15
+  },
+  {
+    "term": "lowe",
+    "avg_overlap": 0.0412,
+    "n_samples": 15
+  },
+  {
+    "term": "skills",
+    "avg_overlap": 0.0422,
+    "n_samples": 15
+  },
+  {
+    "term": "quality",
+    "avg_overlap": 0.0423,
+    "n_samples": 15
+  },
+  {
+    "term": "identifying",
+    "avg_overlap": 0.0432,
+    "n_samples": 15
+  },
+  {
+    "term": "quickly",
+    "avg_overlap": 0.0443,
+    "n_samples": 15
+  },
+  {
+    "term": "brakes",
+    "avg_overlap": 0.0457,
+    "n_samples": 15
+  },
+  {
+    "term": "established",
+    "avg_overlap": 0.0467,
+    "n_samples": 15
+  },
+  {
+    "term": "strategies",
+    "avg_overlap": 0.047,
+    "n_samples": 15
+  },
+  {
+    "term": "automation",
+    "avg_overlap": 0.0477,
+    "n_samples": 15
+  },
+  {
+    "term": "reliability",
+    "avg_overlap": 0.0477,
+    "n_samples": 15
+  },
+  {
+    "term": "quantitative",
+    "avg_overlap": 0.0479,
+    "n_samples": 15
+  },
+  {
+    "term": "servers",
+    "avg_overlap": 0.0479,
+    "n_samples": 15
+  },
+  {
+    "term": "operational",
+    "avg_overlap": 0.0483,
+    "n_samples": 15
+  },
+  {
+    "term": "needs",
+    "avg_overlap": 0.0485,
+    "n_samples": 15
+  },
+  {
+    "term": "accurately",
+    "avg_overlap": 0.049,
+    "n_samples": 15
+  },
+  {
+    "term": "operations",
+    "avg_overlap": 0.0499,
+    "n_samples": 15
+  },
+  {
+    "term": "web",
+    "avg_overlap": 0.0502,
+    "n_samples": 15
+  },
+  {
+    "term": "alex",
+    "avg_overlap": 0.0504,
+    "n_samples": 13
+  },
+  {
+    "term": "troubleshooting",
+    "avg_overlap": 0.0529,
+    "n_samples": 15
+  },
+  {
+    "term": "developed",
+    "avg_overlap": 0.0532,
+    "n_samples": 15
+  },
+  {
+    "term": "accuracy",
+    "avg_overlap": 0.0532,
+    "n_samples": 15
+  },
+  {
+    "term": "experimentation",
+    "avg_overlap": 0.0547,
+    "n_samples": 15
+  },
+  {
+    "term": "corrective",
+    "avg_overlap": 0.0553,
+    "n_samples": 15
+  },
+  {
+    "term": "relations",
+    "avg_overlap": 0.0565,
+    "n_samples": 15
+  },
+  {
+    "term": "consistent",
+    "avg_overlap": 0.0571,
+    "n_samples": 15
+  },
+  {
+    "term": "involving",
+    "avg_overlap": 0.0577,
+    "n_samples": 15
+  },
+  {
+    "term": "group",
+    "avg_overlap": 0.059,
+    "n_samples": 15
+  },
+  {
+    "term": "contracted",
+    "avg_overlap": 0.0608,
+    "n_samples": 15
+  },
+  {
+    "term": "alignment",
+    "avg_overlap": 0.0623,
+    "n_samples": 15
+  },
+  {
+    "term": "standards",
+    "avg_overlap": 0.0624,
+    "n_samples": 15
+  },
+  {
+    "term": "logistics",
+    "avg_overlap": 0.0631,
+    "n_samples": 15
+  },
+  {
+    "term": "research",
+    "avg_overlap": 0.0636,
+    "n_samples": 15
+  },
+  {
+    "term": "different",
+    "avg_overlap": 0.0639,
+    "n_samples": 15
+  },
+  {
+    "term": "comptia",
+    "avg_overlap": 0.0643,
+    "n_samples": 15
+  },
+  {
+    "term": "residential",
+    "avg_overlap": 0.065,
+    "n_samples": 15
+  },
+  {
+    "term": "handling",
+    "avg_overlap": 0.0659,
+    "n_samples": 15
+  },
+  {
+    "term": "specialized",
+    "avg_overlap": 0.0664,
+    "n_samples": 15
+  },
+  {
+    "term": "efficiently",
+    "avg_overlap": 0.0668,
+    "n_samples": 15
+  },
+  {
+    "term": "ust",
+    "avg_overlap": 0.0682,
+    "n_samples": 15
+  },
+  {
+    "term": "communication",
+    "avg_overlap": 0.0683,
+    "n_samples": 15
+  },
+  {
+    "term": "fluids",
+    "avg_overlap": 0.0691,
+    "n_samples": 15
+  },
+  {
+    "term": "throughout",
+    "avg_overlap": 0.0706,
+    "n_samples": 15
+  },
+  {
+    "term": "isolating",
+    "avg_overlap": 0.0733,
+    "n_samples": 15
+  },
+  {
+    "term": "information",
+    "avg_overlap": 0.0744,
+    "n_samples": 15
+  },
+  {
+    "term": "freelance",
+    "avg_overlap": 0.0746,
+    "n_samples": 15
+  },
+  {
+    "term": "prepared",
+    "avg_overlap": 0.0746,
+    "n_samples": 15
+  },
+  {
+    "term": "recommended",
+    "avg_overlap": 0.0757,
+    "n_samples": 15
+  },
+  {
+    "term": "power",
+    "avg_overlap": 0.0777,
+    "n_samples": 15
+  },
+  {
+    "term": "field",
+    "avg_overlap": 0.0788,
+    "n_samples": 15
+  },
+  {
+    "term": "coworkers",
+    "avg_overlap": 0.0789,
+    "n_samples": 15
+  },
+  {
+    "term": "environment",
+    "avg_overlap": 0.0799,
+    "n_samples": 15
+  },
+  {
+    "term": "items",
+    "avg_overlap": 0.0799,
+    "n_samples": 15
+  },
+  {
+    "term": "related",
+    "avg_overlap": 0.0819,
+    "n_samples": 15
+  },
+  {
+    "term": "adapting",
+    "avg_overlap": 0.0822,
+    "n_samples": 15
+  },
+  {
+    "term": "practical",
+    "avg_overlap": 0.0822,
+    "n_samples": 15
+  },
+  {
+    "term": "clearly",
+    "avg_overlap": 0.0851,
+    "n_samples": 15
+  },
+  {
+    "term": "vehicle",
+    "avg_overlap": 0.0853,
+    "n_samples": 15
+  },
+  {
+    "term": "installation",
+    "avg_overlap": 0.0867,
+    "n_samples": 15
+  },
+  {
+    "term": "performed",
+    "avg_overlap": 0.0886,
+    "n_samples": 15
+  },
+  {
+    "term": "python",
+    "avg_overlap": 0.089,
+    "n_samples": 15
+  },
+  {
+    "term": "proposals",
+    "avg_overlap": 0.0898,
+    "n_samples": 15
+  },
+  {
+    "term": "equipment",
+    "avg_overlap": 0.0899,
+    "n_samples": 15
+  },
+  {
+    "term": "independently",
+    "avg_overlap": 0.0971,
+    "n_samples": 15
+  },
+  {
+    "term": "regional",
+    "avg_overlap": 0.0971,
+    "n_samples": 15
+  },
+  {
+    "term": "accurate",
+    "avg_overlap": 0.0977,
+    "n_samples": 15
+  },
+  {
+    "term": "issues",
+    "avg_overlap": 0.0979,
+    "n_samples": 15
+  },
+  {
+    "term": "execute",
+    "avg_overlap": 0.1001,
+    "n_samples": 15
+  },
+  {
+    "term": "amp",
+    "avg_overlap": 0.1008,
+    "n_samples": 15
+  },
+  {
+    "term": "moving",
+    "avg_overlap": 0.1011,
+    "n_samples": 15
+  },
+  {
+    "term": "consistency",
+    "avg_overlap": 0.1012,
+    "n_samples": 15
+  },
+  {
+    "term": "approach",
+    "avg_overlap": 0.1042,
+    "n_samples": 15
+  },
+  {
+    "term": "targeted",
+    "avg_overlap": 0.106,
+    "n_samples": 15
+  },
+  {
+    "term": "automotive",
+    "avg_overlap": 0.1104,
+    "n_samples": 15
+  },
+  {
+    "term": "smart",
+    "avg_overlap": 0.1105,
+    "n_samples": 15
+  },
+  {
+    "term": "tailor",
+    "avg_overlap": 0.1136,
+    "n_samples": 15
+  },
+  {
+    "term": "corrected",
+    "avg_overlap": 0.1136,
+    "n_samples": 15
+  },
+  {
+    "term": "preparation",
+    "avg_overlap": 0.1148,
+    "n_samples": 15
+  },
+  {
+    "term": "communicated",
+    "avg_overlap": 0.1165,
+    "n_samples": 15
+  },
+  {
+    "term": "installed",
+    "avg_overlap": 0.1256,
+    "n_samples": 15
+  },
+  {
+    "term": "cleanliness",
+    "avg_overlap": 0.1259,
+    "n_samples": 15
+  },
+  {
+    "term": "house",
+    "avg_overlap": 0.132,
+    "n_samples": 15
+  },
+  {
+    "term": "maintained",
+    "avg_overlap": 0.1324,
+    "n_samples": 15
+  },
+  {
+    "term": "ocr",
+    "avg_overlap": 0.1327,
+    "n_samples": 15
+  },
+  {
+    "term": "tires",
+    "avg_overlap": 0.137,
+    "n_samples": 15
+  },
+  {
+    "term": "qualified",
+    "avg_overlap": 0.1372,
+    "n_samples": 15
+  },
+  {
+    "term": "workloads",
+    "avg_overlap": 0.1398,
+    "n_samples": 15
+  },
+  {
+    "term": "photography",
+    "avg_overlap": 0.1474,
+    "n_samples": 15
+  },
+  {
+    "term": "targeting",
+    "avg_overlap": 0.1489,
+    "n_samples": 15
+  },
+  {
+    "term": "order",
+    "avg_overlap": 0.1715,
+    "n_samples": 15
+  },
+  {
+    "term": "prosperity",
+    "avg_overlap": 0.1747,
+    "n_samples": 15
+  },
+  {
+    "term": "staff",
+    "avg_overlap": 0.1749,
+    "n_samples": 15
+  },
+  {
+    "term": "taking",
+    "avg_overlap": 0.1751,
+    "n_samples": 15
+  },
+  {
+    "term": "appliances",
+    "avg_overlap": 0.2084,
+    "n_samples": 15
+  },
+  {
+    "term": "cap",
+    "avg_overlap": 0.2231,
+    "n_samples": 15
+  },
+  {
+    "term": "orders",
+    "avg_overlap": 0.2354,
+    "n_samples": 15
+  },
+  {
+    "term": "kitchen",
+    "avg_overlap": 0.2433,
+    "n_samples": 15
+  },
+  {
+    "term": "requests",
+    "avg_overlap": 0.2472,
+    "n_samples": 15
+  },
+  {
+    "term": "simultaneous",
+    "avg_overlap": 0.2519,
+    "n_samples": 15
+  },
+  {
+    "term": "followed",
+    "avg_overlap": 0.2575,
+    "n_samples": 15
+  },
+  {
+    "term": "provided",
+    "avg_overlap": 0.2877,
+    "n_samples": 15
+  },
+  {
+    "term": "worked",
+    "avg_overlap": 0.289,
+    "n_samples": 15
+  },
+  {
+    "term": "following",
+    "avg_overlap": 0.2941,
+    "n_samples": 15
+  },
+  {
+    "term": "handled",
+    "avg_overlap": 0.2942,
+    "n_samples": 15
+  },
+  {
+    "term": "software",
+    "avg_overlap": 0.3007,
+    "n_samples": 15
+  },
+  {
+    "term": "work",
+    "avg_overlap": 0.3519,
+    "n_samples": 15
+  },
+  {
+    "term": "outreach",
+    "avg_overlap": 0.4174,
+    "n_samples": 15
+  },
+  {
+    "term": "keep",
+    "avg_overlap": 0.4402,
+    "n_samples": 15
+  },
+  {
+    "term": "coordinated",
+    "avg_overlap": 0.5,
+    "n_samples": 15
+  },
+  {
+    "term": "communications",
+    "avg_overlap": 0.5263,
+    "n_samples": 15
+  },
+  {
+    "term": "solar",
+    "avg_overlap": 0.5297,
+    "n_samples": 15
+  },
+  {
+    "term": "conduct",
+    "avg_overlap": 0.5441,
+    "n_samples": 15
+  },
+  {
+    "term": "home",
+    "avg_overlap": 0.5801,
+    "n_samples": 15
+  },
+  {
+    "term": "market",
+    "avg_overlap": 0.6286,
+    "n_samples": 15
+  },
+  {
+    "term": "busy",
+    "avg_overlap": 0.6289,
+    "n_samples": 15
+  },
+  {
+    "term": "maintaining",
+    "avg_overlap": 0.6296,
+    "n_samples": 15
+  },
+  {
+    "term": "multiple",
+    "avg_overlap": 0.6298,
+    "n_samples": 15
+  },
+  {
+    "term": "media",
+    "avg_overlap": 0.8681,
+    "n_samples": 15
+  },
+  {
+    "term": "during",
+    "avg_overlap": 0.8698,
+    "n_samples": 15
+  },
+  {
+    "term": "national",
+    "avg_overlap": 1.0,
+    "n_samples": 15
+  },
+  {
+    "term": "appropriate",
+    "avg_overlap": 1.0,
+    "n_samples": 15
+  },
+  {
+    "term": "package",
+    "avg_overlap": 1.0,
+    "n_samples": 15
+  },
+  {
+    "term": "changing",
+    "avg_overlap": 1.0,
+    "n_samples": 15
+  }
+]

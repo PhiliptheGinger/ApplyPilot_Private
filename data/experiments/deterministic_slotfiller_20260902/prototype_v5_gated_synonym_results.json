@@ -1,0 +1,51 @@
+{
+  "n": 300,
+  "would_have_fired_ungated": 3,
+  "applied_under_gate": 3,
+  "blocked_by_gate": [],
+  "substitution_examples": [
+    {
+      "title": "Forward Deployed Software Engineer, New Grad - US ",
+      "requirement": "Interest in working with and using large scale data to solve valuable business problems.",
+      "category_tier": "prototype",
+      "exact_keywords": [
+        "problems",
+        "using"
+      ],
+      "before": "Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures.",
+      "after": "Diagnosed and corrected vehicle alignment problems using specialized equipment and established troubleshooting procedures.",
+      "substitutions": [
+        "issues -> problems"
+      ]
+    },
+    {
+      "title": "Principal Product Manager, Enterprise Applications",
+      "requirement": "Lead strategic engagements with business stakeholders to understand priorities, define pro",
+      "category_tier": "prototype",
+      "exact_keywords": [
+        "alignment",
+        "problems"
+      ],
+      "before": "Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures.",
+      "after": "Diagnosed and corrected vehicle alignment problems using specialized equipment and established troubleshooting procedures.",
+      "substitutions": [
+        "issues -> problems"
+      ]
+    },
+    {
+      "title": "Product Support Specialist",
+      "requirement": "Support implementation of hotfixes and patches to minimize risk of unexpected issues and e",
+      "category_tier": "prototype",
+      "exact_keywords": [
+        "customer",
+        "issues",
+        "problems"
+      ],
+      "before": "Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures.",
+      "after": "Diagnosed and corrected vehicle alignment problems using specialized equipment and established troubleshooting procedures.",
+      "substitutions": [
+        "issues -> problems"
+      ]
+    }
+  ]
+}

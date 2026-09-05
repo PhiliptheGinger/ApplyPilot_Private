@@ -369,6 +369,18 @@ class TestAgencyAxis(unittest.TestCase):
     def test_owned_is_owner_tier(self):
         self.assertEqual(schemas.detect_agency_tier("Owned the deployment process."), "owner")
 
+    def test_worked_independently_is_not_owner_tier(self):
+        """2026-09-03 regression: 'independently' used to be in the owner-
+        tier pattern, so ordinary IC phrasing like 'worked independently'
+        (no supervision needed -- a LOW-agency signal, not an ownership
+        claim) was wrongly detected as an 'owner'-tier overclaim."""
+        self.assertIsNone(
+            schemas.detect_agency_tier(
+                "Worked independently in a field environment while adapting "
+                "communication and approach to different customers."
+            )
+        )
+
     def test_no_agency_vocabulary_returns_none(self):
         """individual_contributor has no dedicated vocabulary -- it's the
         default absence of a stronger agency signal."""
@@ -655,7 +667,16 @@ class TestEvidenceSafetyMatrix(unittest.TestCase):
 
     def test_synonym_match_yields_peripheral_tier_never_prototype(self):
         job = _job(
-            "- Accept and respond to telephone inquiries from customers in a polite manner\n"
+            # "clients" not "customers" (2026-09-03): _term_in_text is now
+            # inflection-tolerant, so "customers" would literally match the
+            # "Customer Service" skill's own "customer" matched_term via
+            # plain pluralization, turning this into a literal/prototype
+            # match and defeating these tests' whole point (a synonym-only,
+            # peripheral-tier match). "clients" still trips the same curated
+            # _CONCEPT_SYNONYM_PATTERNS entry via "telephone inquiries" /
+            # "clients in a polite manner", with zero word-level relation to
+            # "customer".
+            "- Accept and respond to telephone inquiries from clients in a polite manner\n"
             "- Prior customer service experience needed\n"  # anchors the job-level literal match
         )
         rep = schemas.build_job_schema_representation(job, PROFILE)
@@ -672,7 +693,16 @@ class TestEvidenceSafetyMatrix(unittest.TestCase):
         domain_transfer, which explicitly instructs against claiming
         identical-domain experience."""
         job = _job(
-            "- Accept and respond to telephone inquiries from customers in a polite manner\n"
+            # "clients" not "customers" (2026-09-03): _term_in_text is now
+            # inflection-tolerant, so "customers" would literally match the
+            # "Customer Service" skill's own "customer" matched_term via
+            # plain pluralization, turning this into a literal/prototype
+            # match and defeating these tests' whole point (a synonym-only,
+            # peripheral-tier match). "clients" still trips the same curated
+            # _CONCEPT_SYNONYM_PATTERNS entry via "telephone inquiries" /
+            # "clients in a polite manner", with zero word-level relation to
+            # "customer".
+            "- Accept and respond to telephone inquiries from clients in a polite manner\n"
             "- Prior customer service experience needed\n"
         )
         rep = schemas.build_job_schema_representation(job, PROFILE)
@@ -685,7 +715,16 @@ class TestEvidenceSafetyMatrix(unittest.TestCase):
         (resume_evidence is non-empty) -- it's grounded transfer, not an
         invented capability."""
         job = _job(
-            "- Accept and respond to telephone inquiries from customers in a polite manner\n"
+            # "clients" not "customers" (2026-09-03): _term_in_text is now
+            # inflection-tolerant, so "customers" would literally match the
+            # "Customer Service" skill's own "customer" matched_term via
+            # plain pluralization, turning this into a literal/prototype
+            # match and defeating these tests' whole point (a synonym-only,
+            # peripheral-tier match). "clients" still trips the same curated
+            # _CONCEPT_SYNONYM_PATTERNS entry via "telephone inquiries" /
+            # "clients in a polite manner", with zero word-level relation to
+            # "customer".
+            "- Accept and respond to telephone inquiries from clients in a polite manner\n"
             "- Prior customer service experience needed\n"
         )
         rep = schemas.build_job_schema_representation(job, PROFILE)

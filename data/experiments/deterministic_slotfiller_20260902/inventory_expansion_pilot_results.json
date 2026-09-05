@@ -1,0 +1,34 @@
+{
+  "target": "Alex Prosperity Group / UST Logistics",
+  "generation_elapsed_s": 71.6,
+  "n_generated": 14,
+  "n_survived": 12,
+  "survivors": [
+    "Handled the installation of home appliances sourced from Lowe's.",
+    "Carried out hands-on installation tasks in accordance with customer specifications and company protocols.",
+    "Maintained clear and effective communication with customers during installation processes.",
+    "Adhered to customer requirements and company procedures during installation tasks.",
+    "Performed installation work following established protocols and customer guidelines.",
+    "Conducted installation activities in compliance with customer specifications and established procedures.",
+    "Executed installation tasks by following customer instructions and company protocols.",
+    "Maintained clear communication with customers throughout the installation process.",
+    "Carried out installation work in accordance with established procedures and customer requirements.",
+    "Adhered to customer specifications and company protocols during installation tasks.",
+    "Performed installation activities while following customer guidelines and company procedures.",
+    "Maintained effective communication with customers during installation processes."
+  ],
+  "rejected": [
+    {
+      "sentence": "Completed home appliance installations while aligning with customer expectations and company standards.",
+      "failures": [
+        "causal: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish"
+      ]
+    },
+    {
+      "sentence": "Completed installation tasks by aligning with customer expectations and company standards.",
+      "failures": [
+        "causal: realized text asserts a causal/outcome claim (e.g. reduced/eliminated/increased/improved) that the underlying evidence text does not itself establish"
+      ]
+    }
+  ]
+}

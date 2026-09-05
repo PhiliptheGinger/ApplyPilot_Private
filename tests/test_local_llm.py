@@ -1510,6 +1510,30 @@ class TestEvidenceRetrieval(unittest.TestCase):
 
         self.assertEqual(format_evidence_for_prompt([]), "")
 
+    def test_format_evidence_for_prompt_includes_experience_constraints(self):
+        """2026-09-03 regression: constraints were only ever rendered for
+        project_inventory entries -- an experience_inventory item's
+        constraints (e.g. "keep claims modest") silently never reached the
+        local model's prompt at all."""
+        from applypilot.scoring.local_tailor import format_evidence_for_prompt, rank_profile_evidence
+
+        profile = {
+            "experience_inventory": [
+                {
+                    "name": "Freelance Photography",
+                    "description": "Competent use of DSLR equipment for photography.",
+                    "constraints": ["Keep claims modest; do not describe extensive professional experience."],
+                }
+            ],
+            "project_inventory": [],
+            "skills_inventory": [],
+        }
+        job = self._job("Photography and videography experience with DSLR equipment.")
+        ranked = rank_profile_evidence(job, profile, top_n=10)
+        rendered = format_evidence_for_prompt(ranked)
+        self.assertIn("Freelance Photography", rendered)
+        self.assertIn("Keep claims modest; do not describe extensive professional experience.", rendered)
+
     def test_certifications_are_included_as_evidence(self):
         """certifications is a fourth deterministic evidence source (same
         shape as the other inventories) -- so matching_certifications can be
@@ -1563,6 +1587,23 @@ class TestEvidenceRetrieval(unittest.TestCase):
 
 
 class TestGenericEvidenceTermFiltering(unittest.TestCase):
+    def setUp(self):
+        # _idf_weights_cache/_idf_weights_load_failed are module-level
+        # globals (same class of leak as the LLM-exhaustion-state file
+        # found and fixed earlier this session) -- reset before AND after
+        # every test so one test's simulated load failure/success can't
+        # leak into another.
+        from applypilot.scoring import local_tailor
+
+        local_tailor._idf_weights_cache = None
+        local_tailor._idf_weights_load_failed = False
+
+    def tearDown(self):
+        from applypilot.scoring import local_tailor
+
+        local_tailor._idf_weights_cache = None
+        local_tailor._idf_weights_load_failed = False
+
     def test_bare_it_category_is_not_a_usable_term(self):
         from applypilot.scoring.local_tailor import _item_terms
 
@@ -1578,8 +1619,199 @@ class TestGenericEvidenceTermFiltering(unittest.TestCase):
         terms = _item_terms(item)
         self.assertNotIn("technical", terms)
         self.assertIn("automation", terms)
-        self.assertIn("data", terms)
         self.assertIn("ocr", terms)
+        # 2026-09-04: "data" (idf=1.40, real weight from idf_weights.json)
+        # is now ALSO excluded by the new IDF-based generic-term check --
+        # it appears in a huge fraction of job postings regardless of
+        # domain, same failure shape as "technical", just not previously
+        # discovered by a real bug. This is the new mechanism correctly
+        # doing its job, not a regression -- "Python Tooling" is still
+        # matchable via "automation"/"ocr", which are genuinely specific.
+        self.assertNotIn("data", terms)
+
+    def test_bare_ups_employer_name_is_not_a_usable_term(self):
+        """2026-09-04, found via the rarity-weighting bake-off: the UPS
+        experience_inventory entry's whole-name term "ups" (len==3, so it
+        survived the length floor) word-boundary-matched ANY word ending in
+        "-ups" -- "follow-ups", "backups", "startups" -- because a hyphen
+        is a word boundary for \\b. UPS-the-employer must stay matchable
+        via its other, more specific terms. (_term_in_text itself is a
+        generic, term-agnostic word-boundary matcher and correctly still
+        matches the literal string "ups" against "follow-ups" if ever
+        asked to -- the fix belongs at term-CANDIDACY time, in _item_terms/
+        _is_generic_evidence_term, which is what this test exercises.)"""
+        from applypilot.scoring.local_tailor import _item_terms
+
+        item = {"name": "UPS", "responsibilities": ["Handled package delivery, logistics, and warehouse operations daily."]}
+        terms = _item_terms(item)
+        self.assertNotIn("ups", terms)
+        self.assertIn("package", terms)
+        self.assertIn("warehouse", terms)
+        # 2026-09-04: "operations" (idf=1.69) and "delivery" (idf=1.99) are
+        # now ALSO excluded by the IDF-based generic-term check -- both
+        # common across a huge fraction of postings regardless of domain.
+        # UPS stays matchable via "package"/"warehouse"/"logistics", which
+        # are genuinely more specific (idf 2.26/4.65/4.27 respectively).
+        self.assertNotIn("operations", terms)
+
+    def test_common_preposition_in_responsibilities_text_is_not_a_usable_term(self):
+        """2026-09-04, found via a real production run: 388 jobs (out of
+        1477 scanned) matched Alex Prosperity Group / UST Logistics
+        evidence, including "Pay Increases throughout the first year of
+        employment and annual merit increases" -- a benefits blurb from an
+        unrelated job, not a skill requirement. Root cause: the entry's
+        responsibilities text ("...Communicated clearly with customers
+        throughout installations.") contributed the bare word "throughout"
+        as a matchable term, and "throughout" is a common preposition with
+        zero domain-discriminating signal -- it just happened to also
+        appear in the unrelated job's benefits section."""
+        from applypilot.scoring.local_tailor import _item_terms
+
+        item = {
+            "name": "Alex Prosperity Group / UST Logistics",
+            "responsibilities": [
+                "Communicated clearly with customers throughout installations.",
+            ],
+        }
+        terms = _item_terms(item)
+        self.assertNotIn("throughout", terms)
+        self.assertIn("communicated", terms)
+        # "customers" (idf=1.90) is excluded too, by the separate IDF-based
+        # check added right after this fix -- see
+        # test_idf_weights_load_real_file_and_flag_known_generic_word.
+        # "communicated" remains as this item's matchable term here.
+
+    def test_benefits_blurb_no_longer_matches_installation_evidence(self):
+        """Integration-level reproduction of the exact real false positive
+        via rank_profile_evidence, not just the unit-level _item_terms
+        check above."""
+        from applypilot.scoring.local_tailor import rank_profile_evidence
+
+        job = {
+            "title": "QC Lab Technician - 1st Shift",
+            "full_description": (
+                "Pay Increases throughout the first year of employment and annual merit increases.\n"
+            ),
+        }
+        profile = {
+            "experience_inventory": [
+                {
+                    "name": "Alex Prosperity Group / UST Logistics",
+                    "resume_allowed": True,
+                    "responsibilities": [
+                        "Installed home appliances contracted through Lowe's",
+                        "Performed hands-on installation work while following customer requirements "
+                        "and established procedures.",
+                        "Communicated clearly with customers throughout installations.",
+                    ],
+                },
+            ],
+            "project_inventory": [],
+            "skills_inventory": [],
+        }
+        ranked = rank_profile_evidence(job, profile, top_n=10)
+        self.assertEqual(ranked, [])
+
+    def test_idf_weights_load_real_file_and_flag_known_generic_word(self):
+        """Uses the REAL idf_weights.json shipped in src/applypilot/config/
+        -- not mocked -- since the whole point is confirming the actual
+        packaged artifact behaves as calibrated against real data."""
+        from applypilot.scoring.local_tailor import _is_generic_evidence_term
+
+        self.assertTrue(_is_generic_evidence_term("customer"))  # idf=1.80
+        self.assertTrue(_is_generic_evidence_term("using"))  # idf=1.81
+
+    def test_idf_weights_preserve_specific_single_word_terms(self):
+        from applypilot.scoring.local_tailor import _is_generic_evidence_term
+
+        self.assertFalse(_is_generic_evidence_term("troubleshooting"))  # idf=2.48
+        self.assertFalse(_is_generic_evidence_term("python"))  # idf=2.68
+        self.assertFalse(_is_generic_evidence_term("alignment"))  # idf=3.19
+
+    def test_idf_cannot_see_multiword_terms_unaffected(self):
+        from applypilot.scoring.local_tailor import _is_generic_evidence_term
+
+        self.assertFalse(_is_generic_evidence_term("customer service"))
+
+    def test_real_bug_customer_alone_no_longer_matches_unrelated_job(self):
+        """Integration-level reproduction of the exact real false positive:
+        a job requirement about AI tools, matched to Alex Prosperity Group
+        installation evidence purely via the shared word "customer"."""
+        from applypilot.scoring.local_tailor import rank_profile_evidence
+
+        job = {
+            "title": "Customer Experience Associate",
+            "full_description": (
+                "You actively use AI tools — Claude, Notion AI, research and workflow tools "
+                "— and can demonstrate how you've applied them to get real work done.\n"
+            ),
+        }
+        profile = {
+            "experience_inventory": [
+                {
+                    "name": "Alex Prosperity Group / UST Logistics",
+                    "resume_allowed": True,
+                    "responsibilities": [
+                        "Installed home appliances contracted through Lowe's",
+                        "Performed hands-on installation work while following customer requirements "
+                        "and established procedures.",
+                        "Communicated clearly with customers throughout installations.",
+                    ],
+                },
+            ],
+            "project_inventory": [],
+            "skills_inventory": [],
+        }
+        ranked = rank_profile_evidence(job, profile, top_n=10)
+        self.assertEqual(ranked, [])
+
+    def test_business_entity_suffix_in_employer_name_is_not_a_usable_term(self):
+        """2026-09-04, found via a real production false positive: the
+        employer's own name "Alex Prosperity Group / UST Logistics"
+        contributed the bare word "group" as a matchable term (idf=2.90,
+        ABOVE the IDF-generic threshold, so the IDF check doesn't catch
+        this -- it's a business-entity-name suffix, not a generic English
+        word), which then matched an unrelated "Senior Manager, Machine
+        Learning Ops Engineering" job purely via its own use of "group"
+        in "a high-performing MLOps engineering group"."""
+        from applypilot.scoring.local_tailor import _item_terms, rank_profile_evidence
+
+        item = {"name": "Alex Prosperity Group / UST Logistics", "responsibilities": ["Installed home appliances."]}
+        terms = _item_terms(item)
+        self.assertNotIn("group", terms)
+        self.assertIn("installed", terms)
+        self.assertIn("home", terms)
+
+        job = {
+            "title": "Senior Manager, Machine Learning Ops Engineering",
+            "full_description": (
+                "Lead and grow a high-performing MLOps engineering group tasked with managing "
+                "end-to-end data pipelines.\n"
+            ),
+        }
+        profile = {
+            "experience_inventory": [
+                {
+                    "name": "Alex Prosperity Group / UST Logistics",
+                    "resume_allowed": True,
+                    "responsibilities": ["Installed home appliances."],
+                },
+            ],
+            "project_inventory": [],
+            "skills_inventory": [],
+        }
+        self.assertEqual(rank_profile_evidence(job, profile, top_n=10), [])
+
+    def test_idf_lookup_failure_degrades_to_curated_list_only(self):
+        """If idf_weights.json is missing/corrupt, _is_generic_evidence_term
+        must still work using ONLY _GENERIC_EVIDENCE_TERMS -- never crash,
+        never silently treat everything as generic."""
+        from applypilot.scoring import local_tailor
+
+        with patch.object(local_tailor, "_idf_weights", return_value={}):
+            self.assertTrue(local_tailor._is_generic_evidence_term("it"))  # still curated-excluded
+            self.assertFalse(local_tailor._is_generic_evidence_term("customer"))  # no IDF data -> not excluded
+            self.assertFalse(local_tailor._is_generic_evidence_term("python"))
 
     def test_multiword_technical_phrases_are_unaffected(self):
         """Only the bare single-word term is excluded -- a category that
@@ -2077,6 +2309,44 @@ class TestConceptSynonymRecall(unittest.TestCase):
         self.assertIsNotNone(plan)
         self.assertEqual(plan["requirements"][0]["resume_evidence"], ["Waffle House"])
         self.assertTrue(plan["requirements"][0]["supported"])
+
+
+class TestInflectionTolerantMatching(unittest.TestCase):
+    """2026-09-03: _term_in_text now tolerates ordinary plural/singular
+    variants and a small curated root-family table, found via real
+    near-miss mining across a 100-job sample (mean 1.5 exact_keywords
+    available per requirement -- most misses were the SAME word in a
+    different inflection, e.g. "customer"/"customers", not a genuinely
+    different synonym). No text is ever rewritten by this mechanism, only
+    whether a keyword counts as already matched -- zero fabrication risk."""
+
+    def test_plural_keyword_matches_singular_evidence_term(self):
+        from applypilot.scoring.local_tailor import _term_in_text
+
+        self.assertTrue(_term_in_text("customer", "we work with many customers daily"))
+        self.assertTrue(_term_in_text("customers", "handled one customer at a time"))
+
+    def test_root_family_variant_matches(self):
+        from applypilot.scoring.local_tailor import _term_in_text
+
+        self.assertTrue(_term_in_text("operations", "worked in a high-volume operational environment"))
+        self.assertTrue(_term_in_text("operational", "5+ years of operations experience"))
+
+    def test_term_in_text_still_requires_word_boundary(self):
+        """Regression guard: pluralization tolerance must not become a
+        substring/stem match -- "cat" must never match inside "category"."""
+        from applypilot.scoring.local_tailor import _term_in_text
+
+        self.assertFalse(_term_in_text("cat", "this role requires categorizing tickets"))
+
+    def test_inflection_tolerance_does_not_invent_unrelated_matches(self):
+        """A term with no plural/root-family rule at all still correctly
+        returns False against unrelated text -- proving this stays a
+        bounded variant set, not a general stemmer."""
+        from applypilot.scoring.local_tailor import _term_in_text
+
+        self.assertFalse(_term_in_text("goose", "we saw several geese at the park"))
+        self.assertFalse(_term_in_text("python", "worked extensively with java"))
 
 
 # ---------------------------------------------------------------------------
