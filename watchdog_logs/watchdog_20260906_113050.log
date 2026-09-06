@@ -1,0 +1,574 @@
+2026-09-06 11:43:33.841331 Ollama not running -- nothing to stop.
+2026-09-06 11:43:33.951238 Ollama running but only using 400.0 MB (< 500 MB threshold) -- leaving it alone, not implicated in this emergency.
+2026-09-06 11:43:34.014850 Ollama using 2500.0 MB -- stopping it as a contributing factor.
+2026-09-06 11:43:34.014850 Terminating Ollama PID 999 (2500.0 MB)
+2026-09-06 11:43:34.055479 Ollama using 2500.0 MB -- stopping it as a contributing factor.
+2026-09-06 11:43:34.057514 Terminating Ollama PID 999 (2500.0 MB)
+2026-09-06 11:43:34.059538 Force-killing Ollama PID 999
+2026-09-06 11:43:36.098847 Top processes by RAM:
+2026-09-06 11:43:36.100870       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:43:36.102890        333.7 MB  PID   8164  msedge.exe
+2026-09-06 11:43:36.102890        282.4 MB  PID  13304  msedge.exe
+2026-09-06 11:43:36.123705 === ApplyPilot watchdog starting ===
+2026-09-06 11:43:36.140503 Project: C:\Users\phili\Projects\resume-agent
+2026-09-06 11:43:36.140503 Command: applypilot run discover --workers 1 --quiet
+2026-09-06 11:43:36.143989 Log file: C:\Users\phili\Projects\resume-agent\watchdog_logs\watchdog_20260906_113050.log
+2026-09-06 11:43:36.146020 Thresholds: disk active>=99% AND latency>=1000ms, OR RAM available<2000MB -- sustained 10 consecutive samples (20s) before acting.
+2026-09-06 11:43:36.148052 ApplyPilot PID: 999999
+2026-09-06 11:43:36.150077 RAM available=1900 MB used=95.0%
+2026-09-06 11:43:36.155895 WARNING: disk-stat query failed/timed out: Command 'powershell.exe' timed out after 5 seconds
+2026-09-06 11:43:36.160053 WARNING: Could not obtain Disk 0 performance data.
+2026-09-06 11:43:36.162077 WARNING: severe pressure (RAM) (1/10)
+2026-09-06 11:43:37.971674 Top processes by RAM:
+2026-09-06 11:43:37.977744       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:43:37.977744        333.7 MB  PID   8164  msedge.exe
+2026-09-06 11:43:37.979485        282.4 MB  PID  13304  msedge.exe
+2026-09-06 11:43:37.979485        280.6 MB  PID   3008  MemCompression
+2026-09-06 11:43:37.994887        227.0 MB  PID  20332  claude.exe
+2026-09-06 11:43:37.999153        189.7 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:43:38.001171        156.0 MB  PID  27488  python.exe
+2026-09-06 11:43:38.003303        128.7 MB  PID  18100  msedge.exe
+2026-09-06 11:43:38.005344 RAM available=1900 MB used=95.0%
+2026-09-06 11:43:38.005344 WARNING: severe pressure (RAM) (2/10)
+2026-09-06 11:43:39.831194 Top processes by RAM:
+2026-09-06 11:43:39.834725       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:43:39.834725        334.2 MB  PID   8164  msedge.exe
+2026-09-06 11:43:39.834725        282.4 MB  PID  13304  msedge.exe
+2026-09-06 11:43:39.834725        280.0 MB  PID   3008  MemCompression
+2026-09-06 11:43:39.834725        227.0 MB  PID  20332  claude.exe
+2026-09-06 11:43:39.834725        189.6 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:43:39.834725        156.0 MB  PID  27488  python.exe
+2026-09-06 11:43:39.834725        128.7 MB  PID  18100  msedge.exe
+2026-09-06 11:43:39.834725 RAM available=1900 MB used=95.0%
+2026-09-06 11:43:39.834725 WARNING: severe pressure (RAM) (3/10)
+2026-09-06 11:43:41.684973 Top processes by RAM:
+2026-09-06 11:43:41.684973       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:43:41.688246        334.2 MB  PID   8164  msedge.exe
+2026-09-06 11:43:41.688246        282.4 MB  PID  13304  msedge.exe
+2026-09-06 11:43:41.689892        279.3 MB  PID   3008  MemCompression
+2026-09-06 11:43:41.689892        227.0 MB  PID  20332  claude.exe
+2026-09-06 11:43:41.701046        189.6 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:43:41.701046        156.0 MB  PID  27488  python.exe
+2026-09-06 11:43:41.701046        128.7 MB  PID  18100  msedge.exe
+2026-09-06 11:43:41.708852 RAM available=1900 MB used=95.0%
+2026-09-06 11:43:41.710453 WARNING: severe pressure (RAM) (4/10)
+2026-09-06 11:43:43.489459 Top processes by RAM:
+2026-09-06 11:43:43.489459       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:43:43.489459        334.3 MB  PID   8164  msedge.exe
+2026-09-06 11:43:43.496623        282.4 MB  PID  13304  msedge.exe
+2026-09-06 11:43:43.497845        279.4 MB  PID   3008  MemCompression
+2026-09-06 11:43:43.497845        227.1 MB  PID  20332  claude.exe
+2026-09-06 11:43:43.497845        189.6 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:43:43.497845        156.0 MB  PID  27488  python.exe
+2026-09-06 11:43:43.497845        128.7 MB  PID  18100  msedge.exe
+2026-09-06 11:43:43.505319 RAM available=1900 MB used=95.0%
+2026-09-06 11:43:43.532788 WARNING: severe pressure (RAM) (5/10)
+2026-09-06 11:43:45.330699 Top processes by RAM:
+2026-09-06 11:43:45.330699       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:43:45.330699        334.7 MB  PID   8164  msedge.exe
+2026-09-06 11:43:45.330699        282.4 MB  PID  13304  msedge.exe
+2026-09-06 11:43:45.330699        279.7 MB  PID   3008  MemCompression
+2026-09-06 11:43:45.356957        227.1 MB  PID  20332  claude.exe
+2026-09-06 11:43:45.356957        189.3 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:43:45.360511        156.0 MB  PID  27488  python.exe
+2026-09-06 11:43:45.362620        128.8 MB  PID  18100  msedge.exe
+2026-09-06 11:43:45.362620 RAM available=1900 MB used=95.0%
+2026-09-06 11:43:45.362620 WARNING: disk-stat query failed/timed out: Command 'powershell.exe' timed out after 5 seconds
+2026-09-06 11:43:45.362620 WARNING: Could not obtain Disk 0 performance data.
+2026-09-06 11:43:45.362620 WARNING: severe pressure (RAM) (6/10)
+2026-09-06 11:43:47.331777 Top processes by RAM:
+2026-09-06 11:43:47.333801       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:43:47.335825        334.7 MB  PID   8164  msedge.exe
+2026-09-06 11:43:47.335825        282.4 MB  PID  13304  msedge.exe
+2026-09-06 11:43:47.337845        278.7 MB  PID   3008  MemCompression
+2026-09-06 11:43:47.339865        227.1 MB  PID  20332  claude.exe
+2026-09-06 11:43:47.341899        192.0 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:43:47.341899        156.0 MB  PID  27488  python.exe
+2026-09-06 11:43:47.345703        128.8 MB  PID  18100  msedge.exe
+2026-09-06 11:43:47.347729 RAM available=1900 MB used=95.0%
+2026-09-06 11:43:47.349752 WARNING: severe pressure (RAM) (7/10)
+2026-09-06 11:43:49.179379 Top processes by RAM:
+2026-09-06 11:43:49.181779       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:43:49.181779        334.4 MB  PID   8164  msedge.exe
+2026-09-06 11:43:49.181779        282.4 MB  PID  13304  msedge.exe
+2026-09-06 11:43:49.181779        279.1 MB  PID   3008  MemCompression
+2026-09-06 11:43:49.181779        227.2 MB  PID  20332  claude.exe
+2026-09-06 11:43:49.181779        193.4 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:43:49.181779        156.0 MB  PID  27488  python.exe
+2026-09-06 11:43:49.181779        128.9 MB  PID  18100  msedge.exe
+2026-09-06 11:43:49.181779 RAM available=1900 MB used=95.0%
+2026-09-06 11:43:49.181779 WARNING: severe pressure (RAM) (8/10)
+2026-09-06 11:43:50.995490 Top processes by RAM:
+2026-09-06 11:43:50.995490       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:43:51.001370        334.4 MB  PID   8164  msedge.exe
+2026-09-06 11:43:51.003392        282.4 MB  PID  13304  msedge.exe
+2026-09-06 11:43:51.005415        279.0 MB  PID   3008  MemCompression
+2026-09-06 11:43:51.007466        227.2 MB  PID  20332  claude.exe
+2026-09-06 11:43:51.007466        192.8 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:43:51.009979        156.0 MB  PID  27488  python.exe
+2026-09-06 11:43:51.012000        128.9 MB  PID  18100  msedge.exe
+2026-09-06 11:43:51.014636 RAM available=1900 MB used=95.0%
+2026-09-06 11:43:51.043545 WARNING: severe pressure (RAM) (9/10)
+2026-09-06 11:43:52.858677 Top processes by RAM:
+2026-09-06 11:43:52.860704       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:43:52.862418        334.4 MB  PID   8164  msedge.exe
+2026-09-06 11:43:52.864494        282.4 MB  PID  13304  msedge.exe
+2026-09-06 11:43:52.864494        278.9 MB  PID   3008  MemCompression
+2026-09-06 11:43:52.866520        227.3 MB  PID  20332  claude.exe
+2026-09-06 11:43:52.868544        192.8 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:43:52.868544        156.0 MB  PID  27488  python.exe
+2026-09-06 11:43:52.870568        128.9 MB  PID  18100  msedge.exe
+2026-09-06 11:43:52.877543 RAM available=1900 MB used=95.0%
+2026-09-06 11:43:52.877543 WARNING: severe pressure (RAM) (10/10)
+2026-09-06 11:43:54.766297 Top processes by RAM:
+2026-09-06 11:43:54.767357       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:43:54.769014        334.9 MB  PID   8164  msedge.exe
+2026-09-06 11:43:54.770140        282.4 MB  PID  13304  msedge.exe
+2026-09-06 11:43:54.772183        279.1 MB  PID   3008  MemCompression
+2026-09-06 11:43:54.772183        227.3 MB  PID  20332  claude.exe
+2026-09-06 11:43:54.774202        192.8 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:43:54.776215        156.0 MB  PID  27488  python.exe
+2026-09-06 11:43:54.776215        128.9 MB  PID  18100  msedge.exe
+2026-09-06 11:43:54.778256 !!! EMERGENCY CONDITION TRIGGERED !!!
+2026-09-06 11:43:54.778256 Sustained severe pressure for 20s (disk_bad=False, ram_bad=True).
+2026-09-06 11:43:54.780278 Final process snapshot before shutdown:
+2026-09-06 11:43:56.636166 Top processes by RAM:
+2026-09-06 11:43:56.638217       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:43:56.639741        334.9 MB  PID   8164  msedge.exe
+2026-09-06 11:43:56.639741        284.5 MB  PID  13304  msedge.exe
+2026-09-06 11:43:56.641761        279.6 MB  PID   3008  MemCompression
+2026-09-06 11:43:56.643780        227.4 MB  PID  20332  claude.exe
+2026-09-06 11:43:56.645798        192.8 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:43:56.645798        156.0 MB  PID  27488  python.exe
+2026-09-06 11:43:56.647819        129.1 MB  PID  18100  msedge.exe
+2026-09-06 11:43:56.649838        127.8 MB  PID   2732  svchost.exe
+2026-09-06 11:43:56.703421         93.7 MB  PID  18872  explorer.exe
+2026-09-06 11:43:56.703421         88.1 MB  PID  20612  Spotify.exe
+2026-09-06 11:43:56.705449         80.9 MB  PID  13684  claude.exe
+2026-09-06 11:43:56.705449         77.4 MB  PID  18428  PhoneExperienceHost.exe
+2026-09-06 11:43:56.705449         76.5 MB  PID   8756  CrossDeviceService.exe
+2026-09-06 11:43:56.705449         70.0 MB  PID  12904  msedge.exe
+2026-09-06 11:43:56.705449 Stopping ApplyPilot process tree...
+2026-09-06 11:43:56.712281 ApplyPilot stopped due to sustained resource pressure. Machine sleep is NOT triggered by default (set APPLYPILOT_WATCHDOG_SLEEP=1 to restore that). If a restart-on-exit supervisor is running this workload, it will relaunch ApplyPilot once conditions recover.
+2026-09-06 11:43:56.735325 === ApplyPilot watchdog starting ===
+2026-09-06 11:43:56.751020 Project: C:\Users\phili\Projects\resume-agent
+2026-09-06 11:43:56.752256 Command: applypilot run discover --workers 1 --quiet
+2026-09-06 11:43:56.752256 Log file: C:\Users\phili\Projects\resume-agent\watchdog_logs\watchdog_20260906_113050.log
+2026-09-06 11:43:56.752256 Thresholds: disk active>=99% AND latency>=1000ms, OR RAM available<2000MB -- sustained 10 consecutive samples (20s) before acting.
+2026-09-06 11:43:56.752256 ApplyPilot PID: 999999
+2026-09-06 11:43:56.776072 RAM available=1900 MB used=95.0%
+2026-09-06 11:43:56.778093 WARNING: disk-stat query failed/timed out: Command 'powershell.exe' timed out after 5 seconds
+2026-09-06 11:43:56.778093 WARNING: Could not obtain Disk 0 performance data.
+2026-09-06 11:43:56.780138 WARNING: severe pressure (RAM) (1/10)
+2026-09-06 11:43:58.631110 Top processes by RAM:
+2026-09-06 11:43:58.634889       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:43:58.634889        333.9 MB  PID   8164  msedge.exe
+2026-09-06 11:43:58.634889        284.4 MB  PID  13304  msedge.exe
+2026-09-06 11:43:58.634889        280.0 MB  PID   3008  MemCompression
+2026-09-06 11:43:58.634889        228.6 MB  PID  20332  claude.exe
+2026-09-06 11:43:58.634889        192.7 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:43:58.634889        156.0 MB  PID  27488  python.exe
+2026-09-06 11:43:58.651042        129.1 MB  PID  18100  msedge.exe
+2026-09-06 11:43:58.651042 RAM available=1900 MB used=95.0%
+2026-09-06 11:43:58.666871 WARNING: severe pressure (RAM) (2/10)
+2026-09-06 11:44:00.500451 Top processes by RAM:
+2026-09-06 11:44:00.502468       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:00.502468        333.9 MB  PID   8164  msedge.exe
+2026-09-06 11:44:00.502468        285.8 MB  PID  13304  msedge.exe
+2026-09-06 11:44:00.502468        280.9 MB  PID   3008  MemCompression
+2026-09-06 11:44:00.502468        228.0 MB  PID  20332  claude.exe
+2026-09-06 11:44:00.502468        192.8 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:00.502468        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:00.502468        129.1 MB  PID  18100  msedge.exe
+2026-09-06 11:44:00.502468 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:00.502468 WARNING: severe pressure (RAM) (3/10)
+2026-09-06 11:44:02.338114 Top processes by RAM:
+2026-09-06 11:44:02.338114       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:02.338114        333.8 MB  PID   8164  msedge.exe
+2026-09-06 11:44:02.338114        285.8 MB  PID  13304  msedge.exe
+2026-09-06 11:44:02.345945        281.4 MB  PID   3008  MemCompression
+2026-09-06 11:44:02.345945        228.1 MB  PID  20332  claude.exe
+2026-09-06 11:44:02.350066        192.7 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:02.350066        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:02.352082        129.1 MB  PID  18100  msedge.exe
+2026-09-06 11:44:02.352082 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:02.369824 WARNING: severe pressure (RAM) (4/10)
+2026-09-06 11:44:04.204250 Top processes by RAM:
+2026-09-06 11:44:04.204250       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:04.204250        334.0 MB  PID   8164  msedge.exe
+2026-09-06 11:44:04.211401        285.8 MB  PID  13304  msedge.exe
+2026-09-06 11:44:04.211401        281.4 MB  PID   3008  MemCompression
+2026-09-06 11:44:04.211401        228.1 MB  PID  20332  claude.exe
+2026-09-06 11:44:04.211401        192.7 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:04.211401        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:04.211401        129.1 MB  PID  18100  msedge.exe
+2026-09-06 11:44:04.211401 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:04.211401 WARNING: severe pressure (RAM) (5/10)
+2026-09-06 11:44:05.998062 Top processes by RAM:
+2026-09-06 11:44:05.998062       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:06.000128        334.0 MB  PID   8164  msedge.exe
+2026-09-06 11:44:06.002149        298.4 MB  PID   3008  MemCompression
+2026-09-06 11:44:06.002149        285.8 MB  PID  13304  msedge.exe
+2026-09-06 11:44:06.004673        228.2 MB  PID  20332  claude.exe
+2026-09-06 11:44:06.006739        185.8 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:06.008755        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:06.010771        129.4 MB  PID  18100  msedge.exe
+2026-09-06 11:44:06.012735 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:06.013255 WARNING: disk-stat query failed/timed out: Command 'powershell.exe' timed out after 5 seconds
+2026-09-06 11:44:06.013255 WARNING: Could not obtain Disk 0 performance data.
+2026-09-06 11:44:06.015289 WARNING: severe pressure (RAM) (6/10)
+2026-09-06 11:44:07.845984 Top processes by RAM:
+2026-09-06 11:44:07.845984       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:07.851960        334.0 MB  PID   8164  msedge.exe
+2026-09-06 11:44:07.854549        298.3 MB  PID   3008  MemCompression
+2026-09-06 11:44:07.854549        285.8 MB  PID  13304  msedge.exe
+2026-09-06 11:44:07.856567        228.2 MB  PID  20332  claude.exe
+2026-09-06 11:44:07.858585        186.0 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:07.860624        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:07.860624        129.4 MB  PID  18100  msedge.exe
+2026-09-06 11:44:07.862637 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:07.862637 WARNING: severe pressure (RAM) (7/10)
+2026-09-06 11:44:09.696054 Top processes by RAM:
+2026-09-06 11:44:09.698123       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:09.700142        334.4 MB  PID   8164  msedge.exe
+2026-09-06 11:44:09.700795        298.5 MB  PID   3008  MemCompression
+2026-09-06 11:44:09.700795        286.8 MB  PID  13304  msedge.exe
+2026-09-06 11:44:09.700795        228.3 MB  PID  20332  claude.exe
+2026-09-06 11:44:09.737538        186.0 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:09.739562        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:09.739562        129.4 MB  PID  18100  msedge.exe
+2026-09-06 11:44:09.739562 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:09.743638 WARNING: severe pressure (RAM) (8/10)
+2026-09-06 11:44:11.497124 Top processes by RAM:
+2026-09-06 11:44:11.506551       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:11.506551        334.5 MB  PID   8164  msedge.exe
+2026-09-06 11:44:11.506551        297.6 MB  PID   3008  MemCompression
+2026-09-06 11:44:11.506551        286.8 MB  PID  13304  msedge.exe
+2026-09-06 11:44:11.506551        228.3 MB  PID  20332  claude.exe
+2026-09-06 11:44:11.512906        185.9 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:11.514940        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:11.514940        129.4 MB  PID  18100  msedge.exe
+2026-09-06 11:44:11.517445 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:11.517445 WARNING: severe pressure (RAM) (9/10)
+2026-09-06 11:44:13.341301 Top processes by RAM:
+2026-09-06 11:44:13.341301       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:13.341301        335.1 MB  PID   8164  msedge.exe
+2026-09-06 11:44:13.341301        301.8 MB  PID   3008  MemCompression
+2026-09-06 11:44:13.341301        286.8 MB  PID  13304  msedge.exe
+2026-09-06 11:44:13.341301        228.4 MB  PID  20332  claude.exe
+2026-09-06 11:44:13.341301        185.9 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:13.351908        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:13.353104        129.4 MB  PID  18100  msedge.exe
+2026-09-06 11:44:13.353104 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:13.353104 WARNING: severe pressure (RAM) (10/10)
+2026-09-06 11:44:15.100922 Top processes by RAM:
+2026-09-06 11:44:15.100922       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:15.100922        335.1 MB  PID   8164  msedge.exe
+2026-09-06 11:44:15.100922        305.4 MB  PID   3008  MemCompression
+2026-09-06 11:44:15.100922        286.8 MB  PID  13304  msedge.exe
+2026-09-06 11:44:15.117222        228.4 MB  PID  20332  claude.exe
+2026-09-06 11:44:15.117222        185.6 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:15.117222        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:15.117222        129.4 MB  PID  18100  msedge.exe
+2026-09-06 11:44:15.135353 !!! EMERGENCY CONDITION TRIGGERED !!!
+2026-09-06 11:44:15.135353 Sustained severe pressure for 20s (disk_bad=False, ram_bad=True).
+2026-09-06 11:44:15.551421 Final process snapshot before shutdown:
+2026-09-06 11:44:17.383573 Top processes by RAM:
+2026-09-06 11:44:17.383573       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:17.383573        335.1 MB  PID   8164  msedge.exe
+2026-09-06 11:44:17.383573        315.5 MB  PID   3008  MemCompression
+2026-09-06 11:44:17.383573        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:17.389304        228.5 MB  PID  20332  claude.exe
+2026-09-06 11:44:17.389304        185.6 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:17.389304        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:17.389304        129.2 MB  PID  18100  msedge.exe
+2026-09-06 11:44:17.389304        128.1 MB  PID   2732  svchost.exe
+2026-09-06 11:44:17.389304         93.7 MB  PID  18872  explorer.exe
+2026-09-06 11:44:17.389304         88.1 MB  PID  20612  Spotify.exe
+2026-09-06 11:44:17.389304         81.3 MB  PID  13684  claude.exe
+2026-09-06 11:44:17.398452         77.4 MB  PID  18428  PhoneExperienceHost.exe
+2026-09-06 11:44:17.400470         76.5 MB  PID   8756  CrossDeviceService.exe
+2026-09-06 11:44:17.402488         71.6 MB  PID  22052  msedgewebview2.exe
+2026-09-06 11:44:17.402488 Stopping ApplyPilot process tree...
+2026-09-06 11:44:17.404506 ApplyPilot stopped due to sustained resource pressure. Machine sleep is NOT triggered by default (set APPLYPILOT_WATCHDOG_SLEEP=1 to restore that). If a restart-on-exit supervisor is running this workload, it will relaunch ApplyPilot once conditions recover.
+2026-09-06 11:44:17.452635 === ApplyPilot watchdog starting ===
+2026-09-06 11:44:17.452635 Project: C:\Users\phili\Projects\resume-agent
+2026-09-06 11:44:17.452635 Command: applypilot run discover --workers 1 --quiet
+2026-09-06 11:44:17.452635 Log file: C:\Users\phili\Projects\resume-agent\watchdog_logs\watchdog_20260906_113050.log
+2026-09-06 11:44:17.452635 Thresholds: disk active>=99% AND latency>=1000ms, OR RAM available<2000MB -- sustained 10 consecutive samples (20s) before acting.
+2026-09-06 11:44:17.452635 ApplyPilot PID: 999999
+2026-09-06 11:44:17.452635 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:17.468594 WARNING: disk-stat query failed/timed out: Command 'powershell.exe' timed out after 5 seconds
+2026-09-06 11:44:17.468594 WARNING: Could not obtain Disk 0 performance data.
+2026-09-06 11:44:17.468594 WARNING: severe pressure (RAM) (1/10)
+2026-09-06 11:44:19.375116 Top processes by RAM:
+2026-09-06 11:44:19.375116       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:19.380871        335.1 MB  PID   8164  msedge.exe
+2026-09-06 11:44:19.380871        304.6 MB  PID   3008  MemCompression
+2026-09-06 11:44:19.383442        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:19.383442        228.6 MB  PID  20332  claude.exe
+2026-09-06 11:44:19.421082        185.0 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:19.421082        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:19.481801        129.2 MB  PID  18100  msedge.exe
+2026-09-06 11:44:19.484507 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:19.486533 WARNING: severe pressure (RAM) (2/10)
+2026-09-06 11:44:21.366626 Top processes by RAM:
+2026-09-06 11:44:21.366626       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:21.366626        335.0 MB  PID   8164  msedge.exe
+2026-09-06 11:44:21.376439        302.1 MB  PID   3008  MemCompression
+2026-09-06 11:44:21.378464        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:21.378464        228.6 MB  PID  20332  claude.exe
+2026-09-06 11:44:21.378464        185.2 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:21.378464        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:21.378464        129.2 MB  PID  18100  msedge.exe
+2026-09-06 11:44:21.382612 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:21.384631 WARNING: severe pressure (RAM) (3/10)
+2026-09-06 11:44:23.209032 Top processes by RAM:
+2026-09-06 11:44:23.210748       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:23.210748        335.0 MB  PID   8164  msedge.exe
+2026-09-06 11:44:23.210748        298.5 MB  PID   3008  MemCompression
+2026-09-06 11:44:23.215502        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:23.215502        228.6 MB  PID  20332  claude.exe
+2026-09-06 11:44:23.215502        185.1 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:23.354961        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:23.354961        129.2 MB  PID  18100  msedge.exe
+2026-09-06 11:44:23.356985 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:23.361048 WARNING: severe pressure (RAM) (4/10)
+2026-09-06 11:44:25.174112 Top processes by RAM:
+2026-09-06 11:44:25.174112       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:25.174112        334.6 MB  PID   8164  msedge.exe
+2026-09-06 11:44:25.174112        298.2 MB  PID   3008  MemCompression
+2026-09-06 11:44:25.174112        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:25.174112        228.7 MB  PID  20332  claude.exe
+2026-09-06 11:44:25.185535        185.0 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:25.187059        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:25.187059        129.3 MB  PID  18100  msedge.exe
+2026-09-06 11:44:25.187059 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:25.208279 WARNING: severe pressure (RAM) (5/10)
+2026-09-06 11:44:26.940447 Top processes by RAM:
+2026-09-06 11:44:26.944485       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:26.944485        334.6 MB  PID   8164  msedge.exe
+2026-09-06 11:44:26.944485        299.5 MB  PID   3008  MemCompression
+2026-09-06 11:44:26.948269        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:26.948269        228.8 MB  PID  20332  claude.exe
+2026-09-06 11:44:26.948269        185.0 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:26.948269        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:26.948269        129.3 MB  PID  18100  msedge.exe
+2026-09-06 11:44:26.954863 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:26.956887 WARNING: disk-stat query failed/timed out: Command 'powershell.exe' timed out after 5 seconds
+2026-09-06 11:44:26.956887 WARNING: Could not obtain Disk 0 performance data.
+2026-09-06 11:44:26.956887 WARNING: severe pressure (RAM) (6/10)
+2026-09-06 11:44:28.796861 Top processes by RAM:
+2026-09-06 11:44:28.796861       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:28.796861        340.3 MB  PID   3008  MemCompression
+2026-09-06 11:44:28.796861        334.2 MB  PID   8164  msedge.exe
+2026-09-06 11:44:28.796861        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:28.812819        228.8 MB  PID  20332  claude.exe
+2026-09-06 11:44:28.812819        185.0 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:28.814839        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:28.814839        129.3 MB  PID  18100  msedge.exe
+2026-09-06 11:44:28.816879 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:28.816879 WARNING: severe pressure (RAM) (7/10)
+2026-09-06 11:44:30.919822 Top processes by RAM:
+2026-09-06 11:44:30.919822       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:30.919822        339.2 MB  PID   3008  MemCompression
+2026-09-06 11:44:30.919822        334.3 MB  PID   8164  msedge.exe
+2026-09-06 11:44:30.919822        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:30.926557        228.8 MB  PID  20332  claude.exe
+2026-09-06 11:44:30.928581        188.2 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:30.928581        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:30.930608        129.4 MB  PID  18100  msedge.exe
+2026-09-06 11:44:30.932634 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:30.935680 WARNING: severe pressure (RAM) (8/10)
+2026-09-06 11:44:32.734081 Top processes by RAM:
+2026-09-06 11:44:32.734081       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:32.734081        337.4 MB  PID   3008  MemCompression
+2026-09-06 11:44:32.737732        334.5 MB  PID   8164  msedge.exe
+2026-09-06 11:44:32.737732        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:32.737732        228.9 MB  PID  20332  claude.exe
+2026-09-06 11:44:32.737732        189.5 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:32.737732        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:32.737732        129.4 MB  PID  18100  msedge.exe
+2026-09-06 11:44:32.737732 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:32.737732 WARNING: severe pressure (RAM) (9/10)
+2026-09-06 11:44:34.611583 Top processes by RAM:
+2026-09-06 11:44:34.615589       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:34.615589        336.5 MB  PID   3008  MemCompression
+2026-09-06 11:44:34.617608        334.4 MB  PID   8164  msedge.exe
+2026-09-06 11:44:34.619620        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:34.619620        228.9 MB  PID  20332  claude.exe
+2026-09-06 11:44:34.665705        189.5 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:34.667626        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:34.667626        129.4 MB  PID  18100  msedge.exe
+2026-09-06 11:44:34.669639 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:34.669639 WARNING: severe pressure (RAM) (10/10)
+2026-09-06 11:44:36.516284 Top processes by RAM:
+2026-09-06 11:44:36.516284       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:36.516284        334.5 MB  PID   8164  msedge.exe
+2026-09-06 11:44:36.516284        333.2 MB  PID   3008  MemCompression
+2026-09-06 11:44:36.525979        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:36.525979        228.9 MB  PID  20332  claude.exe
+2026-09-06 11:44:36.529364        189.5 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:36.531381        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:36.564072        129.4 MB  PID  18100  msedge.exe
+2026-09-06 11:44:36.564072 !!! EMERGENCY CONDITION TRIGGERED !!!
+2026-09-06 11:44:36.564072 Sustained severe pressure for 20s (disk_bad=False, ram_bad=True).
+2026-09-06 11:44:36.564072 Final process snapshot before shutdown:
+2026-09-06 11:44:38.385636 Top processes by RAM:
+2026-09-06 11:44:38.395065       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:38.397101        334.4 MB  PID   8164  msedge.exe
+2026-09-06 11:44:38.397101        331.9 MB  PID   3008  MemCompression
+2026-09-06 11:44:38.397101        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:38.401357        229.0 MB  PID  20332  claude.exe
+2026-09-06 11:44:38.401357        189.6 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:38.401357        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:38.401357        129.4 MB  PID  18100  msedge.exe
+2026-09-06 11:44:38.401357        128.7 MB  PID   2732  svchost.exe
+2026-09-06 11:44:38.401357         93.5 MB  PID  18872  explorer.exe
+2026-09-06 11:44:38.401357         88.2 MB  PID  20612  Spotify.exe
+2026-09-06 11:44:38.401357         81.5 MB  PID  13684  claude.exe
+2026-09-06 11:44:38.401357         77.4 MB  PID  18428  PhoneExperienceHost.exe
+2026-09-06 11:44:38.401357         76.5 MB  PID   8756  CrossDeviceService.exe
+2026-09-06 11:44:38.412776         70.0 MB  PID  12904  msedge.exe
+2026-09-06 11:44:38.412776 Stopping ApplyPilot process tree...
+2026-09-06 11:44:38.415124 APPLYPILOT_WATCHDOG_SLEEP=1 -- attempting to put Windows to sleep...
+2026-09-06 11:44:38.417187 WARNING: sleep command did not return within 15s -- abandoning it (ApplyPilot is already stopped).
+2026-09-06 11:44:38.458902 === ApplyPilot watchdog starting ===
+2026-09-06 11:44:38.460923 Project: C:\Users\phili\Projects\resume-agent
+2026-09-06 11:44:38.462945 Command: applypilot run discover --workers 1 --quiet
+2026-09-06 11:44:38.470141 Log file: C:\Users\phili\Projects\resume-agent\watchdog_logs\watchdog_20260906_113050.log
+2026-09-06 11:44:38.470141 Thresholds: disk active>=99% AND latency>=1000ms, OR RAM available<2000MB -- sustained 10 consecutive samples (20s) before acting.
+2026-09-06 11:44:38.470141 ApplyPilot PID: 999999
+2026-09-06 11:44:38.470141 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:38.470141 WARNING: Could not obtain Disk 0 performance data.
+2026-09-06 11:44:38.470141 WARNING: severe pressure (RAM) (1/10)
+2026-09-06 11:44:40.333100 Top processes by RAM:
+2026-09-06 11:44:40.343198       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:40.343198        334.8 MB  PID   8164  msedge.exe
+2026-09-06 11:44:40.343198        332.2 MB  PID   3008  MemCompression
+2026-09-06 11:44:40.348735        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:40.348735        229.1 MB  PID  20332  claude.exe
+2026-09-06 11:44:40.348735        189.6 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:40.348735        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:40.348735        129.4 MB  PID  18100  msedge.exe
+2026-09-06 11:44:40.348735 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:40.348735 WARNING: severe pressure (RAM) (2/10)
+2026-09-06 11:44:42.159074 Top processes by RAM:
+2026-09-06 11:44:42.161085       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:42.161085        334.8 MB  PID   8164  msedge.exe
+2026-09-06 11:44:42.165025        332.1 MB  PID   3008  MemCompression
+2026-09-06 11:44:42.165025        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:42.165025        229.1 MB  PID  20332  claude.exe
+2026-09-06 11:44:42.165025        189.6 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:42.165025        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:42.190589        129.4 MB  PID  18100  msedge.exe
+2026-09-06 11:44:42.203712 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:42.205728 WARNING: severe pressure (RAM) (3/10)
+2026-09-06 11:44:44.122872 Top processes by RAM:
+2026-09-06 11:44:44.125822       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:44.125822        334.9 MB  PID   8164  msedge.exe
+2026-09-06 11:44:44.125822        331.9 MB  PID   3008  MemCompression
+2026-09-06 11:44:44.125822        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:44.125822        229.2 MB  PID  20332  claude.exe
+2026-09-06 11:44:44.125822        189.5 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:44.125822        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:44.125822        129.4 MB  PID  18100  msedge.exe
+2026-09-06 11:44:44.125822 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:44.125822 WARNING: severe pressure (RAM) (4/10)
+2026-09-06 11:44:45.947920 Top processes by RAM:
+2026-09-06 11:44:45.947920       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:45.950959        335.0 MB  PID   8164  msedge.exe
+2026-09-06 11:44:45.950959        332.3 MB  PID   3008  MemCompression
+2026-09-06 11:44:45.953319        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:45.955339        229.2 MB  PID  20332  claude.exe
+2026-09-06 11:44:45.955339        189.5 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:45.957360        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:45.959381        129.4 MB  PID  18100  msedge.exe
+2026-09-06 11:44:45.959381 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:45.961401 WARNING: severe pressure (RAM) (5/10)
+2026-09-06 11:44:47.703830 Top processes by RAM:
+2026-09-06 11:44:47.707396       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:47.707396        334.6 MB  PID   8164  msedge.exe
+2026-09-06 11:44:47.709417        332.5 MB  PID   3008  MemCompression
+2026-09-06 11:44:47.709417        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:47.711430        229.3 MB  PID  20332  claude.exe
+2026-09-06 11:44:47.711430        190.0 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:47.713188        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:47.713188        129.4 MB  PID  18100  msedge.exe
+2026-09-06 11:44:47.713188 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:47.713188 WARNING: Could not obtain Disk 0 performance data.
+2026-09-06 11:44:47.713188 WARNING: severe pressure (RAM) (6/10)
+2026-09-06 11:44:49.419370 Top processes by RAM:
+2026-09-06 11:44:49.419370       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:49.419370        334.8 MB  PID   8164  msedge.exe
+2026-09-06 11:44:49.419370        332.7 MB  PID   3008  MemCompression
+2026-09-06 11:44:49.419370        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:49.450306        229.3 MB  PID  20332  claude.exe
+2026-09-06 11:44:49.450306        189.2 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:49.450306        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:49.463510        129.4 MB  PID  18100  msedge.exe
+2026-09-06 11:44:49.463510 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:49.466713 WARNING: severe pressure (RAM) (7/10)
+2026-09-06 11:44:51.270731 Top processes by RAM:
+2026-09-06 11:44:51.270731       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:51.270731        334.8 MB  PID   8164  msedge.exe
+2026-09-06 11:44:51.270731        332.7 MB  PID   3008  MemCompression
+2026-09-06 11:44:51.270731        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:51.270731        229.4 MB  PID  20332  claude.exe
+2026-09-06 11:44:51.270731        189.3 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:51.283366        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:51.286464        129.4 MB  PID  18100  msedge.exe
+2026-09-06 11:44:51.286464 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:51.286464 WARNING: severe pressure (RAM) (8/10)
+2026-09-06 11:44:53.118990 Top processes by RAM:
+2026-09-06 11:44:53.118990       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:53.122051        334.8 MB  PID   8164  msedge.exe
+2026-09-06 11:44:53.122051        332.7 MB  PID   3008  MemCompression
+2026-09-06 11:44:53.124073        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:53.160098        229.4 MB  PID  20332  claude.exe
+2026-09-06 11:44:53.160098        189.3 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:53.160098        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:53.160098        129.4 MB  PID  18100  msedge.exe
+2026-09-06 11:44:53.160098 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:53.160098 WARNING: severe pressure (RAM) (9/10)
+2026-09-06 11:44:55.024531 Top processes by RAM:
+2026-09-06 11:44:55.029140       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:55.029140        334.8 MB  PID   8164  msedge.exe
+2026-09-06 11:44:55.029140        332.4 MB  PID   3008  MemCompression
+2026-09-06 11:44:55.033002        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:55.033002        229.5 MB  PID  20332  claude.exe
+2026-09-06 11:44:55.035027        189.3 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:55.037047        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:55.039103        129.5 MB  PID  18100  msedge.exe
+2026-09-06 11:44:55.040969 RAM available=1900 MB used=95.0%
+2026-09-06 11:44:55.041978 WARNING: severe pressure (RAM) (10/10)
+2026-09-06 11:44:56.872345 Top processes by RAM:
+2026-09-06 11:44:56.874354       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:56.876403        334.5 MB  PID   8164  msedge.exe
+2026-09-06 11:44:56.878432        328.5 MB  PID   3008  MemCompression
+2026-09-06 11:44:56.878432        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:56.881017        229.5 MB  PID  20332  claude.exe
+2026-09-06 11:44:56.881017        189.3 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:56.883034        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:56.883034        129.5 MB  PID  18100  msedge.exe
+2026-09-06 11:44:56.883034 !!! EMERGENCY CONDITION TRIGGERED !!!
+2026-09-06 11:44:56.885044 Sustained severe pressure for 20s (disk_bad=False, ram_bad=True).
+2026-09-06 11:44:56.886097 Final process snapshot before shutdown:
+2026-09-06 11:44:58.667093 Top processes by RAM:
+2026-09-06 11:44:58.668524       5530.6 MB  PID  19880  llama-server.exe
+2026-09-06 11:44:58.670559        336.3 MB  PID   3008  MemCompression
+2026-09-06 11:44:58.671575        334.5 MB  PID   8164  msedge.exe
+2026-09-06 11:44:58.671575        284.7 MB  PID  13304  msedge.exe
+2026-09-06 11:44:58.673286        229.5 MB  PID  20332  claude.exe
+2026-09-06 11:44:58.675303        189.3 MB  PID  11900  MsMpEng.exe
+2026-09-06 11:44:58.675303        156.0 MB  PID  27488  python.exe
+2026-09-06 11:44:58.679614        129.5 MB  PID  18100  msedge.exe
+2026-09-06 11:44:58.681716        128.8 MB  PID   2732  svchost.exe
+2026-09-06 11:44:58.681716         93.5 MB  PID  18872  explorer.exe
+2026-09-06 11:44:58.681716         88.7 MB  PID  20612  Spotify.exe
+2026-09-06 11:44:58.683729         81.3 MB  PID  13684  claude.exe
+2026-09-06 11:44:58.683729         77.4 MB  PID  18428  PhoneExperienceHost.exe
+2026-09-06 11:44:58.685740         76.6 MB  PID   8756  CrossDeviceService.exe
+2026-09-06 11:44:58.685740         70.0 MB  PID  12904  msedge.exe
+2026-09-06 11:44:58.687751 Stopping ApplyPilot process tree...
+2026-09-06 11:44:58.689765 ApplyPilot stopped due to sustained resource pressure. Machine sleep is NOT triggered by default (set APPLYPILOT_WATCHDOG_SLEEP=1 to restore that). If a restart-on-exit supervisor is running this workload, it will relaunch ApplyPilot once conditions recover.
