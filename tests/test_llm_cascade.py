@@ -462,19 +462,14 @@ class TestRealOllamaIntegration(unittest.TestCase):
             client = LLMClient(raw_url, model, "", quality=False)
             client._fallback_chain = pinned_chain
 
-            # max_tokens generously high: qwen3's thinking tokens (visible
-            # via Ollama's OpenAI-compat "reasoning" field, separate from
-            # "content") consume budget before any content is emitted, and
-            # this module's "/no_think" prompt-prefix convention (chat()'s
-            # "Qwen3 optimization") does NOT actually suppress that on this
-            # endpoint -- confirmed live: with max_tokens=200 the reasoning
-            # alone exhausts the budget (finish_reason="length", content
-            # ""), deterministically at temperature=0. That's a separate,
-            # pre-existing behavior (local_tailor.py's own Ollama-native
-            # call sidesteps it with the real "think": false API param
-            # instead of a prompt prefix) -- not the 404/routing bug this
-            # test targets, so it's worked around here with headroom
-            # rather than fixed.
+            # max_tokens generously high: even with chat()'s "think": false
+            # payload field (2026-09-06, replaced the old "/no_think" prompt
+            # prefix -- real testing found the prefix didn't reliably
+            # suppress qwen3's thinking, the API field does) a short
+            # max_tokens budget can still starve the visible answer on this
+            # model -- not the 404/routing bug this test targets, so it's
+            # worked around here with headroom rather than investigated
+            # further.
             reply = client.chat(
                 [{"role": "user", "content": "Reply with exactly: OK"}],
                 max_tokens=1000,
@@ -736,9 +731,25 @@ class TestLocalExcludedFromScoringButAvailableForExplicitLocalTasks(unittest.Tes
 
         self.assertEqual([e.provider for e in client._fallback_chain], ["local"])
 
-    # 5 & 6. /no_think keyed on the actually-attempted model (not self.model);
-    #        the caller's original messages list is never mutated.
-    def test_5_and_6_no_think_keyed_on_attempted_model_and_messages_not_mutated(self):
+    # 5 & 6. `think: false` keyed on the actually-attempted model (not
+    #        self.model); the caller's original messages list is never
+    #        mutated.
+    #
+    # 2026-09-06: rewritten. The prior `/no_think` prompt-prefix mechanism
+    # (which these tests originally asserted) was replaced outright -- real
+    # A/B testing (data/experiments/editor_reliability_retest_20260906/)
+    # found it doesn't reliably suppress qwen3's thinking even when
+    # correctly applied (edit_sentence_for_requirement failed 5/5 with empty
+    # content, prefix confirmed present and positionally correct). Ollama's
+    # actual `think` API field, passed as a top-level payload field, is
+    # enforced at generation time rather than being a prompt-level hint the
+    # model can ignore -- same call, same model, reliably succeeded. Since
+    # the new mechanism doesn't touch `messages` at all (no scanning, no
+    # copying, no positional dependency), the old system-message-precedes-
+    # user-message regression test (2026-09-04) no longer has a failure mode
+    # to guard -- folded into this test as a message-order-doesn't-matter
+    # case instead of kept as a separate, now-vacuous test.
+    def test_think_field_keyed_on_attempted_model_and_messages_not_mutated(self):
         import copy
 
         from applypilot.llm import LLMClient, ModelEntry
@@ -752,7 +763,12 @@ class TestLocalExcludedFromScoringButAvailableForExplicitLocalTasks(unittest.Tes
                 base_url="https://fake.gemini/v1", model="gemini-3.6-flash", api_key="fake-key", quality=False
             )
 
-        original_messages = [{"role": "user", "content": "score this job"}]
+        # System-first shape (2026-09-04's regression shape) -- the new
+        # mechanism must not care about message order at all.
+        original_messages = [
+            {"role": "system", "content": "You are a resume assistant."},
+            {"role": "user", "content": "score this job"},
+        ]
         original_snapshot = copy.deepcopy(original_messages)
         calls = []
 
@@ -775,59 +791,14 @@ class TestLocalExcludedFromScoringButAvailableForExplicitLocalTasks(unittest.Tes
         self.assertEqual(result, "qwen reply")
         self.assertEqual(len(calls), 2)
         gemini_payload, qwen_payload = calls
-        self.assertFalse(gemini_payload["messages"][0]["content"].startswith("/no_think"))
-        self.assertTrue(qwen_payload["messages"][0]["content"].startswith("/no_think"))
+        self.assertNotIn("think", gemini_payload)
+        self.assertIs(qwen_payload["think"], False)
+        # messages sent to Ollama are the exact original list, untouched --
+        # no prefix injection means nothing to scan or rewrite.
+        self.assertEqual(qwen_payload["messages"], original_messages)
 
-        # requirement 6: the caller's original list/dicts are untouched --
-        # not mutated in place, and no /no_think leaked into it even though
-        # a later fallback attempt needed the prefix.
+        # requirement 6: the caller's original list/dicts are untouched.
         self.assertEqual(original_messages, original_snapshot)
-
-    def test_no_think_applied_when_system_message_precedes_user_message(self):
-        """2026-09-04 regression, found via a real degraded-mode realization
-        pilot run (data/experiments/deterministic_slotfiller_20260902/
-        proxy_label_pilot.py): the /no_think injection only ever checked
-        messages[0]'s role, so any system+user prompt (exactly the shape
-        local_tailor.request_local_realization sends -- [{"role":"system"},
-        {"role":"user"}]) had its SYSTEM message at index 0, and the
-        'first.get("role") == "user"' check was always False -- /no_think
-        silently never applied at all for that call shape. Confirmed live:
-        15/15 real degraded-mode realization pilot calls failed regardless
-        of evidence strength, 8 with exactly 'Null/empty content' (qwen3
-        spending its whole max_tokens budget on unsuppressed <think>
-        reasoning); a direct A/B (system-first vs. user-first, same
-        trivial prompt) showed 39s vs. 17s, consistent with thinking left
-        enabled. Fix: search for the first user-role message anywhere in
-        the list, not just index 0."""
-        from applypilot.llm import LLMClient, ModelEntry
-
-        fake_chain = [ModelEntry("qwen3:1.7b", "local", "http://localhost:11434/v1", "")]
-        with patch("applypilot.llm._build_fallback_chain", return_value=fake_chain):
-            client = LLMClient(base_url="http://localhost:11434/v1", model="qwen3:1.7b", api_key="", quality=True)
-
-        messages = [
-            {"role": "system", "content": "You are a resume assistant."},
-            {"role": "user", "content": "Realize this bullet."},
-        ]
-        calls = []
-
-        def fake_post(url, **kwargs):
-            calls.append(kwargs["json"])
-            resp = MagicMock()
-            resp.status_code = 200
-            resp.raise_for_status.return_value = None
-            resp.json.return_value = {"choices": [{"message": {"content": "ok"}}]}
-            return resp
-
-        with patch.object(client._client, "post", side_effect=fake_post):
-            client.chat(messages)
-
-        self.assertEqual(len(calls), 1)
-        sent = calls[0]["messages"]
-        self.assertEqual(sent[0]["role"], "system")
-        self.assertFalse(sent[0]["content"].startswith("/no_think"))
-        self.assertEqual(sent[1]["role"], "user")
-        self.assertTrue(sent[1]["content"].startswith("/no_think"))
 
     # 7. The local diagnostic log still receives successful local responses
     #    (and only local responses -- never cloud ones).
@@ -876,6 +847,154 @@ class TestLocalExcludedFromScoringButAvailableForExplicitLocalTasks(unittest.Tes
             client.chat([{"role": "user", "content": "hi"}])
 
         mock_diag.assert_not_called()
+
+
+class TestOllamaNativeFastPath(unittest.TestCase):
+    """2026-09-06: opt-in APPLYPILOT_LOCAL_OLLAMA_NATIVE routes local-provider
+    calls through Ollama's native /api/chat instead of the OpenAI-compat
+    shim -- real testing found it ~10x faster (3-4.5s vs 30-55s) and more
+    reliable for qwen3:1.7b once the same session's `think` field fix was
+    already in place. Off by default: APPLYPILOT_LOCAL_LLM_URL is documented
+    as "llama.cpp / Ollama compatible," and a llama.cpp server has no
+    /api/chat route."""
+
+    def _client(self, chain):
+        from applypilot.llm import LLMClient
+
+        with patch("applypilot.llm._build_fallback_chain", return_value=chain):
+            client = LLMClient(base_url=chain[0].base_url, model=chain[0].name, api_key="", quality=True)
+        client._fallback_chain = chain
+        return client
+
+    def test_default_off_still_uses_openai_compat(self):
+        """Regression guard: without the opt-in env var, a local entry must
+        keep going through _try_openai_compat exactly as before -- the new
+        dispatch branch must not change default behavior."""
+        from applypilot.llm import ModelEntry
+
+        chain = [ModelEntry("qwen3:1.7b", "local", "http://localhost:11434/v1", "")]
+        client = self._client(chain)
+
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = {"choices": [{"message": {"content": "compat reply"}}]}
+
+        with patch.dict("os.environ", {"APPLYPILOT_LOCAL_OLLAMA_NATIVE": ""}):
+            with patch.object(client._client, "post", return_value=resp) as mock_post:
+                result = client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertEqual(result, "compat reply")
+        called_url = mock_post.call_args[0][0]
+        self.assertTrue(called_url.endswith("/chat/completions"))
+
+    def test_opt_in_uses_native_endpoint_and_strips_v1(self):
+        from applypilot.llm import ModelEntry
+
+        chain = [ModelEntry("qwen3:1.7b", "local", "http://localhost:11434/v1", "")]
+        client = self._client(chain)
+
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = {"message": {"content": "native reply"}}
+
+        with (
+            patch.dict("os.environ", {"APPLYPILOT_LOCAL_OLLAMA_NATIVE": "1"}),
+            patch.object(client._client, "post", return_value=resp) as mock_post,
+        ):
+            result = client.chat([{"role": "user", "content": "hi"}], max_tokens=700)
+
+        self.assertEqual(result, "native reply")
+        called_url = mock_post.call_args[0][0]
+        self.assertEqual(called_url, "http://localhost:11434/api/chat")
+        sent = mock_post.call_args.kwargs["json"]
+        self.assertEqual(sent["options"]["num_predict"], 700)
+        self.assertIs(sent["think"], False)
+        self.assertEqual(sent["messages"], [{"role": "user", "content": "hi"}])
+
+    def test_native_empty_content_falls_through_to_next_entry(self):
+        from applypilot.llm import ModelEntry
+
+        chain = [
+            ModelEntry("qwen3:1.7b", "local", "http://localhost:11434/v1", ""),
+            ModelEntry("gemini-3.6-flash", "gemini", "https://fake.gemini/v1", "fake-key"),
+        ]
+        client = self._client(chain)
+
+        def fake_post(url, **kwargs):
+            resp = MagicMock()
+            resp.status_code = 200
+            resp.raise_for_status.return_value = None
+            if url == "http://localhost:11434/api/chat":
+                resp.json.return_value = {"message": {"content": ""}}
+            else:
+                resp.json.return_value = {"choices": [{"message": {"content": "gemini reply"}}]}
+            return resp
+
+        with (
+            patch.dict("os.environ", {"APPLYPILOT_LOCAL_OLLAMA_NATIVE": "1"}),
+            patch.object(client._client, "post", side_effect=fake_post),
+        ):
+            result = client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertEqual(result, "gemini reply")
+
+    def test_native_http_error_falls_back_to_openai_compat_same_entry(self):
+        """A misconfigured opt-in (endpoint isn't actually Ollama, e.g.
+        llama.cpp with no /api/chat route) must degrade to the previously-
+        only compat path for that SAME entry, not break the call."""
+        import httpx as httpx_mod
+
+        from applypilot.llm import ModelEntry
+
+        chain = [ModelEntry("qwen3:1.7b", "local", "http://localhost:11434/v1", "")]
+        client = self._client(chain)
+
+        def fake_post(url, **kwargs):
+            if url == "http://localhost:11434/api/chat":
+                resp = MagicMock()
+                resp.status_code = 404
+                resp.raise_for_status.side_effect = httpx_mod.HTTPStatusError(
+                    "not found", request=MagicMock(), response=MagicMock(status_code=404)
+                )
+                return resp
+            resp = MagicMock()
+            resp.status_code = 200
+            resp.raise_for_status.return_value = None
+            resp.json.return_value = {"choices": [{"message": {"content": "compat fallback reply"}}]}
+            return resp
+
+        with (
+            patch.dict("os.environ", {"APPLYPILOT_LOCAL_OLLAMA_NATIVE": "1"}),
+            patch.object(client._client, "post", side_effect=fake_post) as mock_post,
+        ):
+            result = client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertEqual(result, "compat fallback reply")
+        urls_hit = [c.args[0] for c in mock_post.call_args_list]
+        self.assertIn("http://localhost:11434/api/chat", urls_hit)
+        self.assertIn("http://localhost:11434/v1/chat/completions", urls_hit)
+
+    def test_non_qwen_local_model_does_not_get_think_field(self):
+        from applypilot.llm import ModelEntry
+
+        chain = [ModelEntry("llama3.2", "local", "http://localhost:11434/v1", "")]
+        client = self._client(chain)
+
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = {"message": {"content": "llama reply"}}
+
+        with (
+            patch.dict("os.environ", {"APPLYPILOT_LOCAL_OLLAMA_NATIVE": "1"}),
+            patch.object(client._client, "post", return_value=resp) as mock_post,
+        ):
+            client.chat([{"role": "user", "content": "hi"}])
+
+        sent = mock_post.call_args.kwargs["json"]
+        self.assertNotIn("think", sent)
 
 
 class TestChatExcludeProviders(unittest.TestCase):

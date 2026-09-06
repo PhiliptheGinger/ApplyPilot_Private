@@ -1,0 +1,83 @@
+{
+  "A_default_300": [
+    {
+      "trial": 1,
+      "output": null,
+      "seconds": 105.7
+    },
+    {
+      "trial": 2,
+      "output": null,
+      "seconds": 22.0
+    },
+    {
+      "trial": 3,
+      "output": null,
+      "seconds": 22.4
+    },
+    {
+      "trial": 4,
+      "output": null,
+      "seconds": 22.3
+    },
+    {
+      "trial": 5,
+      "output": null,
+      "seconds": 22.8
+    }
+  ],
+  "B_bumped_700": [
+    {
+      "trial": 1,
+      "output": "Performed maintenance on brake and suspension systems, including tires, brakes, shocks, struts, fluids, and connected vehicle components, ensuring safety and quality standards are met.",
+      "seconds": 55.3
+    },
+    {
+      "trial": 2,
+      "output": null,
+      "seconds": 55.3
+    },
+    {
+      "trial": 3,
+      "output": "Performed manual servicing and service of brake and suspension systems, including tires, shocks, struts, fluids, and connected vehicle components.",
+      "seconds": 26.7
+    },
+    {
+      "trial": 4,
+      "output": "Performed manual servicing and maintenance of vehicle brake and suspension systems, including tires, shocks, struts, fluids, and vehicle components.",
+      "seconds": 38.2
+    },
+    {
+      "trial": 5,
+      "output": "Performed routine maintenance and repairs on vehicle brakes, shocks, struts, and related components, ensuring compliance with safety and quality standards.",
+      "seconds": 47.1
+    }
+  ],
+  "C_native_think_false": [
+    {
+      "trial": 1,
+      "output": "Performed manual servicing and maintenance on tires, brakes, shocks, struts, fluids, and connected vehicle components.",
+      "seconds": 4.5
+    },
+    {
+      "trial": 2,
+      "output": "Performed manual servicing and maintenance on tires, brakes, shocks, struts, fluids, and connected vehicle components.",
+      "seconds": 3.0
+    },
+    {
+      "trial": 3,
+      "output": "Performed manual servicing and maintenance on tires, brakes, shocks, struts, fluids, and connected vehicle components.",
+      "seconds": 3.0
+    },
+    {
+      "trial": 4,
+      "output": "Performed manual servicing and maintenance on tires, brakes, shocks, struts, fluids, and connected vehicle components.",
+      "seconds": 2.9
+    },
+    {
+      "trial": 5,
+      "output": "Performed manual servicing and maintenance on tires, brakes, shocks, struts, fluids, and connected vehicle components.",
+      "seconds": 3.0
+    }
+  ]
+}

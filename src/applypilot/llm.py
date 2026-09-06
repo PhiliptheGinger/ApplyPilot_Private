@@ -90,6 +90,37 @@ def _find_claude_cli() -> str | None:
     return None
 
 
+def _use_ollama_native() -> bool:
+    """Opt-in fast path (2026-09-06): route local-provider calls through
+    Ollama's native /api/chat instead of the OpenAI-compat shim.
+
+    Real A/B testing (data/experiments/editor_reliability_retest_20260906/)
+    found the native endpoint ~10x faster for the same qwen3:1.7b call
+    (3-4.5s vs 30-55s) even after the OpenAI-compat path's own think-
+    suppression fix landed in the same session -- the compat shim appears to
+    strip the <think> block from the response rather than skip generating
+    it. Opt-in, default off: APPLYPILOT_LOCAL_LLM_URL is documented (see
+    module docstring) as "llama.cpp / Ollama compatible" -- a llama.cpp
+    server has no /api/chat route at all, so defaulting this on would break
+    that configuration. Only set this if the configured endpoint is
+    genuinely Ollama.
+    """
+    return os.environ.get("APPLYPILOT_LOCAL_OLLAMA_NATIVE", "").strip().lower() in ("1", "true", "yes")
+
+
+def _ollama_native_root(base_url: str) -> str:
+    """Strip local_openai_base_url()'s appended /v1 back off, to get Ollama's
+    native-API root (bare server root, e.g. http://127.0.0.1:11434) from an
+    entry.base_url that was normalized for the OpenAI-compat path. Mirrors
+    scoring/local_tailor.py's _ollama_native_base_url -- kept as a separate,
+    tiny function here rather than imported, so this foundational module
+    doesn't take a dependency on a specific scoring submodule."""
+    url = base_url.rstrip("/")
+    if url.endswith("/v1"):
+        url = url[: -len("/v1")]
+    return url
+
+
 def local_openai_base_url(raw_url: str) -> str:
     """Normalize a configured local LLM URL for THIS module's OpenAI-
     compatible request construction.
@@ -636,10 +667,116 @@ class LLMClient:
             return self._try_anthropic(entry, messages, temperature, max_tokens, is_last)
         elif entry.provider == "claude_cli":
             return self._try_claude_cli(entry, messages, is_last)
+        elif entry.provider == "local" and _use_ollama_native():
+            return self._try_ollama_native(
+                entry, messages, temperature, max_tokens, is_last, frequency_penalty, presence_penalty
+            )
         else:
             return self._try_openai_compat(
                 entry, messages, temperature, max_tokens, is_last, frequency_penalty, presence_penalty
             )
+
+    def _try_ollama_native(
+        self,
+        entry: ModelEntry,
+        messages: list[dict],
+        temperature: float,
+        max_tokens: int,
+        is_last: bool = False,
+        frequency_penalty: float | None = None,
+        presence_penalty: float | None = None,
+    ) -> str | None:
+        """Try Ollama's native /api/chat endpoint directly (opt-in via
+        APPLYPILOT_LOCAL_OLLAMA_NATIVE -- see _use_ollama_native's
+        docstring). Mirrors _try_openai_compat's retry/timeout/connect-error
+        handling, but drops the quota/billing/auth status-code branches
+        (429/402/400/404) that only apply to hosted providers -- a local
+        Ollama server doesn't rate-limit or bill. Any non-timeout/connect
+        HTTP failure (e.g. this isn't actually Ollama -- no /api/chat route)
+        falls back to _try_openai_compat for this SAME entry rather than
+        raising, so a misconfigured opt-in degrades to the previously-only
+        path instead of breaking the call outright.
+        """
+        max_tokens = min(max_tokens, int(os.environ.get("APPLYPILOT_LOCAL_LLM_MAX_TOKENS", "2048")))
+        url = _ollama_native_root(entry.base_url)
+        options: dict = {"temperature": temperature, "num_predict": max_tokens}
+        if frequency_penalty is not None:
+            options["frequency_penalty"] = frequency_penalty
+        if presence_penalty is not None:
+            options["presence_penalty"] = presence_penalty
+        payload: dict = {
+            "model": entry.name,
+            "messages": messages,
+            "stream": False,
+            "options": options,
+        }
+        if "qwen" in entry.name.lower():
+            payload["think"] = False
+
+        _req_timeout = int(os.environ.get("APPLYPILOT_LOCAL_LLM_TIMEOUT", "120"))
+        for attempt in range(_MAX_RETRIES):
+            try:
+                resp = self._client.post(f"{url}/api/chat", json=payload, timeout=_req_timeout)
+                resp.raise_for_status()
+                data = resp.json()
+                message = (data or {}).get("message") or {}
+                text = (message.get("content") or "").strip()
+                if not text:
+                    if not is_last:
+                        log.warning("%s/%s (native): empty message content, trying next", entry.provider, entry.name)
+                        return None
+                    raise RuntimeError(f"Null/empty content from {entry.provider}/{entry.name} (native)")
+
+                if entry.name != self.model:
+                    log.info("Used fallback %s/%s (primary: %s, native)", entry.provider, entry.name, self.model)
+                _log_local_qwen_response(entry, messages, text)
+                return text
+
+            except httpx.TimeoutException:
+                if attempt < _MAX_RETRIES - 1:
+                    wait = 2**attempt
+                    log.warning("%s/%s (native) timeout, retry in %ds", entry.provider, entry.name, wait)
+                    time.sleep(wait)
+                    continue
+                if not is_last:
+                    log.warning("%s/%s (native) timeout after retries, trying next", entry.provider, entry.name)
+                    return None
+                raise
+
+            except httpx.ConnectError as exc:
+                if attempt < _MAX_RETRIES - 1:
+                    wait = 2**attempt
+                    log.warning(
+                        "%s/%s (native) connection failed (%s), retry in %ds -- is Ollama running?",
+                        entry.provider,
+                        entry.name,
+                        exc,
+                        wait,
+                    )
+                    time.sleep(wait)
+                    continue
+                if not is_last:
+                    log.warning("%s/%s (native) connection failed after retries, trying next", entry.provider, entry.name)
+                    return None
+                raise
+
+            except httpx.HTTPStatusError as exc:
+                # Most likely cause: APPLYPILOT_LOCAL_OLLAMA_NATIVE is set but
+                # the configured endpoint isn't actually Ollama (e.g. a
+                # llama.cpp server, which has no /api/chat route) -- fall back
+                # to the OpenAI-compat path for this same entry rather than
+                # letting a misconfigured opt-in break the call outright.
+                log.warning(
+                    "%s/%s (native) HTTP error (%s) -- falling back to OpenAI-compat for this entry",
+                    entry.provider,
+                    entry.name,
+                    exc,
+                )
+                return self._try_openai_compat(
+                    entry, messages, temperature, max_tokens, is_last, frequency_penalty, presence_penalty
+                )
+
+        return None
 
     def _try_openai_compat(
         self,
@@ -671,49 +808,30 @@ class LLMClient:
         if entry.provider == "local":
             max_tokens = min(max_tokens, int(os.environ.get("APPLYPILOT_LOCAL_LLM_MAX_TOKENS", "2048")))
 
-        # Qwen3 optimization: disable the model's internal <think> reasoning
-        # for models we only use as a fast structured-output planner. Keyed
-        # on entry.name (the model actually being attempted on THIS
-        # fallback tier), not self.model -- 2026-08-23 bug: the old check in
-        # chat() used self.model (the ORIGINAL primary model), so /no_think
-        # silently never applied when qwen was reached as a fallback from
-        # Gemini/OpenAI rather than as the primary model. Builds a local
-        # copy so the prefix doesn't mutate `messages`, which chat() reuses
-        # for every remaining fallback attempt in the chain.
-        #
-        # 2026-09-04 bug (found via the proxy-label realization pilot,
-        # data/experiments/deterministic_slotfiller_20260902/
-        # proxy_label_pilot.py): this only ever checked messages[0]'s role
-        # -- any system+user prompt (e.g. local_tailor.request_local_
-        # realization's [{"role":"system",...},{"role":"user",...}] shape)
-        # has a SYSTEM message at index 0, so the "first.get('role') ==
-        # 'user'" check was always False and /no_think was never applied at
-        # all for that whole call shape. Silent, no exception -- qwen3 just
-        # spent its entire max_tokens budget on hidden <think> reasoning
-        # with nothing left for the actual answer, surfacing as "Null/empty
-        # content from local/qwen3:1.7b" failures. Real-data confirmation:
-        # 15/15 degraded-mode realization pilot calls failed regardless of
-        # evidence strength (8 were exactly this empty-content failure);
-        # a direct A/B request with vs. without a preceding system message
-        # showed the same trivial prompt taking 39s (system-first, bug
-        # present) vs. 17s (user-first, /no_think correctly applied).
-        # Fixed by searching for the first USER-role message anywhere in
-        # the list, not assuming it's at index 0.
-        req_messages = messages
-        if "qwen" in entry.name.lower() and messages:
-            for idx, msg in enumerate(messages):
-                if msg.get("role") == "user":
-                    if not msg["content"].startswith("/no_think"):
-                        req_messages = list(messages)
-                        req_messages[idx] = {"role": "user", "content": f"/no_think\n{msg['content']}"}
-                    break
-
+        # Qwen3 thinking suppression. 2026-09-06: the `/no_think` text-prefix
+        # trick below (kept working through two prior fixes -- 2026-08-23's
+        # self.model->entry.name keying, 2026-09-04's system-message-first
+        # positional bug) was itself the wrong mechanism -- it's a prompt-level
+        # hint the model is free to ignore, not an API-level guarantee. Real
+        # A/B test (data/experiments/editor_reliability_retest_20260906/):
+        # decision #70's editor call (edit_sentence_for_requirement, default
+        # max_tokens=300) failed 5/5 with empty content using /no_think, even
+        # though the positional fix was already in place and correctly firing.
+        # Ollama's actual `think` API field (both its native /api/chat and,
+        # confirmed here, passed through its OpenAI-compat /v1/chat/completions
+        # as an extra JSON field) is enforced at generation time, not just
+        # requested in the prompt -- same call, same model, 5/5 succeeded.
+        # Replaced the text-prefix injection with this field outright rather
+        # than layering it on top -- keeping both risks the model seeing a
+        # literal "/no_think" string in its input for no benefit.
         payload = {
             "model": entry.name,
-            "messages": req_messages,
+            "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
+        if "qwen" in entry.name.lower():
+            payload["think"] = False
         if frequency_penalty is not None:
             payload["frequency_penalty"] = frequency_penalty
         if presence_penalty is not None:
@@ -915,7 +1033,7 @@ class LLMClient:
                 if entry.name != self.model:
                     log.info("Used fallback %s/%s (primary: %s)", entry.provider, entry.name, self.model)
                 if entry.provider == "local":
-                    _log_local_qwen_response(entry, req_messages, text)
+                    _log_local_qwen_response(entry, messages, text)
                 return text
 
             except httpx.TimeoutException:

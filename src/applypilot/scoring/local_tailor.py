@@ -2934,12 +2934,20 @@ def edit_sentence_for_requirement(
     client,
     original_sentence: str,
     requirement_text: str,
-    max_tokens: int = 300,
+    max_tokens: int = 700,
 ) -> str | None:
     """The one LLM call in editor mode: reword `original_sentence` (already
     known-true) toward `requirement_text`'s phrasing. Returns None on any
     call failure or empty response -- never raises, mirrors every other
-    LLM-call wrapper in this module."""
+    LLM-call wrapper in this module.
+
+    2026-09-06: default raised 300 -> 700. Real A/B testing (llm.py's
+    `think: false` fix, same commit) found max_tokens=300 fails 100% of the
+    time (0/6, all empty content) even with thinking properly suppressed --
+    matches the documented qwen3 gotcha (CLAUDE.md #7): the budget a local
+    qwen3 call needs is unrelated to how short the visible output is. 700
+    was the smallest value tested that worked reliably (real test:
+    data/experiments/editor_reliability_retest_20260906/)."""
     user = (
         f'REQUIREMENT: "{requirement_text}"\n\n'
         f'ORIGINAL SENTENCE (reword this only -- do not add anything new):\n"{original_sentence}"'

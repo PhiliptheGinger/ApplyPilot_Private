@@ -20,6 +20,35 @@ _seed_counter = [0]
 
 
 @pytest.fixture(autouse=True)
+def _isolate_environ():
+    """Restore the real process os.environ after every test.
+
+    2026-09-06: found via a real full-suite regression. cli.py's
+    _bootstrap() calls config.load_env(), which loads ~/.applypilot/.env
+    into the REAL process os.environ via python-dotenv -- with no cleanup,
+    unlike monkeypatch-based patches (which self-revert). Any test that
+    invokes a CLI command (e.g. the test-local probe tests) mutates
+    os.environ for the rest of the pytest process. This was latent until
+    APPLYPILOT_LOCAL_OLLAMA_NATIVE was added to this machine's real
+    ~/.applypilot/.env the same session (decision #74) -- its mere presence
+    changes LLMClient's local-provider call routing, and it leaked from one
+    test into ~11 unrelated tests later in suite order that never touch
+    that var themselves, each asserting the (correct, but now violated)
+    OpenAI-compat-only behavior. Same failure shape decision #67d already
+    fixed once for ~/.applypilot/llm_exhaustion_state.json specifically;
+    generalized here to os.environ itself so any future env-var addition to
+    a real dotenv file can't cause the same class of cross-test leak.
+    monkeypatch's own setenv/delenv already self-revert and are unaffected
+    by this -- this only cleans up mutations made outside monkeypatch."""
+    import os
+
+    snapshot = dict(os.environ)
+    yield
+    os.environ.clear()
+    os.environ.update(snapshot)
+
+
+@pytest.fixture(autouse=True)
 def _isolate_llm_exhaustion_state(tmp_path, monkeypatch):
     """Every test in the suite gets its own isolated LLM exhaustion-state
     file. LLMClient._mark_exhausted (2026-09-02) persists exhaustion
