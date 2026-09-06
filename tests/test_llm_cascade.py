@@ -1611,10 +1611,43 @@ class TestPersistent503FallsThroughToNextProvider(unittest.TestCase):
     def test_persistent_503_on_last_entry_raises(self):
         """When there's truly nowhere else to fall through to, the 503
         must still surface as an error -- this fix only adds the missing
-        middle case, it doesn't remove the legitimate last-resort raise."""
+        middle case, it doesn't remove the legitimate last-resort raise.
+
+        2026-09-05: tightened from a broad `assertRaises(Exception)` to
+        `RuntimeError` specifically. A real end-to-end run (the first
+        real phrase-bank verification) hit exactly this last-entry-only
+        scenario (every other provider already exhausted from a prior
+        daily-quota hit + a $0-credit billing block) and the OLD code
+        raised the raw httpx.HTTPStatusError -- which `assertRaises
+        (Exception)` happily accepted, masking the fact that tailor.py's
+        `except RuntimeError` degraded-mode redirect (decision #57) never
+        actually caught it, crashing the whole job instead of falling
+        back. Fixed to raise RuntimeError explicitly, same as the "all
+        models exhausted" raise at the end of chat()'s own loop."""
         client = _make_client(1)
         with patch.object(client._client, "post", return_value=self._persistent_503_response()), patch("time.sleep"):
-            with self.assertRaises(Exception):
+            with self.assertRaises(RuntimeError):
+                client.chat([{"role": "user", "content": "hi"}])
+
+    def test_persistent_429_on_last_entry_raises_runtime_error(self):
+        """Same bug, same fix, the 429 branch's own last-entry case --
+        found by inspection while fixing the 503 sibling above, not by a
+        second live crash."""
+        resp = MagicMock()
+        resp.status_code = 429
+        resp.text = "Too Many Requests"
+        resp.json.return_value = {}
+
+        def _raise():
+            import httpx as httpx_mod
+
+            raise httpx_mod.HTTPStatusError("429", request=MagicMock(), response=resp)
+
+        resp.raise_for_status.side_effect = _raise
+
+        client = _make_client(1)
+        with patch.object(client._client, "post", return_value=resp), patch("time.sleep"):
+            with self.assertRaises(RuntimeError):
                 client.chat([{"role": "user", "content": "hi"}])
 
     def test_503_that_resolves_within_retries_still_succeeds(self):

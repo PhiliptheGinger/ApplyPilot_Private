@@ -822,7 +822,29 @@ class LLMClient:
                         log.warning("%s/%s still 429, trying next model", entry.provider, entry.name)
                         return None
                     else:
-                        resp.raise_for_status()
+                        # 2026-09-05 production crash: when this is the ONLY
+                        # remaining entry (is_last=True on the very first
+                        # attempt -- e.g. every other provider already
+                        # exhausted from a prior daily-quota hit or a $0-
+                        # credit billing block), this used to call
+                        # resp.raise_for_status() directly, raising the RAW
+                        # httpx.HTTPStatusError. tailor.py's degraded-mode
+                        # redirect specifically catches `except RuntimeError`
+                        # (decision #57) -- an HTTPStatusError sails straight
+                        # past that handler and crashes the whole job instead
+                        # of falling back to degraded mode. Confirmed live:
+                        # gemini-3.6-flash was 24h-exhausted from a prior
+                        # daily-quota hit, gpt-4.1-mini/nano were 30-day-
+                        # blocked from a $0-credit billing failure (#67c) --
+                        # gemini-3.5-flash was BOTH first and last in
+                        # entries_to_try, so its 429 exhaustion had nowhere
+                        # to fall through to and needed to raise RuntimeError
+                        # itself, same as the "all models exhausted" raise at
+                        # the end of chat()'s loop.
+                        raise RuntimeError(
+                            f"{entry.provider}/{entry.name} still rate-limited (429) after {_MAX_RETRIES} attempts "
+                            "and no other provider is available."
+                        )
 
                 if resp.status_code == 503:
                     # 2026-09-04 production crash: this only ever handled
@@ -845,7 +867,19 @@ class LLMClient:
                         log.warning("%s/%s still 503, trying next model", entry.provider, entry.name)
                         return None
                     else:
-                        resp.raise_for_status()
+                        # 2026-09-05 production crash, same root cause as the
+                        # 429 branch above: when gemini-3.5-flash was BOTH
+                        # first and last in entries_to_try (every other
+                        # provider already exhausted), a persistent 503 hit
+                        # this branch and raised the raw httpx.HTTPStatusError
+                        # -- tailor.py's `except RuntimeError` degraded-mode
+                        # redirect never catches it, crashing the job instead
+                        # of falling back. Confirmed live during the first
+                        # real end-to-end phrase-bank verification run.
+                        raise RuntimeError(
+                            f"{entry.provider}/{entry.name} still returning 503 after {_MAX_RETRIES} attempts "
+                            "and no other provider is available."
+                        )
 
                 resp.raise_for_status()
                 data = resp.json()
