@@ -9,6 +9,7 @@ test (skipped automatically when nothing is listening on :11434).
 
 from __future__ import annotations
 
+import os
 import socket
 import unittest
 from unittest.mock import MagicMock, patch
@@ -168,6 +169,100 @@ class TestEmbedTextsDegradesSafely(unittest.TestCase):
         with patch("httpx.post", return_value=resp):
             result = semantic_match.embed_texts(["a", "b"])
         self.assertEqual(result, [[0.1, 0.2], [0.3, 0.4]])
+
+
+class TestEmbedTextsGeminiFallback(unittest.TestCase):
+    """2026-09-05: embed_texts had no fallback beyond Ollama, which made
+    every embedding-dependent feature (semantic candidate recall, the
+    phrase-bank diversity filter, the phrase-bank selector) silently
+    inert in this project's actual normal operating mode (decision #53:
+    hosted-API-only, no local model server required) -- found live via
+    the first real phrase-bank end-to-end run, not by any unit test
+    (every existing test here correctly mocks Ollama, which validates the
+    logic but can't reveal "this does nothing when Ollama is genuinely
+    absent"). Gemini's embeddings endpoint is confirmed live to sit on a
+    SEPARATE quota bucket from chat completions (reachable and returning
+    200 while gemini-3.6-flash/gemini-3.5-flash's chat endpoint was
+    mid-outage from a real daily-quota exhaustion)."""
+
+    def _routed_post(self, ollama_response=None, ollama_side_effect=None, gemini_response=None, gemini_side_effect=None):
+        def _post(url, **kwargs):
+            if "generativelanguage.googleapis.com" in url:
+                if gemini_side_effect:
+                    raise gemini_side_effect
+                return gemini_response
+            if ollama_side_effect:
+                raise ollama_side_effect
+            return ollama_response
+
+        return _post
+
+    def test_ollama_success_never_calls_gemini(self):
+        ollama_resp = MagicMock()
+        ollama_resp.raise_for_status.return_value = None
+        ollama_resp.json.return_value = {"embeddings": [[0.1, 0.2]]}
+        calls = []
+
+        def _post(url, **kwargs):
+            calls.append(url)
+            return ollama_resp
+
+        with (
+            patch("httpx.post", side_effect=_post),
+            patch.dict(os.environ, {"GEMINI_API_KEY": "fake-key"}),
+        ):
+            result = semantic_match.embed_texts(["hello"])
+        self.assertEqual(result, [[0.1, 0.2]])
+        self.assertEqual(len(calls), 1, "Gemini must not be called when Ollama already succeeded")
+
+    def test_ollama_failure_falls_back_to_gemini(self):
+        gemini_resp = MagicMock()
+        gemini_resp.raise_for_status.return_value = None
+        gemini_resp.json.return_value = {"data": [{"embedding": [0.5, 0.6]}]}
+        with (
+            patch(
+                "httpx.post",
+                side_effect=self._routed_post(ollama_side_effect=ConnectionError("refused"), gemini_response=gemini_resp),
+            ),
+            patch.dict(os.environ, {"GEMINI_API_KEY": "fake-key"}),
+        ):
+            result = semantic_match.embed_texts(["hello"])
+        self.assertEqual(result, [[0.5, 0.6]])
+
+    def test_no_gemini_key_configured_returns_none_after_ollama_fails(self):
+        with (
+            patch("httpx.post", side_effect=ConnectionError("refused")),
+            patch.dict(os.environ, {"GEMINI_API_KEY": ""}),
+        ):
+            result = semantic_match.embed_texts(["hello"])
+        self.assertIsNone(result)
+
+    def test_both_tiers_failing_returns_none_not_a_crash(self):
+        with (
+            patch(
+                "httpx.post",
+                side_effect=self._routed_post(
+                    ollama_side_effect=ConnectionError("refused"), gemini_side_effect=ConnectionError("refused")
+                ),
+            ),
+            patch.dict(os.environ, {"GEMINI_API_KEY": "fake-key"}),
+        ):
+            result = semantic_match.embed_texts(["hello"])
+        self.assertIsNone(result)
+
+    def test_gemini_mismatched_embedding_count_returns_none(self):
+        gemini_resp = MagicMock()
+        gemini_resp.raise_for_status.return_value = None
+        gemini_resp.json.return_value = {"data": [{"embedding": [0.5, 0.6]}]}  # 1 embedding for 2 inputs
+        with (
+            patch(
+                "httpx.post",
+                side_effect=self._routed_post(ollama_side_effect=ConnectionError("refused"), gemini_response=gemini_resp),
+            ),
+            patch.dict(os.environ, {"GEMINI_API_KEY": "fake-key"}),
+        ):
+            result = semantic_match.embed_texts(["hello", "world"])
+        self.assertIsNone(result)
 
 
 class TestCenterEmbeddings(unittest.TestCase):

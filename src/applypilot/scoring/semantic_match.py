@@ -101,16 +101,17 @@ def _embed_model() -> str:
     return os.environ.get("APPLYPILOT_SEMANTIC_MODEL", _DEFAULT_MODEL)
 
 
-def embed_texts(texts: list[str], timeout: float = 30.0) -> list[list[float]] | None:
-    """Embed a batch of texts via Ollama's native /api/embed.
+# 2026-09-05: Gemini's OpenAI-compatible embeddings endpoint, same host/
+# auth style llm.py already uses for chat completions -- but a SEPARATE
+# quota bucket, confirmed live (reachable and returning 200 while
+# gemini-3.6-flash/gemini-3.5-flash's chat endpoint was mid-outage from
+# a real daily-quota exhaustion), so this doesn't compete with tailoring's
+# own LLM usage for the same budget.
+_GEMINI_EMBED_URL = "https://generativelanguage.googleapis.com/v1beta/openai/embeddings"
+_GEMINI_EMBED_MODEL = "gemini-embedding-001"
 
-    Returns None (never raises) on ANY failure -- connection refused,
-    timeout, malformed response -- so a semantic-retrieval failure always
-    degrades to "no additional candidates this run", never breaks the
-    caller's existing literal-only behavior.
-    """
-    if not texts:
-        return []
+
+def _embed_via_ollama(texts: list[str], timeout: float) -> list[list[float]] | None:
     try:
         resp = httpx.post(
             f"{_ollama_url()}/api/embed",
@@ -122,19 +123,82 @@ def embed_texts(texts: list[str], timeout: float = 30.0) -> list[list[float]] | 
         embeddings = data.get("embeddings") if isinstance(data, dict) else None
         if not isinstance(embeddings, list) or len(embeddings) != len(texts):
             log.warning(
-                "semantic_match: malformed /api/embed response (expected %d embeddings, got %r)",
+                "semantic_match: malformed Ollama /api/embed response (expected %d embeddings, got %r)",
                 len(texts),
                 type(embeddings).__name__,
             )
             return None
         return embeddings
-    except Exception as exc:  # noqa: BLE001 -- documented "never raises" contract; any embedding failure must degrade to "no semantic candidates", not break local tailoring
-        log.warning(
-            "semantic_match: embedding call failed (%s: %s) -- semantic retrieval skipped this run",
+    except Exception as exc:  # noqa: BLE001 -- must degrade to "try the next tier", never raise
+        log.info(
+            "semantic_match: Ollama embedding call failed (%s: %s) -- trying cloud fallback",
             type(exc).__name__,
             exc,
         )
         return None
+
+
+def _embed_via_gemini(texts: list[str], timeout: float) -> list[list[float]] | None:
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        return None
+    try:
+        resp = httpx.post(
+            _GEMINI_EMBED_URL,
+            headers={"Authorization": f"Bearer {api_key}"},
+            json={"model": _GEMINI_EMBED_MODEL, "input": texts},
+            timeout=timeout,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        rows = data.get("data") if isinstance(data, dict) else None
+        embeddings = [row.get("embedding") for row in rows] if isinstance(rows, list) else None
+        if not embeddings or len(embeddings) != len(texts) or any(not isinstance(e, list) for e in embeddings):
+            log.warning(
+                "semantic_match: malformed Gemini embeddings response (expected %d embeddings, got %r)",
+                len(texts),
+                type(embeddings).__name__ if embeddings is not None else None,
+            )
+            return None
+        return embeddings
+    except Exception as exc:  # noqa: BLE001 -- documented "never raises" contract; any embedding failure must degrade to "no semantic candidates", not break local tailoring
+        log.warning(
+            "semantic_match: Gemini embedding fallback also failed (%s: %s) -- semantic retrieval skipped this run",
+            type(exc).__name__,
+            exc,
+        )
+        return None
+
+
+def embed_texts(texts: list[str], timeout: float = 30.0) -> list[list[float]] | None:
+    """Embed a batch of texts. Tries local Ollama first (unchanged
+    default, zero cost, works offline), then falls back to Gemini's
+    embeddings endpoint if Ollama is unreachable and GEMINI_API_KEY is
+    configured.
+
+    2026-09-05: found live that this function having no fallback beyond
+    Ollama made EVERY embedding-dependent feature in the codebase --
+    local_tailor's semantic-expansion candidate recall, the phrase-bank
+    diversity filter, and the phrase-bank selector's relevance ranking --
+    silently inert in this project's actual normal operating mode
+    (decision #53: hosted-API-only, no local model server required). A
+    real end-to-end phrase-bank verification run produced a real,
+    correctly-tailored resume with zero errors, but the newly-built
+    selector never fired at all -- not because anything was broken, but
+    because embed_texts had nothing to embed WITH. Discovered only by
+    running the real pipeline, not by any unit test (every test correctly
+    mocks this function, which validates the logic but can't reveal "this
+    silently does nothing when the real dependency is absent").
+
+    Returns None (never raises) only when BOTH tiers are unavailable --
+    connection refused, timeout, malformed response, or no cloud key
+    configured -- so a semantic-retrieval failure always degrades to "no
+    additional candidates this run", never breaks a caller's existing
+    literal-only behavior.
+    """
+    if not texts:
+        return []
+    return _embed_via_ollama(texts, timeout) or _embed_via_gemini(texts, timeout)
 
 
 def cosine_similarity(a: list[float], b: list[float]) -> float:
