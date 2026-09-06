@@ -811,7 +811,152 @@ _NAME_TOKEN_STOPWORDS = frozenset(
 # "technical" above, so it belongs in this list, not a length-rule change.
 # UPS-the-employer stays fully matchable via its other, more specific
 # terms ("package", "handling", "operations", etc.) -- see _item_terms.
-_GENERIC_EVIDENCE_TERMS = frozenset({"it", "technical", "ups"})
+_GENERIC_EVIDENCE_TERMS = frozenset(
+    {
+        "it",
+        "technical",
+        "ups",
+        # 2026-09-05: a 31,644-real-job scan (data/experiments/
+        # entry_audit_20260905/) isolated each of the other 5
+        # experience_inventory entries (Waffle House, AMP Smart, UPS,
+        # National Tire and Battery / Mavis, Freelance Photography) the
+        # same way "customer"/"ups" were originally found for Alex
+        # Prosperity Group above -- and found the SAME shape of problem at
+        # a much larger scale: 51-58% of a RANDOM job corpus was coming
+        # back "supported" for 4 of the 6 entries, driven almost entirely
+        # by ordinary resume/business vocabulary, not anything specific to
+        # the candidate's real experience. These are words that show up on
+        # nearly every resume and every job posting regardless of
+        # industry -- confirmed here by direct inspection of the actual
+        # matched requirement lines, the same discipline as every entry
+        # above, not a general dictionary. IDF alone does NOT separate
+        # these from real domain terms (see idf_gate_v2_finding below) --
+        # some of these score HIGHER (rarer) than genuinely specific terms
+        # like "python", so IDF's rarity signal and "meaningful evidence"
+        # are not the same axis.
+        "multiple",
+        "quality",
+        "standards",
+        "requests",
+        "accurate",
+        "accurately",
+        "consistency",
+        "consistent",
+        "execute",
+        "executing",
+        "executed",
+        "independently",
+        "strategies",
+        "conduct",
+        "conducting",
+        "conducted",
+        "identify",
+        "identifying",
+        "identified",
+        "approach",
+        "operational",
+        "procedures",
+        "efficiency",
+        "efficiently",
+        "workloads",
+        "accuracy",
+        "quickly",
+        "maintaining",
+        "maintained",
+        "keep",
+        "keeping",
+        "kept",
+        "problems",
+        "applying",
+        "applied",
+        "practical",
+        "involving",
+        "involved",
+        # 2026-09-05, round 2 (data/experiments/entry_audit_20260905/
+        # scan_residual_terms.py): a second, term-frequency-focused pass
+        # across all 6 entries after round 1's fixes landed, cross-checked
+        # against the "light verb"/"delexical verb" linguistics category
+        # (do/give/have/make/get/take/pay/hold/perform/conduct -- verbs
+        # that carry almost no meaning of their own, the noun/object they
+        # attach to carries the actual content) and published resume-
+        # buzzword lists (novoresume/monster/livecareer/resumegenius/teal,
+        # 2026-09-05 web search) -- both independently confirm this class
+        # of word, not just this codebase's own whack-a-mole.
+        "established",
+        "clearly",
+        "priorities",
+        "handling",
+        "moving",
+        "changing",
+        "appropriate",
+        "corrective",
+        "performed",
+        "following",
+        "taking",
+        "provided",
+        "items",
+        "preparation",
+        "different",
+        "worked",
+        "adapting",
+        "targeted",
+        # "order"/"orders" (Waffle House): legitimately food-service
+        # vocabulary in ONE sense ("took customer orders") but also
+        # generic across virtually every other industry ("purchase
+        # order", "order of operations", "in order to"). Excluded as
+        # bare terms; "customer orders" as a phrase (2+ words) is
+        # untouched by this list, same rule as "technical support" above.
+        "order",
+        "orders",
+    }
+)
+
+# 2026-09-05: "sales", "communications", "content", "creative", and
+# "reliability" were ALL in the list above at one point and were ALL
+# wrong -- not judgment calls that turned out badly, but direct,
+# demonstrable mistakes: every one of them is a real, single-word
+# relevance_category a human deliberately typed onto a real profile.json
+# entry (AMP Smart: sales, communications; Freelance Photography:
+# communications, content, creative; UPS: reliability). "sales" was
+# caught by 3 existing tests; the other three were caught by directly
+# re-reading profile.json's relevance_categories rather than waiting for
+# a fourth test failure to find them the same way.
+#
+# The pattern: short, single-word NOUNS naming a domain/field/skill
+# ("sales", "content", "reliability", "media", "research", "marketing")
+# are exactly the vocabulary a human uses when hand-typing a
+# relevance_category -- high risk to blanket-exclude. The words actually
+# kept above are verbs/adverbs/adjectives describing HOW something was
+# done ("quickly", "efficiently", "established", "conduct") -- nobody
+# writes "clearly" or "approach" as a category label, so these carry
+# much less risk of colliding with someone's real, deliberate evidence
+# tag. "field", "market", and "staff"/"relations" (real candidates from
+# the same scans) were left OUT of this list for the same reason --
+# plausible domain-noun category words, not confirmed safe.
+#
+# This is exactly why build_job_schema_representation's identity_terms
+# check exists now: a word making it PAST this list still only counts as
+# standalone-trustworthy evidence when it's part of the item's own
+# deliberately-curated name/relevance_categories/factual_concepts, not
+# when it's merely an incidental word split out of a long
+# `responsibilities` sentence. Blanket-excluding a word is still a
+# stronger, less reversible decision than that -- reserve it for words
+# that describe manner/action, not domain/topic.
+
+# "servers" (Waffle House) and "troubleshooting"/"hands-on"/"equipment"
+# (Mavis) were the other prominent matched_via terms in the same 2026-09-05
+# scan, but were deliberately NOT added above -- they're genuinely
+# ambiguous rather than generic. "Servers" means restaurant waitstaff in
+# Waffle House's own evidence but web/database servers in most matching
+# postings -- a cross-domain collision, the same shape as "alignment"
+# (see _AMBIGUOUS_TERMS below), not a word with no meaning at all.
+# "Troubleshooting"/"hands-on"/"equipment" are real, legitimate signal for
+# Mavis's actual auto-repair work specifically, and only look like filler
+# because they also appear as buzzword-adjacent language in unrelated IT/
+# warehouse postings -- blanket-excluding them would remove real evidence
+# for the one entry where they're genuinely true, not just filter noise.
+# Candidates for _AMBIGUOUS_TERMS' context-agreement check instead of this
+# list -- not done in this pass, flagged for follow-up.
 
 # 2026-09-04: data-driven complement to the curated list above, not a
 # replacement for it. Real production run found "customer" alone (no other
@@ -891,16 +1036,24 @@ def _is_generic_evidence_term(term: str) -> bool:
     return False
 
 
-def _item_terms(item: dict) -> set[str]:
-    """Collect the matchable normalized terms already curated on one
-    experience_inventory / project_inventory / skills_inventory entry.
+def _item_identity_terms(item: dict) -> set[str]:
+    """Terms from the parts of an evidence item a human deliberately wrote
+    as a short, specific LABEL for that item -- its name, the individual
+    words split from it, its relevance_categories, and its factual_concepts
+    (per decision #54, these are short curated noun phrases, not prose).
 
-    Every term -- from the item's name, the individual words split from
-    it, its relevance_categories, and its factual_concepts alike -- passes
-    through the SAME final _is_generic_evidence_term filter, so a term too
-    generic to be useful can't slip through just because it came from a
-    source that historically wasn't filtered (see _NAME_TOKEN_STOPWORDS'
-    comment above for how that happened before).
+    2026-09-05: split out of _item_terms so a single-word match can be
+    trusted alone when it comes from HERE, but not when it only comes from
+    the (much longer, much more incidental) `responsibilities` sentences
+    _item_terms also draws from -- see build_job_schema_representation's
+    corroboration check. A skill deliberately named "Database", or a
+    relevance_category someone typed as "sales", is real signal even as a
+    single word; a word that happens to survive splitting a sentence like
+    "communicated clearly with customers throughout installations" is not
+    the same kind of evidence, even when neither is on the generic-term
+    exclusion list yet. Passes through the same _is_generic_evidence_term
+    filter as _item_terms -- this narrows WHERE a term can count as
+    standalone-trustworthy, it doesn't loosen what counts as generic.
     """
     terms: set[str] = set()
     name = item.get("name")
@@ -916,6 +1069,21 @@ def _item_terms(item: dict) -> set[str]:
     for concept in item.get("factual_concepts") or []:
         if isinstance(concept, str) and concept.strip():
             terms.add(_normalize_term(concept))
+    return {t for t in terms if t and not _is_generic_evidence_term(t)}
+
+
+def _item_terms(item: dict) -> set[str]:
+    """Collect the matchable normalized terms already curated on one
+    experience_inventory / project_inventory / skills_inventory entry.
+
+    Every term -- from the item's name, the individual words split from
+    it, its relevance_categories, and its factual_concepts alike -- passes
+    through the SAME final _is_generic_evidence_term filter, so a term too
+    generic to be useful can't slip through just because it came from a
+    source that historically wasn't filtered (see _NAME_TOKEN_STOPWORDS'
+    comment above for how that happened before).
+    """
+    terms: set[str] = set(_item_identity_terms(item))
     # 2026-09-03: several experience_inventory entries have no
     # factual_concepts at all but a real, already-authored
     # `responsibilities` list (e.g. "National Tire and Battery / Mavis":
@@ -985,6 +1153,21 @@ def _job_text_lower(job: dict) -> str:
     return f"{job.get('title', '')}\n{job.get('full_description') or ''}".lower()
 
 
+def find_profile_item_by_name(name: str, profile: dict) -> dict | None:
+    """Look up the raw profile.json item behind an evidence `name` (the
+    same string schemas.py's `resume_evidence` / rank_profile_evidence's
+    `matched_terms` wrapper both use) -- needed anywhere a caller has an
+    evidence name (from job_schema) but needs the actual item dict back
+    (its own content hash, ceilings, constraints, etc.), not just the name
+    string. Searches every evidence-bearing inventory, same set
+    rank_profile_evidence itself scans."""
+    for key in ("experience_inventory", "project_inventory", "skills_inventory", "certifications"):
+        for item in profile.get(key) or []:
+            if isinstance(item, dict) and item.get("name") == name:
+                return item
+    return None
+
+
 def rank_profile_evidence(job: dict, profile: dict, top_n: int = 6) -> list[dict]:
     """Rank experience_inventory/project_inventory/skills_inventory/
     certifications items against the job description via deterministic term
@@ -1030,6 +1213,7 @@ def rank_profile_evidence(job: dict, profile: dict, top_n: int = 6) -> list[dict
                     "name": name,
                     "score": len(matched),
                     "matched_terms": matched,
+                    "identity_terms": _item_identity_terms(item),
                     "item": item,
                 }
             )
@@ -2312,8 +2496,23 @@ def build_base_resume_model(resume_text: str, profile: dict) -> dict:
         # format) -- fall back to the profile's own skills_boundary rather
         # than a structurally-present-but-empty skills dict (validate_
         # json_fields treats an empty "skills" the same as a missing one).
+        #
+        # 2026-09-05 production crash: this used to render EVERY
+        # skills_boundary category unconditionally, including
+        # "learning_or_exposure_not_expertise" -- a category whose own
+        # name is the profile author's explicit signal that these items
+        # (APIs, REST, JSON, Scripting, Docker) are NOT claimable resume
+        # skills, only things touched at exposure level. validate_
+        # json_fields' check_unsupported_technical_skills correctly
+        # rejected every one of them ("not resume_allowed, or only ever
+        # project-scoped evidence") -- confirmed live, blocking the first
+        # real degraded-mode + phrase-bank tailoring run. Skip any
+        # category whose name marks it as non-expertise rather than
+        # hardcoding this one profile's exact category name.
         boundary = profile.get("skills_boundary") or {}
         for category, items in boundary.items():
+            if "not_expertise" in category.lower():
+                continue
             if isinstance(items, list) and items:
                 skills[category.replace("_", " ").title()] = ", ".join(items)
 
@@ -2321,9 +2520,35 @@ def build_base_resume_model(resume_text: str, profile: dict) -> dict:
     projects = parse_entries(sections.get("PROJECTS", "")) or _project_entries_from_profile(profile)
     education = sections.get("EDUCATION", "") or _education_from_profile(profile)
 
+    # 2026-09-05 production crash: unlike skills/experience/projects/
+    # education just above, summary NEVER had a profile-derived fallback
+    # -- `sections.get("SUMMARY", "")` silently returns "" whenever
+    # resume_text has no SUMMARY header, which is ALWAYS true for real
+    # production input (resume_router.render_profile_reference's
+    # "CANONICAL PROFILE REFERENCE" text has no SUMMARY/EXPERIENCE/
+    # EDUCATION headers at all -- see decision #55's identical finding for
+    # experience/education). This was masked until tonight because
+    # degraded mode used to call request_local_realization
+    # UNCONDITIONALLY, which had at least some chance of generating a
+    # summary along with bullets -- now that full phrase-bank coverage
+    # correctly SKIPS that call entirely, nothing else in the merge chain
+    # ever populates summary, and validate_json_fields hard-rejects an
+    # empty one ("Missing required field: summary"). Confirmed live: the
+    # first real bank-covered degraded-mode tailoring run failed
+    # validation for exactly this reason. Fallback is deterministic and
+    # drawn only from skills_boundary (the same trusted source the skills
+    # fallback above already uses) -- never invents a claim, just states
+    # already-true skill categories in one plain sentence.
+    summary = sections.get("SUMMARY", "")
+    if not summary:
+        boundary = profile.get("skills_boundary") or {}
+        top_skills = [s for items in boundary.values() if isinstance(items, list) for s in items][:6]
+        if top_skills:
+            summary = f"Experienced across {', '.join(top_skills)}."
+
     return {
         "title": parsed.get("title") or "",
-        "summary": sections.get("SUMMARY", ""),
+        "summary": summary,
         "skills": skills,
         "experience": experience,
         "projects": projects,
@@ -2339,7 +2564,7 @@ def request_local_realization(
 ) -> tuple[dict | None, dict]:
     """The ONE bounded local-model call for DEGRADED MODE. Returns
     (realization, meta):
-      realization -- {"summary": str | None, "bullets": {evidence_name: text}}
+      realization -- {"summary": str | None, "bullets": {evidence_name: [text, ...]}}
         or None if there was nothing to realize, or the call/parse failed.
         ALWAYS partial by contract -- callers must merge this onto a
         complete base resume model (see merge_realization), never treat it
@@ -2455,7 +2680,7 @@ def request_local_realization(
                 first = provenance[0]
                 provenance_by_evidence[name] = first.get("text", "") if isinstance(first, dict) else str(first)
 
-    bullets: dict[str, str] = {}
+    bullets: dict[str, list[str]] = {}
     violations = 0
     passive_warnings = 0
     for b in _as_list(parsed_realization.get("bullets")):
@@ -2516,7 +2741,16 @@ def request_local_realization(
                 evidence_name,
                 text,
             )
-        bullets[evidence_name] = text
+        # 2026-09-05: was a plain dict assignment (`bullets[evidence_name] =
+        # text`), which silently kept only the LAST bullet whenever the
+        # model returned more than one for the same evidence item -- the
+        # loop already iterates a list of {"evidence","text"} dicts, so a
+        # multi-bullet response was always possible, just discarded down
+        # to one. Part of the phrase-bank rollout: merge_realization and
+        # build_pool_realization now both carry multiple bullets per
+        # evidence item too, so this path shouldn't be artificially
+        # narrower than either.
+        bullets.setdefault(evidence_name, []).append(text)
 
     summary = str(parsed_realization.get("summary") or "").strip() or None
     if summary:
@@ -2545,7 +2779,7 @@ def request_local_realization(
             )
             summary = None
 
-    meta["realized_bullets"] = len(bullets)
+    meta["realized_bullets"] = sum(len(v) for v in bullets.values())
     meta["claim_strength_violations"] = violations
     meta["passive_voice_warnings"] = passive_warnings
 
@@ -2568,12 +2802,22 @@ def build_pool_realization(
     use elsewhere in this codebase.
 
     Returns the SAME shape request_local_realization returns
-    ({"bullets": {evidence_name: selected_text}}, no "summary" key --
+    ({"bullets": {evidence_name: [selected_text, ...]}}, no "summary" key --
     pool-based summary selection isn't implemented yet, so merge_
     realization's existing "keep the base model's summary" fallback
     applies), so it plugs into the EXISTING, tested merge_realization
     unchanged -- this function only replaces WHERE the bullet text comes
     from, not how it gets merged into the resume.
+
+    2026-09-05: keeps up to MAX_BULLETS_PER_EVIDENCE distinct pool
+    sentences per evidence item, not just the single top match -- part of
+    the phrase-bank rollout (decision: "iterate through several bullets,"
+    not just one). An evidence item can satisfy several DIFFERENT
+    requirements in the same job; each pool sentence's score is the MAX
+    of its similarity across every requirement citing that evidence
+    (not just the first one encountered), then the top-scoring distinct
+    sentences are kept -- this is a ranking/selection change only, still
+    zero LLM calls.
 
     sentence_pools is caller-supplied, not read from profile.json
     automatically -- tonight's generated pools (e.g. Alex Prosperity
@@ -2592,6 +2836,8 @@ def build_pool_realization(
 
     from applypilot.scoring import semantic_match
 
+    MAX_BULLETS_PER_EVIDENCE = 3
+
     pool_embeddings_cache: dict[str, list[list[float]] | None] = {}
 
     def _pool_embeddings(name: str) -> list[list[float]] | None:
@@ -2600,37 +2846,52 @@ def build_pool_realization(
             pool_embeddings_cache[name] = semantic_match.embed_texts(pool) if pool else None
         return pool_embeddings_cache[name]
 
-    bullets: dict[str, str] = {}
+    # Pass 1: which requirement texts is each evidence item actually
+    # relevant to? An evidence item can be cited by multiple supported
+    # requirements -- gather all of them before scoring, so a sentence's
+    # score reflects its best fit across everything it might be used for,
+    # not just whichever requirement happened to be resolved first.
+    requirement_texts_by_evidence: dict[str, list[str]] = {}
     for req in job_schema.get("requirements") or []:
         if not req.get("supported"):
             continue
-        # 2026-09-04: the schema representation's public key is
-        # "requirement", not "text" -- "text" was a local variable name
-        # during schemas.py's OWN construction of this dict (build_job_
-        # schema_representation's internal `line["text"]`), not the key
-        # it's stored under in the dict it returns. Caught only by running
-        # this against a REAL job's schema output, not by the unit tests
-        # below (which hand-built fixture dicts using the wrong key and so
-        # never exercised the mismatch) -- fixed here AND in the tests.
         req_text = req.get("requirement") or ""
         if not req_text:
             continue
-        req_embedding: list[float] | None = None
         for evidence_name in req.get("resume_evidence") or []:
-            if evidence_name in bullets or evidence_name not in sentence_pools:
-                continue
-            embeddings = _pool_embeddings(evidence_name)
-            if not embeddings:
-                continue
-            if req_embedding is None:
-                req_emb_list = semantic_match.embed_texts([req_text])
-                if not req_emb_list:
-                    break  # embedding call failed -- nothing else this loop iteration can do
-                req_embedding = req_emb_list[0]
-            pool = sentence_pools[evidence_name]
-            scored = [(s, semantic_match.cosine_similarity(req_embedding, e)) for s, e in zip(pool, embeddings)]
-            scored.sort(key=lambda pair: pair[1], reverse=True)
-            bullets[evidence_name] = scored[0][0]
+            if evidence_name in sentence_pools:
+                requirement_texts_by_evidence.setdefault(evidence_name, []).append(req_text)
+
+    bullets: dict[str, list[str]] = {}
+    for evidence_name, req_texts in requirement_texts_by_evidence.items():
+        embeddings = _pool_embeddings(evidence_name)
+        if not embeddings:
+            continue
+        req_embeddings = semantic_match.embed_texts(req_texts)
+        if not req_embeddings:
+            continue
+        pool = sentence_pools[evidence_name]
+        best_score = [0.0] * len(pool)
+        for req_embedding in req_embeddings:
+            for i, e in enumerate(embeddings):
+                score = semantic_match.cosine_similarity(req_embedding, e)
+                if score > best_score[i]:
+                    best_score[i] = score
+        # score > 0 floor: with only a couple of pool sentences, padding up
+        # to MAX_BULLETS_PER_EVIDENCE regardless of relevance would pull in
+        # a sentence with literally zero word overlap with anything this
+        # evidence is cited for -- worse than just offering fewer, better
+        # options. select_diverse_indices/is_duplicate_pair already handle
+        # near-duplicate exclusion elsewhere; this is a plain relevance
+        # floor, not a diversity check.
+        ranked = sorted(
+            ((s, score) for s, score in zip(pool, best_score) if score > 0),
+            key=lambda pair: pair[1],
+            reverse=True,
+        )
+        selected = [s for s, _ in ranked[:MAX_BULLETS_PER_EVIDENCE]]
+        if selected:
+            bullets[evidence_name] = selected
 
     return {"bullets": bullets} if bullets else None
 
@@ -2764,19 +3025,27 @@ def merge_realization(base_resume: dict, realization: dict | None, job: dict) ->
     assemble_resume_text exactly as-is.
     """
     realization = realization or {}
-    bullets_by_evidence: dict[str, str] = realization.get("bullets") or {}
+    # 2026-09-05: was dict[str, str] (one bullet per evidence item) --
+    # widened to dict[str, list[str]] as part of the phrase-bank rollout,
+    # since both request_local_realization and build_pool_realization can
+    # now surface several realized bullets for the same evidence item.
+    bullets_by_evidence: dict[str, list[str]] = realization.get("bullets") or {}
 
     def _translate(entries: list[dict]) -> list[dict]:
         out: list[dict] = []
         for e in entries:
             header = (e.get("title") or "").strip()
             bullets = list(e.get("bullets") or [])
-            realized = next(
-                (text for name, text in bullets_by_evidence.items() if _fuzzy_evidence_match(header, name)),
+            realized_list = next(
+                (texts for name, texts in bullets_by_evidence.items() if _fuzzy_evidence_match(header, name)),
                 None,
-            )
-            if realized:
-                bullets = [realized] + [b for b in bullets if b != realized][:2]
+            ) or []
+            if realized_list:
+                # Realized bullets lead, padded with the entry's own
+                # original bullets for any remaining slots -- never drops
+                # an original bullet entirely, just deprioritizes it below
+                # whatever real content the realization/selector produced.
+                bullets = list(realized_list) + [b for b in bullets if b not in realized_list]
             subtitle = " | ".join(p for p in (e.get("subtitle", ""), e.get("meta", "")) if p)
             out.append({"header": header, "subtitle": subtitle, "bullets": bullets[:4]})
         return out
@@ -2789,6 +3058,252 @@ def merge_realization(base_resume: dict, realization: dict | None, job: dict) ->
         "projects": _translate(base_resume.get("projects") or []),
         "education": base_resume.get("education") or "",
     }
+
+
+# ---------------------------------------------------------------------------
+# Phrase bank builder (2026-09-05) -- "Stage 0": generalizes the proven
+# technique from data/experiments/deterministic_slotfiller_20260902/
+# inventory_expansion_pilot_v2_diversity.py (2026-09-04, one hardcoded
+# entry, run by hand, output never persisted) into a real function
+# callable for ANY entry. Two real changes from that script, not just a
+# lift-and-shift: (a) generation is scoped PER ORIGINAL BULLET, not the
+# whole entry's fact list as one bag -- preserves which bullet a variant
+# restates, which the bag-of-facts approach couldn't (see scoring/
+# phrase_bank.py's docstring); (b) results are persisted via scoring/
+# phrase_bank.py instead of a one-off JSON file under data/experiments/.
+_BANK_GENERATION_SYSTEM = """You expand ONE existing resume bullet point into several alternate phrasings.
+
+RULES (do not break these):
+- Every variant must restate the SAME fact given below, in different words.
+- NEVER add a new tool, technology, metric, number, outcome, or responsibility not already stated.
+- NEVER claim a result, improvement, or measurable outcome unless one is already stated in the original.
+- Vary sentence structure, word choice, and emphasis -- not the underlying fact.
+- Each variant must stand alone (no "additionally", no pronouns referring to other sentences).
+- Output ONLY a JSON object: {"variants": ["...", "...", ...]}. No other text, no markdown fences."""
+
+_BANK_STRUCTURE_CORRECTION = """
+You have already produced variants with this SAME sentence template, just with different synonyms:
+{already_have}
+
+Those do NOT count as variety -- swapping one word for a synonym inside the same sentence shape is not \
+a new variant. For this batch, each new variant must use a DIFFERENT STRUCTURE from every variant above:
+- Change which part of the sentence leads (the action, the object, the context/condition, or who it was for).
+- Change clause order (e.g. a leading subordinate clause instead of a trailing one).
+- Vary sentence length noticeably.
+Still restate only the ORIGINAL BULLET below -- structure varies, the fact does not."""
+
+
+def _bank_generation_user_prompt(
+    original_bullet: str, role: str, constraints: list[str], already_have: list[str] | None, n: int
+) -> str:
+    lines = [f"ROLE: {role}", "", "ORIGINAL BULLET (restate ONLY this fact, nothing else):", original_bullet]
+    if constraints:
+        lines += ["", "ADDITIONAL CONSTRAINTS:"] + [f"- {c}" for c in constraints]
+    if already_have:
+        lines.append(_BANK_STRUCTURE_CORRECTION.format(already_have="\n".join(f"- {s}" for s in already_have)))
+    lines += ["", f"Generate {n} alternate-phrasing variants of the bullet above."]
+    return "\n".join(lines)
+
+
+def _bank_passes_fabrication_checks(
+    sentence: str, evidence_text: str, claim_ceiling: str, agency_ceiling: str, known_metrics: list[str]
+) -> list[str]:
+    from applypilot.scoring.schemas import (
+        check_agency_strength,
+        check_causal_claim,
+        check_claim_strength,
+        check_metric_fabrication,
+    )
+
+    checks = {
+        "claim": check_claim_strength(sentence, claim_ceiling),
+        "agency": check_agency_strength(sentence, agency_ceiling),
+        "causal": check_causal_claim(sentence, evidence_text),
+        "metric": check_metric_fabrication(sentence, evidence_text, known_metrics),
+    }
+    return [f"{name}: {res.get('violation')}" for name, res in checks.items() if not res.get("passed", True)]
+
+
+def select_and_edit_bank_bullets(client, job_schema: dict, profile: dict) -> tuple[dict[str, list[str]], bool]:
+    """The phrase-bank selector + editor pipeline, shared by BOTH tailoring
+    paths (the cloud path's overlay and degraded mode) so this logic
+    exists in exactly one place, not duplicated per caller.
+
+    For every evidence name cited by a currently-supported requirement:
+    load its persisted bank (scoring.phrase_bank -- built ahead of time
+    via `applypilot expand-bank`, never generated here), select the best-
+    matching sentences (build_pool_realization, zero LLM calls), then run
+    each selected sentence through edit_sentence_with_retry to fit that
+    evidence's specific requirement text (one bounded, safety-checked LLM
+    call per bullet).
+
+    Returns (edited_bullets_by_evidence, fully_covered). fully_covered is
+    True iff EVERY evidence name cited by a supported requirement ended up
+    with at least one bank-selected bullet -- callers use this to decide
+    whether a (potentially slow/unreliable, in degraded mode's case)
+    writer/generation fallback is still needed at all for this job.
+    """
+    from applypilot.scoring import phrase_bank
+
+    requirement_evidence_names: set[str] = set()
+    requirement_text_by_evidence: dict[str, str] = {}
+    for req in job_schema.get("requirements") or []:
+        if not req.get("supported"):
+            continue
+        req_text = req.get("requirement") or ""
+        for name in req.get("resume_evidence") or []:
+            requirement_evidence_names.add(name)
+            requirement_text_by_evidence.setdefault(name, req_text)
+
+    sentence_pools: dict[str, list[str]] = {}
+    for name in requirement_evidence_names:
+        item = find_profile_item_by_name(name, profile)
+        if item is None:
+            continue
+        bank = phrase_bank.load_bank(name, phrase_bank.content_hash(item))
+        flat = phrase_bank.flatten_for_selector(bank)
+        if flat:
+            sentence_pools[name] = flat
+
+    pool_realization = build_pool_realization(job_schema, sentence_pools) if sentence_pools else None
+    edited_bullets: dict[str, list[str]] = {}
+    for name, texts in (pool_realization or {}).get("bullets", {}).items():
+        item = find_profile_item_by_name(name, profile)
+        req_text = requirement_text_by_evidence.get(name, "")
+        if item is None or not req_text:
+            edited_bullets[name] = texts
+            continue
+        edited = [edit_sentence_with_retry(client, text, req_text, item, profile)[0] for text in texts]
+        edited_bullets[name] = edited
+
+    fully_covered = bool(requirement_evidence_names) and requirement_evidence_names <= set(edited_bullets)
+    return edited_bullets, fully_covered
+
+
+def overlay_bank_bullets(entries: list[dict], bullets_by_evidence: dict[str, list[str]]) -> list[dict]:
+    """Prepend bank-selected bullets onto entries already in the CLOUD
+    JSON contract shape ({"header","subtitle","bullets"} -- see tailor.py
+    OUTPUT schema), for the cloud tailoring path. Deliberately separate
+    from merge_realization (which does the equivalent job for degraded
+    mode's INTERNAL base-resume shape, {"title","subtitle","meta",
+    "bullets"} -- a different key convention, see build_base_resume_model/
+    _experience_entries_from_profile) rather than forcing one function to
+    handle both shapes or adding a shape-conversion adapter -- reads/
+    writes "header" directly, same _fuzzy_evidence_match matching logic,
+    no conversion needed either direction.
+
+    An entry with no matching evidence, or where bullets_by_evidence is
+    empty, is returned unchanged (same object shape, bullets untouched) --
+    this is strictly additive to whatever the cloud model already wrote.
+    """
+    if not bullets_by_evidence:
+        return entries
+    out: list[dict] = []
+    for e in entries:
+        header = (e.get("header") or "").strip()
+        bullets = list(e.get("bullets") or [])
+        realized_list = next(
+            (texts for name, texts in bullets_by_evidence.items() if _fuzzy_evidence_match(header, name)),
+            None,
+        )
+        if realized_list:
+            bullets = list(realized_list) + [b for b in bullets if b not in realized_list]
+        out.append({**e, "bullets": bullets[:4]})
+    return out
+
+
+def build_phrase_bank(
+    item: dict,
+    client,
+    profile: dict | None = None,
+    target_per_bullet: int = 3,
+    max_rounds: int = 2,
+    candidates_per_round: int = 6,
+) -> dict[str, list[str]]:
+    """Generate a phrase bank for ONE profile item (any experience_
+    inventory / project_inventory entry), scoped per original bullet.
+
+    For each of the item's own source facts (scoring.phrase_bank.
+    source_facts -- responsibilities, or factual_concepts as a fallback),
+    generate `candidates_per_round` alternate phrasings via `client`,
+    reject anything that fails the SAME claim/agency/causal/metric checks
+    request_local_realization and edit_sentence_with_retry already
+    enforce, then filter the survivors for diversity (semantic_match.
+    select_diverse_indices at diversity_threshold()) -- proven technique,
+    generalized from a one-entry experiment to run for any item. Retries
+    up to `max_rounds` with a structure-correction hint if the target
+    count isn't reached on the first pass.
+
+    Returns {original_bullet: [variant, ...]} -- an entry with fewer
+    survivors than target_per_bullet for some bullet is not an error, just
+    whatever the model/checks actually produced; a bullet with zero
+    survivors is simply absent from the result (never a fabricated
+    placeholder). Never calls the LLM at all if the item has no source
+    facts to expand.
+    """
+    from applypilot.scoring import semantic_match
+    from applypilot.scoring.phrase_bank import source_facts
+    from applypilot.scoring.schemas import (
+        _evidence_own_text,
+        agency_ceiling_for_evidence,
+        claim_ceiling_for_evidence,
+    )
+
+    facts = source_facts(item)
+    if not facts:
+        return {}
+
+    role = item.get("role_title") or item.get("name") or ""
+    constraints = [c for c in (item.get("constraints") or []) if isinstance(c, str) and c.strip()]
+    evidence_text = _evidence_own_text(item)
+    claim_ceiling = claim_ceiling_for_evidence(item)
+    agency_ceiling = agency_ceiling_for_evidence(item)
+    known_metrics = ((profile or {}).get("resume_facts") or {}).get("real_metrics") or []
+
+    bank: dict[str, list[str]] = {}
+    for bullet in facts:
+        accepted: list[str] = []
+        for _round_num in range(max_rounds):
+            if len(accepted) >= target_per_bullet:
+                break
+            user = _bank_generation_user_prompt(bullet, role, constraints, accepted or None, candidates_per_round)
+            try:
+                raw = client.chat(
+                    [{"role": "system", "content": _BANK_GENERATION_SYSTEM}, {"role": "user", "content": user}],
+                    max_tokens=1500,
+                    temperature=0.6,
+                )
+                parsed = json.loads(raw)
+                candidates = [str(s).strip() for s in (parsed.get("variants") or []) if str(s).strip()]
+            except Exception as exc:  # noqa: BLE001 -- one bad round shouldn't kill the whole bank build
+                log.warning("build_phrase_bank: generation round failed (%s: %s)", type(exc).__name__, exc)
+                continue
+
+            survivors = [
+                c
+                for c in candidates
+                if c not in accepted
+                and not _bank_passes_fabrication_checks(c, evidence_text, claim_ceiling, agency_ceiling, known_metrics)
+            ]
+            pool = accepted + survivors
+            embeddings = semantic_match.embed_texts(pool) if pool else []
+            if not embeddings:
+                accepted.extend(survivors)
+                continue
+            kept_indices = set(semantic_match.select_diverse_indices(embeddings, threshold=semantic_match.diversity_threshold()))
+            # base fixed BEFORE mutating `accepted` -- list.extend() appends
+            # from a generator one item at a time, so a condition that reads
+            # len(accepted) live inside the generator shifts mid-iteration
+            # as each prior item gets appended, silently mis-indexing every
+            # survivor after the first.
+            base = len(accepted)
+            newly_kept = [s for offset, s in enumerate(survivors) if (base + offset) in kept_indices]
+            accepted.extend(newly_kept)
+
+        if accepted:
+            bank[bullet] = accepted[:target_per_bullet]
+
+    return bank
 
 
 def compose_degraded_resume_json(

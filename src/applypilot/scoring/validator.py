@@ -395,8 +395,15 @@ def _unfinished_project_names(profile: dict) -> list[str]:
     return sorted(names)
 
 
-def _append_profile_integrity_errors(text: str, profile: dict, errors: list[str]) -> None:
-    """Apply profile-driven privacy/status/education integrity checks."""
+def _append_profile_integrity_errors(
+    text: str, profile: dict, errors: list[str], structured_data: dict | None = None
+) -> None:
+    """Apply profile-driven privacy/status/education integrity checks.
+
+    structured_data (optional): the original {"experience": [...],
+    "projects": [...], ...} dict, when the caller has it -- see the
+    unfinished-project check below for why this matters.
+    """
     text_lower = text.lower()
     for name in _private_project_names(profile):
         if name.lower() in text_lower:
@@ -406,9 +413,47 @@ def _append_profile_integrity_errors(text: str, profile: dict, errors: list[str]
         r"\b(deployed|production|users?|revenue|profit(?:able)?|conversion|engagement|"
         r"accuracy|successful|generated income)\b"
     )
-    for name in _unfinished_project_names(profile):
-        if name.lower() in text_lower and success_terms.search(text_lower):
-            errors.append(f"Unfinished project has unsupported success claim: '{name}'")
+    # 2026-09-05 production crash: this used to search success_terms
+    # against the WHOLE resume text, not scoped to the unfinished
+    # project's own entry -- an entirely unrelated bullet using an
+    # ordinary word from this list (e.g. a real job bullet praising
+    # "accuracy" in daily work) would falsely flag an unfinished project
+    # elsewhere in the SAME document that has nothing to do with it and,
+    # in the confirmed live case, had zero bullets of its own at all.
+    #
+    # Two text shapes reach this function and need different scoping:
+    # validate_json_fields (the actual call site that hit this bug live)
+    # passes str(data) -- a flat dict repr with NO paragraph structure to
+    # exploit, so a blank-line or character-window heuristic can land
+    # arbitrarily close to an unrelated section purely by coincidence of
+    # dict-key ordering. Since validate_json_fields already HAS the
+    # structured dict, checking each project's OWN header+bullets text
+    # directly is both simpler and exact -- no heuristic at all. The
+    # other two callers (validate_tailored_resume, validate_cover_letter)
+    # only ever have the final RENDERED text, where blank lines really do
+    # separate each entry (assemble_resume_text's own output shape), so
+    # that stays a paragraph-block check for them.
+    unfinished_names = _unfinished_project_names(profile)
+    if structured_data is not None:
+        for name in unfinished_names:
+            name_lower = name.lower()
+            for entry in (structured_data.get("projects") or []) + (structured_data.get("experience") or []):
+                if not isinstance(entry, dict):
+                    continue
+                header = str(entry.get("header") or "")
+                if name_lower not in header.lower():
+                    continue
+                own_text = " ".join([header] + [str(b) for b in (entry.get("bullets") or [])]).lower()
+                if success_terms.search(own_text):
+                    errors.append(f"Unfinished project has unsupported success claim: '{name}'")
+                break
+    else:
+        blocks = re.split(r"\n\s*\n", text_lower)
+        for name in unfinished_names:
+            name_lower = name.lower()
+            own_blocks = [b for b in blocks if name_lower in b]
+            if own_blocks and any(success_terms.search(b) for b in own_blocks):
+                errors.append(f"Unfinished project has unsupported success claim: '{name}'")
 
     for item in profile.get("education", []):
         if not isinstance(item, dict):
@@ -578,7 +623,7 @@ def validate_json_fields(
     if standup_decision == "EXCLUDE" and re.search(r"\b(stand[- ]?up|comed(y|ian)|open mic|improv)\b", all_text):
         errors.append("Stand-up content present while decision is EXCLUDE")
 
-    _append_profile_integrity_errors(str(data), profile, errors)
+    _append_profile_integrity_errors(str(data), profile, errors, structured_data=data)
 
     # Factual anchor check: experience headers must use known employer names.
     # Catches local-model hallucinations (inventing new employers) that the

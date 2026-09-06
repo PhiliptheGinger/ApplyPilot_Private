@@ -1,0 +1,332 @@
+{
+  "Freelance Photography / Videography": {
+    "n": 2000,
+    "hits": 15,
+    "rate": 0.0075,
+    "top_terms": [
+      [
+        "media",
+        17
+      ],
+      [
+        "photography",
+        5
+      ]
+    ]
+  },
+  "AMP Smart": {
+    "n": 2000,
+    "hits": 333,
+    "rate": 0.1665,
+    "top_terms": [
+      [
+        "sales",
+        315
+      ],
+      [
+        "clearly",
+        44
+      ],
+      [
+        "proposals",
+        35
+      ],
+      [
+        "customer-facing",
+        31
+      ],
+      [
+        "different",
+        26
+      ],
+      [
+        "regional",
+        19
+      ],
+      [
+        "AMP Smart",
+        14
+      ],
+      [
+        "targeted",
+        12
+      ],
+      [
+        "in-person",
+        11
+      ],
+      [
+        "outreach",
+        11
+      ],
+      [
+        "communicated",
+        7
+      ],
+      [
+        "adapting",
+        7
+      ],
+      [
+        "smart",
+        5
+      ],
+      [
+        "residential",
+        4
+      ],
+      [
+        "worked",
+        4
+      ]
+    ]
+  },
+  "UPS": {
+    "n": 2000,
+    "hits": 284,
+    "rate": 0.142,
+    "top_terms": [
+      [
+        "priorities",
+        78
+      ],
+      [
+        "established",
+        62
+      ],
+      [
+        "handling",
+        62
+      ],
+      [
+        "efficiently",
+        51
+      ],
+      [
+        "package",
+        32
+      ],
+      [
+        "moving",
+        22
+      ],
+      [
+        "changing",
+        15
+      ],
+      [
+        "high-volume",
+        13
+      ],
+      [
+        "worked",
+        4
+      ],
+      [
+        "followed",
+        3
+      ],
+      [
+        "coworkers",
+        3
+      ],
+      [
+        "coordinated",
+        2
+      ]
+    ]
+  },
+  "National Tire and Battery / Mavis": {
+    "n": 2000,
+    "hits": 704,
+    "rate": 0.352,
+    "top_terms": [
+      [
+        "equipment",
+        322
+      ],
+      [
+        "troubleshooting",
+        208
+      ],
+      [
+        "customer service",
+        137
+      ],
+      [
+        "hands-on",
+        123
+      ],
+      [
+        "appropriate",
+        121
+      ],
+      [
+        "established",
+        62
+      ],
+      [
+        "identifying",
+        61
+      ],
+      [
+        "technical support",
+        55
+      ],
+      [
+        "corrective",
+        50
+      ],
+      [
+        "vehicle",
+        50
+      ],
+      [
+        "National Tire and Battery / Mavis",
+        27
+      ],
+      [
+        "specialized",
+        21
+      ],
+      [
+        "alignment",
+        17
+      ],
+      [
+        "relations",
+        10
+      ],
+      [
+        "performed",
+        9
+      ]
+    ]
+  },
+  "Alex Prosperity Group / UST Logistics": {
+    "n": 2000,
+    "hits": 337,
+    "rate": 0.1685,
+    "top_terms": [
+      [
+        "hands-on",
+        123
+      ],
+      [
+        "following",
+        62
+      ],
+      [
+        "established",
+        62
+      ],
+      [
+        "clearly",
+        44
+      ],
+      [
+        "customer-facing",
+        31
+      ],
+      [
+        "logistics",
+        22
+      ],
+      [
+        "home",
+        21
+      ],
+      [
+        "installation",
+        13
+      ],
+      [
+        "performed",
+        9
+      ],
+      [
+        "communicated",
+        7
+      ],
+      [
+        "lowe",
+        5
+      ],
+      [
+        "appliances",
+        4
+      ],
+      [
+        "hands-on work",
+        1
+      ]
+    ]
+  },
+  "Waffle House": {
+    "n": 2000,
+    "hits": 399,
+    "rate": 0.1995,
+    "top_terms": [
+      [
+        "customer service",
+        137
+      ],
+      [
+        "servers",
+        101
+      ],
+      [
+        "staff",
+        52
+      ],
+      [
+        "fast-paced",
+        45
+      ],
+      [
+        "clearly",
+        44
+      ],
+      [
+        "Waffle House",
+        38
+      ],
+      [
+        "taking",
+        28
+      ],
+      [
+        "provided",
+        26
+      ],
+      [
+        "items",
+        25
+      ],
+      [
+        "preparation",
+        24
+      ],
+      [
+        "high-volume",
+        13
+      ],
+      [
+        "house",
+        13
+      ],
+      [
+        "menu",
+        8
+      ],
+      [
+        "communicated",
+        7
+      ],
+      [
+        "food",
+        7
+      ]
+    ]
+  }
+}

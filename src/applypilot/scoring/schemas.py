@@ -144,6 +144,7 @@ from collections import Counter
 
 from applypilot.scoring.local_tailor import (
     _auto_resolve_requirements,
+    _is_generic_evidence_term,
     _NAME_TOKEN_STOPWORDS,
     _split_requirement_lines,
     _synonym_hit,
@@ -1067,6 +1068,22 @@ _AMBIGUOUS_TERMS = frozenset(
         "installations.",
         "installer",
         "installers",
+        # "reliability" (2026-09-05, found via the FIRST real end-to-end
+        # phrase-bank verification run, not a synthetic audit): UPS's real,
+        # deliberately-hand-typed relevance_category ("reliability" --
+        # restored to trusted-identity-term status the same session, see
+        # decision #71's `_item_identity_terms` fix) legitimately means
+        # on-time PACKAGE-DELIVERY reliability. A real Anduril "Software
+        # Engineer, Factory Systems" posting asking for code that
+        # "enhances the performance, scalability, and reliability of the
+        # platform" shares the bare word but means SYSTEM/SOFTWARE
+        # reliability -- UPS's evidence got cited as supporting a software
+        # engineering requirement purely off this collision. Exact same
+        # shape as "alignment": being a real, deliberately-curated identity
+        # label (decision #71's fix) is necessary but not sufficient for
+        # trusting a single word alone -- a word can be BOTH a genuine
+        # identity label AND cross-domain-ambiguous at the same time.
+        "reliability",
     }
 )
 
@@ -1085,15 +1102,37 @@ def _local_context_words(text: str, term: str) -> set[str]:
     ordinary-pluralization tolerance as _term_in_text) so "vehicle" and
     "vehicles" count as the same context word -- without this, the overlap
     check below would spuriously disagree on two genuinely-same-sense
-    usages just because one text happened to pluralize a shared word."""
+    usages just because one text happened to pluralize a shared word.
+
+    2026-09-05: also excludes generic-evidence terms (_is_generic_evidence_
+    term -- the SAME filter decision #71 built for the `supported`-flag
+    false-positive problem), not just ordinary stopwords. Found live: a
+    real Anduril "Software Engineer" posting and UPS's real evidence text
+    both happened to contain "performance" near "reliability" -- "write
+    code that enhances... performance... and reliability" vs. "...where
+    reliability, accuracy, and consistent performance were essential" --
+    and that ONE shared word was enough for _context_senses_agree to
+    wrongly conclude the two usages of "reliability" agreed in sense, even
+    though one means software reliability and the other means package-
+    delivery reliability. "Performance" is exactly the kind of generic
+    professional vocabulary (like "quality"/"efficiency"/"consistent")
+    that shows up near almost any domain's version of "good at the job" --
+    sharing it proves nothing about whether two SPECIFIC senses of an
+    ambiguous term actually agree. Reusing the existing filter here
+    (rather than building a second one) means every future addition to
+    that list also strengthens this check automatically."""
     term_l = term.lower()
     words: set[str] = set()
     for sentence in _SENTENCE_SPLIT_RE.split(text or ""):
         if re.search(rf"\b{re.escape(term_l)}\b", sentence.lower()):
             for w in _TERM_WORD_RE.findall(sentence):
                 wl = w.lower()
-                if wl != term_l and wl not in _NAME_TOKEN_STOPWORDS and len(wl) > 2:
-                    words.add(wl[:-1] if wl.endswith("s") and len(wl) > 3 else wl)
+                if wl == term_l or wl in _NAME_TOKEN_STOPWORDS or len(wl) <= 2:
+                    continue
+                normalized = wl[:-1] if wl.endswith("s") and len(wl) > 3 else wl
+                if _is_generic_evidence_term(normalized):
+                    continue
+                words.add(normalized)
     return words
 
 
@@ -1256,7 +1295,6 @@ def build_job_schema_representation(job: dict, profile: dict) -> dict:
             item = ranked_evidence[evidence_ids[0] - 1]
             kind = _match_kind(line["text"], item)
             frame = select_frame(line["text"])
-            entry["supported"] = True
             entry["resume_evidence"] = [item["name"]]
             entry["frame"] = frame
 
@@ -1290,6 +1328,43 @@ def build_job_schema_representation(job: dict, profile: dict) -> dict:
             else:
                 entry["synonym_concepts"] = [item["name"]]
             entry["category_tier"] = classify_category_tier(kind, len(entry["exact_keywords"]))
+
+            # 2026-09-05: the RELEVANCE gate -- distinct from (and upstream
+            # of) the claim/agency/causal/metric checks in local_tailor.py,
+            # which only ever ask "is this claim TRUE given the evidence,"
+            # never "does this evidence actually belong with this
+            # requirement." Nothing downstream checks that second question
+            # -- a topically-irrelevant-but-true pairing (Waffle House
+            # evidence "supporting" an unrelated manufacturing job's
+            # "quality standards" line) passes every existing safety check,
+            # because it isn't a lie. This is the one place that decision
+            # gets made, for every consumer of `supported` (the live cloud
+            # prompt's format_schema_guidance AND local_tailor's degraded-
+            # mode realization / selector alike).
+            #
+            # Two parts: (a) 0 surviving keywords (e.g. an ambiguous-term
+            # collision like "alignment" that failed _context_senses_agree
+            # above) is never supported -- previously it was, since nothing
+            # read category_tier back into this flag before today. (b) a
+            # SINGLE matched keyword ("near_prototype") is trusted alone
+            # only when that keyword is part of the evidence item's own
+            # deliberately-curated identity (its name, or a hand-typed
+            # relevance_category/factual_concept -- see
+            # _item_identity_terms) -- not when it merely survived being
+            # split out of a long `responsibilities` sentence. A live
+            # 31,644-job scan found single incidental words (like "quality"
+            # or "approach") were driving most of the false-positive
+            # volume; but a first attempt at blanket-requiring 2+ keywords
+            # broke real single-word IDENTITY evidence (a skills_inventory
+            # entry literally named "Database" can never have a second
+            # word to corroborate with, by design) -- confirmed by the
+            # existing test suite, not just supposed. This is the
+            # distinction that fixes both without either regression.
+            identity_terms = item.get("identity_terms") or set()
+            trusted_alone = entry["category_tier"] == "near_prototype" and bool(
+                set(entry["exact_keywords"]) & identity_terms
+            )
+            entry["supported"] = entry["category_tier"] == "prototype" or entry["category_tier"] == "peripheral" or trusted_alone
 
             entry["event_type"] = classify_event_type(evidence_text)
             force_relation = detect_force_relation(evidence_text)

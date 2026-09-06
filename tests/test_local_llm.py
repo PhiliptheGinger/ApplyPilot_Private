@@ -813,6 +813,55 @@ class TestMalformedLocalOutput(unittest.TestCase):
         self.assertEqual(report["status"], "approved")
         self.assertIn("Engineer", tailored)
 
+    def test_judge_exception_on_normal_path_degrades_like_a_failed_verdict(self):
+        """2026-09-05: same class of bug as the degraded-mode judge crash --
+        the normal (cloud) path's judge call also had no exception
+        handling. On the last attempt, a judge failure (real or via
+        exception) must still ship the already-validated result, not
+        crash it."""
+        from applypilot.scoring import tailor as tailor_mod
+
+        profile = {
+            "personal": {"full_name": "Jane Doe", "email": "jane@example.com"},
+            "resume_facts": {"preserved_companies": [], "preserved_school": ""},
+            "skills_boundary": {"languages": ["Python"]},
+        }
+        job = {"title": "Engineer", "site": "test", "full_description": "desc", "location": "Remote"}
+
+        good_json = (
+            '{"title":"Engineer","summary":"Solid engineer.",'
+            '"skills":{"languages":"Python"},'
+            '"experience":[{"header":"Engineer | Acme | 2020-2023","bullets":["Built things."]}],'
+            '"projects":[],"education":"State University"}'
+        )
+
+        mock_client = MagicMock()
+        mock_client.chat.return_value = good_json
+
+        with (
+            patch("applypilot.scoring.tailor.get_stage_client", return_value=mock_client),
+            patch("applypilot.scoring.tailor.is_local_configured", return_value=False),
+            # is_clean = not validation["warnings"] -- a non-empty warnings
+            # list forces attempt 0 past the "skip judge on a clean first
+            # pass" shortcut, so the judge call this test is targeting
+            # actually happens.
+            patch(
+                "applypilot.scoring.tailor.validate_json_fields",
+                return_value={"passed": True, "errors": [], "warnings": ["minor style note"]},
+            ),
+            patch("applypilot.scoring.tailor.is_auto_approvable", return_value=False),
+            patch(
+                "applypilot.scoring.tailor.judge_tailored_resume",
+                side_effect=RuntimeError("All LLM providers are on quota cooldown (min wait: 20.4h)."),
+            ),
+        ):
+            tailored, report = tailor_mod.tailor_resume("Original resume.", job, profile, max_retries=0)
+
+        self.assertEqual(report["status"], "approved")
+        self.assertFalse(report["judge"]["passed"])
+        self.assertEqual(report["judge"]["verdict"], "ERROR")
+        self.assertIn("Engineer", tailored)
+
     def test_parse_plan_strips_think_block_before_json(self):
         """Defense-in-depth for Qwen3/hybrid-reasoning models: a <think>...
         </think> block (populated or empty) preceding the real JSON must not

@@ -1,0 +1,3280 @@
+{
+  "Freelance Photography / Videography": {
+    "n_jobs_scanned": 31644,
+    "n_hits": 5029,
+    "hits": [
+      {
+        "job_url": "https://jobs.ashbyhq.com/ashby/a6b309d5-fa4b-42b9-a1a2-653a882a5e60",
+        "title": "Senior Strategic Implementation Specialist - Americas (West)",
+        "n_supported": 1,
+        "sample_requirement": "\ud83d\udce3 You demonstrate clear communication. You ask clarifying questions with precision and can distill complex concepts into simple themes.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4454822016",
+        "title": "Dental Office Assistant",
+        "n_supported": 1,
+        "sample_requirement": "Excellent communication and organizational skills",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4460685829",
+        "title": "MSP Field Technician \u2013 Tier 2/3",
+        "n_supported": 1,
+        "sample_requirement": "Must be able to work well under pressure, independently, and have excellent verbal and written communication skills.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5085878007?gh_jid=5085878007",
+        "title": "Senior Test Automation Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Data analysis and clear communication of results and collaboration with design engineers to resolve any product problems found via test",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/openai/5468fcd0-f63b-442f-9341-195de5ebab74",
+        "title": "Integrated Marketing Manager, Government",
+        "n_supported": 2,
+        "sample_requirement": "Experience: 8+ years in integrated marketing, communications, brand storytelling, public affairs, advertising agencies, or a related field, including at least 3",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://job-boards.greenhouse.io/twilio/jobs/8065028",
+        "title": "Senior Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Twilio powers real-time business communications and data solutions that help companies and developers worldwide build better applications and customer experienc",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455420172",
+        "title": "Test Automation Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Integrate embedded software, ECUs, sensors, actuators, and communication",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://databricks.com/company/careers/open-positions/job?gh_jid=8638642002",
+        "title": "Director, Web Marketing",
+        "n_supported": 2,
+        "sample_requirement": "Depth in the technical aspects of running a website: analytics, UX, technical and content SEO, and information architecture.",
+        "matched_via": [
+          "content"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/software-engineer-multiple-positions-available/10600201",
+        "title": "Software Engineer [Multiple Positions Available]",
+        "n_supported": 1,
+        "sample_requirement": "Job Location: 8181 Communications Pkwy, Plano, TX 75024.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4461716106",
+        "title": "Principal Engineer - Collaboration",
+        "n_supported": 2,
+        "sample_requirement": "5+ years of experience in enterprise collaboration, unified communications, or workplace technology engineering.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/staff-software-engineer/10495317",
+        "title": "Staff Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Help evolve and grow Chewy's world-class search and recommendations system, serving millions of product search results and personalized content recommendations.",
+        "matched_via": [
+          "content"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/software-engineer/10324181",
+        "title": "Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Build and maintain high-quality software that powers automated editorial workflows, including data-focused content creation and publishing integrations with int",
+        "matched_via": [
+          "content"
+        ]
+      },
+      {
+        "job_url": "https://motorolasolutions.wd5.myworkdayjobs.com/Careers/job/Illinois-Remote-Work/Field-Engineer_R67664",
+        "title": "Field Engineer",
+        "n_supported": 5,
+        "sample_requirement": "Maintaining, optimizing, testing, documenting, and supporting complex communication systems.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455047594",
+        "title": "Customer Service Rep(08863) - 709 East Church Street",
+        "n_supported": 1,
+        "sample_requirement": "Excellent communication and interpersonal skills",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455030707",
+        "title": "Field Sales Representative",
+        "n_supported": 2,
+        "sample_requirement": "You'll use strong negotiation and communications skills - you know how to make a smooth pivot, and are highly motivated to get it right and make the sale",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4457852660",
+        "title": "Systems Engineer III",
+        "n_supported": 1,
+        "sample_requirement": "Strong verbal communication across audiences (such as technical coworkers, end users, and management)",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-PR-SANTA-ISABEL-B1--Felicia-Industrial-Park---St-B1--BLDG-1/Collaboration-Platforms-Engineer--Puerto-Rico-_01872394-1",
+        "title": "Collaboration Platforms Engineer (Puerto Rico)",
+        "n_supported": 1,
+        "sample_requirement": "Work directly with customers and stakeholders to understand their needs, provide guidance on collaboration tools, provision sites, and use technical expertise t",
+        "matched_via": [
+          "creative"
+        ]
+      },
+      {
+        "job_url": "https://amazon.jobs/en/jobs/10502801/principal-engineer-amazon-leo-amazon-leo",
+        "title": "Principal Engineer, Amazon Leo, Amazon Leo",
+        "n_supported": 1,
+        "sample_requirement": "-Excellent verbal and written communication skills",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5208964007?gh_jid=5208964007",
+        "title": "Mechanical Engineer, Space",
+        "n_supported": 1,
+        "sample_requirement": "Use rapid prototyping, 3D printing, and hands-on machining as\u00a0appropriate to\u00a0iterate quickly and allow for\u00a0creative\u00a0\u201coutside-the-box\" thinking",
+        "matched_via": [
+          "creative"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4460815252",
+        "title": "Retail Sales Specialist",
+        "n_supported": 1,
+        "sample_requirement": "Ensuring a welcoming store atmosphere, delivering a clean retail experience, effective communication, policy adherence, issue resolution and participating in tr",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Quality-Engineering-Lead_ATCI-5566066-S2056961",
+        "title": "Quality Engineering Lead",
+        "n_supported": 1,
+        "sample_requirement": "Facilitate communication between cross-functional teams to align quality objectives with project goals.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://job-boards.greenhouse.io/smartsheet/jobs/7873872",
+        "title": "Sr. Forward Deployed AI Engineer (Remote Eligible in the UK)",
+        "n_supported": 1,
+        "sample_requirement": "Own the AI workshop program for your pod, customize modules per customer, lead technical sessions, translate outputs into production requirements, evolve conten",
+        "matched_via": [
+          "content"
+        ]
+      },
+      {
+        "job_url": "https://www.pinterestcareers.com/jobs/?gh_jid=7684636",
+        "title": "Product Design Manager II, Ad Formats",
+        "n_supported": 1,
+        "sample_requirement": "Clear, confident communication skills: you can explain complex design decisions and tradeoffs in ways that align cross-functional partners.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Gurugram/Financial-Plan---Analysis-Specialist_AIOC-S01656590-1",
+        "title": "Financial Plan & Analysis Specialist",
+        "n_supported": 1,
+        "sample_requirement": "\u00b7 Manage client communication, responding to queries, investigate irregularities and anomalies and provide functional support for day-to-day issues.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4457503441",
+        "title": "Analyst",
+        "n_supported": 1,
+        "sample_requirement": "Perform pre-patch tasks: verify device backups, confirm maintenance window communications, and validate access.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4459029417",
+        "title": "Associate Member Service Representative",
+        "n_supported": 1,
+        "sample_requirement": "Greet and assist members in a courteous, professional, and timely manner through all service channels - in-person, phone, and digital communication.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-PR-AGUADILLA-110--Rd-110-N-Km-288--RD110/Senior-Software-Engineer--HF--Hybrid---Aguadilla--PR-_01870381",
+        "title": "Senior Software Engineer, HF (Hybrid - Aguadilla, PR)",
+        "n_supported": 2,
+        "sample_requirement": "Design, develop, integrate and test communications systems for aircrafts that support multiple ways of connecting the aircraft to the ground and the airlines",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4447588135",
+        "title": "Collections Specialist",
+        "n_supported": 1,
+        "sample_requirement": "Follow Up Consistently: Maintain regular communication with project managers and clients until overdue invoices are paid.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4461511601",
+        "title": "IT Support Specialist",
+        "n_supported": 1,
+        "sample_requirement": "Monitor IT support requests and assigned tasks in the University's service management system (ServiceNow) and respond to customers with timely and detailed comm",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4439349295",
+        "title": "Customer Experience Banker- Lawndale Greensboro NC",
+        "n_supported": 1,
+        "sample_requirement": "Demonstrating acumen in sales, customer service, relationship management, banking, communication and presentation.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/sr-principal-software-engineer-clearance-required/10786459",
+        "title": "Sr Principal Software Engineer (Clearance Required)",
+        "n_supported": 1,
+        "sample_requirement": "Demonstrated project leadership, strong problem-solving skills, and effective communication with non-technical stakeholders.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://mastercard.wd1.myworkdayjobs.com/CorporateCareers/job/Paris-France/Director--Specialist-Sales--Services-Business-Development_R-279838",
+        "title": "Director, Specialist Sales, Services Business Development",
+        "n_supported": 1,
+        "sample_requirement": "Strong communication and influencing skills, should be a compelling presenter to senior client audiences and able to influence large deals",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4457117047",
+        "title": "Maintenance Technician",
+        "n_supported": 1,
+        "sample_requirement": "Able to use a variety of communication methods on frequent basis.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/deepgram/f904ff60-f5d1-45c7-8fa2-8456c47b4204",
+        "title": "Pre-Sales Solutions Engineer (San Francisco, CA)",
+        "n_supported": 1,
+        "sample_requirement": "Contribute to technical content creation including implementation guides, reference architectures, and best practices",
+        "matched_via": [
+          "content"
+        ]
+      },
+      {
+        "job_url": "https://amazon.jobs/en/jobs/10499020/sr-software-development-engineer-shield-anti-ddos",
+        "title": "Sr Software Development Engineer, Shield (Anti-DDoS)",
+        "n_supported": 1,
+        "sample_requirement": "Design creative, forward-looking mitigations in an ambiguous, fast-moving threat landscape where attacks evolve daily and solutions must anticipate what doesn't",
+        "matched_via": [
+          "creative"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/ramp/afe866c3-3725-4416-9e5f-530ed89b295d",
+        "title": "Manager, Scaled Customer Success",
+        "n_supported": 1,
+        "sample_requirement": "Continuously improve systems and team efficiency through automation, content, and applied AI initiatives.",
+        "matched_via": [
+          "content"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4448902529",
+        "title": "Field Application Engineer, AI Factory",
+        "n_supported": 1,
+        "sample_requirement": "Establish strong relationships and communication channels with internal teams.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://stripe.com/jobs/search?gh_jid=8128634",
+        "title": "Head of AEO & SEO",
+        "n_supported": 2,
+        "sample_requirement": "Partner cross-functionally with product, engineering, content, growth, data science, and marketing to embed SEO/AEO best practices across Stripe's web propertie",
+        "matched_via": [
+          "content"
+        ]
+      },
+      {
+        "job_url": "https://cisco.wd5.myworkdayjobs.com/Cisco_Careers/job/Milpitas-California-US/Project-Manager_2020527",
+        "title": "Project Manager",
+        "n_supported": 1,
+        "sample_requirement": "Lead complex lab infrastructure projects from planning through deployment, managing project schedules, risks, budgets, and stakeholder communication.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://intel.wd1.myworkdayjobs.com/External/job/US-Arizona-Phoenix/Packaging-module-development-engineer_JR0286122",
+        "title": "Packaging module development engineer",
+        "n_supported": 1,
+        "sample_requirement": "Proven technical leadership skills: Self initiative, leadership, action-oriented by influencing, written and verbal communication skills with the ability to wor",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455030621",
+        "title": "Call Center Representative",
+        "n_supported": 2,
+        "sample_requirement": "Use approved knowledge resources and procedures while adapting communication to the customer's specific question.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5015257007?gh_jid=5015257007",
+        "title": "Technical Recruiter, Sydney",
+        "n_supported": 1,
+        "sample_requirement": "Move fast, with a process for consistently sourcing, tracking and maintaining a high volume of candidates while maintaining open lines of communication with sta",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://careers.airbnb.com/positions/8068640?gh_jid=8068640",
+        "title": "Senior Influencer and Social Manager",
+        "n_supported": 6,
+        "sample_requirement": "Build and maintain relationships with creators and influencers who genuinely reflect Airbnb's brand values, negotiating partnership terms that support a steady ",
+        "matched_via": [
+          "content"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/lead-software-engineer-java-jpa/10916210",
+        "title": "Lead Software Engineer- Java - JPA",
+        "n_supported": 1,
+        "sample_requirement": "Executes creative software solutions, design, development, and technical troubleshooting with ability to think beyond routine or conventional approaches to buil",
+        "matched_via": [
+          "creative"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4459773704",
+        "title": "Emergency Roadside Coordinator",
+        "n_supported": 1,
+        "sample_requirement": "Maintain constant communication with vendors, customers, and Amerit internal teams to monitor progress and provide updates until completion.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Gurugram/Financial-Plan---Analysis-Specialist_AIOC-S01656588-1",
+        "title": "Financial Plan & Analysis Specialist",
+        "n_supported": 1,
+        "sample_requirement": "\u00b7 Manage client communication, responding to queries, investigate irregularities and anomalies and provide functional support for day-to-day issues.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Pune/Application-Support-Engineer_ATCI-5109895-S1892520-1",
+        "title": "Application Support Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Second escalation point and manager of Severity 1 incidents including internal and client communications",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Mumbai/Custom-Software-Engineer_ATCI-5608573-S2030278-1",
+        "title": "Custom Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Coordinate cross-functional communication to ensure alignment on project goals and deliverables.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://stripe.com/jobs/search?gh_jid=7918088",
+        "title": "Technical Account Manager, AI User Segment",
+        "n_supported": 1,
+        "sample_requirement": "Create user-facing content for long-term solutions",
+        "matched_via": [
+          "content"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5164226007?gh_jid=5164226007",
+        "title": "Mission Operations Engineer, EW",
+        "n_supported": 2,
+        "sample_requirement": "Support end-users in understanding and using our capabilities through the development of training content, integration into unit training schedules, and deliver",
+        "matched_via": [
+          "content"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/notion/f1f9e19d-cbf3-49eb-9824-d04adf2e3d75",
+        "title": "[Contract] Language Training Specialist - Japanese ",
+        "n_supported": 1,
+        "sample_requirement": "Own and apply Japanese localization QA standards across training content, including checking for accuracy, clarity, tone, terminology, and cultural nuance",
+        "matched_via": [
+          "content"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/software-engineer-iii-kora-support/9250336",
+        "title": "Software Engineer III (Kora/Support)",
+        "n_supported": 1,
+        "sample_requirement": "Excellent communication skills, both written and verbal, with the ability to articulate complex technical ideas clearly, concisely, and with compelling examples",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4459984537",
+        "title": "Patient Service Representative I Hospital",
+        "n_supported": 1,
+        "sample_requirement": "Excellent communication (written & verbal), customer service and interpersonal skills, ability to effectively communicate with a variety of patients, visitors, ",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/openai/fbb68247-eb54-4ad1-94b4-26e0dc24fd23",
+        "title": "Account Director, Digital Native Enterprise",
+        "n_supported": 1,
+        "sample_requirement": "Collaborate with solutions, marketing, communications, business operations, people operations, finance, product management, and engineering",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Integration-Engineer_ATCI-5567106-S2057064-1",
+        "title": "Integration Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Facilitate communication between technical teams and business stakeholders to promote clarity and shared understanding.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4439345121",
+        "title": "Front Office Specialist",
+        "n_supported": 1,
+        "sample_requirement": "Manage patient flow in the office and ensure communication to maximize efficiency and customer service.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-CT-EAST-HARTFORD-L--400-Main-St--BLDG-L/HSE-Project-Engineer-P2--Onsite-_01869406",
+        "title": "HSE Project Engineer P2 (Onsite)",
+        "n_supported": 1,
+        "sample_requirement": "Strong interpersonal and communication skills with the ability to develop effective working relationships.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://job-boards.greenhouse.io/axon/jobs/7726702003",
+        "title": "Vendor Manager/Professional Services Axon 911 ",
+        "n_supported": 1,
+        "sample_requirement": "Build and maintain strong partnerships with suppliers to ensure effective communication, collaboration, and long-term strategic alignment",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Data-Engineer_ATCI-5104589-S1889360-1",
+        "title": "Data Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Strong communication skills.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://boeing.wd1.myworkdayjobs.com/EXTERNAL_CAREERS/job/USA---Scott-AFB-IL/Software-Application-Tester_JR2026511001-1",
+        "title": "Software Application Tester",
+        "n_supported": 1,
+        "sample_requirement": "Internal and external stakeholder communication of software and testing status",
+        "matched_via": [
+          "communications"
+        ]
+      }
+    ]
+  },
+  "AMP Smart": {
+    "n_jobs_scanned": 31644,
+    "n_hits": 17575,
+    "hits": [
+      {
+        "job_url": "https://careers.airbnb.com/positions/7736820?gh_jid=7736820",
+        "title": "Senior Programs and Business Operations Lead, Monthly Stays",
+        "n_supported": 1,
+        "sample_requirement": "Support local and regional partners with insights,decision making capabilities, and cross-functional execution plans",
+        "matched_via": [
+          "regional"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4434451553",
+        "title": "FT Customer Service Leader (Open Availability)",
+        "n_supported": 1,
+        "sample_requirement": "Maintains proper knowledge of all sales associate register functions and Front End accounting services",
+        "matched_via": [
+          "sales"
+        ]
+      },
+      {
+        "job_url": "https://www.pinterestcareers.com/jobs/?gh_jid=8024966",
+        "title": "Sr. Data Scientist, Infrastructure",
+        "n_supported": 1,
+        "sample_requirement": "Identify opportunities to improve how Pinterest measures and optimizes infrastructure across a range of domains, such as performance, shopping infrastructure, g",
+        "matched_via": [
+          "identify"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4451112410",
+        "title": "Senior Network Engineer (VIC) (DC Mod)",
+        "n_supported": 1,
+        "sample_requirement": "Execute complex network changes, upgrades, and lifecycle activities",
+        "matched_via": [
+          "execute"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/senior-software-engineer/10924676",
+        "title": "Senior Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Collaborate with Outreach team in providing help desk tiered support to users",
+        "matched_via": [
+          "outreach"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4452048281",
+        "title": "Senior Technology Consultant",
+        "n_supported": 1,
+        "sample_requirement": "Requires a bachelor's or foreign equivalent degree in computer science or a related field and 7 years of experience implementing, configuring and developing sol",
+        "matched_via": [
+          "field"
+        ]
+      },
+      {
+        "job_url": "https://databricks.com/company/careers/open-positions/job?gh_jid=6322654002",
+        "title": "Sr. Product Manager, Data Engineering",
+        "n_supported": 1,
+        "sample_requirement": "Own the full life cycle of product development from ideation to requirements, development, pricing, launch, and go-to-market.",
+        "matched_via": [
+          "market"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/ashby/a6b309d5-fa4b-42b9-a1a2-653a882a5e60",
+        "title": "Senior Strategic Implementation Specialist - Americas (West)",
+        "n_supported": 3,
+        "sample_requirement": "Change Management: You are experienced in navigating change management processes and helping customers adapt to new systems and a refreshed approach.",
+        "matched_via": [
+          "approach"
+        ]
+      },
+      {
+        "job_url": "https://labcorp.wd1.myworkdayjobs.com/External/job/Durham-NC/Executive-Director--AI-Transformation--Office-of-the-CAIO_2628637",
+        "title": "Executive Director, AI Transformation, Office of the CAIO",
+        "n_supported": 3,
+        "sample_requirement": "Prioritize and execute transformation portfolios based on business value, feasibility, risk, and organizational readiness.",
+        "matched_via": [
+          "execute"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4454822016",
+        "title": "Dental Office Assistant",
+        "n_supported": 1,
+        "sample_requirement": "Excellent communication and organizational skills",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://boeing.wd1.myworkdayjobs.com/EXTERNAL_CAREERS/job/USA---El-Segundo-CA/Digital-Electronics-Circuit---Unit-Hardware-Design-Engineer--Lead-or-Senior-_JR2025487688",
+        "title": "Digital Electronics Circuit & Unit Hardware Design Engineer (Lead or Senior)",
+        "n_supported": 1,
+        "sample_requirement": "Leads analysis of customer and system requirements and development of architectural approaches and detailed specifications for various electronic products.",
+        "matched_via": [
+          "approach"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4460685829",
+        "title": "MSP Field Technician \u2013 Tier 2/3",
+        "n_supported": 1,
+        "sample_requirement": "Must be able to work well under pressure, independently, and have excellent verbal and written communication skills.",
+        "matched_via": [
+          "communications",
+          "independently"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-VA-ARLINGTON-108--1100-Wilson-Blvd--ROSSLYN-HQ/Leadership-Development-Program---Business-Development--Onsite----June-2027-_01855875",
+        "title": "Leadership Development Program - Business Development (Onsite ) (June 2027)",
+        "n_supported": 4,
+        "sample_requirement": "Lead the development and execution of Position-to-Win strategies for high-value pursuits,",
+        "matched_via": [
+          "strategies"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-NY-ROME-104--104-Otis-St--OTIS/Senior-Chemical-and-Materials-Engineer--Onsite-_01866303",
+        "title": "Senior Chemical and Materials Engineer (Onsite)",
+        "n_supported": 1,
+        "sample_requirement": "Analyze metallurgical and materials data, identify material or process issues, and provide technical recommendations to Engineering, Manufacturing, Quality, and",
+        "matched_via": [
+          "identify"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5085878007?gh_jid=5085878007",
+        "title": "Senior Test Automation Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Define, own, and execute End of Line test plans for a set of new products and features, in collaboration with firmware, software, and hardware design teams",
+        "matched_via": [
+          "execute"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-AZ-TUCSON-9020--9020-S-Rita-Rd--BLDG-9020/Principal-Systems-Engineer---Systems-Engineer-II---Modeling-Simulation---Analysis-Engineer_01853119",
+        "title": "Principal Systems Engineer - Modeling Simulation & Analysis Engineer",
+        "n_supported": 2,
+        "sample_requirement": "You will be responsible for the development and implementation of modeling solutions, and subsequently conduct trade studies and evaluation of system and subsys",
+        "matched_via": [
+          "conduct"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4428893813",
+        "title": "Construction Technician",
+        "n_supported": 3,
+        "sample_requirement": "Ability to provide outstanding customer service and be an ideal representative of Progress Residential's standards",
+        "matched_via": [
+          "residential"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/notion/d177d052-ef57-4900-acf2-d58e9eded620",
+        "title": "Product Designer",
+        "n_supported": 1,
+        "sample_requirement": "You have well-rounded skills and experience to run projects independently end to end. 5+ years of working experience.",
+        "matched_via": [
+          "independently"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Gurugram/S-C-Global-Network---AI---Auto---Industrial--Manager_R00316188",
+        "title": "S&C Global Network - AI - Auto & Industrial- Manager",
+        "n_supported": 2,
+        "sample_requirement": "Act as a trusted advisor, shaping strategies, frameworks, and roadmaps for transformation.",
+        "matched_via": [
+          "strategies"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-MA-MARLBOROUGH-MA2--1001-Boston-Post-Rd--BLDG-2/Senior-Software-Engineer---C--_01867149",
+        "title": "Senior Software Engineer - C++",
+        "n_supported": 1,
+        "sample_requirement": "Typically requires a degree in Science, Technology, Engineering or Mathematics (STEM) and a minimum of 5 years of prior relevant experience, or an Advanced degr",
+        "matched_via": [
+          "field"
+        ]
+      },
+      {
+        "job_url": "https://job-boards.greenhouse.io/axon/jobs/7895411003",
+        "title": "Corporate Commercial Counsel, EMEA",
+        "n_supported": 1,
+        "sample_requirement": "Support the EMEA region sales teams with the potential of other regions as demand dictates.",
+        "matched_via": [
+          "sales"
+        ]
+      },
+      {
+        "job_url": "https://amazon.jobs/en/jobs/10458175/software-development-engineer-ii-managed-application-platform",
+        "title": "Software Development Engineer II, Managed Application Platform",
+        "n_supported": 1,
+        "sample_requirement": "Bachelor's degree or foreign equivalent in Computer Science, Engineering, Mathematics, or a related field",
+        "matched_via": [
+          "field"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455724153",
+        "title": "Pharmacy Technician",
+        "n_supported": 1,
+        "sample_requirement": "Remaining flexible for both scheduling and business needs, while contributing to a safe, inclusive, and engaging team dynamic; voluntarily traveling to stores i",
+        "matched_via": [
+          "market"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/openai/5468fcd0-f63b-442f-9341-195de5ebab74",
+        "title": "Integrated Marketing Manager, Government",
+        "n_supported": 4,
+        "sample_requirement": "Lead Partner Marketing Campaigns: Develop and execute joint campaigns with strategic partners, align go-to-market plans, amplify shared announcements, and stren",
+        "matched_via": [
+          "execute",
+          "market"
+        ]
+      },
+      {
+        "job_url": "https://job-boards.greenhouse.io/twilio/jobs/8065028",
+        "title": "Senior Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Twilio powers real-time business communications and data solutions that help companies and developers worldwide build better applications and customer experienc",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455420172",
+        "title": "Test Automation Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Integrate embedded software, ECUs, sensors, actuators, and communication",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Chennai/Business-Transformation-Specialist_AIOC-S01647969-1",
+        "title": "Business Transformation Specialist",
+        "n_supported": 3,
+        "sample_requirement": "Exposure to Metering Services in Australian utilities market (preferred), including: AEMO / regulatory frameworks, Service level compliance and metering obligat",
+        "matched_via": [
+          "market"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4456787681",
+        "title": "Quality Assurance Technician",
+        "n_supported": 1,
+        "sample_requirement": "Conduct and support First Article Inspection (FAI) activities, including interpretation of engineering drawings and completion of First Article Inspection Repor",
+        "matched_via": [
+          "conduct"
+        ]
+      },
+      {
+        "job_url": "https://databricks.com/company/careers/open-positions/job?gh_jid=8638642002",
+        "title": "Director, Web Marketing",
+        "n_supported": 1,
+        "sample_requirement": "Leverage data on product usage and website analytics, working directly with the broader marketing team to develop strategies that improve growth.",
+        "matched_via": [
+          "strategies"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/4961601007?gh_jid=4961601007",
+        "title": "Senior Robotics Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Conduct thorough testing and validation of perception and planning algorithms through development and use of simulation and analysis of data from real-world exp",
+        "matched_via": [
+          "conduct"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/software-engineer-ii-c-net-and-java/10694911",
+        "title": "Software Engineer II - C#/.NET and Java",
+        "n_supported": 1,
+        "sample_requirement": "Executes software solutions, design, development, and technical troubleshooting with ability to think beyond routine or conventional approaches to build solutio",
+        "matched_via": [
+          "approach",
+          "execute"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/software-engineer-multiple-positions-available/10600201",
+        "title": "Software Engineer [Multiple Positions Available]",
+        "n_supported": 1,
+        "sample_requirement": "Job Location: 8181 Communications Pkwy, Plano, TX 75024.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4462480134",
+        "title": "Service Desk Technician, Level 2 (Cincinnati, OH)",
+        "n_supported": 1,
+        "sample_requirement": "Participate in Root Cause Analysis (RCA) and Problem Management activities to identify recurring issues and improve service delivery.",
+        "matched_via": [
+          "identify"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/openai/df514733-46ad-4777-be67-44667bc9fd45",
+        "title": "Technical Deployment Lead - Tokyo",
+        "n_supported": 1,
+        "sample_requirement": "Codify solution patterns and evals. Extract reusable patterns and package field signals to improve product and models.",
+        "matched_via": [
+          "field"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4461716106",
+        "title": "Principal Engineer - Collaboration",
+        "n_supported": 3,
+        "sample_requirement": "5+ years of experience in enterprise collaboration, unified communications, or workplace technology engineering.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/software-engineer-ii/10941167",
+        "title": "Software Engineer II",
+        "n_supported": 2,
+        "sample_requirement": "Architect a resilient system for a customer-facing web application from scratch",
+        "matched_via": [
+          "customer-facing"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/principal-software-engineer/10839862",
+        "title": "Principal Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Bachelor's Degree (or higher) in Computer Science, Computer Engineering, or related field and a minimum of 6+ years work experience.",
+        "matched_via": [
+          "field"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4448606323",
+        "title": "Principal Architect - Solutions Architect",
+        "n_supported": 2,
+        "sample_requirement": "Developing and owning proposals and long term customer strategies.",
+        "matched_via": [
+          "proposals",
+          "strategies"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-AZ-TUCSON-M09--3350-E-Hemisphere-Loop--BLDG-M09/Mechanical-Engineer-II---Design_01851186",
+        "title": "Mechanical Engineer II \u2013 Design",
+        "n_supported": 1,
+        "sample_requirement": "Support and participate in design peer reviews, resolving action items, and conduct trade studies to make sound technical decisions.",
+        "matched_via": [
+          "conduct"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/staff-software-engineer/10495317",
+        "title": "Staff Software Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Lead the development of all customer-facing components of Chewy's Discovery experience, including our front-end web applications and APIs.",
+        "matched_via": [
+          "customer-facing"
+        ]
+      },
+      {
+        "job_url": "https://databricks.com/company/careers/open-positions/job?gh_jid=8682223002",
+        "title": "Sr. Manager, Field Engineering",
+        "n_supported": 4,
+        "sample_requirement": "Lead, mentor, and support a high-performing, inclusive pre-sales team",
+        "matched_via": [
+          "sales"
+        ]
+      },
+      {
+        "job_url": "https://motorolasolutions.wd5.myworkdayjobs.com/Careers/job/Illinois-Remote-Work/Field-Engineer_R67664",
+        "title": "Field Engineer",
+        "n_supported": 5,
+        "sample_requirement": "Maintaining, optimizing, testing, documenting, and supporting complex communication systems.",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://mastercard.wd1.myworkdayjobs.com/CorporateCareers/job/Vancouver-Canada/Senior-Software-Engineer_R-287082-1",
+        "title": "Senior Software Engineer",
+        "n_supported": 3,
+        "sample_requirement": "Develop and execute functional, integration, API, regression, end-to-end, and performance tests.",
+        "matched_via": [
+          "execute"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455047594",
+        "title": "Customer Service Rep(08863) - 709 East Church Street",
+        "n_supported": 1,
+        "sample_requirement": "Excellent communication and interpersonal skills",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Mumbai/Custom-Software-Engineering-Associate_AIOC-S01657845-1",
+        "title": "Custom Software Engineering Associate",
+        "n_supported": 1,
+        "sample_requirement": "\u2022Testing and Troubleshooting: Experience in testing emails across different devices and email clients to identify and resolve rendering issues.",
+        "matched_via": [
+          "different",
+          "identify"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Taguig/SAP-Basis-Administrator_R00305082",
+        "title": "SAP Basis Administrator",
+        "n_supported": 1,
+        "sample_requirement": "Stay updated with the latest advancements in SAP Basis Administration and integrate innovative approaches for improved system performance and reliability.",
+        "matched_via": [
+          "approach"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455030707",
+        "title": "Field Sales Representative",
+        "n_supported": 6,
+        "sample_requirement": "We'll kick things off with paid training -setting you up for success to work independently in the field. Coaching, mentoring and ongoing learning opportunities ",
+        "matched_via": [
+          "field",
+          "independently"
+        ]
+      },
+      {
+        "job_url": "https://databricks.com/company/careers/open-positions/job?gh_jid=8417654002",
+        "title": "Sr. Solutions Engineer - MFG",
+        "n_supported": 2,
+        "sample_requirement": "You align technical strategies around Databricks solutions.",
+        "matched_via": [
+          "strategies"
+        ]
+      },
+      {
+        "job_url": "https://amazon.jobs/en/jobs/10515096/software-development-engineer-aws-hardware-engineering",
+        "title": "Software Development Engineer, AWS Hardware Engineering",
+        "n_supported": 1,
+        "sample_requirement": "Bachelor's degree in Electrical Engineering, Computer Engineering, or a related technical field",
+        "matched_via": [
+          "field"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Hyderabad/Custom-Software-Engineer_ATCI-R1-S2064520-1",
+        "title": "Custom Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Expected to perform independently and become an SME.",
+        "matched_via": [
+          "independently"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Custom-Software-Engineer_ATCI-R1-S2034182-1",
+        "title": "Custom Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Expected to perform independently and become an SME.",
+        "matched_via": [
+          "independently"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4457852660",
+        "title": "Systems Engineer III",
+        "n_supported": 1,
+        "sample_requirement": "Strong verbal communication across audiences (such as technical coworkers, end users, and management)",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455764316",
+        "title": "Administrative Support",
+        "n_supported": 1,
+        "sample_requirement": "Create and implement team building and community outreach activities.",
+        "matched_via": [
+          "outreach"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-PR-SANTA-ISABEL-B1--Felicia-Industrial-Park---St-B1--BLDG-1/Collaboration-Platforms-Engineer--Puerto-Rico-_01872394-1",
+        "title": "Collaboration Platforms Engineer (Puerto Rico)",
+        "n_supported": 2,
+        "sample_requirement": "Execute and maintain governance processes for the collaboration platform, ensuring compliance with organizational standards and best practices",
+        "matched_via": [
+          "execute"
+        ]
+      },
+      {
+        "job_url": "https://cisco.wd5.myworkdayjobs.com/Cisco_Careers/job/Syracuse-New-York-US/Account-Executive---Portfolio_2021863",
+        "title": "Account Executive - Portfolio",
+        "n_supported": 2,
+        "sample_requirement": "Lead end-to-end sales cycles from prospecting and qualification through negotiation and close",
+        "matched_via": [
+          "sales"
+        ]
+      },
+      {
+        "job_url": "https://amazon.jobs/en/jobs/10502801/principal-engineer-amazon-leo-amazon-leo",
+        "title": "Principal Engineer, Amazon Leo, Amazon Leo",
+        "n_supported": 2,
+        "sample_requirement": "-Excellent verbal and written communication skills",
+        "matched_via": [
+          "communications"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5208964007?gh_jid=5208964007",
+        "title": "Mechanical Engineer, Space",
+        "n_supported": 1,
+        "sample_requirement": "Work with a cross-functional team to design market leading\u00a0space flight\u00a0hardware\u00a0and associated ground equipment\u00a0products",
+        "matched_via": [
+          "market"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Workforce-Services-Specialist_AIOC-S01641044-1",
+        "title": "Workforce Services Specialist",
+        "n_supported": 1,
+        "sample_requirement": "May create new solutions, leveraging and, where needed, adapting existing methods and procedures",
+        "matched_via": [
+          "adapting"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/full-stack-software-engineer/10693705",
+        "title": "Full-Stack Software Engineer",
+        "n_supported": 2,
+        "sample_requirement": "You love learning new things and are a collaborative team player, whether working independently or as part of a group.",
+        "matched_via": [
+          "independently"
+        ]
+      },
+      {
+        "job_url": "https://job-boards.greenhouse.io/axon/jobs/7965799003",
+        "title": "Manager, Protective Services Unit",
+        "n_supported": 1,
+        "sample_requirement": "Conduct readiness assessments, exercises, and operational reviews to continuously improve response capabilities and team performance.",
+        "matched_via": [
+          "conduct"
+        ]
+      }
+    ]
+  },
+  "UPS": {
+    "n_jobs_scanned": 31644,
+    "n_hits": 16237,
+    "hits": [
+      {
+        "job_url": "https://careers.airbnb.com/positions/7736820?gh_jid=7736820",
+        "title": "Senior Programs and Business Operations Lead, Monthly Stays",
+        "n_supported": 3,
+        "sample_requirement": "Develop actionable business analysis - enable functional leads to provide consistent information to their teams and stakeholders",
+        "matched_via": [
+          "consistent"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/openai/a6ab3111-7092-4da2-a7a6-71e01351bfda",
+        "title": "Software Engineer, API Agents",
+        "n_supported": 2,
+        "sample_requirement": "Establish the foundations agents need to operate safely in production, including secure execution environments, identity and permissions, observability, evaluat",
+        "matched_via": [
+          "efficiency",
+          "reliability"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4434451553",
+        "title": "FT Customer Service Leader (Open Availability)",
+        "n_supported": 1,
+        "sample_requirement": "Maintain knowledge of office procedures including cash reports, register checkups, deposits, Western Union, money orders and Coinstar",
+        "matched_via": [
+          "procedures"
+        ]
+      },
+      {
+        "job_url": "https://www.pinterestcareers.com/jobs/?gh_jid=8024966",
+        "title": "Sr. Data Scientist, Infrastructure",
+        "n_supported": 4,
+        "sample_requirement": "Partner with engineering teams to define, measure, and improve the health, quality, and efficiency of Pinterest\u2019s infrastructure systems.",
+        "matched_via": [
+          "efficiency"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/ashby/a6b309d5-fa4b-42b9-a1a2-653a882a5e60",
+        "title": "Senior Strategic Implementation Specialist - Americas (West)",
+        "n_supported": 3,
+        "sample_requirement": "Cross-functional Collaboration: You effectively partner with cross-functional stakeholders across Customer Success, Sales, Product, Engineering, and Operations ",
+        "matched_via": [
+          "operational"
+        ]
+      },
+      {
+        "job_url": "https://amazon.jobs/en/jobs/10526828/software-development-engineer-ii-prime-video-ads-channels",
+        "title": "Software Development Engineer II, Prime Video Ads Channels",
+        "n_supported": 1,
+        "sample_requirement": "2+ years of non-internship design or architecture (design patterns, reliability and scaling) of new and existing systems experience",
+        "matched_via": [
+          "reliability"
+        ]
+      },
+      {
+        "job_url": "https://boeing.wd1.myworkdayjobs.com/EXTERNAL_CAREERS/job/USA---El-Segundo-CA/Digital-Electronics-Circuit---Unit-Hardware-Design-Engineer--Lead-or-Senior-_JR2025487688",
+        "title": "Digital Electronics Circuit & Unit Hardware Design Engineer (Lead or Senior)",
+        "n_supported": 1,
+        "sample_requirement": "Leads development of high-level and detailed designs consistent with requirements and specifications.",
+        "matched_via": [
+          "consistent"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4460685829",
+        "title": "MSP Field Technician \u2013 Tier 2/3",
+        "n_supported": 1,
+        "sample_requirement": "Able to create and maintain procedures, documentation, and reports. Detailed records are vital.",
+        "matched_via": [
+          "procedures"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-NY-ROME-104--104-Otis-St--OTIS/Senior-Chemical-and-Materials-Engineer--Onsite-_01866303",
+        "title": "Senior Chemical and Materials Engineer (Onsite)",
+        "n_supported": 1,
+        "sample_requirement": "Analyze metallurgical and materials data, identify material or process issues, and provide technical recommendations to Engineering, Manufacturing, Quality, and",
+        "matched_via": [
+          "operational"
+        ]
+      },
+      {
+        "job_url": "https://amazon.jobs/en/jobs/10496494/sr-software-dev-engineer-sagemaker-ai",
+        "title": "Sr. Software Dev Engineer, SageMaker AI",
+        "n_supported": 1,
+        "sample_requirement": "5+ years of leading design or architecture (design patterns, reliability and scaling) of new and existing systems experience",
+        "matched_via": [
+          "reliability"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5085878007?gh_jid=5085878007",
+        "title": "Senior Test Automation Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Develop test procedures and test automation from component level to system level",
+        "matched_via": [
+          "procedures"
+        ]
+      },
+      {
+        "job_url": "https://amazon.jobs/en/jobs/10507716/software-development-engineer-sponsored-products-and-brands",
+        "title": "Software Development Engineer, Sponsored Products and Brands",
+        "n_supported": 1,
+        "sample_requirement": "Drive operational excellence through monitoring, automation, and continuous improvement",
+        "matched_via": [
+          "operational"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/openai/c15d4e1b-adcf-4809-91d5-17ba6b789092",
+        "title": "Software Security Architect, Operating Systems | Consumer Devices",
+        "n_supported": 1,
+        "sample_requirement": "Establish isolation and access controls across the kernel, applications, system services, and AI workloads.",
+        "matched_via": [
+          "workloads"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4456322089",
+        "title": "Tech Services Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Own and lead the firm's Managed File Transfer and Workload Automation services, ensuring security, reliability, scalability, compliance, and alignment with busi",
+        "matched_via": [
+          "reliability",
+          "workloads"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4428893813",
+        "title": "Construction Technician",
+        "n_supported": 1,
+        "sample_requirement": "Construction Technician will conduct all business in accordance with company policies and procedures and all state and federal regulations (such as Lead Based P",
+        "matched_via": [
+          "procedures"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-MA-MARLBOROUGH-MA2--1001-Boston-Post-Rd--BLDG-2/Senior-Software-Engineer---C--_01867149",
+        "title": "Senior Software Engineer - C++",
+        "n_supported": 1,
+        "sample_requirement": "Analyze numerical accuracy and runtime latency.",
+        "matched_via": [
+          "accuracy"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4461304424",
+        "title": "Cybersecurity Firewall Analyst II",
+        "n_supported": 3,
+        "sample_requirement": "Provide advanced engineering support for SASE and Inspection Zone security platforms, partnering closely with Security Operations, Network Engineering, and Inci",
+        "matched_via": [
+          "operational"
+        ]
+      },
+      {
+        "job_url": "https://amazon.jobs/en/jobs/10458175/software-development-engineer-ii-managed-application-platform",
+        "title": "Software Development Engineer II, Managed Application Platform",
+        "n_supported": 2,
+        "sample_requirement": "2+ years of non-internship design or architecture (design patterns, reliability and scaling) of new and existing systems experience",
+        "matched_via": [
+          "reliability"
+        ]
+      },
+      {
+        "job_url": "https://amazon.jobs/en/jobs/10437946/senior-software-development-engineer-ec2-instance-networking",
+        "title": "Senior Software Development Engineer, EC2 Instance Networking",
+        "n_supported": 2,
+        "sample_requirement": "Design and implement data plane networking software on custom hardware, working across the full software lifecycle from design through deployment and operations",
+        "matched_via": [
+          "operational"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455724153",
+        "title": "Pharmacy Technician",
+        "n_supported": 1,
+        "sample_requirement": "Following pharmacy workflow procedures at each pharmacy workstation (i.e., production, pick-up, drive-thru, and drop-off) for safe and accurate prescription ful",
+        "matched_via": [
+          "procedures"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455420172",
+        "title": "Test Automation Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Configure HIL/SIL setups to validate new software releases quickly and",
+        "matched_via": [
+          "quickly"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Chennai/Business-Transformation-Specialist_AIOC-S01647969-1",
+        "title": "Business Transformation Specialist",
+        "n_supported": 2,
+        "sample_requirement": "Ability to take an end-to-end problem-solving approach across meter to bill operations lifecycle",
+        "matched_via": [
+          "operational"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4456787681",
+        "title": "Quality Assurance Technician",
+        "n_supported": 1,
+        "sample_requirement": "Support the administration of the calibration program, including scheduling external calibration services, performing internal calibrations, maintaining records",
+        "matched_via": [
+          "maintaining"
+        ]
+      },
+      {
+        "job_url": "https://databricks.com/company/careers/open-positions/job?gh_jid=8638642002",
+        "title": "Director, Web Marketing",
+        "n_supported": 1,
+        "sample_requirement": "Strengthen the cross-departmental collaboration required to support and develop digital experiences for all of our audiences, through established processes and ",
+        "matched_via": [
+          "established"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4462480134",
+        "title": "Service Desk Technician, Level 2 (Cincinnati, OH)",
+        "n_supported": 1,
+        "sample_requirement": "Mentor and provide guidance to Service Desk Technician Level 1 personnel, assisting with troubleshooting techniques, procedures, and technical development.",
+        "matched_via": [
+          "procedures"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5185886007?gh_jid=5185886007",
+        "title": "Senior Software Engineer, Developer Platform",
+        "n_supported": 1,
+        "sample_requirement": "Create monitoring and logging infrastructure to validate support security operations, troubleshooting, and incident response.",
+        "matched_via": [
+          "operational"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/openai/df514733-46ad-4777-be67-44667bc9fd45",
+        "title": "Technical Deployment Lead - Tokyo",
+        "n_supported": 2,
+        "sample_requirement": "Run day-to-day engineering execution. Track and drive delivery across OpenAI FDE and customer teams. Keep progress unblocked and sequenced. Make real-time trade",
+        "matched_via": [
+          "keep"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Noida/Order-to-Cash-Operations-Analyst_AIOC-S01627265-1",
+        "title": "Order to Cash Operations New Associate",
+        "n_supported": 1,
+        "sample_requirement": "Designation: Order to Cash Operations New Associate",
+        "matched_via": [
+          "operational"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4461716106",
+        "title": "Principal Engineer - Collaboration",
+        "n_supported": 1,
+        "sample_requirement": "Maintain knowledge of industry best practices and new technologies and recommends innovations that enhance operations or provide a competitive advantage to the ",
+        "matched_via": [
+          "operational"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Mumbai/Technology-Support-Engineer_ATCI-5687575-S2059756-1",
+        "title": "Technology Support Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Experience in creating and managing Requests for Change to support operational stability.",
+        "matched_via": [
+          "operational"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/principal-software-engineer/10839862",
+        "title": "Principal Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Has experience developing and executing test procedures for software components.",
+        "matched_via": [
+          "procedures"
+        ]
+      },
+      {
+        "job_url": "https://intel.wd1.myworkdayjobs.com/External/job/US-Arizona-Phoenix/Install-Qualification-Operations-Specialist_JR0285799",
+        "title": "Install Qualification Operations Specialist",
+        "n_supported": 1,
+        "sample_requirement": "Support troubleshooting for Supplier Qual and Intel Qual to quickly resolve issues",
+        "matched_via": [
+          "quickly"
+        ]
+      },
+      {
+        "job_url": "https://boeing.wd1.myworkdayjobs.com/EXTERNAL_CAREERS/job/USA---Oklahoma-City-OK/Experienced-or-Senior-Systems-Engineering-Support-Analyst_JR2026516268-1",
+        "title": "Experienced or Senior Systems Engineering Support Analyst",
+        "n_supported": 1,
+        "sample_requirement": "Coordination with lab User community to establish build priorities",
+        "matched_via": [
+          "priorities"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-AZ-TUCSON-M09--3350-E-Hemisphere-Loop--BLDG-M09/Mechanical-Engineer-II---Design_01851186",
+        "title": "Mechanical Engineer II \u2013 Design",
+        "n_supported": 2,
+        "sample_requirement": "Support technical data package creation, changes, and/or variances.",
+        "matched_via": [
+          "package"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/staff-software-engineer/10495317",
+        "title": "Staff Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Alongside a dedicated site reliability team, support the smooth 24x7 operation of our team's services.",
+        "matched_via": [
+          "operational",
+          "reliability"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/software-engineer/10324181",
+        "title": "Software Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Improve and refactor existing systems to enhance performance, reliability, and adaptability as data sources and business needs evolve.",
+        "matched_via": [
+          "reliability"
+        ]
+      },
+      {
+        "job_url": "https://databricks.com/company/careers/open-positions/job?gh_jid=8367019002",
+        "title": "Staff Backend Software Engineer- (AI Platform)",
+        "n_supported": 1,
+        "sample_requirement": "Improve reliability, latency, and efficiency of distributed AI workloads",
+        "matched_via": [
+          "efficiency",
+          "reliability",
+          "workloads"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4452850333",
+        "title": "Retail Customer Service Lead",
+        "n_supported": 1,
+        "sample_requirement": "Validates completion of assigned operational messages and engagement video compliance.",
+        "matched_via": [
+          "operational"
+        ]
+      },
+      {
+        "job_url": "https://databricks.com/company/careers/open-positions/job?gh_jid=8682223002",
+        "title": "Sr. Manager, Field Engineering",
+        "n_supported": 1,
+        "sample_requirement": "Establish best practices that improve team efficiency, collaboration, and business impact.",
+        "matched_via": [
+          "efficiency"
+        ]
+      },
+      {
+        "job_url": "https://motorolasolutions.wd5.myworkdayjobs.com/Careers/job/Illinois-Remote-Work/Field-Engineer_R67664",
+        "title": "Field Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Maintaining, optimizing, testing, documenting, and supporting complex communication systems.",
+        "matched_via": [
+          "maintaining"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455047594",
+        "title": "Customer Service Rep(08863) - 709 East Church Street",
+        "n_supported": 3,
+        "sample_requirement": "Taking phone orders with accuracy and efficiency",
+        "matched_via": [
+          "accuracy",
+          "efficiency"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Mumbai/Custom-Software-Engineering-Associate_AIOC-S01657845-1",
+        "title": "Custom Software Engineering Associate",
+        "n_supported": 1,
+        "sample_requirement": "Skill required: Marketing Operations - Hyper Text Markup Language (HTML)",
+        "matched_via": [
+          "operational"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-AZ-TUCSON-848--1151-E-Hermans-Rd--BLDG-848/Principal-System-Administrator--Will-sponsor-a-clearance-_01864593",
+        "title": "Principal System Administrator- Will sponsor a clearance!",
+        "n_supported": 1,
+        "sample_requirement": "Systems are operational 24x7 and occasionally require work effort beyond standard work hours.",
+        "matched_via": [
+          "operational"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Taguig/SAP-Basis-Administrator_R00305082",
+        "title": "SAP Basis Administrator",
+        "n_supported": 1,
+        "sample_requirement": "Stay updated with the latest advancements in SAP Basis Administration and integrate innovative approaches for improved system performance and reliability.",
+        "matched_via": [
+          "reliability"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/openai/6d545b2c-5697-4f38-affc-aaa309f5bb26",
+        "title": "Advanced Packaging Reliability Engineer",
+        "n_supported": 8,
+        "sample_requirement": "Drive reliability-focused package design optimization based on thermo-mechanical modeling to improve package reliability, power integrity, thermal performance, ",
+        "matched_via": [
+          "package",
+          "reliability"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455030707",
+        "title": "Field Sales Representative",
+        "n_supported": 2,
+        "sample_requirement": "We'll kick things off with paid training -setting you up for success to work independently in the field. Coaching, mentoring and ongoing learning opportunities ",
+        "matched_via": [
+          "keep"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4395278532",
+        "title": "Analyst IV Business Systems - POS/Retail Payments",
+        "n_supported": 1,
+        "sample_requirement": "Evaluate and recommend improvements for system performance, reliability, and cost efficiency.",
+        "matched_via": [
+          "efficiency",
+          "reliability"
+        ]
+      },
+      {
+        "job_url": "https://amazon.jobs/en/jobs/10515096/software-development-engineer-aws-hardware-engineering",
+        "title": "Software Development Engineer, AWS Hardware Engineering",
+        "n_supported": 4,
+        "sample_requirement": "2+ years of non-internship design or architecture (design patterns, reliability and scaling) of new and existing systems experience",
+        "matched_via": [
+          "reliability"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Hyderabad/Custom-Software-Engineer_ATCI-R1-S2064520-1",
+        "title": "Custom Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Assist in troubleshooting and resolving software issues to maintain system reliability.",
+        "matched_via": [
+          "reliability"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Custom-Software-Engineer_ATCI-R1-S2034182-1",
+        "title": "Custom Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Maintain and enhance existing software components to improve performance and reliability.",
+        "matched_via": [
+          "reliability"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4457852660",
+        "title": "Systems Engineer III",
+        "n_supported": 1,
+        "sample_requirement": "Strong verbal communication across audiences (such as technical coworkers, end users, and management)",
+        "matched_via": [
+          "coworkers"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/senior-staff-software-engineer-agentic-systems-moveworks/10883743",
+        "title": "Senior Staff Software Engineer, Agentic Systems - Moveworks",
+        "n_supported": 1,
+        "sample_requirement": "Concurrent/async programming: Python asyncio, Go goroutines, structured concurrency, cancellation handling",
+        "matched_via": [
+          "handling"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-PR-SANTA-ISABEL-B1--Felicia-Industrial-Park---St-B1--BLDG-1/Collaboration-Platforms-Engineer--Puerto-Rico-_01872394-1",
+        "title": "Collaboration Platforms Engineer (Puerto Rico)",
+        "n_supported": 2,
+        "sample_requirement": "Identify opportunities for process improvements and automation to contribute to enhancing overall platform efficiency and increased user satisfaction",
+        "matched_via": [
+          "efficiency"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4454777051",
+        "title": "Learning & Development LMS Analyst",
+        "n_supported": 1,
+        "sample_requirement": "Build data models that support **predictive and operational insights** (e.g., safety compliance trends, onboarding performance, training load forecasting).",
+        "matched_via": [
+          "operational"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4440885204",
+        "title": "Technical Lead Software Engineer (Embedded Linux)",
+        "n_supported": 1,
+        "sample_requirement": "Drive designs that balance performance, reliability, and security in embedded environments",
+        "matched_via": [
+          "reliability"
+        ]
+      },
+      {
+        "job_url": "https://cisco.wd5.myworkdayjobs.com/Cisco_Careers/job/Syracuse-New-York-US/Account-Executive---Portfolio_2021863",
+        "title": "Account Executive - Portfolio",
+        "n_supported": 1,
+        "sample_requirement": "Align Cisco\u2019s full portfolio to customer business outcomes and transformation priorities",
+        "matched_via": [
+          "priorities"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/lead-software-engineer-remote/10780397",
+        "title": "Lead Software Engineer - Remote",
+        "n_supported": 1,
+        "sample_requirement": "Ensure application reliability, performance, security, and compliance with healthcare and regulatory requirements",
+        "matched_via": [
+          "reliability"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5208964007?gh_jid=5208964007",
+        "title": "Mechanical Engineer, Space",
+        "n_supported": 4,
+        "sample_requirement": "Learn and apply modern\u00a0space-flight hardware\u00a0design standards and guidelines to create high-reliability, highly manufacturable assemblies",
+        "matched_via": [
+          "reliability"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Workforce-Services-Specialist_AIOC-S01641044-1",
+        "title": "Workforce Services Specialist",
+        "n_supported": 2,
+        "sample_requirement": "May create new solutions, leveraging and, where needed, adapting existing methods and procedures",
+        "matched_via": [
+          "procedures"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/full-stack-software-engineer/10693705",
+        "title": "Full-Stack Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "You are comfortable moving around a large technology stack to understand how those features work and contribute to different parts of the platform.",
+        "matched_via": [
+          "moving"
+        ]
+      }
+    ]
+  },
+  "National Tire and Battery / Mavis": {
+    "n_jobs_scanned": 31644,
+    "n_hits": 16806,
+    "hits": [
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Pune/Cloud-Platform-Engineer_ATCI-5593878-S2056278-1",
+        "title": "Cloud Platform Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Provide solutions to problems for their immediate team and across multiple teams.",
+        "matched_via": [
+          "problems"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/openai/a6ab3111-7092-4da2-a7a6-71e01351bfda",
+        "title": "Software Engineer, API Agents",
+        "n_supported": 1,
+        "sample_requirement": "Exceptional backend engineering fundamentals and a track record of leading complex systems from ambiguous problem statements to reliable production services.",
+        "matched_via": [
+          "problems"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4434451553",
+        "title": "FT Customer Service Leader (Open Availability)",
+        "n_supported": 2,
+        "sample_requirement": "Ensure store office functions are completed accurately and on time using accounting packets; communicates all cash variances to the Assistant Customer Service M",
+        "matched_via": [
+          "customer service"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4454841408",
+        "title": "Software Engineer---SAP",
+        "n_supported": 2,
+        "sample_requirement": "Participates in architecture, design, and technical solution discussions to ensure scalability, maintainability, performance, and alignment with enterprise stan",
+        "matched_via": []
+      },
+      {
+        "job_url": "https://www.pinterestcareers.com/jobs/?gh_jid=8024966",
+        "title": "Sr. Data Scientist, Infrastructure",
+        "n_supported": 2,
+        "sample_requirement": "Translate ambiguous technical problems into clear analyses and actionable recommendations for engineering and platform partners.",
+        "matched_via": [
+          "problems"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4452048281",
+        "title": "Senior Technology Consultant",
+        "n_supported": 1,
+        "sample_requirement": "Applying CRM processes to complex projects",
+        "matched_via": [
+          "applying"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/ashby/a6b309d5-fa4b-42b9-a1a2-653a882a5e60",
+        "title": "Senior Strategic Implementation Specialist - Americas (West)",
+        "n_supported": 1,
+        "sample_requirement": "\ud83d\udcc8 You are a problem solver. You thrive at solving complex challenges with innovative, scalable solutions.",
+        "matched_via": [
+          "problems"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/notion/6597b600-7781-46e6-b70a-a9af4fb2b61b",
+        "title": "People Analytics Lead - Recruiting",
+        "n_supported": 1,
+        "sample_requirement": "Quantitative modeling for recruiting problems: You can translate hiring stages into clear funnel math and capacity views, and you know how to stress-test assump",
+        "matched_via": [
+          "problems"
+        ]
+      },
+      {
+        "job_url": "https://boeing.wd1.myworkdayjobs.com/EXTERNAL_CAREERS/job/USA---El-Segundo-CA/Digital-Electronics-Circuit---Unit-Hardware-Design-Engineer--Lead-or-Senior-_JR2025487688",
+        "title": "Digital Electronics Circuit & Unit Hardware Design Engineer (Lead or Senior)",
+        "n_supported": 2,
+        "sample_requirement": "Technical support for production and test of electronic products",
+        "matched_via": [
+          "technical support"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4460685829",
+        "title": "MSP Field Technician \u2013 Tier 2/3",
+        "n_supported": 1,
+        "sample_requirement": "Experience in troubleshooting technical issues.",
+        "matched_via": [
+          "troubleshooting"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-VA-ARLINGTON-108--1100-Wilson-Blvd--ROSSLYN-HQ/Leadership-Development-Program---Business-Development--Onsite----June-2027-_01855875",
+        "title": "Leadership Development Program - Business Development (Onsite ) (June 2027)",
+        "n_supported": 1,
+        "sample_requirement": "Stretch your capabilities and enhance learning with frontline, hands-on assignments",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-NY-ROME-104--104-Otis-St--OTIS/Senior-Chemical-and-Materials-Engineer--Onsite-_01866303",
+        "title": "Senior Chemical and Materials Engineer (Onsite)",
+        "n_supported": 1,
+        "sample_requirement": "Support qualification of personnel, processes, equipment, and materials while ensuring compliance with engineering, quality, and customer requirements.",
+        "matched_via": [
+          "equipment"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4458161929",
+        "title": "Network Architecture & Operations Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Monitoraggio delle prestazioni di rete, troubleshooting su guasti e degradi.",
+        "matched_via": [
+          "troubleshooting"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Pune/Custom-Software-Engineering-Lead_ATCI-5724836-S2066056-1",
+        "title": "Custom Software Engineering Lead",
+        "n_supported": 1,
+        "sample_requirement": "Provide solutions to problems for their immediate team and across multiple teams.",
+        "matched_via": [
+          "problems"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5085878007?gh_jid=5085878007",
+        "title": "Senior Test Automation Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Data analysis and clear communication of results and collaboration with design engineers to resolve any product problems found via test",
+        "matched_via": [
+          "problems"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-AZ-TUCSON-9020--9020-S-Rita-Rd--BLDG-9020/Principal-Systems-Engineer---Systems-Engineer-II---Modeling-Simulation---Analysis-Engineer_01853119",
+        "title": "Principal Systems Engineer - Modeling Simulation & Analysis Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Experience applying object-oriented software design in C++, C, and using MATLAB or Python for evaluation of data sets",
+        "matched_via": [
+          "applying"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/openai/c15d4e1b-adcf-4809-91d5-17ba6b789092",
+        "title": "Software Security Architect, Operating Systems | Consumer Devices",
+        "n_supported": 1,
+        "sample_requirement": "Lead threat modeling and architecture reviews across the platform, translating emerging threats into practical, enforceable requirements.",
+        "matched_via": [
+          "practical"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4456322089",
+        "title": "Tech Services Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Own and lead the firm's Managed File Transfer and Workload Automation services, ensuring security, reliability, scalability, compliance, and alignment with busi",
+        "matched_via": []
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4428893813",
+        "title": "Construction Technician",
+        "n_supported": 3,
+        "sample_requirement": "Ability to assess a service request job assigned and determine the appropriate steps necessary to resolve the service request",
+        "matched_via": [
+          "appropriate"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/notion/d177d052-ef57-4900-acf2-d58e9eded620",
+        "title": "Product Designer",
+        "n_supported": 3,
+        "sample_requirement": "Create new patterns that are intuitive, practical, and convergent. Evolve our design system intentionally as we scale.",
+        "matched_via": [
+          "practical"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Gurugram/S-C-Global-Network---AI---Auto---Industrial--Manager_R00316188",
+        "title": "S&C Global Network - AI - Auto & Industrial- Manager",
+        "n_supported": 2,
+        "sample_requirement": "Client Engagement & Problem Solving",
+        "matched_via": [
+          "problems"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Application-Support-Engineer_14396327",
+        "title": "Application Support Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Provide solutions to problems for their immediate team and across multiple teams.",
+        "matched_via": [
+          "problems"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455420172",
+        "title": "Test Automation Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Automate regression test suites for automotive applications across CAN, LIN,",
+        "matched_via": [
+          "automotive"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Chennai/Business-Transformation-Specialist_AIOC-S01647969-1",
+        "title": "Business Transformation Specialist",
+        "n_supported": 2,
+        "sample_requirement": "Ability to take an end-to-end problem-solving approach across meter to bill operations lifecycle",
+        "matched_via": [
+          "problems"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4456787681",
+        "title": "Quality Assurance Technician",
+        "n_supported": 2,
+        "sample_requirement": "Operate precision measurement equipment and inspection tools to evaluate product quality and support technical assessments.",
+        "matched_via": [
+          "equipment"
+        ]
+      },
+      {
+        "job_url": "https://databricks.com/company/careers/open-positions/job?gh_jid=8638642002",
+        "title": "Director, Web Marketing",
+        "n_supported": 1,
+        "sample_requirement": "Strengthen the cross-departmental collaboration required to support and develop digital experiences for all of our audiences, through established processes and ",
+        "matched_via": [
+          "established"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/4961601007?gh_jid=4961601007",
+        "title": "Senior Robotics Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Design and implement scalable sub-systems including sensor processing, perception, tracking, motion planning, health management, anomaly detection, simulation, ",
+        "matched_via": [
+          "vehicle"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/software-engineer-ii-c-net-and-java/10694911",
+        "title": "Software Engineer II - C#/.NET and Java",
+        "n_supported": 3,
+        "sample_requirement": "Executes software solutions, design, development, and technical troubleshooting with ability to think beyond routine or conventional approaches to build solutio",
+        "matched_via": [
+          "problems",
+          "troubleshooting"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4462480134",
+        "title": "Service Desk Technician, Level 2 (Cincinnati, OH)",
+        "n_supported": 5,
+        "sample_requirement": "Provide technical support for desktops, laptops, printers, mobile devices, and related peripherals, including incident logging, triage, escalation, and resoluti",
+        "matched_via": [
+          "technical support"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5185886007?gh_jid=5185886007",
+        "title": "Senior Software Engineer, Developer Platform",
+        "n_supported": 2,
+        "sample_requirement": "Create monitoring and logging infrastructure to validate support security operations, troubleshooting, and incident response.",
+        "matched_via": [
+          "troubleshooting"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/openai/df514733-46ad-4777-be67-44667bc9fd45",
+        "title": "Technical Deployment Lead - Tokyo",
+        "n_supported": 1,
+        "sample_requirement": "Track record of successfully leading large, complex, high-stakes customer engagements where customer outcomes depended on tight coordination and fast decision m",
+        "matched_via": [
+          "involving"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4461716106",
+        "title": "Principal Engineer - Collaboration",
+        "n_supported": 1,
+        "sample_requirement": "Hands-on experience with Cloud9 trader communications platforms.",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Mumbai/Technology-Support-Engineer_ATCI-5687575-S2059756-1",
+        "title": "Technology Support Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Strong knowledge of incident and problem management processes within cloud environments.",
+        "matched_via": [
+          "problems"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-MS-PASCAGOULA-BLDG-34--USS-Wisconsin-Loop--BLDG-34-Building-34/Combat-Systems-Engineer-II_01868793",
+        "title": "Combat Systems Engineer II",
+        "n_supported": 1,
+        "sample_requirement": "Perform various radar equipment installation, checkout, testing, reporting of results, Hardware and Firmware upgrades and maintain records as required.",
+        "matched_via": [
+          "equipment"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/4802172007?gh_jid=4802172007",
+        "title": "2026 Early Career Electrical Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Troubleshoot issues that span the electrical and software boundaries, with solid skills using both lab equipment (Oscilloscopes, DMM, etc.) and software debuggi",
+        "matched_via": [
+          "equipment"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Functional-Verification-Engineer_ATCI-5666348-S2057632-1",
+        "title": "Functional Verification Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Provide solutions to problems for their immediate team and across multiple teams.",
+        "matched_via": [
+          "problems"
+        ]
+      },
+      {
+        "job_url": "https://intel.wd1.myworkdayjobs.com/External/job/US-Arizona-Phoenix/Install-Qualification-Operations-Specialist_JR0285799",
+        "title": "Install Qualification Operations Specialist",
+        "n_supported": 1,
+        "sample_requirement": "Support troubleshooting for Supplier Qual and Intel Qual to quickly resolve issues",
+        "matched_via": [
+          "troubleshooting"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Hyderabad/Custom-Software-Engineering-Lead_ATCI-5714141-S2063855-1",
+        "title": "Custom Software Engineering Lead",
+        "n_supported": 1,
+        "sample_requirement": "Provide solutions to problems for their immediate team and across multiple teams.",
+        "matched_via": [
+          "problems"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-AZ-TUCSON-M09--3350-E-Hemisphere-Loop--BLDG-M09/Mechanical-Engineer-II---Design_01851186",
+        "title": "Mechanical Engineer II \u2013 Design",
+        "n_supported": 1,
+        "sample_requirement": "Perform mechanical design, development, and documentation of components, sub-assemblies, for systems and equipment in accordance with system requirements.",
+        "matched_via": [
+          "equipment"
+        ]
+      },
+      {
+        "job_url": "https://motorolasolutions.wd5.myworkdayjobs.com/Careers/job/Illinois-Remote-Work/Field-Engineer_R67664",
+        "title": "Field Engineer",
+        "n_supported": 3,
+        "sample_requirement": "Developing solutions for difficult technical problems encountered during system maintenance, upgrades, or support issues.",
+        "matched_via": [
+          "problems"
+        ]
+      },
+      {
+        "job_url": "https://salesforce.wd12.myworkdayjobs.com/External_Career_Site/job/Brazil---Remote/Solution-Architect_JR354542",
+        "title": "Solution Architect",
+        "n_supported": 2,
+        "sample_requirement": "To get the best candidate experience, please consider applying for a maximum of 3 roles within 12 months to ensure you are not duplicating efforts.",
+        "matched_via": [
+          "applying"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455047594",
+        "title": "Customer Service Rep(08863) - 709 East Church Street",
+        "n_supported": 2,
+        "sample_requirement": "Providing excellent customer service with a smile (even over the phone!)",
+        "matched_via": [
+          "customer service"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Custom-Software-Engineering-Lead_ATCI-5714606-S2064658-1",
+        "title": "Custom Software Engineering Lead",
+        "n_supported": 1,
+        "sample_requirement": "Provide solutions to problems for their immediate team and across multiple teams.",
+        "matched_via": [
+          "problems"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Mumbai/Custom-Software-Engineering-Associate_AIOC-S01657845-1",
+        "title": "Custom Software Engineering Associate",
+        "n_supported": 2,
+        "sample_requirement": "What are we looking for? \u2022Proficiency in HTML5 and CSS3: Strong knowledge and hands-on experience in coding responsive HTML email templates that render consiste",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Application-Support-Engineer_ATCI-R1-S2024036-1",
+        "title": "Application Support Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Participate in Problem Solving discussions.",
+        "matched_via": [
+          "problems"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Taguig/SAP-Basis-Administrator_R00305082",
+        "title": "SAP Basis Administrator",
+        "n_supported": 3,
+        "sample_requirement": "Perform SAP Basis Administration tasks, including system monitoring, performance tuning, and troubleshooting.",
+        "matched_via": [
+          "troubleshooting"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455030707",
+        "title": "Field Sales Representative",
+        "n_supported": 1,
+        "sample_requirement": "Maintain a valid driver's license--be ready to drive, as we provide a company vehicle for official business use only",
+        "matched_via": [
+          "vehicle"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4395278532",
+        "title": "Analyst IV Business Systems - POS/Retail Payments",
+        "n_supported": 1,
+        "sample_requirement": "Provide hands-on expertise in system configuration, integration patterns, and troubleshooting.",
+        "matched_via": [
+          "hands-on",
+          "troubleshooting"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Hyderabad/Custom-Software-Engineer_ATCI-R1-S2064520-1",
+        "title": "Custom Software Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Contribute in providing solutions to work related problems.",
+        "matched_via": [
+          "problems"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Custom-Software-Engineer_ATCI-R1-S2034182-1",
+        "title": "Custom Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Contribute in providing solutions to work related problems.",
+        "matched_via": [
+          "problems"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4457852660",
+        "title": "Systems Engineer III",
+        "n_supported": 2,
+        "sample_requirement": "Extensive hands-on experience with VMware Cloud Foundation, including its components such as VMware vSphere, VMware NSX, VMware vSAN, VMware SDDC Manager and VM",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-PR-SANTA-ISABEL-B1--Felicia-Industrial-Park---St-B1--BLDG-1/Collaboration-Platforms-Engineer--Puerto-Rico-_01872394-1",
+        "title": "Collaboration Platforms Engineer (Puerto Rico)",
+        "n_supported": 2,
+        "sample_requirement": "Leverage deep platform knowledge and technical troubleshooting skills to diagnose and resolve complex platform issues.",
+        "matched_via": [
+          "troubleshooting"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4454777051",
+        "title": "Learning & Development LMS Analyst",
+        "n_supported": 1,
+        "sample_requirement": "Monitor and improve backend system health through customer support and troubleshooting, **data validation, error resolution, quality checks, and Service Now tic",
+        "matched_via": [
+          "troubleshooting"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4440885204",
+        "title": "Technical Lead Software Engineer (Embedded Linux)",
+        "n_supported": 2,
+        "sample_requirement": "Serve as a Lead Software Engineer on major initiatives, especially those involving new technologies or expanding marine capabilities",
+        "matched_via": [
+          "involving"
+        ]
+      },
+      {
+        "job_url": "https://amazon.jobs/en/jobs/10502801/principal-engineer-amazon-leo-amazon-leo",
+        "title": "Principal Engineer, Amazon Leo, Amazon Leo",
+        "n_supported": 1,
+        "sample_requirement": "-Deep hands-on technical expertise in software design and development",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5208964007?gh_jid=5208964007",
+        "title": "Mechanical Engineer, Space",
+        "n_supported": 2,
+        "sample_requirement": "Work with a cross-functional team to design market leading\u00a0space flight\u00a0hardware\u00a0and associated ground equipment\u00a0products",
+        "matched_via": [
+          "equipment"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4456292576",
+        "title": "Customer Support Specialist II - ES Division",
+        "n_supported": 1,
+        "sample_requirement": "Assists customers with waste characterization and related documentation in accordance with facility, state and federal regulations.",
+        "matched_via": [
+          "National Tire and Battery / Mavis"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4460400495",
+        "title": "Maintenance Technician",
+        "n_supported": 3,
+        "sample_requirement": "Performs general repairs that do not require a specialized technician. Examples may include repairing drywall, painting, and repairing doors and other building ",
+        "matched_via": [
+          "specialized"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Quality-Engineering-Lead_ATCI-5566066-S2056961",
+        "title": "Quality Engineering Lead",
+        "n_supported": 2,
+        "sample_requirement": "Provide solutions to problems for their immediate team and across multiple teams.",
+        "matched_via": [
+          "problems"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4456690059",
+        "title": "Robot Service Technician Assistant",
+        "n_supported": 2,
+        "sample_requirement": "Assist remote support coordinators: Act as the hands-on field contact for the remote tracking team.",
+        "matched_via": [
+          "hands-on"
+        ]
+      }
+    ]
+  },
+  "Alex Prosperity Group / UST Logistics": {
+    "n_jobs_scanned": 31644,
+    "n_hits": 6055,
+    "hits": [
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4452048281",
+        "title": "Senior Technology Consultant",
+        "n_supported": 3,
+        "sample_requirement": "Must have 7 years of experience in each of the following:",
+        "matched_via": [
+          "following"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-VA-ARLINGTON-108--1100-Wilson-Blvd--ROSSLYN-HQ/Leadership-Development-Program---Business-Development--Onsite----June-2027-_01855875",
+        "title": "Leadership Development Program - Business Development (Onsite ) (June 2027)",
+        "n_supported": 1,
+        "sample_requirement": "Stretch your capabilities and enhance learning with frontline, hands-on assignments",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4428893813",
+        "title": "Construction Technician",
+        "n_supported": 1,
+        "sample_requirement": "Participate in field and formal training related to providing service to Progress homes",
+        "matched_via": [
+          "home"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455724153",
+        "title": "Pharmacy Technician",
+        "n_supported": 2,
+        "sample_requirement": "Living our purpose by following all company SOPs at each workstation to help our Pharmacists manage and improve patient health",
+        "matched_via": [
+          "following"
+        ]
+      },
+      {
+        "job_url": "https://databricks.com/company/careers/open-positions/job?gh_jid=8638642002",
+        "title": "Director, Web Marketing",
+        "n_supported": 1,
+        "sample_requirement": "Strengthen the cross-departmental collaboration required to support and develop digital experiences for all of our audiences, through established processes and ",
+        "matched_via": [
+          "established"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4462480134",
+        "title": "Service Desk Technician, Level 2 (Cincinnati, OH)",
+        "n_supported": 1,
+        "sample_requirement": "Process approved service requests including account provisioning, password resets, access requests, software installations, and authorized configuration changes",
+        "matched_via": []
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5185886007?gh_jid=5185886007",
+        "title": "Senior Software Engineer, Developer Platform",
+        "n_supported": 1,
+        "sample_requirement": "Strong hands-on experience with CI/CD tools such as GitLab CI, Jenkins, GitHub Actions, or similar",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4461716106",
+        "title": "Principal Engineer - Collaboration",
+        "n_supported": 1,
+        "sample_requirement": "Hands-on experience with Cloud9 trader communications platforms.",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-MS-PASCAGOULA-BLDG-34--USS-Wisconsin-Loop--BLDG-34-Building-34/Combat-Systems-Engineer-II_01868793",
+        "title": "Combat Systems Engineer II",
+        "n_supported": 1,
+        "sample_requirement": "Perform various radar equipment installation, checkout, testing, reporting of results, Hardware and Firmware upgrades and maintain records as required.",
+        "matched_via": []
+      },
+      {
+        "job_url": "https://builtin.com/job/software-engineer-ii/10941167",
+        "title": "Software Engineer II",
+        "n_supported": 1,
+        "sample_requirement": "Architect a resilient system for a customer-facing web application from scratch",
+        "matched_via": [
+          "customer-facing"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/staff-software-engineer/10495317",
+        "title": "Staff Software Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Lead the development of all customer-facing components of Chewy's Discovery experience, including our front-end web applications and APIs.",
+        "matched_via": [
+          "customer-facing"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/software-engineer/10324181",
+        "title": "Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Write clean, well-tested, and well-documented code following Morningstar engineering standards and best practices.",
+        "matched_via": [
+          "following"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Mumbai/Custom-Software-Engineering-Associate_AIOC-S01657845-1",
+        "title": "Custom Software Engineering Associate",
+        "n_supported": 1,
+        "sample_requirement": "What are we looking for? \u2022Proficiency in HTML5 and CSS3: Strong knowledge and hands-on experience in coding responsive HTML email templates that render consiste",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4395278532",
+        "title": "Analyst IV Business Systems - POS/Retail Payments",
+        "n_supported": 1,
+        "sample_requirement": "Provide hands-on expertise in system configuration, integration patterns, and troubleshooting.",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4457852660",
+        "title": "Systems Engineer III",
+        "n_supported": 1,
+        "sample_requirement": "Extensive hands-on experience with VMware Cloud Foundation, including its components such as VMware vSphere, VMware NSX, VMware vSAN, VMware SDDC Manager and VM",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://amazon.jobs/en/jobs/10502801/principal-engineer-amazon-leo-amazon-leo",
+        "title": "Principal Engineer, Amazon Leo, Amazon Leo",
+        "n_supported": 1,
+        "sample_requirement": "-Deep hands-on technical expertise in software design and development",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5208964007?gh_jid=5208964007",
+        "title": "Mechanical Engineer, Space",
+        "n_supported": 1,
+        "sample_requirement": "Use rapid prototyping, 3D printing, and hands-on machining as\u00a0appropriate to\u00a0iterate quickly and allow for\u00a0creative\u00a0\u201coutside-the-box\" thinking",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4452688562",
+        "title": "Customer Experience Customer Success Specialist II (Full Time) United States",
+        "n_supported": 1,
+        "sample_requirement": "Meet one of the following (completed within the past 3 years or expected to be completed within the next 12 months):",
+        "matched_via": [
+          "following"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4456690059",
+        "title": "Robot Service Technician Assistant",
+        "n_supported": 1,
+        "sample_requirement": "Assist remote support coordinators: Act as the hands-on field contact for the remote tracking team.",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/senior-software-engineer/10144992",
+        "title": "Senior Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Contribute hands-on to coding, prototyping, and code reviews, promoting clean code practices and secure development standards.",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5082600007?gh_jid=5082600007",
+        "title": "Staff Manufacturing Engineer, Mechanical Actuation Systems",
+        "n_supported": 1,
+        "sample_requirement": "Provide deep hands-on technical guidance and mentorship to engineers and technicians during prototype builds, troubleshooting, and production validation of actu",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/senior-lead-software-engineer-infrastructure-platforms/10763395",
+        "title": "Senior Lead Software Engineer - Infrastructure Platforms",
+        "n_supported": 1,
+        "sample_requirement": "Hands-on practical experience delivering system design, application development, testing, and operational stability",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://expedia.wd108.myworkdayjobs.com/search/job/USA---Missouri---Springfield/Senior-Manager--Software-Development-Engineering_R-107224-2",
+        "title": "Senior Manager, Software Development Engineering",
+        "n_supported": 1,
+        "sample_requirement": "Evaluate technology choices across multiple domains and communicate those decisions clearly to both technical and non-technical stakeholders.",
+        "matched_via": [
+          "clearly"
+        ]
+      },
+      {
+        "job_url": "https://www.pinterestcareers.com/jobs/?gh_jid=7684636",
+        "title": "Product Design Manager II, Ad Formats",
+        "n_supported": 2,
+        "sample_requirement": "Operate as a player-coach: alongside managing a team of four designers, stay hands-on and own executional design work yourself, with or without additional IC su",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4459232739",
+        "title": "Customer Support Specialist",
+        "n_supported": 1,
+        "sample_requirement": "Support Schoolbox and partner product implementations, installations and consulting engagements.",
+        "matched_via": []
+      },
+      {
+        "job_url": "https://builtin.com/job/software-engineer/9239466",
+        "title": "Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Develops code within the established processes and standards.",
+        "matched_via": [
+          "established"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4446294436",
+        "title": "Custom Software Engineer - 6427356",
+        "n_supported": 1,
+        "sample_requirement": "Has demonstrated ability to design and develop significant components within an application. Designs architecture and drives optimal solutions using established",
+        "matched_via": [
+          "established"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4458289860",
+        "title": "Bilingual Mortgage Intake Specialist",
+        "n_supported": 3,
+        "sample_requirement": "Tracking all new completed and incomplete loan applications received daily and following up with borrowers to assist them.",
+        "matched_via": [
+          "following"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/openai/832094fd-4d89-4fe4-bc18-9ba88d347a18",
+        "title": "Forward Deployed Engineer (FDE), Legal-SF",
+        "n_supported": 1,
+        "sample_requirement": "Bring 5+ years of software engineering, ML engineering, or technical deployment experience with customer-facing ownership in financial services or adjacent regu",
+        "matched_via": [
+          "customer-facing"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/lead-software-engineer-aws-python-java-react-generative-ai-apis/10029330",
+        "title": "Lead Software Engineer (AWS, Python, Java, React, Generative AI APIs)",
+        "n_supported": 1,
+        "sample_requirement": "7+ years of experience in at least one of the following: JavaScript, Java, TypeScript, SQL, Python, or Go",
+        "matched_via": [
+          "following"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4414771168",
+        "title": "Technical Service Scientist Coatings & Surfactants",
+        "n_supported": 1,
+        "sample_requirement": "Serve as the primary technical contact for customer R&D, production, and technical teams, providing hands-on support and resolving complex formulation and appli",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4461511601",
+        "title": "IT Support Specialist",
+        "n_supported": 1,
+        "sample_requirement": "Document all customer interactions and troubleshooting notes in the service management system following defined standards for inquiries, incidents, and requests",
+        "matched_via": [
+          "following"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-CA-CHULA-VISTA-B107--850-Lagoon-Dr--BLDG-107-Mail-Zone-1-C/Principal-Nacelle-Systems-Integration-Engineer--Onsite-_01865101",
+        "title": "Principal Nacelle Systems Integration Engineer (Onsite)",
+        "n_supported": 1,
+        "sample_requirement": "Supporting system integration and installation activities across actuation systems and interfacing equipment.",
+        "matched_via": []
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Noida/Application-Tech-Support-Practitioner_ATCI-5090328-S1883697-1",
+        "title": "Application Support Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Document and communicate findings and solutions clearly to stakeholders and team members.",
+        "matched_via": [
+          "clearly"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455920309",
+        "title": "Network Development Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Participate and drive impact mitigation during large-scale events utilizing an established Event Management process.",
+        "matched_via": [
+          "established"
+        ]
+      },
+      {
+        "job_url": "https://databricks.com/company/careers/open-positions/job?gh_jid=8458032002",
+        "title": "Manager, Field Engineering - Strategic Digital Native Business",
+        "n_supported": 1,
+        "sample_requirement": "3+ years of experience building and leading technical customer-facing teams: hiring, onboarding, and supporting team members in a high-growth environment",
+        "matched_via": [
+          "customer-facing"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4461454084",
+        "title": "Geek Squad Installation Helper",
+        "n_supported": 1,
+        "sample_requirement": "Perform a variety of duties for clients in their homes, including delivery, installation and networking, with a primary focus on home theater technology",
+        "matched_via": [
+          "home",
+          "installation"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455603047",
+        "title": "Patient Service Representative I, High Point & Greensboro",
+        "n_supported": 1,
+        "sample_requirement": "Meets or exceeds performance expectations of 98% accuracy rate and established department productivity measurements.",
+        "matched_via": [
+          "established"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4428877574",
+        "title": "Senior Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "4+ years of hands-on experience with full stack development",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4453672227",
+        "title": "Full Time - Sales Associate - Building Materials - Closing",
+        "n_supported": 1,
+        "sample_requirement": "Welcome customers to Lowe's, answer questions, and deliver friendly and professional customer service.",
+        "matched_via": [
+          "lowe"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5161426007?gh_jid=5161426007",
+        "title": "Packaging Engineer, Sentry ",
+        "n_supported": 1,
+        "sample_requirement": "Partner with Hardware Engineering, Manufacturing, Supply Chain, PMO, Logistics, Quality, and Deployment & Mission Ops to ensure packaging feasibility, tooling r",
+        "matched_via": [
+          "logistics"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4451933245",
+        "title": "Maintenance Technician",
+        "n_supported": 2,
+        "sample_requirement": "Plumbing: repairs, replace parts, installation (sinks, toilets, faucets, etc.)",
+        "matched_via": []
+      },
+      {
+        "job_url": "https://builtin.com/job/staff-software-engineer-developer-infrastructure/10971721",
+        "title": "Staff Software Engineer, Developer Infrastructure",
+        "n_supported": 1,
+        "sample_requirement": "8+ years building and operating production distributed systems, with hands-on proficiency in Go or a comparable systems language and direct experience in CI/CD,",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4459631233",
+        "title": "Splicer",
+        "n_supported": 1,
+        "sample_requirement": "Maintain precise documentation of completed work including splice locations, tests performed, and quality results.",
+        "matched_via": [
+          "performed"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4461009731",
+        "title": "Pharmacy Customer Service Associate",
+        "n_supported": 1,
+        "sample_requirement": "Keeps counters and shelves clean and well merchandised, takes inventory, and maintains records. Checks in and prices merchandise as required or as directed by s",
+        "matched_via": [
+          "communicated"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/principal-software-engineer-sre-architecture/10922976",
+        "title": "Principal Software Engineer (SRE &amp; Architecture)",
+        "n_supported": 1,
+        "sample_requirement": "Significant hands-on experience designing, building, testing and operating full-stack web applications and services in production.",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4459990928",
+        "title": "Field Service Professional - Charlotte, NC",
+        "n_supported": 3,
+        "sample_requirement": "Zero Commute: Take-home company vehicle and gas card for work use. We pay for your drive time to and from appointments--you clock in from your driveway.",
+        "matched_via": [
+          "home"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455984443",
+        "title": "Process Sustaining Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Collaborating with downstream departments, facilities, logistics and software teams to resolve interruptions to production.",
+        "matched_via": [
+          "logistics"
+        ]
+      },
+      {
+        "job_url": "https://careers.airbnb.com/positions/8068640?gh_jid=8068640",
+        "title": "Senior Influencer and Social Manager",
+        "n_supported": 1,
+        "sample_requirement": "Plan and execute influencer activations, managing end-to-end logistics including itinerary development, on-site coordination, content capture, and post-trip rep",
+        "matched_via": [
+          "logistics"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4462463861",
+        "title": "Service Desk Technician - Level 1 (Cleveland, OH)",
+        "n_supported": 1,
+        "sample_requirement": "Process approved service requests including account provisioning, password resets, access management requests, software installations, mobile device support, we",
+        "matched_via": []
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4417690683",
+        "title": "Lab Technician",
+        "n_supported": 2,
+        "sample_requirement": "Perform rack-and-stack installation of servers, network devices, storage systems, and related hardware.",
+        "matched_via": []
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-AZ-TUCSON-833--1151-E-Hermans-Rd--BLDG-833-External-Site/Data-Transformation-Manager_01863028",
+        "title": "Skill Bridge - Data Transformation Manager",
+        "n_supported": 2,
+        "sample_requirement": "Set the strategic direction for logistics data transformation initiatives, ensuring alignment with business objectives and enterprise goals.",
+        "matched_via": [
+          "logistics"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/lead-software-engineer-back-end/10645744",
+        "title": "Lead Software Engineer, Back End",
+        "n_supported": 1,
+        "sample_requirement": "7+ years of experience in at least one of the following: Java, Scala, Python, Go, or Node.js",
+        "matched_via": [
+          "following"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4459773704",
+        "title": "Emergency Roadside Coordinator",
+        "n_supported": 1,
+        "sample_requirement": "Verify that all repairs are performed according to customer and safety standards.",
+        "matched_via": [
+          "performed"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/New-York-One-Manhattan-West-Corp/Technical-Delivery-Lead---Infrastructure--Google-Cloud_R00342025",
+        "title": "Technical Delivery Lead - Infrastructure, Google Cloud",
+        "n_supported": 1,
+        "sample_requirement": "Infrastructure as Code (IaC): Hands-on engineering fluency with Terraform script automation, the Cloud Foundation Toolkit, Config Connector integrations, and po",
+        "matched_via": [
+          "hands-on"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4459356612",
+        "title": "Network Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Participate in the installation, support and maintenance of network",
+        "matched_via": []
+      },
+      {
+        "job_url": "https://builtin.com/job/software-engineer-associate-tempus/10748275",
+        "title": "Software Engineer Associate - Tempus",
+        "n_supported": 1,
+        "sample_requirement": "Write, test, debug, and deploy code in accordance with established development standards.",
+        "matched_via": [
+          "established"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4453497035",
+        "title": "Automation Manager",
+        "n_supported": 1,
+        "sample_requirement": "Lead automation processes for the design, installation, maintenance and support of process equipment and automation systems.",
+        "matched_via": []
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4443584114",
+        "title": "Commercial Refrigeration Technician Serving Food Lion Brand Stores",
+        "n_supported": 1,
+        "sample_requirement": "Plan and/or generate work to be performed and obtain necessary tools, equipment, and materials to complete assignments and work order system entries in a timely",
+        "matched_via": [
+          "performed"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4446858528",
+        "title": "Apartment Maintenance Technician - Adara Alexander Place",
+        "n_supported": 1,
+        "sample_requirement": "With general direction, complete resident requested repairs and routine maintenance (i.e. troubleshoot and repair/replace plumbing, basic electrical components,",
+        "matched_via": [
+          "appliances"
+        ]
+      }
+    ]
+  },
+  "Waffle House": {
+    "n_jobs_scanned": 31644,
+    "n_hits": 18257,
+    "hits": [
+      {
+        "job_url": "https://careers.airbnb.com/positions/7736820?gh_jid=7736820",
+        "title": "Senior Programs and Business Operations Lead, Monthly Stays",
+        "n_supported": 1,
+        "sample_requirement": "Assist to leadership inquiries, providing data driven insights driven insights quickly and accurately by leveraging tools such as SQL, excel and Tableau",
+        "matched_via": [
+          "accurately"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Pune/Cloud-Platform-Engineer_ATCI-5593878-S2056278-1",
+        "title": "Cloud Platform Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Engage with multiple teams and contribute on key decisions.",
+        "matched_via": [
+          "multiple"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4434451553",
+        "title": "FT Customer Service Leader (Open Availability)",
+        "n_supported": 4,
+        "sample_requirement": "Smile and provide prompt, accurate and friendly service while engaging customers to create a positive shopping experience",
+        "matched_via": [
+          "accurate"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4454841408",
+        "title": "Software Engineer---SAP",
+        "n_supported": 2,
+        "sample_requirement": "Participates in architecture, design, and technical solution discussions to ensure scalability, maintainability, performance, and alignment with enterprise stan",
+        "matched_via": [
+          "standards"
+        ]
+      },
+      {
+        "job_url": "https://www.pinterestcareers.com/jobs/?gh_jid=8024966",
+        "title": "Sr. Data Scientist, Infrastructure",
+        "n_supported": 4,
+        "sample_requirement": "Partner with engineering teams to define, measure, and improve the health, quality, and efficiency of Pinterest\u2019s infrastructure systems.",
+        "matched_via": [
+          "quality"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4451112410",
+        "title": "Senior Network Engineer (VIC) (DC Mod)",
+        "n_supported": 1,
+        "sample_requirement": "Contribute to architecture, standards, and change governance",
+        "matched_via": [
+          "standards"
+        ]
+      },
+      {
+        "job_url": "https://labcorp.wd1.myworkdayjobs.com/External/job/Durham-NC/Executive-Director--AI-Transformation--Office-of-the-CAIO_2628637",
+        "title": "Executive Director, AI Transformation, Office of the CAIO",
+        "n_supported": 1,
+        "sample_requirement": "Establish standards for AI architecture, evaluation, governance, safety, and production readiness.",
+        "matched_via": [
+          "standards"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4454822016",
+        "title": "Dental Office Assistant",
+        "n_supported": 2,
+        "sample_requirement": "Schedule and confirm appointments for multiple providers in the office",
+        "matched_via": [
+          "multiple"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4460685829",
+        "title": "MSP Field Technician \u2013 Tier 2/3",
+        "n_supported": 1,
+        "sample_requirement": "Experience with Microsoft 365, desktop and servers, Active Directory, and Azure environments.",
+        "matched_via": [
+          "servers"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-NY-ROME-104--104-Otis-St--OTIS/Senior-Chemical-and-Materials-Engineer--Onsite-_01866303",
+        "title": "Senior Chemical and Materials Engineer (Onsite)",
+        "n_supported": 3,
+        "sample_requirement": "Support qualification of personnel, processes, equipment, and materials while ensuring compliance with engineering, quality, and customer requirements.",
+        "matched_via": [
+          "quality"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4458161929",
+        "title": "Network Architecture & Operations Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Configurazione e gestione di apparati di rete: router, switch, firewall, sonde IPS, load balancer, controller WiFi, NAC, Radius Server e sistemi di monitoraggio",
+        "matched_via": [
+          "servers"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Pune/Custom-Software-Engineering-Lead_ATCI-5724836-S2066056-1",
+        "title": "Custom Software Engineering Lead",
+        "n_supported": 3,
+        "sample_requirement": "Engage with multiple teams and contribute on key decisions.",
+        "matched_via": [
+          "multiple"
+        ]
+      },
+      {
+        "job_url": "https://amazon.jobs/en/jobs/10496494/sr-software-dev-engineer-sagemaker-ai",
+        "title": "Sr. Software Dev Engineer, SageMaker AI",
+        "n_supported": 4,
+        "sample_requirement": "Drive Innovation in Data Preparation: Build and scale systems leveraging auto-labeling and LLM-as-Judge techniques to automatically detect, diagnose, and remedi",
+        "matched_via": [
+          "preparation",
+          "quality"
+        ]
+      },
+      {
+        "job_url": "https://amazon.jobs/en/jobs/10507716/software-development-engineer-sponsored-products-and-brands",
+        "title": "Software Development Engineer, Sponsored Products and Brands",
+        "n_supported": 1,
+        "sample_requirement": "Write high-quality, maintainable code and participate in design and code reviews",
+        "matched_via": [
+          "quality"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Custom-Software-Engineer_ATCI-5317419-S1939833-1",
+        "title": "Custom Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "o Purchase Requisition/Order Management",
+        "matched_via": [
+          "order",
+          "orders"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5176713007?gh_jid=5176713007",
+        "title": "Senior Materials and Process Engineer, Rocket Motor Systems",
+        "n_supported": 1,
+        "sample_requirement": "Interface with engineering, manufacturing, quality, and program teams to translate mission requirements into robust material and process solutions",
+        "matched_via": [
+          "quality"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4456322089",
+        "title": "Tech Services Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Provide technical leadership for GoAnywhere, AutoSys, and enterprise data orchestration platforms, defining architecture, standards, roadmaps, and long-term str",
+        "matched_via": [
+          "standards"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4428893813",
+        "title": "Construction Technician",
+        "n_supported": 3,
+        "sample_requirement": "Ability to assess a service request job assigned and determine the appropriate steps necessary to resolve the service request",
+        "matched_via": [
+          "requests"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-MA-MARLBOROUGH-MA2--1001-Boston-Post-Rd--BLDG-2/Senior-Software-Engineer---C--_01867149",
+        "title": "Senior Software Engineer - C++",
+        "n_supported": 1,
+        "sample_requirement": "Maintain high code quality by supporting code reviews, static analysis, continuous integration.",
+        "matched_via": [
+          "quality"
+        ]
+      },
+      {
+        "job_url": "https://amazon.jobs/en/jobs/10458175/software-development-engineer-ii-managed-application-platform",
+        "title": "Software Development Engineer II, Managed Application Platform",
+        "n_supported": 1,
+        "sample_requirement": "3+ years of full software development life cycle, including coding standards, code reviews, source control management, build processes, testing, and operations ",
+        "matched_via": [
+          "standards"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Application-Support-Engineer_14396327",
+        "title": "Application Support Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Engage with multiple teams and contribute on key decisions.",
+        "matched_via": [
+          "multiple"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455724153",
+        "title": "Pharmacy Technician",
+        "n_supported": 1,
+        "sample_requirement": "Following pharmacy workflow procedures at each pharmacy workstation (i.e., production, pick-up, drive-thru, and drop-off) for safe and accurate prescription ful",
+        "matched_via": [
+          "accurate"
+        ]
+      },
+      {
+        "job_url": "https://job-boards.greenhouse.io/twilio/jobs/8065028",
+        "title": "Senior Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Join the team as Twilio's next Staff Software Engineer on our Data Substrate team.",
+        "matched_via": [
+          "staff"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4456787681",
+        "title": "Quality Assurance Technician",
+        "n_supported": 5,
+        "sample_requirement": "Perform incoming inspections and dimensional verification of externally supplied products to ensure conformance to specifications and quality standards.",
+        "matched_via": [
+          "quality",
+          "standards"
+        ]
+      },
+      {
+        "job_url": "https://databricks.com/company/careers/open-positions/job?gh_jid=8638642002",
+        "title": "Director, Web Marketing",
+        "n_supported": 1,
+        "sample_requirement": "Manage internal and external partners and vendors, and serve as the in-house expert for web strategy across the organization.",
+        "matched_via": [
+          "house"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/4961601007?gh_jid=4961601007",
+        "title": "Senior Robotics Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Contribute to the design and development of existing software components across Anduril, with the aim of developing components that are re-usable across multipl",
+        "matched_via": [
+          "multiple"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/software-engineer-ii-c-net-and-java/10694911",
+        "title": "Software Engineer II - C#/.NET and Java",
+        "n_supported": 1,
+        "sample_requirement": "Creates secure and high-quality production code and maintains algorithms that run synchronously with appropriate systems",
+        "matched_via": [
+          "quality"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4456722333",
+        "title": "CMDB Platform Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Build automations that reduce manual administrative effort while improving consistency, control, and traceability.",
+        "matched_via": [
+          "consistency"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4462480134",
+        "title": "Service Desk Technician, Level 2 (Cincinnati, OH)",
+        "n_supported": 2,
+        "sample_requirement": "Process approved service requests including account provisioning, password resets, access requests, software installations, and authorized configuration changes",
+        "matched_via": [
+          "requests"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5185886007?gh_jid=5185886007",
+        "title": "Senior Software Engineer, Developer Platform",
+        "n_supported": 1,
+        "sample_requirement": "Design and implement secure CI/CD pipelines, enabling automated build, test, and deployment software across multiple enclaves.",
+        "matched_via": [
+          "multiple"
+        ]
+      },
+      {
+        "job_url": "https://jobs.ashbyhq.com/openai/df514733-46ad-4777-be67-44667bc9fd45",
+        "title": "Technical Deployment Lead - Tokyo",
+        "n_supported": 2,
+        "sample_requirement": "Own the technical delivery plan for multiple interdependent workstreams. Translate business objectives into a roadmap with milestones, dependencies, and accepta",
+        "matched_via": [
+          "multiple"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Noida/Order-to-Cash-Operations-Analyst_AIOC-S01627265-1",
+        "title": "Order to Cash Operations New Associate",
+        "n_supported": 2,
+        "sample_requirement": "Skill required: Order to Cash - Billing Processing",
+        "matched_via": [
+          "order",
+          "orders"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Mumbai/Technology-Support-Engineer_ATCI-5687575-S2059756-1",
+        "title": "Technology Support Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Experience in creating and managing Requests for Change to support operational stability.",
+        "matched_via": [
+          "requests"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/software-engineer-ii/10941167",
+        "title": "Software Engineer II",
+        "n_supported": 2,
+        "sample_requirement": "Contribute to team's standard processes for logging, testing, instrumentation, metrics, monitors, alerts, practices, and processes",
+        "matched_via": [
+          "standards"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/4802172007?gh_jid=4802172007",
+        "title": "2026 Early Career Electrical Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Work in a fast-paced environment supporting new developments, active deployments, and customer operated hardware.",
+        "matched_via": [
+          "fast-paced"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Functional-Verification-Engineer_ATCI-5666348-S2057632-1",
+        "title": "Functional Verification Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Engage with multiple teams and contribute on key decisions.",
+        "matched_via": [
+          "multiple"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/principal-software-engineer/10839862",
+        "title": "Principal Software Engineer",
+        "n_supported": 2,
+        "sample_requirement": "Has experience developing software solutions by analyzing system performance standards and conferring with users or system engineers.",
+        "matched_via": [
+          "standards"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Hyderabad/Custom-Software-Engineering-Lead_ATCI-5714141-S2063855-1",
+        "title": "Custom Software Engineering Lead",
+        "n_supported": 3,
+        "sample_requirement": "Engage with multiple teams and contribute on key decisions.",
+        "matched_via": [
+          "multiple"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-AZ-TUCSON-M09--3350-E-Hemisphere-Loop--BLDG-M09/Mechanical-Engineer-II---Design_01851186",
+        "title": "Mechanical Engineer II \u2013 Design",
+        "n_supported": 2,
+        "sample_requirement": "Support and participate in design peer reviews, resolving action items, and conduct trade studies to make sound technical decisions.",
+        "matched_via": [
+          "items"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/software-engineer/10324181",
+        "title": "Software Engineer",
+        "n_supported": 3,
+        "sample_requirement": "Build and maintain high-quality software that powers automated editorial workflows, including data-focused content creation and publishing integrations with int",
+        "matched_via": [
+          "quality"
+        ]
+      },
+      {
+        "job_url": "https://motorolasolutions.wd5.myworkdayjobs.com/Careers/job/Illinois-Remote-Work/Field-Engineer_R67664",
+        "title": "Field Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Collaborating with Engineering, Project Management, Sales, and Customer Service personnel to effectively maintain, optimize, and support advanced communication ",
+        "matched_via": [
+          "customer service"
+        ]
+      },
+      {
+        "job_url": "https://amazon.jobs/en/jobs/10512704/software-development-engineer-asbx-builder-operations",
+        "title": "Software Development Engineer, ASBX Builder Operations",
+        "n_supported": 1,
+        "sample_requirement": "Design and build client-side AI coordination systems that orchestrate multiple agentic coding tools into a unified developer experience",
+        "matched_via": [
+          "multiple"
+        ]
+      },
+      {
+        "job_url": "https://mastercard.wd1.myworkdayjobs.com/CorporateCareers/job/Vancouver-Canada/Senior-Software-Engineer_R-287082-1",
+        "title": "Senior Software Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Analyze test results and provide quality metrics and recommendations.",
+        "matched_via": [
+          "quality"
+        ]
+      },
+      {
+        "job_url": "https://salesforce.wd12.myworkdayjobs.com/External_Career_Site/job/Brazil---Remote/Solution-Architect_JR354542",
+        "title": "Solution Architect",
+        "n_supported": 1,
+        "sample_requirement": "Partner with stakeholders to ensure the delivery of high-quality technical solutions aligned with client expectations.",
+        "matched_via": [
+          "quality"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455047594",
+        "title": "Customer Service Rep(08863) - 709 East Church Street",
+        "n_supported": 5,
+        "sample_requirement": "Taking phone orders with accuracy and efficiency",
+        "matched_via": [
+          "order",
+          "orders",
+          "taking"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Custom-Software-Engineering-Lead_ATCI-5714606-S2064658-1",
+        "title": "Custom Software Engineering Lead",
+        "n_supported": 3,
+        "sample_requirement": "Engage with multiple teams and contribute on key decisions.",
+        "matched_via": [
+          "multiple"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-AZ-TUCSON-848--1151-E-Hermans-Rd--BLDG-848/Principal-System-Administrator--Will-sponsor-a-clearance-_01864593",
+        "title": "Principal System Administrator- Will sponsor a clearance!",
+        "n_supported": 3,
+        "sample_requirement": "Utilize your experience with Windows Server internals to include DNS, DHCP, AD, and server replication methods.",
+        "matched_via": [
+          "servers"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Application-Support-Engineer_ATCI-R1-S2024036-1",
+        "title": "Application Support Engineer",
+        "n_supported": 1,
+        "sample_requirement": "Engage in code reviews and provide constructive feedback to peers to maintain code quality and consistency.",
+        "matched_via": [
+          "consistency",
+          "quality"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455030707",
+        "title": "Field Sales Representative",
+        "n_supported": 1,
+        "sample_requirement": "We'll kick things off with paid training -setting you up for success to work independently in the field. Coaching, mentoring and ongoing learning opportunities ",
+        "matched_via": [
+          "keep"
+        ]
+      },
+      {
+        "job_url": "https://databricks.com/company/careers/open-positions/job?gh_jid=8417654002",
+        "title": "Sr. Solutions Engineer - MFG",
+        "n_supported": 1,
+        "sample_requirement": "You work with multiple clients as the main technical voice for Databricks.",
+        "matched_via": [
+          "multiple"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4395278532",
+        "title": "Analyst IV Business Systems - POS/Retail Payments",
+        "n_supported": 1,
+        "sample_requirement": "Own the design, configuration, integration, and implementation of POS and Payments solutions across multiple platforms and portfolios.",
+        "matched_via": [
+          "multiple"
+        ]
+      },
+      {
+        "job_url": "https://amazon.jobs/en/jobs/10515096/software-development-engineer-aws-hardware-engineering",
+        "title": "Software Development Engineer, AWS Hardware Engineering",
+        "n_supported": 2,
+        "sample_requirement": "5+ years of full software development life cycle, including coding standards, code reviews, source control management, build processes, testing, and operations ",
+        "matched_via": [
+          "standards"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4457852660",
+        "title": "Systems Engineer III",
+        "n_supported": 1,
+        "sample_requirement": "Strong verbal communication across audiences (such as technical coworkers, end users, and management)",
+        "matched_via": [
+          "coworkers"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/senior-staff-software-engineer-agentic-systems-moveworks/10883743",
+        "title": "Senior Staff Software Engineer, Agentic Systems - Moveworks",
+        "n_supported": 2,
+        "sample_requirement": "Agent orchestration engine \u2014 A state machine that manages long-running agent sessions, coordinating planning, execution, and user interaction across multiple LL",
+        "matched_via": [
+          "multiple"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4455764316",
+        "title": "Administrative Support",
+        "n_supported": 1,
+        "sample_requirement": "Answer customer calls and emails and enter daily service requests.",
+        "matched_via": [
+          "requests"
+        ]
+      },
+      {
+        "job_url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-PR-SANTA-ISABEL-B1--Felicia-Industrial-Park---St-B1--BLDG-1/Collaboration-Platforms-Engineer--Puerto-Rico-_01872394-1",
+        "title": "Collaboration Platforms Engineer (Puerto Rico)",
+        "n_supported": 3,
+        "sample_requirement": "Manage and resolve customer requests and issues through ServiceNow, ensuring timely and effective support",
+        "matched_via": [
+          "requests"
+        ]
+      },
+      {
+        "job_url": "https://www.linkedin.com/jobs/view/4454777051",
+        "title": "Learning & Development LMS Analyst",
+        "n_supported": 1,
+        "sample_requirement": "Monitor and improve backend system health through customer support and troubleshooting, **data validation, error resolution, quality checks, and Service Now tic",
+        "matched_via": [
+          "quality"
+        ]
+      },
+      {
+        "job_url": "https://builtin.com/job/lead-software-engineer-remote/10780397",
+        "title": "Lead Software Engineer - Remote",
+        "n_supported": 2,
+        "sample_requirement": "Drive code quality through architecture reviews, code reviews, automated testing, and CI/CD practices",
+        "matched_via": [
+          "quality"
+        ]
+      },
+      {
+        "job_url": "https://boards.greenhouse.io/andurilindustries/jobs/5208964007?gh_jid=5208964007",
+        "title": "Mechanical Engineer, Space",
+        "n_supported": 2,
+        "sample_requirement": "Learn and apply modern\u00a0space-flight hardware\u00a0design standards and guidelines to create high-reliability, highly manufacturable assemblies",
+        "matched_via": [
+          "standards"
+        ]
+      },
+      {
+        "job_url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Workforce-Services-Specialist_AIOC-S01641044-1",
+        "title": "Workforce Services Specialist",
+        "n_supported": 1,
+        "sample_requirement": "Guidance would be provided when determining methods and procedures on new assignments",
+        "matched_via": [
+          "provided"
+        ]
+      }
+    ]
+  }
+}

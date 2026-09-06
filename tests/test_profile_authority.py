@@ -426,6 +426,56 @@ class TestUnsupportedTechnicalSkills:
         assert any("javascript" in e.lower() for e in result["errors"])
 
 
+class TestUnfinishedProjectSuccessClaimScoping:
+    """2026-09-05 production crash: the unfinished-project success-claim
+    check used to search the WHOLE resume text for success words, not
+    scoped to the unfinished project's own entry -- an unrelated bullet
+    elsewhere in the SAME resume using an ordinary word from that list
+    (e.g. "accuracy" in a real, true UPS bullet) falsely flagged an
+    unfinished project that had zero bullets of its own and made no claim
+    at all. Confirmed live, blocking the first real degraded-mode +
+    phrase-bank tailoring run for a job with no connection to the flagged
+    project whatsoever."""
+
+    def _profile_with_unfinished_project(self):
+        p = _profile()
+        p["project_inventory"] = [{"name": "Sunburn", "status": "unfinished", "factual_concepts": []}]
+        return p
+
+    def test_unrelated_success_word_elsewhere_does_not_false_flag(self):
+        data = {
+            "title": "Technical Support & Customer Service",
+            "summary": "Support and troubleshooting background.",
+            "skills": {"Languages": "Python"},
+            "experience": [
+                {
+                    "header": "Packaging Associate / Warehouse Associate at UPS",
+                    "bullets": ["Worked in a high-volume environment where accuracy was essential."],
+                }
+            ],
+            "projects": [{"header": "Sunburn", "bullets": []}],
+            "education": "University of North Carolina at Greensboro",
+        }
+        result = validate_json_fields(data, self._profile_with_unfinished_project())
+        assert not any("sunburn" in e.lower() for e in result["errors"])
+
+    def test_success_claim_in_the_projects_own_bullet_is_still_caught(self):
+        """The fix scopes the check, it doesn't disable it -- a real claim
+        inside the unfinished project's own entry must still be rejected."""
+        data = {
+            "title": "Technical Support & Customer Service",
+            "summary": "Support and troubleshooting background.",
+            "skills": {"Languages": "Python"},
+            "experience": [
+                {"header": "Packaging Associate / Warehouse Associate at UPS", "bullets": ["Package handling."]}
+            ],
+            "projects": [{"header": "Sunburn", "bullets": ["Deployed to production with real users."]}],
+            "education": "University of North Carolina at Greensboro",
+        }
+        result = validate_json_fields(data, self._profile_with_unfinished_project())
+        assert any("sunburn" in e.lower() for e in result["errors"])
+
+
 class TestFabricationWatchlistUngroundedTechnologies:
     """2026-08-25 adversarial-review follow-up: check_unsupported_technical_
     skills only catches two SPECIFIC known patterns (explicitly-disallowed

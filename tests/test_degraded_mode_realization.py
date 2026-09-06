@@ -394,6 +394,37 @@ class TestTailorResumeDegradedModeIntegration(unittest.TestCase):
         self.assertIn("Diagnosed intermittent electrical faults", tailored)
         self.assertIn(report["status"], ("approved", "failed_validation"))
 
+    def test_judge_call_exception_degrades_like_a_failed_verdict_not_a_crash(self):
+        """2026-09-05 production crash: a real end-to-end run had the judge
+        call raise (all providers briefly unavailable right after a string
+        of unrelated editor failures on the same job) with NO exception
+        handling around it at all -- crashed the whole tailor_resume()
+        call instead of degrading the same way an actual failed verdict
+        already does (judge is advisory; validation already passed)."""
+        from applypilot.scoring import tailor as tailor_mod
+
+        client = MagicMock()
+
+        def _chat(messages, **kwargs):
+            if any("resume quality judge" in m.get("content", "") for m in messages):
+                raise RuntimeError("All LLM providers are on quota cooldown (min wait: 20.4h).")
+            return REALIZATION_RESPONSE
+
+        client.chat.side_effect = _chat
+        client.has_cloud_available = lambda: False
+
+        with (
+            patch.object(tailor_mod, "get_stage_client", return_value=client),
+            patch.object(tailor_mod, "is_local_configured", return_value=True),
+            patch.object(tailor_mod, "is_auto_approvable", return_value=False),
+        ):
+            tailored, report = tailor_mod.tailor_resume(RESUME_TEXT, JOB, PROFILE, max_retries=2)
+
+        self.assertEqual(report["status"], "approved")
+        self.assertFalse(report["judge"]["passed"])
+        self.assertEqual(report["judge"]["verdict"], "ERROR")
+        self.assertIn("Diagnosed intermittent electrical faults", tailored)
+
     def test_degraded_mode_makes_exactly_one_local_realization_call_not_a_retry_loop(self):
         """The old full-generation DEGRADED MODE could burn max_retries+1
         LLM calls against the local model; the new composer makes exactly
@@ -459,6 +490,222 @@ class TestTailorResumeDegradedModeIntegration(unittest.TestCase):
             _tailored, report = tailor_mod.tailor_resume(RESUME_TEXT, JOB, PROFILE, max_retries=0)
 
         self.assertNotIn("degraded_mode", report)
+
+
+class TestPhraseBankIntegrationInDegradedMode(unittest.TestCase):
+    """2026-09-05: degraded mode now tries the phrase-bank selector +
+    editor before falling back to request_local_realization (the local
+    writer whose reliability was never fully fixed). build_pool_
+    realization and edit_sentence_with_retry are mocked here -- both are
+    already covered by their own dedicated tests elsewhere in this file;
+    these tests verify the WIRING in tailor.py: does full bank coverage
+    skip the local writer entirely, does partial coverage combine both
+    sources, is the editor actually invoked on a selected bullet."""
+
+    def setUp(self):
+        schemas.clear_schema_cache()
+
+    def _degraded_client(self, chat_return=REALIZATION_RESPONSE):
+        client = MagicMock()
+        client.chat.return_value = chat_return
+        client.has_cloud_available = lambda: False
+        return client
+
+    def test_full_bank_coverage_skips_the_local_writer_entirely(self):
+        from applypilot.scoring import tailor as tailor_mod
+
+        client = self._degraded_client()
+        pool_result = {"bullets": {"Auto Shop Diagnostic Tech": ["A pool-selected true sentence."]}}
+        with (
+            patch.object(tailor_mod, "get_stage_client", return_value=client),
+            patch.object(tailor_mod, "is_local_configured", return_value=True),
+            patch("applypilot.scoring.phrase_bank.load_bank", return_value={"x": ["A pool-selected true sentence."]}),
+            patch("applypilot.scoring.local_tailor.build_pool_realization", return_value=pool_result),
+            patch(
+                "applypilot.scoring.local_tailor.edit_sentence_with_retry",
+                return_value=("A pool-selected true sentence.", True, 1),
+            ),
+        ):
+            tailored, report = tailor_mod.tailor_resume(RESUME_TEXT, JOB, PROFILE, max_retries=2)
+
+        self.assertTrue(report["degraded_mode"]["bank_covered"])
+        self.assertFalse(report["degraded_mode"]["llm_called"])
+        self.assertIn("A pool-selected true sentence.", tailored)
+        # The one client.chat() call that DOES happen here is the separate
+        # judge stage (mocked to the same client) -- the realization/writer
+        # call itself is what's skipped. If the writer had run too, this
+        # would be 2 calls, not 1.
+        self.assertEqual(client.chat.call_count, 1)
+
+    def test_partial_coverage_combines_bank_and_local_writer_bullets(self):
+        """A second evidence item with no bank coverage must still get the
+        local writer's bullet -- bank coverage for ONE evidence item must
+        not silently drop tailoring for another. Controls job_schema
+        directly (rather than relying on real term-matching to resolve
+        two requirements to two specific, distinct evidence names) so the
+        test is deterministic about which evidence has bank coverage."""
+        from applypilot.scoring import tailor as tailor_mod
+
+        two_entry_profile = {
+            **PROFILE,
+            "experience_inventory": PROFILE["experience_inventory"]
+            + [
+                {
+                    "name": "Second Job",
+                    "relevance_categories": ["professional"],
+                    "resume_allowed": True,
+                    "description": "Also diagnosed root cause issues professionally.",
+                }
+            ],
+        }
+        fake_schema = {
+            "requirements": [
+                {
+                    "supported": True,
+                    "requirement": "Troubleshoot hardware and identify root cause",
+                    "resume_evidence": ["Auto Shop Diagnostic Tech"],
+                },
+                {
+                    "supported": True,
+                    "requirement": "Diagnose issues professionally",
+                    "resume_evidence": ["Second Job"],
+                },
+            ],
+            "viewpoint": "general",
+            "summary_schema": "capability_background_transfer_value",
+            "evidence_considered": 2,
+        }
+        client = self._degraded_client(chat_return=REALIZATION_RESPONSE)
+        pool_result = {"bullets": {"Auto Shop Diagnostic Tech": ["A pool-selected true sentence."]}}
+
+        def _fake_load_bank(name, _hash):
+            return {"x": ["A pool-selected true sentence."]} if name == "Auto Shop Diagnostic Tech" else None
+
+        with (
+            patch.object(tailor_mod, "get_stage_client", return_value=client),
+            patch.object(tailor_mod, "is_local_configured", return_value=True),
+            patch("applypilot.scoring.schemas.get_or_build_job_schema", return_value=fake_schema),
+            patch("applypilot.scoring.phrase_bank.load_bank", side_effect=_fake_load_bank),
+            patch("applypilot.scoring.local_tailor.build_pool_realization", return_value=pool_result),
+            patch(
+                "applypilot.scoring.local_tailor.edit_sentence_with_retry",
+                return_value=("A pool-selected true sentence.", True, 1),
+            ),
+        ):
+            tailored, report = tailor_mod.tailor_resume(RESUME_TEXT, JOB, two_entry_profile, max_retries=2)
+
+        # Not fully covered ("Second Job" has no bank) -- the local writer
+        # still runs for the job as a whole, and its bullet (from
+        # REALIZATION_RESPONSE, keyed to "Auto Shop Diagnostic Tech") is
+        # combined with -- not overwritten by -- the bank pick for the
+        # same evidence name (bank takes priority for names it covers).
+        self.assertFalse(report["degraded_mode"]["bank_covered"])
+        self.assertIn("A pool-selected true sentence.", tailored)
+
+    def test_editor_is_invoked_with_the_specific_requirement_text(self):
+        from applypilot.scoring import tailor as tailor_mod
+
+        client = self._degraded_client()
+        pool_result = {"bullets": {"Auto Shop Diagnostic Tech": ["Original pool sentence."]}}
+        editor_mock = MagicMock(return_value=("Edited to fit the requirement.", True, 1))
+        with (
+            patch.object(tailor_mod, "get_stage_client", return_value=client),
+            patch.object(tailor_mod, "is_local_configured", return_value=True),
+            patch("applypilot.scoring.phrase_bank.load_bank", return_value={"x": ["Original pool sentence."]}),
+            patch("applypilot.scoring.local_tailor.build_pool_realization", return_value=pool_result),
+            patch("applypilot.scoring.local_tailor.edit_sentence_with_retry", editor_mock),
+        ):
+            tailored, _report = tailor_mod.tailor_resume(RESUME_TEXT, JOB, PROFILE, max_retries=2)
+
+        editor_mock.assert_called_once()
+        call_args = editor_mock.call_args[0]
+        self.assertEqual(call_args[1], "Original pool sentence.")
+        self.assertIn("root cause", call_args[2])
+        self.assertIn("Edited to fit the requirement.", tailored)
+
+
+CLOUD_JSON_WITH_EXPERIENCE = (
+    '{"title":"Support Technician","summary":"S",'
+    '"skills":{"Languages":"Python"},'
+    '"experience":[{"header":"Auto Shop Diagnostic Tech","subtitle":"Some Garage",'
+    '"bullets":["Original cloud bullet."]}],'
+    '"projects":[],"education":[{"institution":"Some University"}]}'
+)
+
+
+class TestPhraseBankOverlayInCloudPath(unittest.TestCase):
+    """2026-09-05: the phrase-bank selector + editor also overlays onto
+    the NORMAL cloud tailoring path, not just degraded mode -- additive
+    only, on top of whatever the cloud model already wrote."""
+
+    def setUp(self):
+        schemas.clear_schema_cache()
+
+    def _cloud_client(self, chat_return=CLOUD_JSON_WITH_EXPERIENCE):
+        client = MagicMock()
+        client.chat.return_value = chat_return
+        client.has_cloud_available = lambda: True
+        return client
+
+    def test_bank_bullet_overlaid_onto_cloud_written_entry(self):
+        from applypilot.scoring import tailor as tailor_mod
+
+        client = self._cloud_client()
+        with (
+            patch.object(tailor_mod, "get_stage_client", return_value=client),
+            patch.object(tailor_mod, "is_local_configured", return_value=True),
+            patch.object(tailor_mod, "extract_facts_from_resume_json", return_value=set()),
+            patch.object(tailor_mod, "is_auto_approvable", return_value=True),
+            patch(
+                "applypilot.scoring.local_tailor.select_and_edit_bank_bullets",
+                return_value=({"Auto Shop Diagnostic Tech": ["A bank-selected, editor-polished bullet."]}, True),
+            ),
+        ):
+            tailored, report = tailor_mod.tailor_resume(RESUME_TEXT, JOB, PROFILE, max_retries=0)
+
+        self.assertIn("A bank-selected, editor-polished bullet.", tailored)
+        # Padded, not dropped -- the cloud's own bullet is still present.
+        self.assertIn("Original cloud bullet.", tailored)
+        self.assertEqual(report["status"], "approved")
+
+    def test_no_bank_leaves_cloud_output_untouched(self):
+        """No banks exist in this test environment -- select_and_edit_
+        bank_bullets runs for real (not mocked) and should be a no-op."""
+        from applypilot.scoring import tailor as tailor_mod
+
+        client = self._cloud_client()
+        with (
+            patch.object(tailor_mod, "get_stage_client", return_value=client),
+            patch.object(tailor_mod, "is_local_configured", return_value=True),
+            patch.object(tailor_mod, "extract_facts_from_resume_json", return_value=set()),
+            patch.object(tailor_mod, "is_auto_approvable", return_value=True),
+        ):
+            tailored, report = tailor_mod.tailor_resume(RESUME_TEXT, JOB, PROFILE, max_retries=0)
+
+        self.assertIn("Original cloud bullet.", tailored)
+        self.assertEqual(report["status"], "approved")
+
+    def test_overlay_failure_does_not_break_tailoring(self):
+        """The overlay is wrapped defensively -- an exception anywhere in
+        the phrase-bank pipeline must never surface as a tailoring
+        failure, only skip the enhancement."""
+        from applypilot.scoring import tailor as tailor_mod
+
+        client = self._cloud_client()
+        with (
+            patch.object(tailor_mod, "get_stage_client", return_value=client),
+            patch.object(tailor_mod, "is_local_configured", return_value=True),
+            patch.object(tailor_mod, "extract_facts_from_resume_json", return_value=set()),
+            patch.object(tailor_mod, "is_auto_approvable", return_value=True),
+            patch(
+                "applypilot.scoring.local_tailor.select_and_edit_bank_bullets",
+                side_effect=RuntimeError("embedding service down"),
+            ),
+        ):
+            tailored, report = tailor_mod.tailor_resume(RESUME_TEXT, JOB, PROFILE, max_retries=0)
+
+        self.assertIn("Original cloud bullet.", tailored)
+        self.assertEqual(report["status"], "approved")
 
 
 # ---------------------------------------------------------------------------
@@ -586,6 +833,32 @@ class TestBuildBaseResumeModel(unittest.TestCase):
         for key in ("title", "summary", "skills", "experience", "projects", "education"):
             self.assertIn(key, model)
 
+    def test_skills_boundary_fallback_excludes_not_expertise_categories(self):
+        """2026-09-05 production crash: the skills_boundary fallback used
+        to render EVERY category unconditionally, including one named
+        "learning_or_exposure_not_expertise" -- the profile author's own
+        explicit signal that those items (APIs, REST, JSON, Scripting,
+        Docker) are not claimable resume skills. validate_json_fields
+        correctly rejected every one of them, blocking the first real
+        degraded-mode + phrase-bank tailoring run."""
+        profile_with_exposure = {
+            **PROFILE,
+            "skills_boundary": {
+                "languages": ["Python"],
+                "learning_or_exposure_not_expertise": ["Docker", "REST"],
+            },
+        }
+        resume_no_skills = RESUME_TEXT.replace(
+            "TECHNICAL SKILLS\nLanguages: Python, Go\n\n",
+            "TECHNICAL SKILLS\n\n",
+        )
+        model = local_tailor.build_base_resume_model(resume_no_skills, profile_with_exposure)
+        self.assertIn("Languages", model["skills"])
+        self.assertNotIn("Learning Or Exposure Not Expertise", model["skills"])
+        for skill_value in model["skills"].values():
+            self.assertNotIn("Docker", skill_value)
+            self.assertNotIn("REST", skill_value)
+
 
 class TestBuildBaseResumeModelFallsBackToProfileStructure(unittest.TestCase):
     """2026-09-04 regression: real production degraded-mode calls pass
@@ -628,12 +901,32 @@ class TestBuildBaseResumeModelFallsBackToProfileStructure(unittest.TestCase):
         self.assertIn("Media Studies", model["education"])
         self.assertIn("Some University", model["education"])
 
+    def test_summary_falls_back_to_skills_boundary_when_no_summary_section_parses(self):
+        """2026-09-05 production crash: unlike experience/education just
+        above, summary had NO fallback at all -- always "" for real
+        production input, masked until the phrase-bank overlay's "skip
+        the local writer when fully bank-covered" optimization meant
+        nothing else in the merge chain ever populated it either. A real
+        bank-covered degraded-mode run failed validation for exactly this
+        reason ("Missing required field: summary")."""
+        model = local_tailor.build_base_resume_model(self.FLAT_PROFILE_TEXT, PROFILE)
+        self.assertTrue(model["summary"])
+        self.assertIn("Python", model["summary"])
+
+    def test_summary_stays_empty_when_no_skills_boundary_to_fall_back_to(self):
+        """No fabricated summary when there's nothing true to build one
+        from -- empty stays empty, same "never invent" discipline as
+        every other fallback in this function."""
+        profile_no_boundary = {**PROFILE, "skills_boundary": {}}
+        model = local_tailor.build_base_resume_model(self.FLAT_PROFILE_TEXT, profile_no_boundary)
+        self.assertEqual(model["summary"], "")
+
     def test_fallback_experience_entry_still_matches_realization_by_fuzzy_name(self):
         """The whole point: a realized bullet keyed by evidence name must
         still land on the right entry after the fallback construction, not
         just produce non-empty entries that realization can't attach to."""
         model = local_tailor.build_base_resume_model(self.FLAT_PROFILE_TEXT, PROFILE)
-        realization = {"summary": None, "bullets": {"Auto Shop Diagnostic Tech": "Realized bullet text."}}
+        realization = {"summary": None, "bullets": {"Auto Shop Diagnostic Tech": ["Realized bullet text."]}}
         merged = local_tailor.merge_realization(model, realization, JOB)
         entry = next(e for e in merged["experience"] if e["header"] == "Auto Shop Diagnostic Tech")
         self.assertIn("Realized bullet text.", entry["bullets"])
@@ -689,7 +982,7 @@ class TestMergeRealization(unittest.TestCase):
         self.assertEqual(data["education"], "Some University")  # untouched
 
     def test_partial_realization_with_only_bullets_leaves_summary_intact(self):
-        realization = {"summary": None, "bullets": {"Auto Shop Diagnostic Tech": "A new bullet."}}
+        realization = {"summary": None, "bullets": {"Auto Shop Diagnostic Tech": ["A new bullet."]}}
         data = local_tailor.merge_realization(self.base, realization, JOB)
         self.assertEqual(data["summary"], "An engineer who builds things.")  # untouched
         self.assertEqual(data["experience"][0]["bullets"][0], "A new bullet.")
@@ -1104,7 +1397,12 @@ class TestBuildPoolRealization(unittest.TestCase):
         with patch("applypilot.scoring.semantic_match.embed_texts", side_effect=self._patched_embed()):
             result = local_tailor.build_pool_realization(schema, pools)
         self.assertIsNotNone(result)
-        self.assertEqual(result["bullets"]["Acme"], "Maintained clear communication with customers throughout service visits.")
+        # 2026-09-05: bullets is now a LIST per evidence item (up to
+        # MAX_BULLETS_PER_EVIDENCE), not a single string -- the top-ranked
+        # match still leads.
+        self.assertEqual(
+            result["bullets"]["Acme"][0], "Maintained clear communication with customers throughout service visits."
+        )
 
     def test_different_requirement_wording_selects_different_sentence(self):
         """The actual point of this function: two differently-worded
@@ -1126,7 +1424,15 @@ class TestBuildPoolRealization(unittest.TestCase):
             result_b = local_tailor.build_pool_realization(schema_protocols, pools)
         self.assertNotEqual(result_a["bullets"]["Acme"], result_b["bullets"]["Acme"])
 
-    def test_first_matched_requirement_wins_for_an_entry_not_overwritten_by_a_later_one(self):
+    def test_multiple_requirements_citing_the_same_evidence_both_get_represented(self):
+        """2026-09-05: was 'the first matched requirement wins' (one bullet
+        per evidence item, period) -- deliberately changed as part of the
+        phrase-bank rollout so an evidence item satisfying TWO different
+        requirements can surface a bullet for each, not just whichever
+        requirement happened to resolve first. Each pool sentence's score
+        is the max of its similarity across every requirement citing this
+        evidence, so both sentences here (each a strong match for one of
+        the two requirements) should appear, not just one."""
         schema = {
             "requirements": [
                 {"supported": True, "requirement": "communicate clearly with customers", "resume_evidence": ["Acme"]},
@@ -1141,7 +1447,7 @@ class TestBuildPoolRealization(unittest.TestCase):
         }
         with patch("applypilot.scoring.semantic_match.embed_texts", side_effect=self._patched_embed()):
             result = local_tailor.build_pool_realization(schema, pools)
-        self.assertEqual(result["bullets"]["Acme"], "Maintained clear communication with customers throughout service visits.")
+        self.assertEqual(set(result["bullets"]["Acme"]), set(pools["Acme"]))
 
     def test_embedding_failure_degrades_to_none_not_a_crash(self):
         schema = {"requirements": [{"supported": True, "requirement": "x", "resume_evidence": ["Acme"]}]}

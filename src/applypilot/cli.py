@@ -923,6 +923,76 @@ def revalidate_seniority(
             console.print(f"[dim]...and {len(result['sample']) - 20} more.[/dim]")
 
 
+@app.command("expand-bank")
+def expand_bank(
+    entry: str = typer.Option(
+        None,
+        "--entry",
+        help="Only (re)generate the bank for this one entry, by exact profile.json name. Default: every resume_allowed experience/project entry.",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Regenerate even if an up-to-date bank (matching content hash) already exists.",
+    ),
+) -> None:
+    """Generate (or refresh) the persisted phrase bank for resume entries --
+    "Stage 0" of tailoring (see scoring/phrase_bank.py): for each original
+    bullet, generate several alternate TRUE phrasings, filter them through
+    the same fabrication/diversity checks tailoring already trusts, and
+    persist the survivors so later tailoring runs can select from them
+    instead of generating fresh text on every job.
+
+    Explicit, run-by-hand command -- no automatic/lazy regeneration during
+    normal pipeline runs. Run this again whenever you update your resume;
+    an entry whose source facts haven't changed since its last bank was
+    built is skipped automatically (content-hash staleness check), unless
+    --force. Uses the same LLM cascade tailoring uses -- cloud if
+    configured, local as fallback.
+    """
+    _bootstrap()
+
+    from applypilot.config import load_profile
+    from applypilot.llm import get_stage_client
+    from applypilot.scoring import local_tailor, phrase_bank
+
+    profile = load_profile()
+    items: list[dict] = []
+    for key in ("experience_inventory", "project_inventory"):
+        for item in profile.get(key) or []:
+            if isinstance(item, dict) and item.get("resume_allowed") is not False and item.get("name"):
+                items.append(item)
+
+    if entry:
+        items = [i for i in items if i.get("name") == entry]
+        if not items:
+            console.print(f"[red]No resume_allowed entry named {entry!r} found in profile.json.[/red]")
+            raise typer.Exit(1)
+
+    if not items:
+        console.print("[yellow]No resume_allowed experience/project entries found.[/yellow]")
+        return
+
+    client = get_stage_client("expand_bank", quality=True)
+    for item in items:
+        name = item["name"]
+        h = phrase_bank.content_hash(item)
+        if not force and phrase_bank.load_bank(name, h) is not None:
+            console.print(f"[dim]Skipping {name!r} -- bank already current.[/dim]")
+            continue
+        console.print(f"[cyan]Generating phrase bank for {name!r}...[/cyan]")
+        bank = local_tailor.build_phrase_bank(item, client, profile)
+        if not bank:
+            console.print(
+                f"[yellow]  no survivors for {name!r} (no source facts, or every candidate failed a check).[/yellow]"
+            )
+            continue
+        phrase_bank.save_bank(name, bank, h)
+        n_bullets = len(bank)
+        n_variants = sum(len(v) for v in bank.values())
+        console.print(f"[green]  saved: {n_bullets} bullet(s) covered, {n_variants} variant(s) total.[/green]")
+
+
 @app.command()
 def revalidate_stale_scores(
     cutoff: str = typer.Option(

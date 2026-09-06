@@ -308,7 +308,6 @@ class TestKeywordPreservation(unittest.TestCase):
         }
         rep = schemas.build_job_schema_representation(job, profile)
         req = rep["requirements"][0]
-        self.assertTrue(req["supported"])
         self.assertNotIn("alignment", req["exact_keywords"])
         # "alignment" was the ONLY literal term this evidence item shared
         # with the requirement -- with it correctly dropped, exact_keywords
@@ -318,6 +317,14 @@ class TestKeywordPreservation(unittest.TestCase):
         # exact_keyword_count == 0).
         self.assertEqual(req["exact_keywords"], [])
         self.assertEqual(req["category_tier"], "unsupported")
+        # 2026-09-05: `supported` used to stay True here regardless of the
+        # tier verdict just above -- a real gap (decision #68d), not a
+        # deliberate choice: nothing had ever wired category_tier back
+        # into `supported`, so an evidence item resolving to zero verified
+        # keywords still got treated as fully supported. Now that
+        # build_job_schema_representation reads category_tier back,
+        # "unsupported" correctly means not supported.
+        self.assertFalse(req["supported"])
 
     def test_same_domain_ambiguous_term_still_counted(self):
         """Mirror case: when both texts genuinely use 'alignment' in the

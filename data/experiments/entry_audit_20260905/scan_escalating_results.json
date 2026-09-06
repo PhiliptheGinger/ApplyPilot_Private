@@ -1,0 +1,68 @@
+{
+  "Freelance Photography / Videography": {
+    "n": 500,
+    "hits": 9,
+    "rate": 0.018,
+    "ci99": [
+      0.007839771631763151,
+      0.04078643513654845
+    ],
+    "before_rate": 0.15892428264441916,
+    "resolved": true
+  },
+  "AMP Smart": {
+    "n": 500,
+    "hits": 72,
+    "rate": 0.144,
+    "ci99": [
+      0.1082125790676847,
+      0.18911300103505166
+    ],
+    "before_rate": 0.5553975477183668,
+    "resolved": true
+  },
+  "UPS": {
+    "n": 500,
+    "hits": 64,
+    "rate": 0.128,
+    "ci99": [
+      0.09432815190060219,
+      0.17141655539776285
+    ],
+    "before_rate": 0.5131146504866642,
+    "resolved": true
+  },
+  "National Tire and Battery / Mavis": {
+    "n": 500,
+    "hits": 178,
+    "rate": 0.356,
+    "ci99": [
+      0.30305547816409795,
+      0.41271666659655937
+    ],
+    "before_rate": 0.531095942358741,
+    "resolved": true
+  },
+  "Alex Prosperity Group / UST Logistics": {
+    "n": 2000,
+    "hits": 309,
+    "rate": 0.1545,
+    "ci99": [
+      0.13482699217549532,
+      0.17645808679640473
+    ],
+    "before_rate": 0.19134749083554545,
+    "resolved": true
+  },
+  "Waffle House": {
+    "n": 500,
+    "hits": 102,
+    "rate": 0.204,
+    "ci99": [
+      0.1615963527324652,
+      0.2541575003866639
+    ],
+    "before_rate": 0.5769498167109088,
+    "resolved": true
+  }
+}

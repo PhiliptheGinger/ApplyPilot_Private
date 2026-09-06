@@ -1025,10 +1025,57 @@ def tailor_resume(
             build_base_resume_model,
             merge_realization,
             request_local_realization,
+            select_and_edit_bank_bullets,
         )
 
         base_resume = build_base_resume_model(resume_text, profile)
-        realization, degraded_meta = request_local_realization(client, job, job_schema, profile)
+
+        # 2026-09-05 phrase-bank integration: before falling back to the
+        # local writer (request_local_realization -- the one call whose
+        # reliability we could never fully fix, see decisions #55-58/#70),
+        # try the deterministic, zero-LLM-call selector against whatever
+        # persisted phrase banks exist for this job's supported evidence
+        # (built ahead of time via `applypilot expand-bank`, never
+        # auto-generated here), each pick polished by one bounded editor
+        # call. Shared with the cloud path's overlay -- see local_tailor.
+        # select_and_edit_bank_bullets's own docstring for the full
+        # pipeline description.
+        pool_bullets, fully_covered = select_and_edit_bank_bullets(client, job_schema, profile)
+
+        # Bank coverage is a real, measured optimization, not just a
+        # source-priority preference: when every currently-supported
+        # requirement's evidence already has a bank-selected (and edited)
+        # bullet, the local writer call is skipped ENTIRELY -- the exact
+        # call whose empty-output/timeout unreliability this whole system
+        # was built to route around (see the "improv host"/local-model-
+        # reliability discussion). Partial or zero coverage falls back to
+        # calling it for the full job_schema, identical to pre-bank
+        # behavior -- this can only ever reduce local-model calls, never
+        # add one, so it's safe even when no bank has been built yet.
+        if fully_covered:
+            realization = {"summary": None, "bullets": pool_bullets} if pool_bullets else None
+            degraded_meta = {
+                "llm_called": False,
+                "realized_bullets": sum(len(v) for v in pool_bullets.values()),
+                "prompt_chars": 0,
+                "max_tokens": 0,
+                "claim_strength_violations": 0,
+                "passive_voice_warnings": 0,
+                "bank_covered": True,
+            }
+        else:
+            llm_realization, degraded_meta = request_local_realization(client, job, job_schema, profile)
+            combined_bullets: dict[str, list[str]] = dict(pool_bullets)
+            for name, texts in (llm_realization or {}).get("bullets", {}).items():
+                combined_bullets.setdefault(name, texts)
+            combined_summary = (llm_realization or {}).get("summary")
+            realization = (
+                {"summary": combined_summary, "bullets": combined_bullets}
+                if (combined_bullets or combined_summary)
+                else None
+            )
+            degraded_meta["bank_covered"] = False
+
         degraded_meta["tier"] = "degraded_structured"
         report["attempts"] = attempt_number
         report["degraded_mode"] = degraded_meta
@@ -1093,7 +1140,28 @@ def tailor_resume(
             report["auto_approved_by_facts"] = True
             return degraded_tailored, report
 
-        judge = judge_tailored_resume(resume_text, degraded_tailored, job.get("title", ""), profile)
+        # 2026-09-05 production crash: unlike the writer (request_local_
+        # realization) and the phrase-bank editor (edit_sentence_with_
+        # retry), this call had NO error handling at all -- confirmed
+        # live: local briefly appeared unavailable (all providers showed
+        # "on quota cooldown") right after a string of empty-content
+        # editor failures on the SAME job, and the uncaught RuntimeError
+        # crashed the entire tailoring call. Judge is advisory-only by
+        # design (a judge failure never overrides a validation pass, see
+        # the "else" branch below, unchanged) -- an exception calling it
+        # is just a harsher version of "judge failed" and must degrade
+        # the exact same way, not crash a result that already passed the
+        # real, hard validation gate.
+        try:
+            judge = judge_tailored_resume(resume_text, degraded_tailored, job.get("title", ""), profile)
+        except Exception as exc:  # noqa: BLE001 -- judge is advisory; any failure here must degrade like a failed verdict, never crash an already-validated result
+            log.warning(
+                "Judge call failed for degraded-mode result on %s (%s: %s), accepting anyway (validation passed)",
+                job.get("title", "")[:40],
+                type(exc).__name__,
+                exc,
+            )
+            judge = {"passed": False, "verdict": "ERROR", "issues": f"{type(exc).__name__}: {exc}", "raw": ""}
         report["judge"] = judge
         if judge["passed"]:
             report["status"] = "approved"
@@ -1174,6 +1242,24 @@ def tailor_resume(
             avoid_notes.append("Output was not valid JSON. Return ONLY a JSON object, nothing else.")
             continue
 
+        # 2026-09-05 phrase-bank overlay (cloud path): for whichever
+        # evidence a persisted phrase bank exists, overlay a bank-
+        # selected, editor-polished bullet onto the cloud's own freshly-
+        # written entry -- additive only, entries with no bank coverage
+        # keep the cloud's own bullets exactly as written. Never allowed
+        # to break tailoring: any failure here (embedding service down,
+        # malformed job_schema, etc.) just leaves `data` untouched, same
+        # as if no bank existed at all.
+        try:
+            from applypilot.scoring.local_tailor import overlay_bank_bullets, select_and_edit_bank_bullets
+
+            bank_bullets, _fully_covered = select_and_edit_bank_bullets(client, job_schema, profile)
+            if bank_bullets:
+                data["experience"] = overlay_bank_bullets(data.get("experience") or [], bank_bullets)
+                data["projects"] = overlay_bank_bullets(data.get("projects") or [], bank_bullets)
+        except Exception:
+            log.debug("Phrase-bank overlay failed for %s", job.get("title", "")[:40], exc_info=True)
+
         # Layer 1: Validate JSON fields
         validation = validate_json_fields(data, profile, standup_decision=standup_decision, job=job)
         report["validator"] = validation
@@ -1214,7 +1300,19 @@ def tailor_resume(
             report["status"] = "approved"
             return tailored, report
 
-        judge = judge_tailored_resume(resume_text, tailored, job.get("title", ""), profile)
+        # 2026-09-05: same fix as _run_degraded_mode's judge call -- judge
+        # is advisory-only by design (a failure here either retries or, on
+        # the last attempt, ships the already-validated result anyway, per
+        # the unchanged logic below); an exception calling it must degrade
+        # exactly like a failed verdict, not crash a result that already
+        # passed the real, hard validation gate.
+        try:
+            judge = judge_tailored_resume(resume_text, tailored, job.get("title", ""), profile)
+        except Exception as exc:  # noqa: BLE001 -- judge is advisory; any failure here must degrade like a failed verdict, never crash an already-validated result
+            log.warning(
+                "Judge call failed for %s (%s: %s)", job.get("title", "")[:40], type(exc).__name__, exc
+            )
+            judge = {"passed": False, "verdict": "ERROR", "issues": f"{type(exc).__name__}: {exc}", "raw": ""}
         report["judge"] = judge
 
         if not judge["passed"]:
