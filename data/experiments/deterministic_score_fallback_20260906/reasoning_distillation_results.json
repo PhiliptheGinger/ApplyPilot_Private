@@ -1,0 +1,248 @@
+{
+  "n_high": 23,
+  "n_low": 393,
+  "top_high": [
+    [
+      "service",
+      10.29
+    ],
+    [
+      "customer",
+      9.34
+    ],
+    [
+      "their",
+      9.05
+    ],
+    [
+      "customer service",
+      8.8
+    ],
+    [
+      "installation",
+      8.79
+    ],
+    [
+      "technician",
+      8.24
+    ],
+    [
+      "alignment technician",
+      8.07
+    ],
+    [
+      "alignment",
+      8.04
+    ],
+    [
+      "mechanical",
+      7.6
+    ],
+    [
+      "fit for",
+      7.29
+    ],
+    [
+      "installation tech",
+      7.25
+    ],
+    [
+      "strong",
+      7.18
+    ],
+    [
+      "fit for this",
+      7.12
+    ],
+    [
+      "tech",
+      6.97
+    ],
+    [
+      "maintenance",
+      6.78
+    ],
+    [
+      "work",
+      6.75
+    ],
+    [
+      "entry-level",
+      6.75
+    ],
+    [
+      "technician and",
+      6.54
+    ],
+    [
+      "alignment technician and",
+      6.54
+    ],
+    [
+      "with the",
+      6.53
+    ],
+    [
+      "nc",
+      6.37
+    ],
+    [
+      "sales",
+      6.37
+    ],
+    [
+      "an alignment technician",
+      6.32
+    ],
+    [
+      "as an alignment",
+      6.3
+    ],
+    [
+      "an alignment",
+      6.3
+    ],
+    [
+      "aligns",
+      6.19
+    ],
+    [
+      "repair",
+      5.98
+    ],
+    [
+      "troubleshooting",
+      5.98
+    ],
+    [
+      "and installation tech",
+      5.96
+    ],
+    [
+      "technician and installation",
+      5.96
+    ]
+  ],
+  "top_low": [
+    [
+      "professional",
+      -4.05
+    ],
+    [
+      "engineering",
+      -3.83
+    ],
+    [
+      "uncertainty",
+      -3.65
+    ],
+    [
+      "software",
+      -3.45
+    ],
+    [
+      "years",
+      -3.26
+    ],
+    [
+      "years of",
+      -3.13
+    ],
+    [
+      "python",
+      -2.96
+    ],
+    [
+      "applied",
+      -2.67
+    ],
+    [
+      "adjustment was",
+      -2.66
+    ],
+    [
+      "was applied",
+      -2.66
+    ],
+    [
+      "so",
+      -2.66
+    ],
+    [
+      "adjustment",
+      -2.66
+    ],
+    [
+      "adjustment was applied",
+      -2.66
+    ],
+    [
+      "small",
+      -2.66
+    ],
+    [
+      "quality",
+      -2.57
+    ],
+    [
+      "some",
+      -2.56
+    ],
+    [
+      "there",
+      -2.55
+    ],
+    [
+      "claim that the",
+      -2.54
+    ],
+    [
+      "so there",
+      -2.54
+    ],
+    [
+      "quality small adjustment",
+      -2.54
+    ],
+    [
+      "some uncertainty",
+      -2.54
+    ],
+    [
+      "claim",
+      -2.54
+    ],
+    [
+      "the job pays",
+      -2.54
+    ],
+    [
+      "not claim that",
+      -2.54
+    ],
+    [
+      "in this",
+      -2.54
+    ],
+    [
+      "that uncertainty",
+      -2.54
+    ],
+    [
+      "that the job",
+      -2.54
+    ],
+    [
+      "about job",
+      -2.54
+    ],
+    [
+      "for that uncertainty",
+      -2.54
+    ],
+    [
+      "there is some",
+      -2.54
+    ]
+  ]
+}

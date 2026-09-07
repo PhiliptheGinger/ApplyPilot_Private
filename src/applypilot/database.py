@@ -327,6 +327,15 @@ _ALL_COLUMNS: dict[str, str] = {
     "score_reasoning": "TEXT",
     "scored_at": "TEXT",
     "score_error": "TEXT",  # set when all LLM providers failed; fit_score stays NULL
+    # 2026-09-07: audit trail for which scorer produced fit_score. NULL/'llm'
+    # = the normal Gemini/OpenAI/Anthropic LLM path (the vast majority of
+    # rows; NULL rather than a backfilled 'llm' for existing rows since this
+    # column didn't exist before). 'deterministic_fallback' = the
+    # quota-outage-only local scorer (scoring/deterministic_fallback.py,
+    # CLAUDE.md decision #76) -- these rows are lower-confidence than a real
+    # LLM score and are the ones a revalidation sweep should re-score once
+    # quota returns.
+    "score_method": "TEXT",
     # 2026-04-30: terminal eligibility tag set by scorer.
     # Values: NULL (not yet evaluated) | 'eligible' | 'non_us_only'.
     # Tailor/cover/apply gate on eligibility = 'eligible' OR IS NULL.

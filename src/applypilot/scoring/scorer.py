@@ -774,12 +774,22 @@ def _score_backoff_minutes(retry_count: int) -> int:
     return min(5 * (4**retry_count), 24 * 60)
 
 
-def _flush_score_batch(conn, batch: list[dict], now: str) -> None:
+def _flush_score_batch(conn, batch: list[dict], now: str, score_method: str | None = None) -> None:
     """Write a batch of scoring results to the DB.
 
     On success (score is not None): writes fit_score, clears score_error.
     On failure (score is None): leaves fit_score NULL, writes score_error + backoff.
     Jobs that have already hit MAX_SCORE_RETRIES stay unscored indefinitely (manual rescue needed).
+
+    ``score_method``: audit tag for which scorer produced these results.
+    None (default) leaves the column untouched -- the normal LLM scoring
+    path's existing behavior, unchanged. Passed explicitly as
+    ``"deterministic_fallback"`` by scoring.deterministic_fallback
+    (CLAUDE.md decision #76) so a quota-outage-scored row is visibly
+    distinguishable from a real LLM score and revalidation-eligible once
+    quota returns -- reusing this function rather than duplicating its
+    archived-guard/eligibility/transition-state logic is deliberate, per
+    this codebase's own "one source of truth" convention.
     """
     from applypilot.config import DEFAULTS as _cfg_DEFAULTS
     from applypilot.database import transition_state
@@ -816,10 +826,10 @@ def _flush_score_batch(conn, batch: list[dict], now: str) -> None:
             eligibility = r.get("eligibility") or "eligible"
             conn.execute(
                 "UPDATE jobs SET fit_score = ?, score_reasoning = ?, scored_at = ?, "
-                "eligibility = ?, "
+                "eligibility = ?, score_method = ?, "
                 "score_error = NULL, score_attempts = 0, score_next_retry_at = NULL "
                 "WHERE url = ?",
-                (r["score"], f"{r['keywords']}\n{r['reasoning']}", now, eligibility, r["url"]),
+                (r["score"], f"{r['keywords']}\n{r['reasoning']}", now, eligibility, score_method, r["url"]),
             )
             # Eligibility-driven state transition. Every deterministic
             # ineligible category (not just non_us_only) goes straight to

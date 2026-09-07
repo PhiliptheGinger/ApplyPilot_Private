@@ -1040,6 +1040,97 @@ def revalidate_stale_scores(
             console.print(f"[dim]...and {len(result['sample']) - 20} more.[/dim]")
 
 
+@app.command("score-deterministic-fallback")
+def score_deterministic_fallback(
+    limit: int = typer.Option(
+        10,
+        "--limit",
+        help="Max jobs to score (default: 10). Pass 0 explicitly to process every quota-cooldown-stuck "
+        "job -- at qwen3:8b's real ~76s/job, an unbounded run against a large backlog can take DAYS; "
+        "start small and re-run to process more.",
+    ),
+    model: str = typer.Option(
+        None,
+        "--model",
+        help="Local Ollama model to use (default: qwen3:8b, or $APPLYPILOT_DETERMINISTIC_FALLBACK_MODEL). "
+        "Use qwen3:1.7b for ~3x faster, less precise scoring.",
+    ),
+    escalate_model: str = typer.Option(
+        None,
+        "--escalate-model",
+        help="Opt-in title-keyword escalation (Future Work item 2): use --model as the fast default, but "
+        "escalate to THIS model for titles matching a manufacturing/hands-on-adjacent keyword pattern "
+        "(technician/maintenance/assembler/composites/field service/embedded/infotainment) -- built from "
+        "real observed 1.7b-vs-8b disagreement cases at n=52, not yet revalidated on fresh data. Example: "
+        "--model qwen3:1.7b --escalate-model qwen3:8b for ~3x faster average scoring with most of 8b's "
+        "accuracy on the cases that matter most.",
+    ),
+) -> None:
+    """Score jobs stuck on a Gemini/OpenAI quota-cooldown error using the
+    local/deterministic fallback scorer (CLAUDE.md decision #76), instead of
+    waiting for cloud quota to reset.
+
+    Explicit-invocation only -- never runs automatically as part of the
+    normal `applypilot run score` path. Only touches jobs whose score_error
+    literally contains "quota cooldown"; a job unscored for any other
+    reason is left untouched. Every scored row is tagged
+    score_method='deterministic_fallback' so it can be found again and
+    revalidated by a real LLM once quota returns (see
+    revalidate-deterministic-fallback-scores).
+
+    Real, validated accuracy at n=52-58 clean labeled jobs: qwen3:8b gets
+    ~87% agreement with what the real LLM would have scored (recall 0.83,
+    precision 0.86); qwen3:1.7b gets ~81% (recall 0.83, precision 0.73) at
+    roughly 1/3 the latency. Not perfect -- this is a quota-outage rescue,
+    not a replacement for real scoring.
+    """
+    _bootstrap()
+
+    from applypilot.scoring.deterministic_fallback import run_deterministic_fallback_scoring
+
+    result = run_deterministic_fallback_scoring(limit=limit, model=model, escalate_model=escalate_model)
+    console.print(
+        f"[cyan]Deterministic fallback scoring (model={result['model']}):[/cyan] "
+        f"scored {result['scored']} / {result['candidates']} quota-cooldown-stuck job(s)."
+    )
+    if result["scored"] == 0 and result["candidates"] == 0:
+        console.print("[dim]No jobs currently stuck on a quota-cooldown error -- nothing to do.[/dim]")
+
+
+@app.command("revalidate-deterministic-fallback-scores")
+def revalidate_deterministic_fallback_scores(
+    dry_run: bool = typer.Option(False, "--dry-run", help="Report matches without resetting anything."),
+) -> None:
+    """Reset every deterministic-fallback-scored job (score_method =
+    'deterministic_fallback') back to pending, so the real LLM re-scores it
+    once quota has returned. Run this after a quota outage clears.
+
+    Ineligible (archived) fallback rows are left untouched -- they came from
+    the same deterministic pre-filter the real LLM path runs first, so
+    there's nothing to revalidate.
+    """
+    _bootstrap()
+
+    from applypilot.scoring.deterministic_fallback import revalidate_deterministic_fallback_scores as _revalidate
+
+    result = _revalidate(dry_run=dry_run)
+    verb = "Would reset" if dry_run else "Reset"
+    console.print(
+        f"[cyan]Deterministic-fallback revalidation:[/cyan] {verb} {result['updated']} / {result['matched']} matched job(s)."
+    )
+    if result["sample"]:
+        t = Table(show_header=True, header_style="bold cyan")
+        t.add_column("Title")
+        t.add_column("Prior Score")
+        t.add_column("Scored At")
+        t.add_column("URL", overflow="fold")
+        for row in result["sample"][:20]:
+            t.add_row(row["title"], str(row["fit_score"]), str(row["scored_at"]), row["url"])
+        console.print(t)
+        if len(result["sample"]) > 20:
+            console.print(f"[dim]...and {len(result['sample']) - 20} more.[/dim]")
+
+
 @app.command("remediate-contamination")
 def remediate_contamination(
     min_score: int = typer.Option(

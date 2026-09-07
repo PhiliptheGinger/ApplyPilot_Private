@@ -184,6 +184,93 @@ class TestScrapeSiteBatchSurvivesPerJobCrash:
         assert pending == []
 
 
+class TestBoilerplateDescriptionRejected:
+    """2026-09-07 (CLAUDE.md decision #75/Future Work item 5): WeWorkRemotely
+    and Intel/Workday postings were observed with a generic career-site-shell
+    or promoted-ad-widget string silently stored as `full_description` --
+    detail_error stayed NULL, so nothing downstream ever knew the data was
+    wrong. `_mark_enrich_result` now downgrades a known-boilerplate result to
+    a retriable error instead of a success."""
+
+    def test_wwr_ad_widget_text_stored_as_retriable_error_not_success(self, tmp_db, seed_job):
+        conn = tmp_db()
+        job = seed_job(conn, url_suffix="wwr-ad", title="Staff Software Engineer", site="WeWorkRemotely", full_description=None)
+
+        _mark_enrich_result(
+            conn,
+            job["url"],
+            status="ok",
+            full_description="PRODUCTIVITY\nReplace All Your Work Tools\nAll your tasks, docs, chat, and AI in one place.\nStart Free\nPROMOTED",
+            application_url="https://weworkremotely.com/remote-jobs/example",
+            error=None,
+            tier=3,
+            retry_count=0,
+        )
+        conn.commit()
+
+        row = conn.execute(
+            "SELECT full_description, detail_error, detail_error_category FROM jobs WHERE url = ?",
+            (job["url"],),
+        ).fetchone()
+        assert row["full_description"] is None
+        assert row["detail_error"] is not None
+        assert "boilerplate_description_detected" in row["detail_error"]
+        assert row["detail_error_category"] == "retriable"
+
+    def test_intel_workday_shell_text_stored_as_retriable_error_not_success(self, tmp_db, seed_job):
+        conn = tmp_db()
+        job = seed_job(conn, url_suffix="intel-shell", title="", site="Intel", full_description=None)
+
+        _mark_enrich_result(
+            conn,
+            job["url"],
+            status="partial",
+            full_description=(
+                "Intel’s official careers website. Find your next job and take on "
+                "projects that shape tomorrow’s technology. Benefits Internships "
+                "Life at Intel Locations Recruitment Process"
+            ),
+            application_url=None,
+            error=None,
+            tier=3,
+            retry_count=0,
+        )
+        conn.commit()
+
+        row = conn.execute(
+            "SELECT full_description, detail_error FROM jobs WHERE url = ?",
+            (job["url"],),
+        ).fetchone()
+        assert row["full_description"] is None
+        assert row["detail_error"] is not None
+
+    def test_real_description_that_happens_to_be_short_is_not_flagged(self, tmp_db, seed_job):
+        """Regression guard: the boilerplate check must be a specific
+        substring match, not a general short-text/low-quality heuristic --
+        a real (if terse) posting must still be stored normally."""
+        conn = tmp_db()
+        job = seed_job(conn, url_suffix="short-real", title="Warehouse Associate", site="SomeSite", full_description=None)
+
+        _mark_enrich_result(
+            conn,
+            job["url"],
+            status="ok",
+            full_description="Loading and unloading trucks. Must be able to lift 50 lbs. Full-time, $18/hr.",
+            application_url="https://example.com/apply",
+            error=None,
+            tier=2,
+            retry_count=0,
+        )
+        conn.commit()
+
+        row = conn.execute(
+            "SELECT full_description, detail_error FROM jobs WHERE url = ?",
+            (job["url"],),
+        ).fetchone()
+        assert row["full_description"] is not None
+        assert row["detail_error"] is None
+
+
 class TestRunDetailScraperSurvivesSiteLevelCrash:
     def test_one_site_batch_crash_does_not_block_other_sites(self, tmp_db, seed_job):
         """A whole-batch-level crash (e.g. browser launch failure) for one

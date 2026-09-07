@@ -361,7 +361,45 @@ DESCRIPTION_SELECTORS = [
     "main article",
     'article[class*="job"]',
     ".job-posting-content",
+    # WeWorkRemotely, 2026-09-07 (CLAUDE.md decision #75/Future Work item
+    # 5): none of the selectors above match WWR's real markup
+    # (`<section class="lis-container__job">`), so extraction fell through
+    # to the less-precise Tier 3 LLM fallback, which sometimes grabbed a
+    # promoted-ad widget instead. Verified live against a real WWR posting
+    # -- `.lis-container__job` holds the genuine description text (9k+
+    # chars), `.lis-container` is a broader fallback in case the job-specific
+    # class ever changes.
+    ".lis-container__job",
+    ".lis-container",
 ]
+
+# 2026-09-07 (CLAUDE.md decision #75/Future Work item 5): known generic
+# career-site-shell / ad-widget text that has been observed silently stored
+# as `full_description` instead of a real job posting -- WeWorkRemotely's
+# promoted-tool ad banner and Intel's Workday tenant serving its bare
+# navigation shell (Workday's real description never rendered in our
+# enrichment browser; live diagnosis found even an explicit 20s wait for
+# Workday's own `[data-automation-id="jobPostingDescription"]` element
+# never resolved -- looks like bot-detection serving a decoy shell to a
+# non-stealth browser, not a simple render-timing gap; a real fix would mean
+# porting the apply-stage's stealth launch flags into this module's browser,
+# deliberately not attempted here as out of scope for this fix). Rather than
+# leave Intel's root cause unaddressed AND let it keep silently polluting
+# `full_description`, this pattern list makes both known shapes fail loud
+# (retriable error) instead of failing silent (wrong data stored as if it
+# were real). Deliberately a short, specific, observed-in-the-wild list --
+# not a general "does this look like real content" heuristic, which would
+# risk false-positiving on a real, unusually short posting.
+_BOILERPLATE_DESCRIPTION_PATTERNS = [
+    re.compile(r"official careers website", re.IGNORECASE),
+    re.compile(r"replace all your work tools", re.IGNORECASE),
+]
+
+
+def _looks_like_boilerplate(text: str | None) -> bool:
+    if not text:
+        return False
+    return any(p.search(text) for p in _BOILERPLATE_DESCRIPTION_PATTERNS)
 
 
 def extract_apply_url_deterministic(page) -> str | None:
@@ -609,6 +647,11 @@ _RETRIABLE_PATTERNS = (
     "ERR_NAME_NOT_RESOLVED",
     "ERR_INTERNET_DISCONNECTED",
     "net::ERR",
+    # 2026-09-07: a known-boilerplate result (see `_looks_like_boilerplate`)
+    # is downgraded to this error string -- worth another attempt (e.g.
+    # after the WWR/Intel selector or timing conditions change), not a
+    # permanent failure.
+    "boilerplate_description_detected",
 )
 
 # Error strings that mean the posting is definitively gone.
@@ -706,6 +749,13 @@ def _mark_enrich_result(
 
     if now is None:
         now = datetime.now(UTC).isoformat()
+
+    if status in ("ok", "partial") and _looks_like_boilerplate(full_description):
+        # Downgrade to an error so `_classify_detail_error` below computes a
+        # real retriable category + next_retry_at the normal way, instead of
+        # silently marking a known-junk description as a successful scrape.
+        status = "error"
+        error = f"boilerplate_description_detected: {(full_description or '')[:80]!r}"
 
     if status in ("ok", "partial"):
         # Belt-and-suspenders: if any upstream caller still passes a relative
@@ -818,6 +868,23 @@ def scrape_detail_page(page, url: str) -> dict:
             result["error"] = "timeout"
         else:
             result["error"] = err_str[:200]
+        result["elapsed"] = time.time() - t0
+        return result
+
+    # 2026-09-07 (CLAUDE.md decision #75/Future Work item 5): a real WWR
+    # posting that has expired since discovery returns HTTP 200 but silently
+    # redirects to the bare site root (verified live: a stale WWR job URL
+    # landed on page.url == "https://weworkremotely.com/" -- the generic
+    # homepage, ad widget and all -- with no 404/410 anywhere in the
+    # response chain). Retrying that forever is pointless -- there is no
+    # posting left to fetch -- so treat a same-site redirect all the way to
+    # the root path the same as an expired listing (reusing the literal
+    # "HTTP 404" string `_classify_detail_error`'s `_EXPIRED_PATTERNS`
+    # already recognizes, rather than inventing a second code path for the
+    # same real-world meaning: this URL is gone).
+    parsed_req, parsed_final = urlparse(url), urlparse(page.url)
+    if parsed_final.netloc == parsed_req.netloc and parsed_final.path in ("", "/"):
+        result["error"] = "HTTP 404"
         result["elapsed"] = time.time() - t0
         return result
 
