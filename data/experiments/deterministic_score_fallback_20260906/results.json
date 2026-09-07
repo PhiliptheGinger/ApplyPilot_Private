@@ -1,0 +1,402 @@
+[
+  {
+    "url": "https://boards.greenhouse.io/andurilindustries/jobs/5208756007?gh_jid=5208756007",
+    "title": "Senior Product Manager, Ground Control Station (Hardware + Software Platform)",
+    "real_score": 1,
+    "det_score": 2,
+    "supported": 0,
+    "total": 6,
+    "ratio": 0.0,
+    "diff": 1
+  },
+  {
+    "url": "https://boards.greenhouse.io/andurilindustries/jobs/5072894007?gh_jid=5072894007",
+    "title": "Production Technician, Drones",
+    "real_score": 1,
+    "det_score": 3,
+    "supported": 1,
+    "total": 8,
+    "ratio": 0.125,
+    "diff": 2
+  },
+  {
+    "url": "https://boards.greenhouse.io/andurilindustries/jobs/5161426007?gh_jid=5161426007",
+    "title": "Packaging Engineer, Sentry ",
+    "real_score": 1,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": 1
+  },
+  {
+    "url": "https://boards.greenhouse.io/andurilindustries/jobs/5030310007?gh_jid=5030310007",
+    "title": "Senior NPI Engineer, Core Technology Products",
+    "real_score": 1,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": 1
+  },
+  {
+    "url": "https://arcforma.ai",
+    "title": "AI Engineer",
+    "real_score": 2,
+    "det_score": null,
+    "supported": 0,
+    "total": 0,
+    "ratio": null,
+    "diff": null
+  },
+  {
+    "url": "https://cisco.wd5.myworkdayjobs.com/Cisco_Careers/job/San-Jose-California-US/IC-Package-Layout-Team-Leader_2020301",
+    "title": "IC Package Layout Team Leader",
+    "real_score": 2,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": 0
+  },
+  {
+    "url": "https://job-boards.greenhouse.io/uberfreight/jobs/5270379008",
+    "title": "Senior Manager GTM Technology Strategy & Engineering",
+    "real_score": 2,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": 0
+  },
+  {
+    "url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-TX-MCKINNEY-513WZS--2501-W-University-Dr--WZS-BLDG/Principal-Specialist--Materials-Planning_01861952",
+    "title": "Principal Specialist, Materials Planning",
+    "real_score": 2,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": 0
+  },
+  {
+    "url": "https://builtin.com/job/software-development-engineer/9311283",
+    "title": "Software Development Engineer",
+    "real_score": 3,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -1
+  },
+  {
+    "url": "https://builtin.com/job/full-stack-java-react-software-engineer-ii/10593013",
+    "title": "Full stack Java React Software Engineer II",
+    "real_score": 3,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -1
+  },
+  {
+    "url": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite/job/US-CA-Santa-Clara/Senior-Software-Program-Manager---Datacenter-Compute-Server_JR1996363",
+    "title": "Senior Software Program Manager - Datacenter Compute Server",
+    "real_score": 3,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -1
+  },
+  {
+    "url": "https://databricks.com/company/careers/open-positions/job?gh_jid=8461219002",
+    "title": "Sr. Forward Deployed Engineer (FDE) - Communications, Media, Entertainment & Games",
+    "real_score": 4,
+    "det_score": 3,
+    "supported": 1,
+    "total": 8,
+    "ratio": 0.125,
+    "diff": -1
+  },
+  {
+    "url": "https://job-boards.greenhouse.io/axon/jobs/7624679003",
+    "title": "Senior Machine Learning Scientist ",
+    "real_score": 4,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -2
+  },
+  {
+    "url": "https://boards.greenhouse.io/andurilindustries/jobs/5178094007?gh_jid=5178094007",
+    "title": "Software Engineer, Rust ",
+    "real_score": 4,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -2
+  },
+  {
+    "url": "https://job-boards.greenhouse.io/axon/jobs/7727438003",
+    "title": "Senior Front End Software Engineer ",
+    "real_score": 4,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -2
+  },
+  {
+    "url": "https://job-boards.greenhouse.io/axon/jobs/6531726003",
+    "title": "Sr Technical Program Manager, Software Deployments",
+    "real_score": 4,
+    "det_score": 3,
+    "supported": 1,
+    "total": 8,
+    "ratio": 0.125,
+    "diff": -1
+  },
+  {
+    "url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Chennai/Network---Svcs-Operation-Associate_AIOC-S01653087-1",
+    "title": "Network & Svcs Operation Associate",
+    "real_score": 5,
+    "det_score": 2,
+    "supported": 0,
+    "total": 5,
+    "ratio": 0.0,
+    "diff": -3
+  },
+  {
+    "url": "https://www.linkedin.com/jobs/view/4414270949",
+    "title": "Solutions Engineer",
+    "real_score": 5,
+    "det_score": 4,
+    "supported": 2,
+    "total": 8,
+    "ratio": 0.25,
+    "diff": -1
+  },
+  {
+    "url": "https://job-boards.greenhouse.io/uberfreight/jobs/5399864008",
+    "title": "Logistics Specialist II ",
+    "real_score": 5,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -3
+  },
+  {
+    "url": "https://builtin.com/job/software-engineer-ii-remote/10754674",
+    "title": "Software Engineer II (Remote)",
+    "real_score": 6,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -4
+  },
+  {
+    "url": "https://careers-costco.icims.com/jobs/67031/login",
+    "title": "Loss Prevention Clerk",
+    "real_score": 6,
+    "det_score": null,
+    "supported": 0,
+    "total": 0,
+    "ratio": null,
+    "diff": null
+  },
+  {
+    "url": "https://intel.wd1.myworkdayjobs.com/External/job/US-Oregon-Hillsboro/AutoTEM-technician_JR0286474",
+    "title": "AutoTEM technician",
+    "real_score": 6,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -4
+  },
+  {
+    "url": "https://www.apexspace.com/careers",
+    "title": "Unknown Role",
+    "real_score": 6,
+    "det_score": null,
+    "supported": 0,
+    "total": 0,
+    "ratio": null,
+    "diff": null
+  },
+  {
+    "url": "https://www.linkedin.com/jobs/view/4457674693",
+    "title": "Mechanic I - Nights",
+    "real_score": 6,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -4
+  },
+  {
+    "url": "https://www.pinterestcareers.com/jobs/?gh_jid=6963868",
+    "title": "Principal Machine Learning Engineer, Ads Delivery",
+    "real_score": 7,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -5
+  },
+  {
+    "url": "https://job-boards.greenhouse.io/axon/jobs/7576939003",
+    "title": "Senior Software Engineer II (TASER Data Science)",
+    "real_score": 8,
+    "det_score": 5,
+    "supported": 3,
+    "total": 8,
+    "ratio": 0.375,
+    "diff": -3
+  },
+  {
+    "url": "https://modernatx.wd1.myworkdayjobs.com/M_tx/job/Norwood-Massachusetts/Sr-Engineer--Process-Automation_R19599",
+    "title": "Sr. Engineer, Process Automation",
+    "real_score": 8,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -6
+  },
+  {
+    "url": "https://boards.greenhouse.io/andurilindustries/jobs/4644069007?gh_jid=4644069007",
+    "title": "Staff Software Engineer, Connected Warfare",
+    "real_score": 8,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -6
+  },
+  {
+    "url": "https://wd1.myworkdaysite.com/recruiting/paypal/jobs/job/New-York-City-New-York-United-States-of-America/Software-Engineer_R0137225",
+    "title": "Software Engineer",
+    "real_score": 8,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -6
+  },
+  {
+    "url": "https://databricks.com/company/careers/open-positions/job?gh_jid=8637143002",
+    "title": "Staff Software Engineer, Foundation Model Inference ",
+    "real_score": 8,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -6
+  },
+  {
+    "url": "https://wd1.myworkdaysite.com/recruiting/paypal/jobs/job/San-Jose-California-United-States-of-America/Sr-Software-Engineer_R0137236",
+    "title": "Sr Software Engineer",
+    "real_score": 8,
+    "det_score": 3,
+    "supported": 1,
+    "total": 8,
+    "ratio": 0.125,
+    "diff": -5
+  },
+  {
+    "url": "https://boards.greenhouse.io/andurilindustries/jobs/5185390007?gh_jid=5185390007",
+    "title": "Sr. Software Engineer - Maritime Integrated Systems",
+    "real_score": 8,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -6
+  },
+  {
+    "url": "https://www.talent.com/view?id=629036655117272065",
+    "title": "Greeter / Counter Desk Attendant",
+    "real_score": 9,
+    "det_score": 3,
+    "supported": 1,
+    "total": 8,
+    "ratio": 0.125,
+    "diff": -6
+  },
+  {
+    "url": "https://expedia.wd108.myworkdayjobs.com/search/job/Austin-Domain-11---HomeAway/Hotel-Partner-Solutions-Specialist_R-108926-1",
+    "title": "Hotel Partner Solutions Specialist",
+    "real_score": 9,
+    "det_score": 3,
+    "supported": 1,
+    "total": 8,
+    "ratio": 0.125,
+    "diff": -6
+  },
+  {
+    "url": "https://jobs.ashbyhq.com/ramp/d64609dd-c391-45a2-bfdb-c1bb34e8f93c",
+    "title": "Customer Experience Associate",
+    "real_score": 9,
+    "det_score": 3,
+    "supported": 1,
+    "total": 8,
+    "ratio": 0.125,
+    "diff": -6
+  },
+  {
+    "url": "https://www.linkedin.com/jobs/view/4430177547",
+    "title": "Seasonal, Operations Technical Specialist (Part Time)",
+    "real_score": 9,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -7
+  },
+  {
+    "url": "https://www.linkedin.com/jobs/view/4431711651",
+    "title": "Maintenance Technician I - ReNew Durham",
+    "real_score": 9,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -7
+  },
+  {
+    "url": "https://truist.wd1.myworkdayjobs.com/Careers/job/Whiteville-NC/Client-Care-Center-Small-Business-Care_R0117191",
+    "title": "Client Care Center-Small Business Care",
+    "real_score": 9,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -7
+  },
+  {
+    "url": "https://www.linkedin.com/jobs/view/4459355466",
+    "title": "Multi-Skilled Technician",
+    "real_score": 9,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -7
+  },
+  {
+    "url": "https://www.linkedin.com/jobs/view/4457705031",
+    "title": "Coffee and Tea Equipment Tech",
+    "real_score": 10,
+    "det_score": 2,
+    "supported": 0,
+    "total": 8,
+    "ratio": 0.0,
+    "diff": -8
+  }
+]
