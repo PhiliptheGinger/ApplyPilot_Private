@@ -1,0 +1,51 @@
+common URLs (real overlap): 52
+
+n=52
+1.7b-alone gate agreement:  78.8%
+8b-alone gate agreement:    86.5%
+hybrid gate agreement:      84.6%  (17/52 escalated = 32.7%)
+
+real gate-flip disagreements (fast vs slow): 6/52
+  of those, escalation trigger fires on: 5/6
+  of those, 8b (slow) is actually correct on: 5/6
+  escalation catches + 8b-correct: 4/5 of the flips worth catching
+
+=== Bootstrap 95% CIs (10,000 resamples) ===
+  1.7b-alone: 78.8%  95% CI=[67.3%, 88.5%]
+  8b-alone: 86.5%  95% CI=[76.9%, 94.2%]
+  hybrid: 84.6%  95% CI=[75.0%, 94.2%]
+
+=== Per-keyword firing breakdown ===
+  'technician': fired on 11 titles, 2 were real fast/slow disagreements
+      real=8 fast=9 slow=9   'Desktop/End User Support Technician'
+      real=9 fast=9 slow=9   'Maintenance Technician I - ReNew Durham'
+      real=9 fast=9 slow=3 DISAGREEMENT  'Early Career Field Service Technician'
+      real=8 fast=9 slow=9   'Technician, Facility Services General Maintenance'
+      real=6 fast=9 slow=9   'Maintenance Technician - Hudson 5401'
+      real=8 fast=7 slow=7   'Field Service Technician'
+      real=9 fast=9 slow=9   'Field Technician'
+      real=9 fast=9 slow=9   'Maintenance Technician'
+      real=9 fast=9 slow=9   'Multi-Skilled Technician'
+      real=8 fast=9 slow=9   'Construction Equipment Shop Technician'
+      real=5 fast=9 slow=3 DISAGREEMENT  'Composites Technician'
+  'maintenance': fired on 6 titles, 1 were real fast/slow disagreements
+      real=9 fast=9 slow=9   'Maintenance Technician I - ReNew Durham'
+      real=8 fast=9 slow=9   'Technician, Facility Services General Maintenance'
+      real=6 fast=9 slow=9   'Maintenance Technician - Hudson 5401'
+      real=9 fast=9 slow=9   'Maintenance Mechanic I'
+      real=9 fast=9 slow=9   'Maintenance Technician'
+      real=8 fast=3 slow=9 DISAGREEMENT  'Maintenance Tech'
+  'assembler': fired on 1 titles, 1 were real fast/slow disagreements
+      real=1 fast=9 slow=3 DISAGREEMENT  'Mechanical Assembler 1'
+  'composites': fired on 1 titles, 1 were real fast/slow disagreements
+      real=5 fast=9 slow=3 DISAGREEMENT  'Composites Technician'
+  'field service': fired on 2 titles, 1 were real fast/slow disagreements
+      real=9 fast=9 slow=3 DISAGREEMENT  'Early Career Field Service Technician'
+      real=8 fast=7 slow=7   'Field Service Technician'
+  'embedded': fired on 2 titles, 1 were real fast/slow disagreements
+      real=1 fast=3 slow=3   'Field Applications Engineer, Embedded Systems - NALA'
+      real=1 fast=9 slow=3 DISAGREEMENT  'Embedded C Software Engineer - Hybrid - Direct hire'
+  'infotainment': fired on 1 titles, 0 were real fast/slow disagreements
+      real=1 fast=3 slow=3   'Software Engineer - Infotainment Platform Certification Engi'
+
+wrote escalation_revalidation_results.json

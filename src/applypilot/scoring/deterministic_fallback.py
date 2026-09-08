@@ -203,8 +203,39 @@ def is_quota_cooldown_error(score_error: str | None) -> bool:
 # session already got bitten by once (decision #76's sales-rep
 # overcorrection). Ship as opt-in, not the default, until revalidated on a
 # fresh, independently-sampled batch.
+#
+# 2026-09-08 (decision #81): re-validated using ONLY data already on hand
+# (no new model calls, no Gemini quota needed -- see
+# data/experiments/ambiguous_terms_20260908/validate_escalation_trigger.py).
+# Two findings: (1) a bootstrap 95% CI on this same n=52 sample is WIDE and
+# OVERLAPPING across all three configurations (1.7b-alone 78.8%
+# [67.3%,88.5%], 8b-alone 86.5% [76.9%,94.2%], hybrid 84.6% [75.0%,94.2%])
+# -- the point estimates above are accurate, but at this sample size the
+# hybrid's apparent edge over 1.7b-alone is NOT statistically distinguishable
+# from noise; keeping this opt-in rather than default remains the right
+# call, now for a quantified reason rather than a vague "small n" caveat.
+# (2) "technician" -- the single most frequently-firing alternative (11/52
+# titles) -- contributes ZERO unique catches: every real fast/slow
+# disagreement its pattern matches is ALSO independently matched by a
+# strictly more specific alternative already in this list (composites,
+# field service, maintenance, assembler, embedded each catch their own
+# case even with "technician" removed). Verified directly: removing it
+# drops escalation volume 17/52 -> 13/52 (-23.5%) with IDENTICAL hybrid
+# gate agreement (84.6%, unchanged). This is a structural redundancy
+# elimination, not a re-fit to the same sample's noise -- safe to make
+# without fresh data because it doesn't rely on any NEW claim about what
+# generalizes, only on the fact that "technician" duplicates coverage
+# already provided by more specific patterns. NOTED CONCERN, not yet
+# acted on: "field service"'s one unique disagreement catch ("Early
+# Career Field Service Technician") is actually a case where escalating
+# HURTS -- 1.7b was correct (fast=9, real=9) and 8b was wrong (slow=3),
+# one of 8b's own documented specialized_or_other blind spots (decision
+# #77). Left in place pending more data (n=1 for this specific pattern is
+# too little to act on either way), flagged for the next real revalidation
+# pass alongside a fresh recall check once Gemini quota returns and more
+# real positives accumulate (see decision #81's auto-resume scheduling).
 _AMBIGUOUS_TITLE_RE = re.compile(
-    r"technician|maintenance|assembler|composites|field service|embedded|infotainment",
+    r"maintenance|assembler|composites|field service|embedded|infotainment",
     re.IGNORECASE,
 )
 

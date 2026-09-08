@@ -1060,8 +1060,10 @@ def score_deterministic_fallback(
         "--escalate-model",
         help="Opt-in title-keyword escalation (Future Work item 2): use --model as the fast default, but "
         "escalate to THIS model for titles matching a manufacturing/hands-on-adjacent keyword pattern "
-        "(technician/maintenance/assembler/composites/field service/embedded/infotainment) -- built from "
-        "real observed 1.7b-vs-8b disagreement cases at n=52, not yet revalidated on fresh data. Example: "
+        "(maintenance/assembler/composites/field service/embedded/infotainment) -- built from "
+        "real observed 1.7b-vs-8b disagreement cases at n=52, bootstrap-revalidated 2026-09-08 (decision #81; "
+        "still opt-in -- the CI on the hybrid's improvement over 1.7b-alone is wide and overlapping at this "
+        "sample size). Example: "
         "--model qwen3:1.7b --escalate-model qwen3:8b for ~3x faster average scoring with most of 8b's "
         "accuracy on the cases that matter most.",
     ),

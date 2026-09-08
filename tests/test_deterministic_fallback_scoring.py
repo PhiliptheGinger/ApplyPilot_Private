@@ -165,6 +165,26 @@ class TestAmbiguousTitleEscalation:
     def test_ordinary_title_does_not_match(self):
         assert not _AMBIGUOUS_TITLE_RE.search("Software Engineer")
 
+    def test_bare_technician_no_longer_escalates(self):
+        """2026-09-08 (decision #81): "technician" was removed from the
+        regex after a bootstrap re-validation (using only existing data,
+        no new model calls) found it fired on 11/52 real titles but
+        contributed ZERO unique disagreement catches -- every case it
+        matched was also independently caught by a more specific
+        alternative (composites/field service/maintenance/assembler/
+        embedded). Verified removing it: escalation volume 17/52 -> 13/52
+        with IDENTICAL hybrid gate agreement (84.6%, unchanged). Titles
+        that are ONLY "technician" with no other real signal (e.g. "Field
+        Technician", "Desktop/End User Support Technician") must no
+        longer escalate; titles matching a still-real keyword must."""
+        assert not _AMBIGUOUS_TITLE_RE.search("Field Technician")
+        assert not _AMBIGUOUS_TITLE_RE.search("Desktop/End User Support Technician")
+        assert not _AMBIGUOUS_TITLE_RE.search("Multi-Skilled Technician")
+        # sanity: a title combining "technician" with a still-real keyword
+        # must still match (via the other keyword, not "technician" itself).
+        assert _AMBIGUOUS_TITLE_RE.search("Composites Technician")
+        assert _AMBIGUOUS_TITLE_RE.search("Maintenance Technician")
+
     def test_no_escalate_model_uses_primary_model_regardless_of_title(self):
         job = {"title": "Maintenance Technician", "site": "Acme", "full_description": "desc"}
         with (
