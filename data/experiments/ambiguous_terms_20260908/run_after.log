@@ -1,0 +1,15 @@
+corpus size: 31640
+
+=== National Tire and Battery / Mavis ===
+  tier n=500: candidate-term-only rate = 0/500 = 0.00%  95% CI=[0.00%, 0.76%] (half-width=0.38%)
+  FINAL (n=500): candidate-term-only rate = 0.00%  99% CI=[0.00%, 1.31%]
+  requirement-level breakdown: {'other_literal': 38, 'synonym_only': 11}
+  --- sample candidate-term-only hits (up to 10) ---
+
+=== Waffle House ===
+  tier n=500: candidate-term-only rate = 0/500 = 0.00%  95% CI=[0.00%, 0.76%] (half-width=0.38%)
+  FINAL (n=500): candidate-term-only rate = 0.00%  99% CI=[0.00%, 1.31%]
+  requirement-level breakdown: {'other_literal': 29, 'synonym_only': 11}
+  --- sample candidate-term-only hits (up to 10) ---
+
+wrote audit_results_before.json

@@ -443,6 +443,135 @@ class TestKeywordPreservation(unittest.TestCase):
         # no context to compare on one side -> conservative False, not True
         self.assertFalse(schemas._context_senses_agree("alignment.", "Diagnosed vehicle alignment issues.", "alignment"))
 
+    def test_ambiguous_terms_do_not_vouch_for_each_other(self):
+        """2026-09-08 regression: found via a real escalating-batch audit
+        (data/experiments/ambiguous_terms_20260908/) while adding
+        "troubleshooting"/"equipment" to _AMBIGUOUS_TERMS. A naive addition
+        alone doesn't work -- "equipment" and "troubleshooting" routinely
+        co-occur as an ordinary maintenance-vocabulary collocation in BOTH
+        genuinely automotive evidence and totally unrelated postings (RF
+        engineer, electrical engineer, lab technician), so each term's own
+        local context legitimately contains the OTHER ambiguous term,
+        letting two unverified words silently vouch for each other's sense.
+        This fixture reproduces exactly that shape with the real matched
+        job/evidence text pattern found live: the only word "Lead
+        troubleshooting... field test equipment" shares with Mavis's real
+        evidence, for the term "troubleshooting", is "equipment" -- which
+        must NOT count as agreement now that _local_context_words excludes
+        other _AMBIGUOUS_TERMS members from context."""
+        evidence_text = (
+            "Diagnosed and corrected vehicle alignment issues using specialized "
+            "equipment and established troubleshooting procedures."
+        )
+        rf_requirement = (
+            "Lead troubleshooting and failure data analysis activities, including root "
+            "cause and corrective action processes using laboratory and field test equipment"
+        )
+        self.assertFalse(schemas._context_senses_agree(rf_requirement, evidence_text, "troubleshooting"))
+        self.assertFalse(schemas._context_senses_agree(rf_requirement, evidence_text, "equipment"))
+        # mirror: a genuinely same-domain requirement sharing REAL automotive
+        # vocabulary (not just the other ambiguous term) must still agree.
+        auto_requirement = "Troubleshooting vehicle brake and alignment issues using diagnostic tools"
+        self.assertTrue(schemas._context_senses_agree(auto_requirement, evidence_text, "troubleshooting"))
+
+    def test_troubleshooting_equipment_cross_domain_dropped(self):
+        """2026-09-08: real cross-domain collision found via a live n=2000
+        DB scan -- Mavis's genuine automotive evidence literal-matched
+        "prototype" tier (2+ keywords) against totally unrelated RF/
+        electrical/lab-technician postings purely because both domains
+        describe hands-on diagnostic work in the same generic vocabulary
+        ("troubleshooting"/"equipment"/"hands-on"). Confirmed this exact
+        rate (0.75%, 99% CI [0.39%, 1.44%] at n=2000) dropped to 0/2000
+        (99% CI [0%, 0.33%]) after this fix -- non-overlapping intervals,
+        real signal, not noise."""
+        job = _job(
+            "- Lead troubleshooting and failure data analysis activities, including root "
+            "cause and corrective action processes using laboratory and field test equipment\n"
+        )
+        profile = {
+            "experience_inventory": [
+                {
+                    "name": "National Tire and Battery / Mavis",
+                    "relevance_categories": ["technical support", "hands-on troubleshooting", "automotive"],
+                    "resume_allowed": True,
+                    "responsibilities": [
+                        "Diagnosed and corrected vehicle alignment issues using specialized "
+                        "equipment and established troubleshooting procedures.",
+                        "Performed hands-on work involving tires, brakes, shocks and struts, "
+                        "fluids, and related vehicle systems.",
+                    ],
+                },
+            ],
+            "project_inventory": [],
+            "skills_inventory": [],
+            "certifications": [],
+        }
+        rep = schemas.build_job_schema_representation(job, profile)
+        req = rep["requirements"][0]
+        self.assertNotIn("troubleshooting", req["exact_keywords"])
+        self.assertNotIn("equipment", req["exact_keywords"])
+        self.assertEqual(req["exact_keywords"], [])
+        self.assertEqual(req["category_tier"], "unsupported")
+        self.assertFalse(req["supported"])
+
+    def test_troubleshooting_equipment_same_domain_still_counted(self):
+        """Mirror case: a job genuinely about automotive/vehicle diagnostic
+        work must still match on 'troubleshooting'/'equipment' -- the
+        context check shouldn't over-block legitimate same-domain hits
+        just because those words are now in _AMBIGUOUS_TERMS."""
+        job = _job("- Diagnose and repair vehicle brake and alignment issues using diagnostic equipment and troubleshooting\n")
+        profile = {
+            "experience_inventory": [
+                {
+                    "name": "National Tire and Battery / Mavis",
+                    "relevance_categories": ["technical support", "hands-on troubleshooting", "automotive"],
+                    "resume_allowed": True,
+                    "responsibilities": [
+                        "Diagnosed and corrected vehicle alignment issues using specialized "
+                        "equipment and established troubleshooting procedures.",
+                    ],
+                },
+            ],
+            "project_inventory": [],
+            "skills_inventory": [],
+            "certifications": [],
+        }
+        rep = schemas.build_job_schema_representation(job, profile)
+        req = rep["requirements"][0]
+        self.assertIn("troubleshooting", req["exact_keywords"])
+        self.assertTrue(req["supported"])
+
+    def test_servers_ambiguous_term_cross_domain_dropped(self):
+        """"servers" (Waffle House) means restaurant waitstaff in the
+        candidate's own evidence but web/database servers in most matching
+        tech postings -- same collision shape as "alignment"/"installation".
+        Added 2026-09-08 on documented risk (0/500 real hits in the live
+        audit at the time, but the word's cross-domain ambiguity doesn't
+        depend on this candidate's specific corpus composition -- same
+        precedent as "install" being added from a single anecdote)."""
+        job = _job("- Maintain and troubleshoot production database servers and cloud infrastructure\n")
+        profile = {
+            "experience_inventory": [
+                {
+                    "name": "Waffle House",
+                    "relevance_categories": ["customer service", "food service"],
+                    "resume_allowed": True,
+                    "responsibilities": [
+                        "Took customer orders and served food quickly to servers' assigned "
+                        "tables during high-volume shifts."
+                    ],
+                },
+            ],
+            "project_inventory": [],
+            "skills_inventory": [],
+            "certifications": [],
+        }
+        rep = schemas.build_job_schema_representation(job, profile)
+        req = rep["requirements"][0]
+        self.assertNotIn("server", req["exact_keywords"])
+        self.assertNotIn("servers", req["exact_keywords"])
+        self.assertFalse(req["supported"])
+
 
 # ---------------------------------------------------------------------------
 # 5. Evidence-to-schema mapping

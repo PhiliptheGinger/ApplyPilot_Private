@@ -1,0 +1,47 @@
+corpus size: 31640
+
+=== National Tire and Battery / Mavis ===
+  tier n=500: candidate-term-only rate = 8/500 = 1.60%  95% CI=[0.81%, 3.13%] (half-width=1.16%)
+    -> CI too wide (target half-width <= 1.0%), escalating...
+  tier n=2000: candidate-term-only rate = 15/2000 = 0.75%  95% CI=[0.46%, 1.23%] (half-width=0.39%)
+  FINAL (n=2000): candidate-term-only rate = 0.75%  99% CI=[0.39%, 1.44%]
+  requirement-level breakdown: {'other_literal': 232, 'synonym_only': 43, 'candidate_term_only': 15}
+  --- sample candidate-term-only hits (up to 10) ---
+    [['equipment', 'troubleshooting']] title='Instrumentation Associate'
+      requirement: 'Assist Maintenance Associates in the Sustaining and Troubleshooting of all Process and Control related equipment.'
+      evidence_text: 'Vehicle alignment work Tires Shocks and struts Brakes Fluids Customer relations Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures. Performed hands-on work involving tires, brakes, shocks and struts, fluids, and related vehicle sys'
+    [['equipment', 'troubleshooting']] title='Instrumentation Associate'
+      requirement: 'Provide training to Maintenance Associates in the Sustaining and Troubleshooting of applicable Process and Control Equipment using TES or equivalents '
+      evidence_text: 'Vehicle alignment work Tires Shocks and struts Brakes Fluids Customer relations Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures. Performed hands-on work involving tires, brakes, shocks and struts, fluids, and related vehicle sys'
+    [['equipment', 'hands-on']] title='Materials Lab Technician, Mechanical Testing'
+      requirement: '3+ years of hands-on experience operating mechanical test equipment (servo-hydraulic or electromechanical load frames)'
+      evidence_text: 'Vehicle alignment work Tires Shocks and struts Brakes Fluids Customer relations Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures. Performed hands-on work involving tires, brakes, shocks and struts, fluids, and related vehicle sys'
+    [['equipment', 'troubleshooting']] title='Maintenance Tech I'
+      requirement: 'Perform routine troubleshooting of assigned out of service equipment and correct issues, act as an escalation point for lower level technicians, and e'
+      evidence_text: 'Vehicle alignment work Tires Shocks and struts Brakes Fluids Customer relations Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures. Performed hands-on work involving tires, brakes, shocks and struts, fluids, and related vehicle sys'
+    [['hands-on', 'troubleshooting']] title='Application Support Engineer'
+      requirement: 'Hands-on experience configuring and troubleshooting Cisco switches and routers in data center and enterprise environments.'
+      evidence_text: 'Vehicle alignment work Tires Shocks and struts Brakes Fluids Customer relations Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures. Performed hands-on work involving tires, brakes, shocks and struts, fluids, and related vehicle sys'
+    [['equipment', 'troubleshooting']] title='General Maintenance Technician II'
+      requirement: 'Assists the team with maintaining, operating and troubleshooting systems and equipment such as overhead door systems, pumps, piping, seals and valves.'
+      evidence_text: 'Vehicle alignment work Tires Shocks and struts Brakes Fluids Customer relations Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures. Performed hands-on work involving tires, brakes, shocks and struts, fluids, and related vehicle sys'
+    [['equipment', 'troubleshooting']] title='Prin Sys Engr - RF Engineer'
+      requirement: 'Lead troubleshooting and failure data analysis activities, including root cause and corrective action processes using laboratory and field test equipm'
+      evidence_text: 'Vehicle alignment work Tires Shocks and struts Brakes Fluids Customer relations Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures. Performed hands-on work involving tires, brakes, shocks and struts, fluids, and related vehicle sys'
+    [['hands-on', 'troubleshooting']] title='Staff Electrical Engineer'
+      requirement: 'Hands-on Engineering: Actively participate in the design, testing, and troubleshooting of circuits, PCB layouts, and other electronic systems.'
+      evidence_text: 'Vehicle alignment work Tires Shocks and struts Brakes Fluids Customer relations Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures. Performed hands-on work involving tires, brakes, shocks and struts, fluids, and related vehicle sys'
+    [['equipment', 'troubleshooting']] title='645 Prod Eng/Facility - Maintenance Tech III'
+      requirement: 'Lead advanced troubleshooting, repair, and maintenance of production equipment, automation systems, and facility machinery.'
+      evidence_text: 'Vehicle alignment work Tires Shocks and struts Brakes Fluids Customer relations Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures. Performed hands-on work involving tires, brakes, shocks and struts, fluids, and related vehicle sys'
+    [['equipment', 'troubleshooting']] title='Electric Service Technician'
+      requirement: 'Perform electrical service, maintenance, troubleshooting, and repair work on electrical systems and equipment.'
+      evidence_text: 'Vehicle alignment work Tires Shocks and struts Brakes Fluids Customer relations Diagnosed and corrected vehicle alignment issues using specialized equipment and established troubleshooting procedures. Performed hands-on work involving tires, brakes, shocks and struts, fluids, and related vehicle sys'
+
+=== Waffle House ===
+  tier n=500: candidate-term-only rate = 0/500 = 0.00%  95% CI=[0.00%, 0.76%] (half-width=0.38%)
+  FINAL (n=500): candidate-term-only rate = 0.00%  99% CI=[0.00%, 1.31%]
+  requirement-level breakdown: {'other_literal': 32, 'synonym_only': 11}
+  --- sample candidate-term-only hits (up to 10) ---
+
+wrote audit_results_before.json

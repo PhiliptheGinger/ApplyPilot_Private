@@ -1,0 +1,82 @@
+{
+  "National Tire and Battery / Mavis": {
+    "final_n": 500,
+    "rate": 0.0,
+    "ci95": [
+      0.0,
+      0.007624618530903363
+    ],
+    "ci99": [
+      8.673617379884035e-19,
+      0.013097724863393778
+    ],
+    "counts": {
+      "other_literal": 38,
+      "synonym_only": 11
+    },
+    "candidate_only_samples": [],
+    "other_samples": [
+      {
+        "title": "Customer Service Representative | Billing Support",
+        "requirement": "Empathizing with customers while accurately addressing their billing needs and meeting our high customer service standards",
+        "exact_keywords": [
+          "customer service"
+        ]
+      },
+      {
+        "title": "Experienced Service Advisor",
+        "requirement": "Knowledge of automotive industry trends and services",
+        "exact_keywords": [
+          "automotive"
+        ]
+      },
+      {
+        "title": "Customer Service Rep(08946) - 530 Dudley Shoals Rd",
+        "requirement": "Providing excellent customer service with a smile (even over the phone!)",
+        "exact_keywords": [
+          "customer service"
+        ]
+      }
+    ]
+  },
+  "Waffle House": {
+    "final_n": 500,
+    "rate": 0.0,
+    "ci95": [
+      0.0,
+      0.007624618530903363
+    ],
+    "ci99": [
+      8.673617379884035e-19,
+      0.013097724863393778
+    ],
+    "counts": {
+      "other_literal": 29,
+      "synonym_only": 11
+    },
+    "candidate_only_samples": [],
+    "other_samples": [
+      {
+        "title": "Senior Counsel, AI Product (Enterprise/API)",
+        "requirement": "Have 8+ years of experience with a mix of in-house or technology-focused law firm roles.",
+        "exact_keywords": [
+          "house"
+        ]
+      },
+      {
+        "title": "Customer Service Representative | Billing Support",
+        "requirement": "Empathizing with customers while accurately addressing their billing needs and meeting our high customer service standards",
+        "exact_keywords": [
+          "customer service"
+        ]
+      },
+      {
+        "title": "Customer Service Rep(08946) - 530 Dudley Shoals Rd",
+        "requirement": "Providing excellent customer service with a smile (even over the phone!)",
+        "exact_keywords": [
+          "customer service"
+        ]
+      }
+    ]
+  }
+}

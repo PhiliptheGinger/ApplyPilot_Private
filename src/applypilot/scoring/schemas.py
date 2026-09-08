@@ -1084,6 +1084,37 @@ _AMBIGUOUS_TERMS = frozenset(
         # trusting a single word alone -- a word can be BOTH a genuine
         # identity label AND cross-domain-ambiguous at the same time.
         "reliability",
+        # 2026-09-08: "servers"/"troubleshooting"/"equipment"/"hands-on"
+        # (Mavis + Waffle House) -- explicitly flagged but deferred in
+        # local_tailor.py's _GENERIC_EVIDENCE_TERMS comment (~line 946) at
+        # decision #71 time, closed via a real escalating-batch audit
+        # (data/experiments/ambiguous_terms_20260908/). Unlike
+        # "alignment"/"install", these words don't actually change MEANING
+        # across domains (hands-on troubleshooting of equipment means the
+        # same thing whether the equipment is a car, an RF test rig, or a
+        # network switch) -- the real risk is DOMAIN TRANSFER masquerading
+        # as direct evidence: automotive repair experience literal-matching
+        # "prototype" tier (2+ keywords) against an RF Engineer / Electrical
+        # Engineer / Lab Technician posting purely because both domains
+        # describe hands-on diagnostic work in the same generic vocabulary.
+        # Confirmed via a real n=2000 sample: 0.75% of jobs (99% CI
+        # [0.39%, 1.44%]) hit "supported" for Mavis driven SOLELY by some
+        # combination of these four words, real examples spanning RF/
+        # electrical/lab/facility-maintenance/IT-networking postings that
+        # share no other vocabulary with automotive repair. Required the
+        # companion fix just above (_local_context_words excluding other
+        # _AMBIGUOUS_TERMS members) to actually work -- see that function's
+        # docstring. Waffle House's "servers" (waitstaff vs. web/database
+        # servers) had 0/500 real hits in the same audit but is added
+        # anyway on the documented theoretical collision risk (the word's
+        # cross-domain ambiguity doesn't depend on this candidate's
+        # specific corpus composition), same precedent as "install" being
+        # added from a single real anecdote before "alignment"'s own
+        # discovery scan ran at full scale.
+        "servers",
+        "troubleshooting",
+        "equipment",
+        "hands-on",
     }
 )
 
@@ -1120,7 +1151,30 @@ def _local_context_words(text: str, term: str) -> set[str]:
     sharing it proves nothing about whether two SPECIFIC senses of an
     ambiguous term actually agree. Reusing the existing filter here
     (rather than building a second one) means every future addition to
-    that list also strengthens this check automatically."""
+    that list also strengthens this check automatically.
+
+    2026-09-08: also excludes OTHER _AMBIGUOUS_TERMS members from counting
+    as shared context -- a second, distinct instance of the exact same
+    mutual-reinforcement shape as the "performance" fix above, found via a
+    real escalating-batch audit (data/experiments/ambiguous_terms_20260908/)
+    while investigating whether "troubleshooting"/"equipment"/"hands-on"
+    needed adding to this table at all. They did, but a naive addition
+    alone doesn't work: "equipment" and "troubleshooting" routinely
+    co-occur as an ordinary maintenance-vocabulary collocation ("test
+    equipment", "troubleshooting... equipment") in BOTH Mavis's genuine
+    automotive evidence and totally unrelated postings (RF engineer,
+    electrical engineer, lab technician) -- so once both words are in this
+    table, each one's own local context legitimately CONTAINS the other,
+    letting two unverified ambiguous terms silently vouch for each other's
+    sense instead of being independently checked against real (verified)
+    shared vocabulary. Confirmed directly: a real "Prin Sys Engr - RF
+    Engineer" posting's "...root cause and corrective action processes
+    using laboratory and field test equipment" shares only "equipment"
+    with Mavis's evidence for the term "troubleshooting" -- and "equipment"
+    is itself one of the newly-added ambiguous terms, not genuine
+    corroborating overlap. Same conservative philosophy as everywhere else
+    in this function: an unproven word is not evidence, even when that
+    word happens to be a different entry in this same table."""
     term_l = term.lower()
     words: set[str] = set()
     for sentence in _SENTENCE_SPLIT_RE.split(text or ""):
@@ -1131,6 +1185,8 @@ def _local_context_words(text: str, term: str) -> set[str]:
                     continue
                 normalized = wl[:-1] if wl.endswith("s") and len(wl) > 3 else wl
                 if _is_generic_evidence_term(normalized):
+                    continue
+                if wl in _AMBIGUOUS_TERMS or normalized in _AMBIGUOUS_TERMS:
                     continue
                 words.add(normalized)
     return words
