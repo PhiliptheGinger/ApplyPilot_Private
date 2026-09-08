@@ -1,0 +1,58 @@
+sample size: 2000
+
+=== Freelance Photography / Videography ===
+  trusted_alone (near_prototype+supported) hits: 94/2000 = 4.70%  99% CI=[3.62%,6.08%]
+  total supported jobs: 77/2000 (3.9%)
+  driver word breakdown: [('content', 45), ('creative', 28), ('media', 21)]
+    [['content']] title='Senior Growth Engineer'  req='We pull content and data from Ghost CMS (blog), Redash, Notion, Google Sheets, and various external APIs.'
+    [['media']] title='Customer Service Specialist Seasonal'  req='Answering phones, chat, social media, or email in a polite, courteous, and professional manner.'
+    [['creative']] title='Corporate Operations Recruiter'  req='Utilize Indeed, LinkedIn Recruiter, Greenhouse (Axon’s applicant tracking system) and other creative sourcing techniques to identify candidates and cr'
+    [['creative']] title='Software Engineer'  req='We are looking for a creative and efficient problem solver.'
+    [['content']] title='AV Support Engineer'  req='Support and guide users on collaboration platforms (e.g., Microsoft Teams, Zoom) including meeting start-up, joining, and content sharing.'
+
+=== AMP Smart ===
+  trusted_alone (near_prototype+supported) hits: 307/2000 = 15.35%  99% CI=[13.39%,17.54%]
+  total supported jobs: 231/2000 (11.6%)
+  driver word breakdown: [('sales', 271), ('customer-facing', 21), ('smart', 12), ('outreach', 2), ('communications', 1)]
+    [['sales']] title='Senior Director, Business Development, Expeditionary Systems'  req='Sales and Deal Track Record'
+    [['sales']] title='Sales Acct. Representative'  req='Collaborate with internal teams to support sales and customer success initiatives.'
+    [['customer-facing']] title='Staff Software Engineer, Backend'  req='Integrate AI models and LLMs into customer-facing products, not as experiments, but as production systems with real reliability and performance requir'
+    [['sales']] title='To-Go'  req='Accurately uses point of sale (POS) system to place orders, process To-Go sales, gift card sales, and cash/credit card transactions'
+    [['sales']] title='Custom Software Engineer'  req='Must have skills : SAP Sales and Distribution (SD)'
+
+=== UPS ===
+  trusted_alone (near_prototype+supported) hits: 0/2000 = 0.00%  99% CI=[0.00%,0.33%]
+  total supported jobs: 0/2000 (0.0%)
+  driver word breakdown: []
+
+=== National Tire and Battery / Mavis ===
+  trusted_alone (near_prototype+supported) hits: 177/2000 = 8.85%  99% CI=[7.35%,10.63%]
+  total supported jobs: 169/2000 (8.5%)
+  driver word breakdown: [('customer service', 105), ('technical support', 48), ('battery', 12), ('automotive', 11), ('hands-on troubleshooting', 1)]
+    [['customer service']] title='Financial Advocate'  req='Typically requires 2 years of experience in Patient Access, health care, insurance industry, or in a customer service setting.'
+    [['customer service']] title='Financial Advocate'  req='Ability to communicate clearly and proactively to management about issues involving customer service and process improvement opportunities.'
+    [['customer service']] title='Automotive Customer Service Advisor'  req='Follow all policies and procedures related to cash, credit, check, refund and return policies. Works with the management team to react to customer ser'
+    [['technical support']] title='Network Engineer'  req='Previous experience in network operations, engineering or technical support.'
+    [['technical support']] title='Instrumentation Associate'  req='Provide Technical Support to Maintenance Associates in the Troubleshooting of electrical, hydraulic, vacuum, and pneumatic equipment and instruments.'
+
+=== Alex Prosperity Group / UST Logistics ===
+  trusted_alone (near_prototype+supported) hits: 70/2000 = 3.50%  99% CI=[2.59%,4.72%]
+  total supported jobs: 53/2000 (2.6%)
+  driver word breakdown: [('logistics', 37), ('customer-facing', 26), ('installation', 6), ('hands-on work', 1)]
+    [['logistics']] title='PortlessAI Engineering | Remote | North America'  req='Build AI-powered products and automation for e-commerce and logistics workflows.'
+    [['logistics']] title='Operations & Logistics Associate'  req='Responsible for working within systems to mirror physical hardware deployment, maintenance, and reverse logistics.'
+    [['customer-facing']] title='Staff Software Engineer, Backend'  req='Integrate AI models and LLMs into customer-facing products, not as experiments, but as production systems with real reliability and performance requir'
+    [['logistics']] title='Recruiting Coordinator (Contractor)'  req='Manage all logistics related to interview scheduling from receipt of scheduling request to conclusion of interview process'
+    [['customer-facing']] title='Sr Product Manager'  req='Experience designing and evaluating customer-facing user experiences, including creating or reviewing wireframes and prototypes and validating end-to-'
+
+=== Waffle House ===
+  trusted_alone (near_prototype+supported) hits: 115/2000 = 5.75%  99% CI=[4.55%,7.24%]
+  total supported jobs: 117/2000 (5.9%)
+  driver word breakdown: [('customer service', 105), ('house', 10)]
+    [['customer service']] title='Financial Advocate'  req='Typically requires 2 years of experience in Patient Access, health care, insurance industry, or in a customer service setting.'
+    [['customer service']] title='Financial Advocate'  req='Ability to communicate clearly and proactively to management about issues involving customer service and process improvement opportunities.'
+    [['customer service']] title='Automotive Customer Service Advisor'  req='Follow all policies and procedures related to cash, credit, check, refund and return policies. Works with the management team to react to customer ser'
+    [['customer service']] title='UTS - Temporary Concur Support Desk Associate at UNC'  req='Candidates must possess at least 2-3 years of customer service experience in an administrative setting plus be detail-oriented.'
+    [['customer service']] title='Retail Sales – Part Time'  req="Welcome customers to Lowe's, answer questions, and deliver friendly and professional customer service."
+
+wrote identity_term_trust_audit.json

@@ -1,0 +1,54 @@
+sample size: 2000
+
+=== Freelance Photography / Videography ===
+  trusted_alone (near_prototype+supported) hits: 1/2000 = 0.05%  99% CI=[0.01%,0.42%]
+  total supported jobs: 1/2000 (0.1%)
+  driver word breakdown: [('photography', 1)]
+    [['photography']] title='Customer Support Specialist'  req='Interest in photography;'
+
+=== AMP Smart ===
+  trusted_alone (near_prototype+supported) hits: 14/2000 = 0.70%  99% CI=[0.36%,1.37%]
+  total supported jobs: 28/2000 (1.4%)
+  driver word breakdown: [('sales', 9), ('outreach', 4), ('communications', 1)]
+    [['sales']] title='Strategic Account Executive, New England'  req='Identify, develop and execute account strategies to generate pipeline, drive sales opportunities and deliver repeatable and predictable bookings'
+    [['sales']] title='Senior Enterprise Account Executive, Okta'  req='Develop and execute sales strategies and tactics to generate pipeline, drive sales opportunities and deliver repeatable and predictable bookings'
+    [['sales']] title='Principal Product Manager, Hardware'  req='Collaborate with sales, marketing, and customer success teams to launch products, build adoption strategies, and ensure long-term success.'
+    [['outreach']] title='Client Support Specialist - Financial Services, North Hills, NC'  req='Collaborate on support documentation, user guides, and training resources that will assist in reducing outreach for support.'
+    [['outreach']] title='OR Technician'  req='personnel nationwide through outreach and education.'
+
+=== UPS ===
+  trusted_alone (near_prototype+supported) hits: 0/2000 = 0.00%  99% CI=[0.00%,0.33%]
+  total supported jobs: 1/2000 (0.1%)
+  driver word breakdown: []
+
+=== National Tire and Battery / Mavis ===
+  trusted_alone (near_prototype+supported) hits: 178/2000 = 8.90%  99% CI=[7.39%,10.68%]
+  total supported jobs: 155/2000 (7.8%)
+  driver word breakdown: [('customer service', 112), ('technical support', 52), ('battery', 9), ('automotive', 5)]
+    [['technical support']] title='Network Engineer'  req='Previous experience in network operations, engineering or technical support.'
+    [['technical support']] title='IT Support Technician – Level II'  req='Provide timely technical support to on-site and remote end users.'
+    [['customer service']] title='Custom Software Engineering Lead'  req='Must To Have Skills: Proficiency in ServiceNow Customer Service Management (CSM).'
+    [['customer service']] title='Beauty Advisor'  req='Courteously handle customer service, sales, refunds, and exchanges and assist with on-line orders.'
+    [['customer service']] title='Sales & Service Representative (Teller)'  req='Customer Service Skills: Demonstrates professionalism and empathy in customer'
+
+=== Alex Prosperity Group / UST Logistics ===
+  trusted_alone (near_prototype+supported) hits: 30/2000 = 1.50%  99% CI=[0.94%,2.38%]
+  total supported jobs: 25/2000 (1.2%)
+  driver word breakdown: [('logistics', 28), ('installation', 1), ('hands-on work', 1)]
+    [['logistics']] title='Administrative Business Partner, Office of the CEO'  req='Support extensive research and logistics for unique and high-caliber offsite events'
+    [['logistics']] title='Senior Technical Program Manager, Integration & Test - Active Clearance'  req='Partner with Anduril’s deployment & logistics operations teams to develop and implement the operations & sustainment strategy for a new class of weapo'
+    [['logistics']] title='Senior Technical Program Manager, Integration & Test - Active Clearance'  req='Manage and support the development of contractual deliverables (test reports, future plans, quick looks, etc.) related to test & evaluation, platform '
+    [['logistics']] title='Endpoint Security Engineer with Security Clearance'  req='Manage allowlisting, exception workflows, and phased ring deployments (canary/pilot/production) to ensure silent, high-efficacy protection without dis'
+    [['logistics']] title='Property Records Team Lead'  req='Experience working in Logistics, Operations, Contracts, Programs, Property, or Supply Chain functions.'
+
+=== Waffle House ===
+  trusted_alone (near_prototype+supported) hits: 111/2000 = 5.55%  99% CI=[4.37%,7.02%]
+  total supported jobs: 96/2000 (4.8%)
+  driver word breakdown: [('customer service', 111)]
+    [['customer service']] title='Custom Software Engineering Lead'  req='Must To Have Skills: Proficiency in ServiceNow Customer Service Management (CSM).'
+    [['customer service']] title='Beauty Advisor'  req='Courteously handle customer service, sales, refunds, and exchanges and assist with on-line orders.'
+    [['customer service']] title='Sales & Service Representative (Teller)'  req='Customer Service Skills: Demonstrates professionalism and empathy in customer'
+    [['customer service']] title='Call Center Agent'  req='Provide exceptional customer service via phone, email, and text'
+    [['customer service']] title='Call Center Agent'  req='Previous Customer Service or Call Center experience required'
+
+wrote identity_term_trust_audit.json

@@ -1115,6 +1115,62 @@ _AMBIGUOUS_TERMS = frozenset(
         "troubleshooting",
         "equipment",
         "hands-on",
+        # "communications" (2026-09-08, found via the same-session Future
+        # Work item 11 follow-up audit -- systematically checking every
+        # single-keyword `trusted_alone` match across all 6
+        # experience_inventory entries, not just Mavis/Waffle House):
+        # AMP Smart and Freelance Photography / Videography both list
+        # "communications" as a real, deliberately-hand-typed
+        # relevance_category (decision #71 already confirmed this is a
+        # genuine identity label, not incidental filler) -- but it's ALSO
+        # extremely polysemous, the same "genuine identity label AND
+        # cross-domain-ambiguous at once" shape as "reliability" above.
+        # AMP Smart's sense is customer/sales communication; Photography's
+        # is media/content communication; neither has anything to do with
+        # a real "Principal Software Engineer - VoIP" posting's "core
+        # audio and video communication infrastructure" or a generic
+        # "Excellent written and verbal communication skills" boilerplate
+        # bullet -- yet a live n=2000 audit found this ONE word alone
+        # driving 19.75% (Photography) and 26.55% (AMP Smart) of all jobs
+        # scanned to `supported`, an order of magnitude larger than the
+        # four words above. Required a THIRD real fix in the same session
+        # to actually work: `_local_context_words`' occurrence check used
+        # to be an exact regex, but AMP Smart's evidence text only ever
+        # uses the singular "communication"/"communicated" while the
+        # identity term itself is plural "communications" -- see that
+        # function's own 2026-09-08 docstring note for the full trace.
+        "communications",
+        # "sales"/"customer-facing" (AMP Smart) and "content"/"creative"/
+        # "media" (Freelance Photography / Videography) -- found in the
+        # SAME "communications" follow-up audit, re-run after that fix
+        # landed: with "communications" closed, these five became the new
+        # dominant drivers (AMP Smart 26.55%->15.35%, still mostly "sales";
+        # Photography 19.75%->4.70%, still "content"/"creative"/"media").
+        # Real cross-domain examples: AMP Smart's door-to-door residential
+        # sales matching "SAP Sales and Distribution (SD)" (a software
+        # module NAME that merely contains the word "Sales") and a
+        # "Senior Solution Engineer" B2B pre-sales technical role;
+        # Photography's evidence matching a "Senior Growth Engineer"
+        # pulling "content... from Ghost CMS" and a "Software Engineer"
+        # who is "creative and efficient." "sales" verified to genuinely
+        # discriminate (a real in-home-sales-consultation requirement
+        # still agrees; the SAP/enterprise-software examples above do
+        # not). "customer-facing"/"content"/"creative"/"media" verified to
+        # have ZERO literal occurrences anywhere in these two items' own
+        # evidence text (`_evidence_own_text` draws from description/
+        # factual_concepts/responsibilities, none of which happen to use
+        # these exact words -- they exist only as `relevance_categories`
+        # labels) -- so, same as "customer-facing" above, adding them here
+        # is functionally equivalent to full exclusion (never any real
+        # corroborating context to agree on) but honestly labeled as
+        # ambiguous rather than blanket-generic, and automatically
+        # reversible if the underlying evidence text is ever rewritten to
+        # actually describe the work in those terms.
+        "sales",
+        "customer-facing",
+        "content",
+        "creative",
+        "media",
     }
 )
 
@@ -1174,11 +1230,32 @@ def _local_context_words(text: str, term: str) -> set[str]:
     is itself one of the newly-added ambiguous terms, not genuine
     corroborating overlap. Same conservative philosophy as everywhere else
     in this function: an unproven word is not evidence, even when that
-    word happens to be a different entry in this same table."""
+    word happens to be a different entry in this same table.
+
+    2026-09-08: occurrence detection now uses `_term_in_text` (the same
+    pluralization-tolerant check that decides whether a term counts as
+    matched at all) instead of a bare exact-string regex. Found via a real
+    escalating-batch audit while evaluating "communications" as a fifth
+    candidate for this table: AMP Smart's `relevance_categories` stores the
+    identity term as "communications" (plural), but its actual
+    `responsibilities` text only ever uses the singular "communication"/
+    "communicated" -- `_term_in_text("communications", ...)` correctly
+    matches via its own trailing-s tolerance (so the term legitimately
+    reaches `exact_keywords`), but the OLD exact-regex occurrence check
+    here could never find a sentence "containing" the literal plural form,
+    so `_local_context_words` always returned an empty set for it -- not
+    because there was no real context, but because this function was
+    stricter than the very check that decided the term mattered. That
+    silently made `_context_senses_agree` unconditionally False for any
+    ambiguous term with this shape (a plural identity label whose source
+    text uses the singular), wiping out every legitimate match instead of
+    discriminating good from bad ones. Reusing `_term_in_text` here closes
+    that gap for "communications" and protects every future addition to
+    this table from the same latent inconsistency."""
     term_l = term.lower()
     words: set[str] = set()
     for sentence in _SENTENCE_SPLIT_RE.split(text or ""):
-        if re.search(rf"\b{re.escape(term_l)}\b", sentence.lower()):
+        if _term_in_text(term_l, sentence.lower()):
             for w in _TERM_WORD_RE.findall(sentence):
                 wl = w.lower()
                 if wl == term_l or wl in _NAME_TOKEN_STOPWORDS or len(wl) <= 2:

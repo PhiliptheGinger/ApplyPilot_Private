@@ -572,6 +572,188 @@ class TestKeywordPreservation(unittest.TestCase):
         self.assertNotIn("servers", req["exact_keywords"])
         self.assertFalse(req["supported"])
 
+    def test_communications_plural_singular_context_mismatch_fixed(self):
+        """2026-09-08 regression: found via a Future Work item 11 follow-up
+        audit -- AMP Smart's relevance_categories stores the identity term
+        "communications" (plural), but its real responsibilities text only
+        ever uses the singular "communication"/"communicated".
+        `_term_in_text` already tolerates this (matches via its own
+        trailing-s logic), but the OLD exact-regex occurrence check inside
+        `_local_context_words` could never find a sentence "containing"
+        the literal plural form -- silently making `_context_senses_agree`
+        always False for this term regardless of real context overlap.
+        This is a direct unit pin on the fixed helper, independent of the
+        full schema-build pipeline."""
+        evidence_text = (
+            "Communicated technical product information clearly to residential customers. "
+            "Worked independently in a field environment while adapting communication and "
+            "approach to different customers."
+        )
+        same_domain_req = "Adapt your communication approach while working independently in the field"
+        self.assertNotEqual(schemas._local_context_words(evidence_text, "communications"), set())
+        self.assertTrue(schemas._context_senses_agree(same_domain_req, evidence_text, "communications"))
+
+    def test_communications_cross_domain_dropped(self):
+        """2026-09-08: "communications" is a real, deliberately-hand-typed
+        relevance_category for AMP Smart (customer/sales communication)
+        AND Freelance Photography (media/content communication) -- but a
+        live n=2000 audit found it alone driving 19.75%/26.55% of all jobs
+        scanned to "supported", including a real "Principal Software
+        Engineer - VoIP" posting's "core audio and video communication
+        infrastructure" (telecom signaling, not customer/sales
+        communication) and generic "Excellent written and verbal
+        communication skills" boilerplate present on nearly every posting."""
+        job = _job("- Architect and evolve the core audio and video communication infrastructure for our platform\n")
+        profile = {
+            "experience_inventory": [
+                {
+                    "name": "AMP Smart",
+                    "relevance_categories": ["sales", "customer-facing", "communications", "outreach"],
+                    "resume_allowed": True,
+                    "responsibilities": [
+                        "Develop and execute targeted outreach and sales strategies for residential solar solutions.",
+                        "Communicated technical product information clearly to residential customers.",
+                        "Worked independently in a field environment while adapting communication and "
+                        "approach to different customers.",
+                    ],
+                },
+            ],
+            "project_inventory": [],
+            "skills_inventory": [],
+            "certifications": [],
+        }
+        rep = schemas.build_job_schema_representation(job, profile)
+        req = rep["requirements"][0]
+        self.assertNotIn("communications", req["exact_keywords"])
+        self.assertFalse(req["supported"])
+
+    def test_sales_cross_domain_dropped_same_domain_counted(self):
+        """2026-09-08: "sales" is a real AMP Smart relevance_category
+        (residential door-to-door solar sales) but also hyper-generic
+        vocabulary across every industry -- a live audit found it matching
+        a "SAP Sales and Distribution (SD)" software-module NAME and a
+        "Senior Solution Engineer" B2B pre-sales technical role, neither
+        related to residential sales work. A genuinely same-domain
+        residential sales requirement must still match."""
+        profile = {
+            "experience_inventory": [
+                {
+                    "name": "AMP Smart",
+                    "relevance_categories": ["sales", "customer-facing", "communications", "outreach"],
+                    "resume_allowed": True,
+                    "responsibilities": [
+                        "Develop and execute targeted outreach and sales strategies for residential "
+                        "solar solutions.",
+                        "Conduct in-person consultations.",
+                    ],
+                },
+            ],
+            "project_inventory": [],
+            "skills_inventory": [],
+            "certifications": [],
+        }
+        cross_job = _job(
+            "- Function as a technical expert throughout sales engagements, ensuring that tactical "
+            "motions in the pre-sales and POV process succeed for enterprise software deals\n"
+        )
+        cross_rep = schemas.build_job_schema_representation(cross_job, profile)
+        self.assertFalse(cross_rep["requirements"][0]["supported"])
+
+        same_job = _job("- Conduct in-home sales consultations and close residential sales deals with homeowners\n")
+        same_rep = schemas.build_job_schema_representation(same_job, profile)
+        self.assertIn("sales", same_rep["requirements"][0]["exact_keywords"])
+        self.assertTrue(same_rep["requirements"][0]["supported"])
+
+    def test_generic_relevance_category_buzzwords_never_supported_alone(self):
+        """2026-09-08: "customer-facing" (AMP Smart + Alex Prosperity
+        Group) and "content"/"creative"/"media" (Freelance Photography)
+        are real relevance_category labels but never literally appear
+        anywhere in these items' own description/factual_concepts/
+        responsibilities text (only in relevance_categories itself, which
+        _evidence_own_text doesn't draw from) -- so once ambiguous, they
+        can never find real corroborating context and are always
+        correctly dropped, the same safe outcome as full exclusion but
+        automatically reversible if the evidence text is ever rewritten."""
+        photo_profile = {
+            "experience_inventory": [
+                {
+                    "name": "Freelance Photography / Videography",
+                    "relevance_categories": ["media", "content", "communications", "creative"],
+                    "resume_allowed": True,
+                    "description": "Competent use of DSLR equipment, multiple lenses, and off-camera lighting "
+                    "for photography and videography.",
+                },
+            ],
+            "project_inventory": [],
+            "skills_inventory": [],
+            "certifications": [],
+        }
+        for term, req_text in (
+            ("content", "We pull content and data from Ghost CMS (blog), Redash, Notion, and various APIs"),
+            ("creative", "We are looking for a creative and efficient problem solver"),
+            ("media", "Answering phones, chat, social media, or email in a professional manner"),
+        ):
+            job = _job(f"- {req_text}\n")
+            rep = schemas.build_job_schema_representation(job, photo_profile)
+            req = rep["requirements"][0]
+            self.assertNotIn(term, req["exact_keywords"], f"{term} should never survive as a bare keyword")
+            self.assertFalse(req["supported"], f"{term}-only match should not be supported")
+
+    def test_house_name_collision_excluded(self):
+        """2026-09-08: "Waffle House"'s own name splits into identity
+        terms "waffle" + "house" -- "house" is an extremely common noun
+        that collides broadly with unrelated postings ("whole-house air
+        leakage" on an Energy Efficiency Technician job). Added to
+        local_tailor._GENERIC_EVIDENCE_TERMS, same precedent as "ups"."""
+        job = _job("- Field test new buildings for whole-house air leakage and duct leakage performance\n")
+        profile = {
+            "experience_inventory": [
+                {
+                    "name": "Waffle House",
+                    "relevance_categories": ["customer service", "food service"],
+                    "resume_allowed": True,
+                    "responsibilities": ["Took customer orders and served food quickly during high-volume shifts."],
+                },
+            ],
+            "project_inventory": [],
+            "skills_inventory": [],
+            "certifications": [],
+        }
+        rep = schemas.build_job_schema_representation(job, profile)
+        req = rep["requirements"][0]
+        self.assertNotIn("house", req["exact_keywords"])
+        self.assertFalse(req["supported"])
+
+    def test_amp_smart_name_collision_excluded(self):
+        """2026-09-08: "AMP Smart"'s own name splits into identity terms
+        "amp" + "smart" -- "smart" is a generic adjective ("smart tools")
+        and "amp" collides with the electrical-engineering abbreviation
+        ("op-amp"), same shape as "house"/"ups". Added to
+        local_tailor._GENERIC_EVIDENCE_TERMS."""
+        profile = {
+            "experience_inventory": [
+                {
+                    "name": "AMP Smart",
+                    "relevance_categories": ["sales", "customer-facing", "communications", "outreach"],
+                    "resume_allowed": True,
+                    "responsibilities": ["Develop and execute targeted outreach and sales strategies."],
+                },
+            ],
+            "project_inventory": [],
+            "skills_inventory": [],
+            "certifications": [],
+        }
+        for req_text in (
+            "Train manufacturing technicians on the proper handling of smart tools",
+            "Experience with analog electronics design, including op-amp circuits",
+        ):
+            job = _job(f"- {req_text}\n")
+            rep = schemas.build_job_schema_representation(job, profile)
+            req = rep["requirements"][0]
+            self.assertNotIn("smart", req["exact_keywords"])
+            self.assertNotIn("amp", req["exact_keywords"])
+            self.assertFalse(req["supported"])
+
 
 # ---------------------------------------------------------------------------
 # 5. Evidence-to-schema mapping

@@ -1,0 +1,237 @@
+{
+  "Freelance Photography / Videography": {
+    "n": 2000,
+    "trusted_alone_hits": 1,
+    "rate": 0.0005,
+    "ci99": [
+      5.869930878144112e-05,
+      0.0042449097982057956
+    ],
+    "driver_words": {
+      "photography": 1
+    },
+    "samples": [
+      {
+        "title": "Customer Support Specialist",
+        "requirement": "Interest in photography;",
+        "keywords": [
+          "photography"
+        ]
+      }
+    ]
+  },
+  "AMP Smart": {
+    "n": 2000,
+    "trusted_alone_hits": 14,
+    "rate": 0.007,
+    "ci99": [
+      0.0035662911687241944,
+      0.013694328029963908
+    ],
+    "driver_words": {
+      "sales": 9,
+      "outreach": 4,
+      "communications": 1
+    },
+    "samples": [
+      {
+        "title": "Strategic Account Executive, New England",
+        "requirement": "Identify, develop and execute account strategies to generate pipeline, drive sales opportunities and deliver repeatable and predictable bookings",
+        "keywords": [
+          "sales"
+        ]
+      },
+      {
+        "title": "Senior Enterprise Account Executive, Okta",
+        "requirement": "Develop and execute sales strategies and tactics to generate pipeline, drive sales opportunities and deliver repeatable and predictable bookings",
+        "keywords": [
+          "sales"
+        ]
+      },
+      {
+        "title": "Principal Product Manager, Hardware",
+        "requirement": "Collaborate with sales, marketing, and customer success teams to launch products, build adoption strategies, and ensure long-term success.",
+        "keywords": [
+          "sales"
+        ]
+      },
+      {
+        "title": "Client Support Specialist - Financial Services, North Hills, NC",
+        "requirement": "Collaborate on support documentation, user guides, and training resources that will assist in reducing outreach for support.",
+        "keywords": [
+          "outreach"
+        ]
+      },
+      {
+        "title": "OR Technician",
+        "requirement": "personnel nationwide through outreach and education.",
+        "keywords": [
+          "outreach"
+        ]
+      }
+    ]
+  },
+  "UPS": {
+    "n": 2000,
+    "trusted_alone_hits": 0,
+    "rate": 0.0,
+    "ci99": [
+      2.168404344971009e-19,
+      0.0033069160230102474
+    ],
+    "driver_words": {},
+    "samples": []
+  },
+  "National Tire and Battery / Mavis": {
+    "n": 2000,
+    "trusted_alone_hits": 178,
+    "rate": 0.089,
+    "ci99": [
+      0.0739284178354175,
+      0.10678986713549692
+    ],
+    "driver_words": {
+      "technical support": 52,
+      "customer service": 112,
+      "battery": 9,
+      "automotive": 5
+    },
+    "samples": [
+      {
+        "title": "Network Engineer",
+        "requirement": "Previous experience in network operations, engineering or technical support.",
+        "keywords": [
+          "technical support"
+        ]
+      },
+      {
+        "title": "IT Support Technician \u2013 Level II",
+        "requirement": "Provide timely technical support to on-site and remote end users.",
+        "keywords": [
+          "technical support"
+        ]
+      },
+      {
+        "title": "Custom Software Engineering Lead",
+        "requirement": "Must To Have Skills: Proficiency in ServiceNow Customer Service Management (CSM).",
+        "keywords": [
+          "customer service"
+        ]
+      },
+      {
+        "title": "Beauty Advisor",
+        "requirement": "Courteously handle customer service, sales, refunds, and exchanges and assist with on-line orders.",
+        "keywords": [
+          "customer service"
+        ]
+      },
+      {
+        "title": "Sales & Service Representative (Teller)",
+        "requirement": "Customer Service Skills: Demonstrates professionalism and empathy in customer",
+        "keywords": [
+          "customer service"
+        ]
+      }
+    ]
+  },
+  "Alex Prosperity Group / UST Logistics": {
+    "n": 2000,
+    "trusted_alone_hits": 30,
+    "rate": 0.015,
+    "ci99": [
+      0.009432241289194579,
+      0.023775467253125356
+    ],
+    "driver_words": {
+      "logistics": 28,
+      "installation": 1,
+      "hands-on work": 1
+    },
+    "samples": [
+      {
+        "title": "Administrative Business Partner, Office of the CEO",
+        "requirement": "Support extensive research and logistics for unique and high-caliber offsite events",
+        "keywords": [
+          "logistics"
+        ]
+      },
+      {
+        "title": "Senior Technical Program Manager, Integration & Test - Active Clearance",
+        "requirement": "Partner with Anduril\u2019s deployment & logistics operations teams to develop and implement the operations & sustainment strategy for a new class of weapo",
+        "keywords": [
+          "logistics"
+        ]
+      },
+      {
+        "title": "Senior Technical Program Manager, Integration & Test - Active Clearance",
+        "requirement": "Manage and support the development of contractual deliverables (test reports, future plans, quick looks, etc.) related to test & evaluation, platform ",
+        "keywords": [
+          "logistics"
+        ]
+      },
+      {
+        "title": "Endpoint Security Engineer with Security Clearance",
+        "requirement": "Manage allowlisting, exception workflows, and phased ring deployments (canary/pilot/production) to ensure silent, high-efficacy protection without dis",
+        "keywords": [
+          "logistics"
+        ]
+      },
+      {
+        "title": "Property Records Team Lead",
+        "requirement": "Experience working in Logistics, Operations, Contracts, Programs, Property, or Supply Chain functions.",
+        "keywords": [
+          "logistics"
+        ]
+      }
+    ]
+  },
+  "Waffle House": {
+    "n": 2000,
+    "trusted_alone_hits": 111,
+    "rate": 0.0555,
+    "ci99": [
+      0.04372196628169671,
+      0.0702178820627594
+    ],
+    "driver_words": {
+      "customer service": 111
+    },
+    "samples": [
+      {
+        "title": "Custom Software Engineering Lead",
+        "requirement": "Must To Have Skills: Proficiency in ServiceNow Customer Service Management (CSM).",
+        "keywords": [
+          "customer service"
+        ]
+      },
+      {
+        "title": "Beauty Advisor",
+        "requirement": "Courteously handle customer service, sales, refunds, and exchanges and assist with on-line orders.",
+        "keywords": [
+          "customer service"
+        ]
+      },
+      {
+        "title": "Sales & Service Representative (Teller)",
+        "requirement": "Customer Service Skills: Demonstrates professionalism and empathy in customer",
+        "keywords": [
+          "customer service"
+        ]
+      },
+      {
+        "title": "Call Center Agent",
+        "requirement": "Provide exceptional customer service via phone, email, and text",
+        "keywords": [
+          "customer service"
+        ]
+      },
+      {
+        "title": "Call Center Agent",
+        "requirement": "Previous Customer Service or Call Center experience required",
+        "keywords": [
+          "customer service"
+        ]
+      }
+    ]
+  }
+}

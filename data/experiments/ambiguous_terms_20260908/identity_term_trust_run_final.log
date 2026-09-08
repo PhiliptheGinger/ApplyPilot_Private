@@ -1,0 +1,64 @@
+sample size: 2000
+
+=== Freelance Photography / Videography ===
+  trusted_alone (near_prototype+supported) hits: 1/2000 = 0.05%  99% CI=[0.01%,0.42%]
+  total supported jobs: 1/2000 (0.1%)
+  driver word breakdown: [('photography', 1)]
+    [['photography']] title='Customer Support Specialist'  req='Interest in photography;'
+
+=== AMP Smart ===
+  trusted_alone (near_prototype+supported) hits: 28/2000 = 1.40%  99% CI=[0.87%,2.26%]
+  total supported jobs: 45/2000 (2.2%)
+  driver word breakdown: [('outreach', 12), ('smart', 8), ('sales', 6), ('communications', 1), ('amp', 1)]
+    [['communications']] title='Account Resolution Specialist (Greensboro) | Financial Services | Entry Level'  req='Performs outbound email communication with customers.'
+    [['outreach']] title='Welcome Coordinator'  req='Schedule patients and conduct outreach to them'
+    [['smart']] title='Automation & Torque Tooling Technician'  req='Train manufacturing technicians and operators on the proper handling and safety of smart tools'
+    [['outreach']] title='Customer Service Agent'  req='Conduct proactive outreach to customers following up on recent interactions to confirm resolution satisfaction and offer additional assistance if need'
+    [['amp']] title='Raytheon Full Time 2026 - Effector Power Design Engineer II'  req='Experience with analog electronics design, including at least one of the following: FETs/BJTs, op-amp, high/low/band pass filters, clock/data terminat'
+
+=== UPS ===
+  trusted_alone (near_prototype+supported) hits: 0/2000 = 0.00%  99% CI=[0.00%,0.33%]
+  total supported jobs: 0/2000 (0.0%)
+  driver word breakdown: []
+
+=== National Tire and Battery / Mavis ===
+  trusted_alone (near_prototype+supported) hits: 203/2000 = 10.15%  99% CI=[8.54%,12.02%]
+  total supported jobs: 182/2000 (9.1%)
+  driver word breakdown: [('customer service', 127), ('technical support', 54), ('battery', 12), ('automotive', 10)]
+    [['technical support']] title='Help Desk Support Engineer'  req='Provide first- and second-line technical support to end users via phone, email, remote support tools, and our ticketing system.'
+    [['technical support']] title='Collaboration Platform Administrator'  req='Providing responsive technical support and troubleshooting for users across the organisation.'
+    [['automotive']] title='Senior Embedded C++ Software Engineer - Networking (Ethernet)'  req='Implement and integrate Ethernet communication stacks, low-level drivers, and networking interfaces for automotive embedded platforms.'
+    [['automotive']] title='Senior Embedded C++ Software Engineer - Networking (Ethernet)'  req='Support integration, debugging, testing, and optimization of automotive networking features across MCU and RTOS-based environments'
+    [['battery']] title='Embedded Firmware Engineer III'  req='Design, develop, test, document, and maintain embedded firmware for battery, power, and professional LED lighting products.'
+
+=== Alex Prosperity Group / UST Logistics ===
+  trusted_alone (near_prototype+supported) hits: 26/2000 = 1.30%  99% CI=[0.79%,2.13%]
+  total supported jobs: 21/2000 (1.1%)
+  driver word breakdown: [('logistics', 21), ('hands-on work', 3), ('installation', 2)]
+    [['hands-on work']] title='Lead Machine Learning Engineer'  req='Hands-on work with Kubernetes, containerizsiton, and scalable inference systems'
+    [['logistics']] title='MH-139 Field Service Rep - F.E. Warren AFB'  req='Coordinate with service engineering, supply chain, logistics, and program teams to resolve field issues.'
+    [['logistics']] title='Senior Mission Systems Logistics Integrator'  req='Lead logistics integration activities for mission systems on military development programs'
+    [['logistics']] title='Senior Mission Systems Logistics Integrator'  req='Ensure logistics requirements are incorporated into system design, verification, and sustainment planning'
+    [['logistics']] title='Senior Mission Systems Logistics Integrator'  req='Develop and maintain supportability analyses, logistics plans, and life-cycle sustainment strategies'
+
+=== Waffle House ===
+  trusted_alone (near_prototype+supported) hits: 128/2000 = 6.40%  99% CI=[5.13%,7.96%]
+  total supported jobs: 114/2000 (5.7%)
+  driver word breakdown: [('customer service', 128)]
+    [['customer service']] title='Imaging Assistant'  req='Provide exceptional customer service by assisting providers, patients, and colleagues with questions and imaging-related requests.'
+    [['customer service']] title='Imaging Assistant'  req='At least one year of customer service experience required.'
+    [['customer service']] title='Associate, EDI Onboarding'  req='Demonstrated strong customer service experience'
+    [['customer service']] title='Customer Service Rep(08821) - 9900 Poplar Tent Rd. #105'  req='Providing excellent customer service with a smile (even over the phone!)'
+    [['customer service']] title='Customer Service Rep(08821) - 9900 Poplar Tent Rd. #105'  req='A positive attitude and passion for providing outstanding customer service'
+
+wrote identity_term_trust_audit.json
+: 123/2000 = 6.15%  99% CI=[4.91%,7.68%]
+  total supported jobs: 100/2000 (5.0%)
+  driver word breakdown: [('customer service', 123)]
+    [['customer service']] title='Call Center Specialist'  req='Minimum two years of customer service experience, preferably in a medical office setting'
+    [['customer service']] title='Service Desk Analyst'  req='Excellent communication and stakeholder engagement skills, with the ability to collaborate effectively with internal teams, vendors and users at all l'
+    [['customer service']] title='Retail Service Specialist'  req='** Lead store team members in providing excellent customer service to retail'
+    [['customer service']] title='Retail Service Specialist'  req='Supervise the customer service levels on the retail showroom to include team'
+    [['customer service']] title='Retail Service Specialist'  req='member execution on customer service programs (Related sales, Hi5, Rock the'
+
+wrote identity_term_trust_audit.json

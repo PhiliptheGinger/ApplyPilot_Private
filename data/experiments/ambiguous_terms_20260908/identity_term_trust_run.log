@@ -1,0 +1,58 @@
+sample size: 2000
+
+=== Freelance Photography / Videography ===
+  trusted_alone (near_prototype+supported) hits: 395/2000 = 19.75%  99% CI=[17.56%,22.14%]
+  total supported jobs: 318/2000 (15.9%)
+  driver word breakdown: [('communications', 295), ('content', 35), ('creative', 34), ('media', 27), ('photography', 4)]
+    [['communications']] title='Infra Transformation Manager'  req='Excellent written and verbal communication skills.'
+    [['media']] title='Software Engineer, Multimodal Backend Systems'  req='Build our Streaming Architecture: Design, build, and optimize real-time WebRTC media pipelines and custom signaling mechanisms to stream multi-camera '
+    [['communications']] title='Principal Software Engineer  - VolP,'  req='Architect and evolve the core audio and video communication infrastructure that powers our Connected Care ecosystem.'
+    [['communications']] title='Principal Software Engineer  - VolP,'  req='Design and operate highly available SIP routing platforms supporting real-time communications at scale.'
+    [['media']] title='Principal Software Engineer  - VolP,'  req='Scale and optimize media servers, Session Border Controllers (SBCs), and signaling environments to ensure exceptional reliability and performance.'
+
+=== AMP Smart ===
+  trusted_alone (near_prototype+supported) hits: 531/2000 = 26.55%  99% CI=[24.09%,29.17%]
+  total supported jobs: 420/2000 (21.0%)
+  driver word breakdown: [('communications', 292), ('sales', 215), ('customer-facing', 16), ('outreach', 5), ('smart', 2), ('amp', 1)]
+    [['communications']] title='Infra Transformation Manager'  req='Excellent written and verbal communication skills.'
+    [['communications']] title='Principal Software Engineer  - VolP,'  req='Architect and evolve the core audio and video communication infrastructure that powers our Connected Care ecosystem.'
+    [['communications']] title='Principal Software Engineer  - VolP,'  req='Design and operate highly available SIP routing platforms supporting real-time communications at scale.'
+    [['communications']] title='Principal Software Engineer  - VolP,'  req='Build intelligent, low-latency call routing solutions that deliver seamless communication experiences.'
+    [['communications']] title='Principal Software Engineer  - VolP,'  req='Investigate and resolve complex real-time communication challenges, including media quality issues, packet loss, latency, and network performance.'
+
+=== UPS ===
+  trusted_alone (near_prototype+supported) hits: 0/2000 = 0.00%  99% CI=[0.00%,0.33%]
+  total supported jobs: 0/2000 (0.0%)
+  driver word breakdown: []
+
+=== National Tire and Battery / Mavis ===
+  trusted_alone (near_prototype+supported) hits: 189/2000 = 9.45%  99% CI=[7.90%,11.27%]
+  total supported jobs: 188/2000 (9.4%)
+  driver word breakdown: [('customer service', 102), ('technical support', 59), ('battery', 15), ('automotive', 12), ('hands-on troubleshooting', 1)]
+    [['customer service']] title='Retail Service Specialist'  req='** Lead store team members in providing excellent customer service to retail'
+    [['customer service']] title='Retail Service Specialist'  req='Supervise the customer service levels on the retail showroom to include team'
+    [['customer service']] title='Retail Service Specialist'  req='member execution on customer service programs (Related sales, Hi5, Rock the'
+    [['technical support']] title='Technical Support Specialist'  req='Provide Level 2 technical support for hardware, software, Windows OS, enterprise applications, printers, wireless, and network connectivity.'
+    [['battery']] title='Senior Electrical Engineer, Communication and Radio Frequency (Remote Eligible | Relocation Assistance Available)'  req='Electrical & Board Design: Develop mixed-signal schematics and drive PCB layout across application processors, RF transceivers, power management, batt'
+
+=== Alex Prosperity Group / UST Logistics ===
+  trusted_alone (near_prototype+supported) hits: 53/2000 = 2.65%  99% CI=[1.87%,3.74%]
+  total supported jobs: 47/2000 (2.4%)
+  driver word breakdown: [('logistics', 26), ('customer-facing', 19), ('installation', 5), ('hands-on work', 3)]
+    [['customer-facing']] title='Thermal Engineer'  req='Present thermal status, risks, tradeoffs, timelines, and recommendations in internal design reviews and customer-facing technical reviews.'
+    [['logistics']] title='Logistics Analyst - Tucson, AZ - 1st Shift'  req='Coordinate and track movement of goods through logistic pathways.'
+    [['logistics']] title='Logistics Analyst - Tucson, AZ - 1st Shift'  req='Execute logistics plan to move products and packages to reach destinations on schedule.'
+    [['logistics']] title='Technical Support Specialist'  req='Experience with **manufacturing, laboratory, logistics, supply chain, or'
+    [['customer-facing']] title='Staff Software Engineer, Backend (Communications Platform)'  req='10+ years of backend engineering experience, with significant time building and operating large-scale, customer-facing systems.'
+
+=== Waffle House ===
+  trusted_alone (near_prototype+supported) hits: 107/2000 = 5.35%  99% CI=[4.20%,6.80%]
+  total supported jobs: 112/2000 (5.6%)
+  driver word breakdown: [('customer service', 101), ('house', 6)]
+    [['customer service']] title='Retail Service Specialist'  req='** Lead store team members in providing excellent customer service to retail'
+    [['customer service']] title='Retail Service Specialist'  req='Supervise the customer service levels on the retail showroom to include team'
+    [['customer service']] title='Retail Service Specialist'  req='member execution on customer service programs (Related sales, Hi5, Rock the'
+    [['house']] title='Multifamily Energy Efficiency Technician'  req='Field test new buildings for energy efficiency performance factors including whole-house air leakage and duct leakage.'
+    [['customer service']] title='Sr Operations Admin'  req='Serves as frontline customer service to receive, solve and/or escalate customer inquiries and issues'
+
+wrote identity_term_trust_audit.json

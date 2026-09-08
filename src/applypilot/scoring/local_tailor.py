@@ -816,6 +816,27 @@ _GENERIC_EVIDENCE_TERMS = frozenset(
         "it",
         "technical",
         "ups",
+        # "house" (2026-09-08, found via the same session's Future Work
+        # item 11 audit): "Waffle House"'s own NAME splits into identity
+        # terms "waffle" + "house" (see _item_identity_terms) -- "waffle"
+        # is harmless, but "house" is an extremely common English noun
+        # that collides broadly with unrelated postings ("whole-house air
+        # leakage" on a "Multifamily Energy Efficiency Technician" job),
+        # the exact same shape as "ups" above (a short, ordinary word that
+        # happens to be part of this specific candidate's employer name).
+        "house",
+        # "smart"/"amp" (2026-09-08, same Future Work item 11 audit): "AMP
+        # Smart"'s own NAME splits into identity terms "amp" + "smart" --
+        # "smart" is an extremely common adjective ("smart tools", "smart
+        # home", "smart devices") matching a real "Automation & Torque
+        # Tooling Technician" posting's "proper handling... of smart
+        # tools," and "amp" collides with the unrelated electrical-
+        # engineering abbreviation ("op-amp" on a Raytheon power-design
+        # posting) -- same word-boundary-collides-with-a-real-acronym
+        # shape as "ups" above, just this candidate's own company name
+        # instead of a former employer's.
+        "smart",
+        "amp",
         # 2026-09-05: a 31,644-real-job scan (data/experiments/
         # entry_audit_20260905/) isolated each of the other 5
         # experience_inventory entries (Waffle House, AMP Smart, UPS,
