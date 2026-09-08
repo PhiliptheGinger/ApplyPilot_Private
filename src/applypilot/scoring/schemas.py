@@ -1171,6 +1171,26 @@ _AMBIGUOUS_TERMS = frozenset(
         "content",
         "creative",
         "media",
+        # "research"/"analytics" (2026-09-08, found via the Future Work
+        # item 11 scope-note follow-up: auditing project_inventory/
+        # skills_inventory/certifications, not just experience_inventory).
+        # CAP Predictor and I_hate_social_media both list "research" as a
+        # real relevance_category (formal quantitative/data research), but
+        # a live audit found it matching a "Help Desk Technician"'s
+        # "Research solutions to complex issues" (the ordinary VERB sense,
+        # investigate/troubleshoot) and a "Senior Principal Engineer"
+        # posting's "...or remote research environment" (a workplace-type
+        # descriptor, not a research ACTIVITY at all). "analytics" is a
+        # real CAP Predictor category (statistical/data analytics) but
+        # matched "OCI Logging Analytics" and "Oracle Fusion Analytics" --
+        # PRODUCT NAMES that merely contain the word, the same shape as
+        # "SAP Sales and Distribution (SD)" above. Both verified to have
+        # ZERO literal occurrences in either project's own factual_concepts
+        # text (only in relevance_categories) -- same safe,
+        # functionally-equivalent-to-exclusion outcome as "customer-
+        # facing"/"content"/"creative"/"media" above.
+        "research",
+        "analytics",
     }
 )
 

@@ -754,6 +754,72 @@ class TestKeywordPreservation(unittest.TestCase):
             self.assertNotIn("amp", req["exact_keywords"])
             self.assertFalse(req["supported"])
 
+    def test_you_power_you_name_collision_excluded(self):
+        """2026-09-08: "You Power You"'s own name splits into identity
+        terms "you" (stopword-filtered) + "power" -- "power" never appears
+        anywhere in the project's real factual_concepts/description, it's
+        a pure name-split artifact matching a real Disney posting's
+        "...power our media, advertising" (the ordinary verb, unrelated to
+        the project). Added to local_tailor._GENERIC_EVIDENCE_TERMS."""
+        job = _job("- Design and build platforms that will power our media, advertising, and content products\n")
+        profile = {
+            "experience_inventory": [],
+            "project_inventory": [
+                {
+                    "name": "You Power You",
+                    "relevance_categories": ["web", "digital media", "communications", "marketing"],
+                    "resume_allowed": True,
+                    "factual_concepts": [
+                        "Website development",
+                        "HTML/CSS/JavaScript",
+                        "Server-side form handling",
+                    ],
+                },
+            ],
+            "skills_inventory": [],
+            "certifications": [],
+        }
+        rep = schemas.build_job_schema_representation(job, profile)
+        req = rep["requirements"][0]
+        self.assertNotIn("power", req["exact_keywords"])
+        self.assertFalse(req["supported"])
+
+    def test_research_and_analytics_cross_domain_dropped(self):
+        """2026-09-08: "research"/"analytics" are real CAP Predictor
+        relevance_categories (formal quantitative/data research) that
+        never literally appear in the project's own factual_concepts text
+        -- a live audit found "research" matching a "Help Desk
+        Technician"'s "Research solutions to complex issues" (the ordinary
+        VERB sense) and "analytics" matching "Oracle Fusion Analytics" (a
+        product name)."""
+        profile = {
+            "experience_inventory": [],
+            "project_inventory": [
+                {
+                    "name": "CAP Predictor",
+                    "relevance_categories": ["Python", "data", "analytics", "research", "quantitative"],
+                    "resume_allowed": True,
+                    "factual_concepts": [
+                        "Financial/news data",
+                        "Data collection",
+                        "Feature engineering",
+                        "Sentiment analysis",
+                        "Statistical/modeling experimentation",
+                    ],
+                },
+            ],
+            "skills_inventory": [],
+            "certifications": [],
+        }
+        for req_text in (
+            "Research solutions to complex issues and escalate unresolved issues to senior technicians",
+            "Design and implement ETL/ELT pipelines using Oracle Fusion Analytics extensibility framework",
+        ):
+            job = _job(f"- {req_text}\n")
+            rep = schemas.build_job_schema_representation(job, profile)
+            req = rep["requirements"][0]
+            self.assertFalse(req["supported"])
+
 
 # ---------------------------------------------------------------------------
 # 5. Evidence-to-schema mapping

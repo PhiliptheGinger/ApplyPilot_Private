@@ -1,0 +1,804 @@
+{
+  "experience_inventory::Freelance Photography / Videography": {
+    "inventory": "experience_inventory",
+    "n": 2000,
+    "trusted_alone_hits": 5,
+    "rate": 0.0025,
+    "ci99": [
+      0.0008356175854798979,
+      0.007454763857415298
+    ],
+    "driver_words": {
+      "photography": 5
+    },
+    "samples": [
+      {
+        "title": "Photographer, Zillow Media Experts (Columbus, OH)",
+        "requirement": "Capture industry-leading, professional still photography, listing videos, 3D or 360\u00b0 virtual tours, drone photography & videos (depending on a busines",
+        "keywords": [
+          "photography"
+        ]
+      },
+      {
+        "title": "Photographer, Zillow Media Experts (Columbus, OH)",
+        "requirement": "Utilize advanced photography techniques and equipment to showcase the unique features and aesthetics of each property, allowing sellers and real estat",
+        "keywords": [
+          "photography"
+        ]
+      },
+      {
+        "title": "Photographer, Zillow Media Experts (Columbus, OH)",
+        "requirement": "Coordinate and interact with clients on-site to understand their specific photography needs and expectations",
+        "keywords": [
+          "photography"
+        ]
+      },
+      {
+        "title": "Photographer, Zillow Media Experts (Columbus, OH)",
+        "requirement": "Provide guidance and direction to clients and property owners during photography sessions to achieve desired results and maximize the visual impact of",
+        "keywords": [
+          "photography"
+        ]
+      },
+      {
+        "title": "Photographer, Zillow Media Experts (Columbus, OH)",
+        "requirement": "Manage and maintain photography equipment, including cameras, lenses, and accessories, to ensure optimal performance and reliability",
+        "keywords": [
+          "photography"
+        ]
+      }
+    ]
+  },
+  "experience_inventory::AMP Smart": {
+    "inventory": "experience_inventory",
+    "n": 2000,
+    "trusted_alone_hits": 10,
+    "rate": 0.005,
+    "ci99": [
+      0.0022629749252105784,
+      0.011010871937569566
+    ],
+    "driver_words": {
+      "sales": 4,
+      "outreach": 6
+    },
+    "samples": [
+      {
+        "title": "Digital Support Specialist I",
+        "requirement": "Employing sales strategies to enhance product and service offerings and sharing successful techniques with colleagues.",
+        "keywords": [
+          "sales"
+        ]
+      },
+      {
+        "title": "JD Associate - Four Seasons Town Center, Greensboro, NC",
+        "requirement": "Sales & Performance: Drive store sales and profitability through effective merchandise management, promotional strategies, and achieving sales targets",
+        "keywords": [
+          "sales"
+        ]
+      },
+      {
+        "title": "Business Development Representative, San Francisco",
+        "requirement": "Strong written and verbal communication skills with the ability to craft compelling, persona-specific outreach that earns a response",
+        "keywords": [
+          "outreach"
+        ]
+      },
+      {
+        "title": "Recruiter, Legal (Contract)",
+        "requirement": "Drive a diverse talent pipeline into the organization ensuring a positive candidate experience at every touchpoint, from initial outreach to offer acc",
+        "keywords": [
+          "outreach"
+        ]
+      },
+      {
+        "title": "Field Application Engineer, AI Factory",
+        "requirement": "Be a technical specialist on GPU and networking products directly supporting sales account managers, working closely with the team to deliver outstand",
+        "keywords": [
+          "sales"
+        ]
+      }
+    ]
+  },
+  "experience_inventory::UPS": {
+    "inventory": "experience_inventory",
+    "n": 2000,
+    "trusted_alone_hits": 0,
+    "rate": 0.0,
+    "ci99": [
+      2.168404344971009e-19,
+      0.0033069160230102474
+    ],
+    "driver_words": {},
+    "samples": []
+  },
+  "experience_inventory::National Tire and Battery / Mavis": {
+    "inventory": "experience_inventory",
+    "n": 2000,
+    "trusted_alone_hits": 193,
+    "rate": 0.0965,
+    "ci99": [
+      0.08080192938367066,
+      0.11486675184689861
+    ],
+    "driver_words": {
+      "technical support": 55,
+      "customer service": 125,
+      "automotive": 8,
+      "hands-on troubleshooting": 2,
+      "battery": 3
+    },
+    "samples": [
+      {
+        "title": "Customer Support Technician I (US Remote)",
+        "requirement": "Deliver first- and second-level technical support to end-users via phone, email, chat, and in-person channels.",
+        "keywords": [
+          "technical support"
+        ]
+      },
+      {
+        "title": "Digital Support Specialist I",
+        "requirement": "+2 years of experience in sales or customer service.",
+        "keywords": [
+          "customer service"
+        ]
+      },
+      {
+        "title": "GN-I&E-Industrial-T&L(Rail)-Senior Manager",
+        "requirement": "Process reimagination and operational optimization across networks, yards, stations, and customer services",
+        "keywords": [
+          "customer service"
+        ]
+      },
+      {
+        "title": "D365 SCM Techno-Functional Consultant",
+        "requirement": "A minimum of 5+ years of experience working with D365 Finance & Operations or AX, demonstrating a strong blend of functional supply chain management e",
+        "keywords": [
+          "technical support"
+        ]
+      },
+      {
+        "title": "Customer Service Parcel Specialist",
+        "requirement": "Provide customer service, including anticipating customer needs, suggesting alternatives and problem solving, and is able to satisfy those needs with ",
+        "keywords": [
+          "customer service"
+        ]
+      }
+    ]
+  },
+  "experience_inventory::Alex Prosperity Group / UST Logistics": {
+    "inventory": "experience_inventory",
+    "n": 2000,
+    "trusted_alone_hits": 31,
+    "rate": 0.0155,
+    "ci99": [
+      0.009820047338537795,
+      0.024384354287759133
+    ],
+    "driver_words": {
+      "logistics": 27,
+      "installation": 3,
+      "hands-on work": 1
+    },
+    "samples": [
+      {
+        "title": "GN-I&E-Industrial-T&L(Rail)-Senior Manager",
+        "requirement": "Railway logistics and operations optimization",
+        "keywords": [
+          "logistics"
+        ]
+      },
+      {
+        "title": "GN-I&E-Industrial-T&L(Rail)-Senior Manager",
+        "requirement": "Large program delivery for digital and enterprise transformation in railways and logistics",
+        "keywords": [
+          "logistics"
+        ]
+      },
+      {
+        "title": "Manager, ASIC Chip - GPU",
+        "requirement": "Collaborate with packaging, system design, DFT, test engineering, test software, and chip logistics teams to support silicon bring-up.",
+        "keywords": [
+          "logistics"
+        ]
+      },
+      {
+        "title": "Senior Logistics Specialist",
+        "requirement": "Experience with logistics support, material supply chain, depot warehouse facilities, and/or related processes or manufacturing.",
+        "keywords": [
+          "logistics"
+        ]
+      },
+      {
+        "title": "Service and Installation Technician",
+        "requirement": "Develop mechanical skills, learn new techniques, and remain current with product requirements for installation materials to meet safety specifications",
+        "keywords": [
+          "installation"
+        ]
+      }
+    ]
+  },
+  "experience_inventory::Waffle House": {
+    "inventory": "experience_inventory",
+    "n": 2000,
+    "trusted_alone_hits": 126,
+    "rate": 0.063,
+    "ci99": [
+      0.05039880825807169,
+      0.07849143634603925
+    ],
+    "driver_words": {
+      "customer service": 126
+    },
+    "samples": [
+      {
+        "title": "Digital Support Specialist I",
+        "requirement": "+2 years of experience in sales or customer service.",
+        "keywords": [
+          "customer service"
+        ]
+      },
+      {
+        "title": "GN-I&E-Industrial-T&L(Rail)-Senior Manager",
+        "requirement": "Process reimagination and operational optimization across networks, yards, stations, and customer services",
+        "keywords": [
+          "customer service"
+        ]
+      },
+      {
+        "title": "Customer Service Parcel Specialist",
+        "requirement": "Provide customer service, including anticipating customer needs, suggesting alternatives and problem solving, and is able to satisfy those needs with ",
+        "keywords": [
+          "customer service"
+        ]
+      },
+      {
+        "title": "US-Technical Specialist",
+        "requirement": "Follow troubleshooting steps to identify the root cause of a technical issue in a customer service environment.",
+        "keywords": [
+          "customer service"
+        ]
+      },
+      {
+        "title": "US-Technical Specialist",
+        "requirement": "Navigate customer service issues with care and strong interpersonal skills.",
+        "keywords": [
+          "customer service"
+        ]
+      }
+    ]
+  },
+  "project_inventory::Standup-OCR": {
+    "inventory": "project_inventory",
+    "n": 2000,
+    "trusted_alone_hits": 354,
+    "rate": 0.177,
+    "ci99": [
+      0.15609399739720473,
+      0.20004227035365987
+    ],
+    "driver_words": {
+      "automation": 220,
+      "python": 132,
+      "transcription": 1,
+      "ocr": 1
+    },
+    "samples": [
+      {
+        "title": "Senior Data Engineer #4885",
+        "requirement": "Partner with and advise systems engineers, lab operations, data scientists, and automation engineers on difficult technical matters, adapting your com",
+        "keywords": [
+          "automation"
+        ]
+      },
+      {
+        "title": "Senior Backend Software Engineer",
+        "requirement": "Languages: Python, TypeScript",
+        "keywords": [
+          "python"
+        ]
+      },
+      {
+        "title": "GN-I&E-Industrial-T&L(Rail)-Senior Manager",
+        "requirement": "Digital transformations and new-age technologies (IoT, AI/ML, automation, predictive maintenance)",
+        "keywords": [
+          "automation"
+        ]
+      },
+      {
+        "title": "Full-Stack Software Engineer",
+        "requirement": "Backend: FastAPI Python",
+        "keywords": [
+          "python"
+        ]
+      },
+      {
+        "title": "Staff Software Engineer, MetalDev",
+        "requirement": "Build automation for data center bring-up, hardware discovery, health monitoring, remediation, and production operations.",
+        "keywords": [
+          "automation"
+        ]
+      }
+    ]
+  },
+  "project_inventory::CAP Predictor": {
+    "inventory": "project_inventory",
+    "n": 2000,
+    "trusted_alone_hits": 174,
+    "rate": 0.087,
+    "ci99": [
+      0.07210116480887543,
+      0.10463034782613101
+    ],
+    "driver_words": {
+      "data collection": 11,
+      "python": 140,
+      "data processing": 10,
+      "cap": 1,
+      "feature engineering": 2,
+      "quantitative": 10
+    },
+    "samples": [
+      {
+        "title": "Epic Willow Build Senior Consultant",
+        "requirement": "This role will perform analysis of workflows, data collection, report details and other technical issues associated with Epic software",
+        "keywords": [
+          "data collection"
+        ]
+      },
+      {
+        "title": "Senior Backend Software Engineer",
+        "requirement": "Languages: Python, TypeScript",
+        "keywords": [
+          "python"
+        ]
+      },
+      {
+        "title": "Full-Stack Software Engineer",
+        "requirement": "Backend: FastAPI Python",
+        "keywords": [
+          "python"
+        ]
+      },
+      {
+        "title": "Staff Software Engineer - Logs Observability Pipelines",
+        "requirement": "You have strong expertise in distributed systems, including scalability, performance optimization, and high-throughput data processing",
+        "keywords": [
+          "data processing"
+        ]
+      },
+      {
+        "title": "Software Engineer",
+        "requirement": "Experience building REST APIs using Java 21 with Spring Boot 3.x and Spring Data JPA, and Python 3.10+ with Django REST Framework or Flask RESTful to ",
+        "keywords": [
+          "python"
+        ]
+      }
+    ]
+  },
+  "project_inventory::Express_Engine": {
+    "inventory": "project_inventory",
+    "n": 2000,
+    "trusted_alone_hits": 353,
+    "rate": 0.1765,
+    "ci99": [
+      0.15561990696196376,
+      0.19951966770492385
+    ],
+    "driver_words": {
+      "automation": 220,
+      "python": 132,
+      "educational technology": 1
+    },
+    "samples": [
+      {
+        "title": "Senior Data Engineer #4885",
+        "requirement": "Partner with and advise systems engineers, lab operations, data scientists, and automation engineers on difficult technical matters, adapting your com",
+        "keywords": [
+          "automation"
+        ]
+      },
+      {
+        "title": "Senior Backend Software Engineer",
+        "requirement": "Languages: Python, TypeScript",
+        "keywords": [
+          "python"
+        ]
+      },
+      {
+        "title": "GN-I&E-Industrial-T&L(Rail)-Senior Manager",
+        "requirement": "Digital transformations and new-age technologies (IoT, AI/ML, automation, predictive maintenance)",
+        "keywords": [
+          "automation"
+        ]
+      },
+      {
+        "title": "Full-Stack Software Engineer",
+        "requirement": "Backend: FastAPI Python",
+        "keywords": [
+          "python"
+        ]
+      },
+      {
+        "title": "Staff Software Engineer, MetalDev",
+        "requirement": "Build automation for data center bring-up, hardware discovery, health monitoring, remediation, and production operations.",
+        "keywords": [
+          "automation"
+        ]
+      }
+    ]
+  },
+  "project_inventory::You Power You": {
+    "inventory": "project_inventory",
+    "n": 2000,
+    "trusted_alone_hits": 142,
+    "rate": 0.071,
+    "ci99": [
+      0.0575817707369731,
+      0.08725556321076966
+    ],
+    "driver_words": {
+      "web": 73,
+      "marketing": 67,
+      "digital media": 1,
+      "customer-facing technical": 1
+    },
+    "samples": [
+      {
+        "title": "Security Managed Services Practitioner",
+        "requirement": "Develop and maintain WAF security policies to protect web applications against OWASP Top 10 threats: SQL injection, XSS, CSRF, RFI/LFI, command inject",
+        "keywords": [
+          "web"
+        ]
+      },
+      {
+        "title": "Security Managed Services Practitioner",
+        "requirement": "Lead the deployment and management of Zscaler Internet Access (ZIA) \u2014 including secure web gateway (SWG), SSL/TLS inspection, CASB, cloud sandbox, DLP",
+        "keywords": [
+          "web"
+        ]
+      },
+      {
+        "title": "Software Engineer (all teams)",
+        "requirement": "Ship production-grade software across Compa\u2019s web app and backend systems",
+        "keywords": [
+          "web"
+        ]
+      },
+      {
+        "title": "Software Engineer (all teams)",
+        "requirement": "Strong proficiency in at least one modern web development language or framework",
+        "keywords": [
+          "web"
+        ]
+      },
+      {
+        "title": "Head of Editorial Content ",
+        "requirement": "Partner with communications, product marketing, brand, design, video, and demand generation.",
+        "keywords": [
+          "marketing"
+        ]
+      }
+    ]
+  },
+  "project_inventory::I_hate_social_media": {
+    "inventory": "project_inventory",
+    "n": 2000,
+    "trusted_alone_hits": 23,
+    "rate": 0.0115,
+    "ci99": [
+      0.006774939238573326,
+      0.019455917715907687
+    ],
+    "driver_words": {
+      "data processing": 12,
+      "structured data": 5,
+      "social media": 6
+    },
+    "samples": [
+      {
+        "title": "Staff Software Engineer - Logs Observability Pipelines",
+        "requirement": "You have strong expertise in distributed systems, including scalability, performance optimization, and high-throughput data processing",
+        "keywords": [
+          "data processing"
+        ]
+      },
+      {
+        "title": "Staff Software Engineer, Storage Services",
+        "requirement": "Experience building and/or managing core infrastructure systems at scale, preferably in online structured data storage, distributed databases, or larg",
+        "keywords": [
+          "structured data"
+        ]
+      },
+      {
+        "title": "Software Engineer",
+        "requirement": "Experience working with distributed data processing frameworks such as Hadoop or Apache Spark for analytics and large scale data processing tasks.",
+        "keywords": [
+          "data processing"
+        ]
+      },
+      {
+        "title": "IT Manager (Gastonia, NC)",
+        "requirement": "Managing the analysis, development and administration of data and voice networks as well as data processing operations",
+        "keywords": [
+          "data processing"
+        ]
+      },
+      {
+        "title": "Senior Data Intelligence Engineer",
+        "requirement": "AI-Native Technical Skills: Mastery of SQL and Python (production-grade) with a proven track record of building RAG or Agentic systems on top of struc",
+        "keywords": [
+          "structured data"
+        ]
+      }
+    ]
+  },
+  "project_inventory::Sunburn": {
+    "inventory": "project_inventory",
+    "n": 2000,
+    "trusted_alone_hits": 29,
+    "rate": 0.0145,
+    "ci99": [
+      0.009046282679051595,
+      0.023164732779291354
+    ],
+    "driver_words": {
+      "targeting": 7,
+      "experimentation": 22
+    },
+    "samples": [
+      {
+        "title": "Software Development Engineer III, Advertising Technology",
+        "requirement": "Work closely with Product, ML data scientists and data teams on features such as relevance optimization, targeting, and performance modeling",
+        "keywords": [
+          "targeting"
+        ]
+      },
+      {
+        "title": "Staff Software Engineer, Storage Services",
+        "requirement": "Improve query throughput and latency across systems handling 100TB+ datasets and 1.5M+ queries per second, using rigorous measurement, experimentation",
+        "keywords": [
+          "experimentation"
+        ]
+      },
+      {
+        "title": "Business Development Representative, San Francisco",
+        "requirement": "Generate qualified, workflow-first pipeline by identifying and targeting high-potential accounts in your assigned book, partnering with your sellers o",
+        "keywords": [
+          "targeting"
+        ]
+      },
+      {
+        "title": "Business Development Representative, San Francisco",
+        "requirement": "Leverage GTM System tooling and intent data to sharpen targeting, prioritize accounts by signal strength, and increase the quality and consistency of ",
+        "keywords": [
+          "targeting"
+        ]
+      },
+      {
+        "title": "Partner Director, McKinsey Alliance ",
+        "requirement": "Build a deep working relationship with QuantumBlack and other McKinsey technology and AI teams to develop repeatable solutions and move customer progr",
+        "keywords": [
+          "experimentation"
+        ]
+      }
+    ]
+  },
+  "skills_inventory::Python": {
+    "inventory": "skills_inventory",
+    "n": 2000,
+    "trusted_alone_hits": 353,
+    "rate": 0.1765,
+    "ci99": [
+      0.15561990696196376,
+      0.19951966770492385
+    ],
+    "driver_words": {
+      "automation": 220,
+      "python": 132,
+      "ocr": 1
+    },
+    "samples": [
+      {
+        "title": "Senior Data Engineer #4885",
+        "requirement": "Partner with and advise systems engineers, lab operations, data scientists, and automation engineers on difficult technical matters, adapting your com",
+        "keywords": [
+          "automation"
+        ]
+      },
+      {
+        "title": "Senior Backend Software Engineer",
+        "requirement": "Languages: Python, TypeScript",
+        "keywords": [
+          "python"
+        ]
+      },
+      {
+        "title": "GN-I&E-Industrial-T&L(Rail)-Senior Manager",
+        "requirement": "Digital transformations and new-age technologies (IoT, AI/ML, automation, predictive maintenance)",
+        "keywords": [
+          "automation"
+        ]
+      },
+      {
+        "title": "Full-Stack Software Engineer",
+        "requirement": "Backend: FastAPI Python",
+        "keywords": [
+          "python"
+        ]
+      },
+      {
+        "title": "Staff Software Engineer, MetalDev",
+        "requirement": "Build automation for data center bring-up, hardware discovery, health monitoring, remediation, and production operations.",
+        "keywords": [
+          "automation"
+        ]
+      }
+    ]
+  },
+  "skills_inventory::Photography": {
+    "inventory": "skills_inventory",
+    "n": 2000,
+    "trusted_alone_hits": 5,
+    "rate": 0.0025,
+    "ci99": [
+      0.0008356175854798979,
+      0.007454763857415298
+    ],
+    "driver_words": {
+      "photography": 5
+    },
+    "samples": [
+      {
+        "title": "Photographer, Zillow Media Experts (Columbus, OH)",
+        "requirement": "Capture industry-leading, professional still photography, listing videos, 3D or 360\u00b0 virtual tours, drone photography & videos (depending on a busines",
+        "keywords": [
+          "photography"
+        ]
+      },
+      {
+        "title": "Photographer, Zillow Media Experts (Columbus, OH)",
+        "requirement": "Utilize advanced photography techniques and equipment to showcase the unique features and aesthetics of each property, allowing sellers and real estat",
+        "keywords": [
+          "photography"
+        ]
+      },
+      {
+        "title": "Photographer, Zillow Media Experts (Columbus, OH)",
+        "requirement": "Coordinate and interact with clients on-site to understand their specific photography needs and expectations",
+        "keywords": [
+          "photography"
+        ]
+      },
+      {
+        "title": "Photographer, Zillow Media Experts (Columbus, OH)",
+        "requirement": "Provide guidance and direction to clients and property owners during photography sessions to achieve desired results and maximize the visual impact of",
+        "keywords": [
+          "photography"
+        ]
+      },
+      {
+        "title": "Photographer, Zillow Media Experts (Columbus, OH)",
+        "requirement": "Manage and maintain photography equipment, including cameras, lenses, and accessories, to ensure optimal performance and reliability",
+        "keywords": [
+          "photography"
+        ]
+      }
+    ]
+  },
+  "skills_inventory::Videography": {
+    "inventory": "skills_inventory",
+    "n": 2000,
+    "trusted_alone_hits": 0,
+    "rate": 0.0,
+    "ci99": [
+      2.168404344971009e-19,
+      0.0033069160230102474
+    ],
+    "driver_words": {},
+    "samples": []
+  },
+  "skills_inventory::Web Design": {
+    "inventory": "skills_inventory",
+    "n": 2000,
+    "trusted_alone_hits": 74,
+    "rate": 0.037,
+    "ci99": [
+      0.027568757546728263,
+      0.04949344669057923
+    ],
+    "driver_words": {
+      "web": 74
+    },
+    "samples": [
+      {
+        "title": "Security Managed Services Practitioner",
+        "requirement": "Develop and maintain WAF security policies to protect web applications against OWASP Top 10 threats: SQL injection, XSS, CSRF, RFI/LFI, command inject",
+        "keywords": [
+          "web"
+        ]
+      },
+      {
+        "title": "Security Managed Services Practitioner",
+        "requirement": "Lead the deployment and management of Zscaler Internet Access (ZIA) \u2014 including secure web gateway (SWG), SSL/TLS inspection, CASB, cloud sandbox, DLP",
+        "keywords": [
+          "web"
+        ]
+      },
+      {
+        "title": "Software Engineer (all teams)",
+        "requirement": "Ship production-grade software across Compa\u2019s web app and backend systems",
+        "keywords": [
+          "web"
+        ]
+      },
+      {
+        "title": "Software Engineer (all teams)",
+        "requirement": "Strong proficiency in at least one modern web development language or framework",
+        "keywords": [
+          "web"
+        ]
+      },
+      {
+        "title": "Junior Associate-Workplace Services",
+        "requirement": "Experience with office technology (MS Office 365, Web-based Applications, One Drive).",
+        "keywords": [
+          "web"
+        ]
+      }
+    ]
+  },
+  "certifications::CompTIA A+": {
+    "inventory": "certifications",
+    "n": 2000,
+    "trusted_alone_hits": 67,
+    "rate": 0.0335,
+    "ci99": [
+      0.024580824170028805,
+      0.04550452847943976
+    ],
+    "driver_words": {
+      "technical support": 56,
+      "help desk": 6,
+      "comptia": 3,
+      "desktop support": 2
+    },
+    "samples": [
+      {
+        "title": "Customer Support Technician I (US Remote)",
+        "requirement": "Deliver first- and second-level technical support to end-users via phone, email, chat, and in-person channels.",
+        "keywords": [
+          "technical support"
+        ]
+      },
+      {
+        "title": "D365 SCM Techno-Functional Consultant",
+        "requirement": "A minimum of 5+ years of experience working with D365 Finance & Operations or AX, demonstrating a strong blend of functional supply chain management e",
+        "keywords": [
+          "technical support"
+        ]
+      },
+      {
+        "title": "Customer Support Specialist (SAP/GHX/EDI)",
+        "requirement": "Supports customers and internal users with referral to the appropriate specialist for technical support and/or problem resolution when warranted.",
+        "keywords": [
+          "technical support"
+        ]
+      },
+      {
+        "title": "Lead Structural Analysis Engineer",
+        "requirement": "Mentor and provide technical support as required",
+        "keywords": [
+          "technical support"
+        ]
+      },
+      {
+        "title": "Network Engineer - Hybrid",
+        "requirement": "Provide technical support to end users regarding hardware and application issues",
+        "keywords": [
+          "technical support"
+        ]
+      }
+    ]
+  }
+}

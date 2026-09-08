@@ -837,6 +837,16 @@ _GENERIC_EVIDENCE_TERMS = frozenset(
         # instead of a former employer's.
         "smart",
         "amp",
+        # "power" (2026-09-08, found via the Future Work item 11 scope-note
+        # follow-up auditing project_inventory too): "You Power You"'s own
+        # NAME splits into identity terms "you" (stopword-filtered) +
+        # "power" -- "power" never appears anywhere in the project's real
+        # factual_concepts/description (website development, HTML/CSS/
+        # JavaScript, server-side form handling), it's a pure name-split
+        # artifact matching a real Disney posting's "...power our media,
+        # advertising..." (the ordinary verb "power/enable," unrelated to
+        # the project). Same shape as "ups"/"house"/"amp"/"smart" above.
+        "power",
         # 2026-09-05: a 31,644-real-job scan (data/experiments/
         # entry_audit_20260905/) isolated each of the other 5
         # experience_inventory entries (Waffle House, AMP Smart, UPS,

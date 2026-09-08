@@ -1,0 +1,134 @@
+sample size: 2000
+
+=== [experience_inventory] Freelance Photography / Videography ===
+  trusted_alone hits: 1/2000 = 0.05%  99% CI=[0.01%,0.42%]  total_supported=1 (0.1%)
+  driver words: [('freelance', 1)]
+    [['freelance']] title='Senior Manager, Creative Design'  req='Agency & Vendor Management: Oversee external creative agencies and freelance talent when necessary, ensuring deliverables align with our internal stan'
+
+=== [experience_inventory] AMP Smart ===
+  trusted_alone hits: 14/2000 = 0.70%  99% CI=[0.36%,1.37%]  total_supported=33 (1.7%)
+  driver words: [('sales', 8), ('outreach', 4), ('communications', 2)]
+    [['sales']] title='Regional Sales Manager, Enterprise '  req='Identify, develop and execute account strategies to generate pipeline, drive sales opportunities and deliver repeatable and predictable bookings'
+    [['sales']] title='Senior Sales Enablement Manager'  req='Partner with Sales, Marketing, Product, Operations, and Analytics to identify seller needs, friction points, and translate insights into enablement st'
+    [['sales']] title='Account Executive, Startups (Grower)'  req='Develop and implement full sales cycle strategies for driving product adoption, net new product sales, and client retention at scale among existing St'
+    [['communications']] title='Director, Business Development, Maritime (International Programs)'  req='Excellent writing, communication skills with experience briefing senior executives and customers.'
+    [['outreach']] title='Patient Service/Front Desk Coordinator'  req='Assist in appointment confirmations and patient outreach in partnership with Doctor availability'
+
+=== [experience_inventory] UPS ===
+  trusted_alone hits: 0/2000 = 0.00%  99% CI=[0.00%,0.33%]  total_supported=0 (0.0%)
+
+=== [experience_inventory] National Tire and Battery / Mavis ===
+  trusted_alone hits: 190/2000 = 9.50%  99% CI=[7.94%,11.33%]  total_supported=186 (9.3%)
+  driver words: [('customer service', 105), ('technical support', 58), ('automotive', 15), ('battery', 11), ('hands-on troubleshooting', 1)]
+    [['customer service']] title='Petroleum Service Technician'  req='Conducts work in a professional manner and provides stellar customer service.'
+    [['customer service']] title='Retail Service Specialist'  req='** Lead store team members in providing excellent customer service to retail'
+    [['customer service']] title='Retail Service Specialist'  req='Supervise the customer service levels on the retail showroom to include team'
+    [['customer service']] title='Retail Service Specialist'  req='member execution on customer service programs (Related sales, Hi5, Rock the'
+    [['customer service']] title='Customer Service Rep(05564) - 814 North Charlotte Ave.'  req='Providing excellent customer service with a smile (even over the phone!)'
+
+=== [experience_inventory] Alex Prosperity Group / UST Logistics ===
+  trusted_alone hits: 28/2000 = 1.40%  99% CI=[0.87%,2.26%]  total_supported=25 (1.2%)
+  driver words: [('logistics', 22), ('installation', 5), ('hands-on work', 1)]
+    [['logistics']] title='Logistics Program Manager'  req='Program Management & Logistics Operations'
+    [['logistics']] title='Logistics Program Manager'  req='Build integrated logistics schedules that map cross-functional dependencies and identify critical path risks to ensure contractual delivery dates are '
+    [['logistics']] title='Logistics Program Manager'  req='Manage all aspects of logistics operations from initial acquisition through post-deployment sustainment, ensuring that all logistical elements are exe'
+    [['installation']] title='Service and Installation Technician'  req='Develop mechanical skills, learn new techniques, and remain current with product requirements for installation materials to meet safety specifications'
+    [['logistics']] title='Senior Computer Systems Engineer/Architect'  req='Participates in developing new software solution concepts and related enterprise logistics systems (utilizing the Agile Software Development principle'
+
+=== [experience_inventory] Waffle House ===
+  trusted_alone hits: 104/2000 = 5.20%  99% CI=[4.06%,6.63%]  total_supported=117 (5.9%)
+  driver words: [('customer service', 104)]
+    [['customer service']] title='Petroleum Service Technician'  req='Conducts work in a professional manner and provides stellar customer service.'
+    [['customer service']] title='Retail Service Specialist'  req='** Lead store team members in providing excellent customer service to retail'
+    [['customer service']] title='Retail Service Specialist'  req='Supervise the customer service levels on the retail showroom to include team'
+    [['customer service']] title='Retail Service Specialist'  req='member execution on customer service programs (Related sales, Hi5, Rock the'
+    [['customer service']] title='Customer Service Rep(05564) - 814 North Charlotte Ave.'  req='Providing excellent customer service with a smile (even over the phone!)'
+
+=== [project_inventory] Standup-OCR ===
+  trusted_alone hits: 315/2000 = 15.75%  99% CI=[13.77%,17.96%]  total_supported=261 (13.1%)
+  driver words: [('automation', 190), ('python', 125)]
+    [['python']] title='Principal AI Engineer (Remote)'  req='Expert-level Python development experience with modern frameworks such as FastAPI, Pydantic, and asynchronous programming patterns.'
+    [['python']] title='Python/PERL Developer'  req='Strong Python expertise with demonstrated experience building production'
+    [['automation']] title='Environmental Test Engineer - 1st Shift - Millennium Space Systems'  req='Enable production autonomy by challenging requirements, simplifying work processes, and implementing automation'
+    [['automation']] title='Environmental Test Engineer - 1st Shift - Millennium Space Systems'  req='Develop test equipment automation to improve efficiency of environmental test processes, limit the likelihood of error, and maximize throughput'
+    [['automation']] title='Capital Markets Solutions Engineer I'  req='Collaborate with business subject matter experts to assess business processes and identify opportunities for process automation that increase efficien'
+
+=== [project_inventory] CAP Predictor ===
+  trusted_alone hits: 329/2000 = 16.45%  99% CI=[14.43%,18.70%]  total_supported=279 (14.0%)
+  driver words: [('python', 127), ('research', 99), ('analytics', 67), ('data collection', 11), ('quantitative', 11), ('data processing', 9), ('cap', 4), ('predictor', 1)]
+    [['python']] title='Principal AI Engineer (Remote)'  req='Expert-level Python development experience with modern frameworks such as FastAPI, Pydantic, and asynchronous programming patterns.'
+    [['python']] title='Python/PERL Developer'  req='Strong Python expertise with demonstrated experience building production'
+    [['analytics']] title='CloudOps AR (SR SysOps OCI)'  req='Monitorear recursos mediante OCI Logging Analytics y GCP Cloud Monitoring, configurando y manteniendo umbrales de alarma.'
+    [['analytics']] title='Data Engineer'  req='Design and implement ETL/ELT pipelines using Oracle Data Integrator (ODI), Oracle Integration Cloud (OIC), and Fusion Analytics extensibility framewor'
+    [['analytics']] title='Data Engineer'  req='Extend and customize Oracle Fusion Analytics data models to support city-specific reporting and analytics needs.'
+
+=== [project_inventory] Express_Engine ===
+  trusted_alone hits: 318/2000 = 15.90%  99% CI=[13.91%,18.12%]  total_supported=263 (13.2%)
+  driver words: [('automation', 190), ('python', 125), ('application architecture', 3)]
+    [['python']] title='Principal AI Engineer (Remote)'  req='Expert-level Python development experience with modern frameworks such as FastAPI, Pydantic, and asynchronous programming patterns.'
+    [['application architecture']] title='Software Engineer Lead - iOS/Android'  req='Participate in application architecture, design reviews, and technical planning sessions.'
+    [['python']] title='Python/PERL Developer'  req='Strong Python expertise with demonstrated experience building production'
+    [['automation']] title='Environmental Test Engineer - 1st Shift - Millennium Space Systems'  req='Enable production autonomy by challenging requirements, simplifying work processes, and implementing automation'
+    [['automation']] title='Environmental Test Engineer - 1st Shift - Millennium Space Systems'  req='Develop test equipment automation to improve efficiency of environmental test processes, limit the likelihood of error, and maximize throughput'
+
+=== [project_inventory] You Power You ===
+  trusted_alone hits: 263/2000 = 13.15%  99% CI=[11.32%,15.22%]  total_supported=194 (9.7%)
+  driver words: [('power', 124), ('web', 70), ('marketing', 66), ('customer-facing technical', 2), ('digital media', 1)]
+    [['web']] title='Software Engineer Lead - iOS/Android'  req='Design, develop, test, and maintain enterprise-grade applications using Java and modern web technologies.'
+    [['customer-facing technical']] title='AI Deployment Engineer, Cyber'  req='Have 5+ years of technical consulting, solutions engineering, security architecture, cyber advisory, deployment engineering, professional services, or'
+    [['power']] title='Sr Product Software Engineer'  req='Building the future of Disney’s media: Our Technologists are designing and building the products and platforms that will power our media, advertising,'
+    [['web']] title='Software Engineer (Web Developer)'  req='Experience in building, deploying, and maintaining web applications end-to-end.'
+    [['web']] title='Frontend Developer (Video Player UI)'  req='Deliver both React components and Web Components for maximum framework compatibility'
+
+=== [project_inventory] I_hate_social_media ===
+  trusted_alone hits: 119/2000 = 5.95%  99% CI=[4.73%,7.46%]  total_supported=104 (5.2%)
+  driver words: [('research', 101), ('data processing', 12), ('social media', 3), ('media', 2), ('structured data', 1)]
+    [['research']] title='AI Deployment Engineer, Cyber'  req='Validate, synthesize, and deliver high-signal feedback to Product, Engineering, Research, Security, and GTM teams based on recurring customer requirem'
+    [['research']] title='Help Desk Technician'  req='Research solutions to complex issues and escalate unresolved issues to senior technicians'
+    [['research']] title='Senior Principal Engineer - Full-Stack Ground Software Developer'  req='Work is performed in an office, laboratory, production floor, or cleanroom, outdoors or remote research environment.'
+    [['research']] title='Maintenance Specialist, Senior'  req='Attend Manufactures training at offsite locations as necessary. Ability to research, learn and self-train on the pneumatic systems utilizing the manuf'
+    [['data processing']] title='Senior Software Engineer, Data Engineering'  req='Design, build, and maintain high-throughput streaming and batch data processing services, with a primary focus on raw and bronze-level ingestion.'
+
+=== [project_inventory] Sunburn ===
+  trusted_alone hits: 22/2000 = 1.10%  99% CI=[0.64%,1.88%]  total_supported=20 (1.0%)
+  driver words: [('targeting', 12), ('experimentation', 9), ('marketing technology', 1)]
+    [['experimentation']] title='Senior Lifecycle Strategist'  req='Own the lifecycle experimentation agenda across segmentation, messaging, cadence, content, channel, triggers, and CTAs, using results to continuously '
+    [['targeting']] title='Senior Software Engineer — cuEquivariance'  req='Build, implement, and optimize CUDA kernels for equivariant neural network primitives — tensor products, segmented polynomials, and triangle-based ope'
+    [['experimentation']] title='Operations Analyst (Scenario Design), Discovery'  req='Create technically credible simulation environments used for customer demonstrations, operational analysis, experimentation, and mission visualization'
+    [['experimentation']] title='Software Engineer, Backend, Marketing Product'  req='Build the backend systems that power AI-native marketing and growth products across creative production, experimentation, incentives, and cross-channe'
+    [['targeting']] title='Software Engineer, Backend, Marketing Product'  req='Build shared incentives infrastructure for eligibility, targeting, policies, budgets, authorization, issuance, redemption, and outcome tracking.'
+
+=== [skills_inventory] Python ===
+  trusted_alone hits: 315/2000 = 15.75%  99% CI=[13.77%,17.96%]  total_supported=261 (13.1%)
+  driver words: [('automation', 190), ('python', 125)]
+    [['python']] title='Principal AI Engineer (Remote)'  req='Expert-level Python development experience with modern frameworks such as FastAPI, Pydantic, and asynchronous programming patterns.'
+    [['python']] title='Python/PERL Developer'  req='Strong Python expertise with demonstrated experience building production'
+    [['automation']] title='Environmental Test Engineer - 1st Shift - Millennium Space Systems'  req='Enable production autonomy by challenging requirements, simplifying work processes, and implementing automation'
+    [['automation']] title='Environmental Test Engineer - 1st Shift - Millennium Space Systems'  req='Develop test equipment automation to improve efficiency of environmental test processes, limit the likelihood of error, and maximize throughput'
+    [['automation']] title='Capital Markets Solutions Engineer I'  req='Collaborate with business subject matter experts to assess business processes and identify opportunities for process automation that increase efficien'
+
+=== [skills_inventory] Photography ===
+  trusted_alone hits: 0/2000 = 0.00%  99% CI=[0.00%,0.33%]  total_supported=0 (0.0%)
+
+=== [skills_inventory] Videography ===
+  trusted_alone hits: 0/2000 = 0.00%  99% CI=[0.00%,0.33%]  total_supported=0 (0.0%)
+
+=== [skills_inventory] Web Design ===
+  trusted_alone hits: 69/2000 = 3.45%  99% CI=[2.54%,4.66%]  total_supported=65 (3.2%)
+  driver words: [('web', 69)]
+    [['web']] title='Software Engineer Lead - iOS/Android'  req='Design, develop, test, and maintain enterprise-grade applications using Java and modern web technologies.'
+    [['web']] title='Software Engineer (Web Developer)'  req='Experience in building, deploying, and maintaining web applications end-to-end.'
+    [['web']] title='Frontend Developer (Video Player UI)'  req='Deliver both React components and Web Components for maximum framework compatibility'
+    [['web']] title='Software Development Engineer, AWS Quick Desktop'  req='Architect and develop scalable test automation infrastructure for desktop (Electron), web, mobile, and API-based services, covering functional, integr'
+    [['web']] title='Senior Lifecycle Strategist'  req='Partner with RevOps, Data, Web, SDR, Sales, and Product teams to establish reliable triggers, scoring inputs, routing logic, suppression rules, exits,'
+
+=== [certifications] CompTIA A+ ===
+  trusted_alone hits: 81/2000 = 4.05%  99% CI=[3.06%,5.35%]  total_supported=68 (3.4%)
+  driver words: [('technical support', 64), ('comptia', 8), ('desktop support', 6), ('help desk', 3)]
+    [['technical support']] title='Lead Maintenance Technician'  req='Provide hands-on troubleshooting and technical support for electrical, mechanical, hydraulic, pneumatic, robotic, and automation systems.'
+    [['technical support']] title='Sales Engineer – Public Safety - Washington, DC'  req='Provide pre- and post-sales technical support including system planning, customer training, system optimization, etc.'
+    [['technical support']] title='Sales Engineer – Public Safety - Washington, DC'  req='Visit customer sites to provide technical support and deliver training.'
+    [['technical support']] title='Electrical Controls Engineer'  req='Provides technical support to manufacturing, process, and engineering teams by responding to inquiries and requests.'
+    [['desktop support']] title='Information Technology Support Engineer'  req='3-8 years of IT support, endpoint engineering, or desktop support experience.'
+
+wrote all_inventories_audit.json

@@ -1,0 +1,144 @@
+sample size: 2000
+
+=== [experience_inventory] Freelance Photography / Videography ===
+  trusted_alone hits: 5/2000 = 0.25%  99% CI=[0.08%,0.75%]  total_supported=1 (0.1%)
+  driver words: [('photography', 5)]
+    [['photography']] title='Photographer, Zillow Media Experts (Columbus, OH)'  req='Capture industry-leading, professional still photography, listing videos, 3D or 360° virtual tours, drone photography & videos (depending on a busines'
+    [['photography']] title='Photographer, Zillow Media Experts (Columbus, OH)'  req='Utilize advanced photography techniques and equipment to showcase the unique features and aesthetics of each property, allowing sellers and real estat'
+    [['photography']] title='Photographer, Zillow Media Experts (Columbus, OH)'  req='Coordinate and interact with clients on-site to understand their specific photography needs and expectations'
+    [['photography']] title='Photographer, Zillow Media Experts (Columbus, OH)'  req='Provide guidance and direction to clients and property owners during photography sessions to achieve desired results and maximize the visual impact of'
+    [['photography']] title='Photographer, Zillow Media Experts (Columbus, OH)'  req='Manage and maintain photography equipment, including cameras, lenses, and accessories, to ensure optimal performance and reliability'
+
+=== [experience_inventory] AMP Smart ===
+  trusted_alone hits: 10/2000 = 0.50%  99% CI=[0.23%,1.10%]  total_supported=34 (1.7%)
+  driver words: [('outreach', 6), ('sales', 4)]
+    [['sales']] title='Digital Support Specialist I'  req='Employing sales strategies to enhance product and service offerings and sharing successful techniques with colleagues.'
+    [['sales']] title='JD Associate - Four Seasons Town Center, Greensboro, NC'  req='Sales & Performance: Drive store sales and profitability through effective merchandise management, promotional strategies, and achieving sales targets'
+    [['outreach']] title='Business Development Representative, San Francisco'  req='Strong written and verbal communication skills with the ability to craft compelling, persona-specific outreach that earns a response'
+    [['outreach']] title='Recruiter, Legal (Contract)'  req='Drive a diverse talent pipeline into the organization ensuring a positive candidate experience at every touchpoint, from initial outreach to offer acc'
+    [['sales']] title='Field Application Engineer, AI Factory'  req='Be a technical specialist on GPU and networking products directly supporting sales account managers, working closely with the team to deliver outstand'
+
+=== [experience_inventory] UPS ===
+  trusted_alone hits: 0/2000 = 0.00%  99% CI=[0.00%,0.33%]  total_supported=0 (0.0%)
+
+=== [experience_inventory] National Tire and Battery / Mavis ===
+  trusted_alone hits: 193/2000 = 9.65%  99% CI=[8.08%,11.49%]  total_supported=181 (9.0%)
+  driver words: [('customer service', 125), ('technical support', 55), ('automotive', 8), ('battery', 3), ('hands-on troubleshooting', 2)]
+    [['technical support']] title='Customer Support Technician I (US Remote)'  req='Deliver first- and second-level technical support to end-users via phone, email, chat, and in-person channels.'
+    [['customer service']] title='Digital Support Specialist I'  req='+2 years of experience in sales or customer service.'
+    [['customer service']] title='GN-I&E-Industrial-T&L(Rail)-Senior Manager'  req='Process reimagination and operational optimization across networks, yards, stations, and customer services'
+    [['technical support']] title='D365 SCM Techno-Functional Consultant'  req='A minimum of 5+ years of experience working with D365 Finance & Operations or AX, demonstrating a strong blend of functional supply chain management e'
+    [['customer service']] title='Customer Service Parcel Specialist'  req='Provide customer service, including anticipating customer needs, suggesting alternatives and problem solving, and is able to satisfy those needs with '
+
+=== [experience_inventory] Alex Prosperity Group / UST Logistics ===
+  trusted_alone hits: 31/2000 = 1.55%  99% CI=[0.98%,2.44%]  total_supported=25 (1.2%)
+  driver words: [('logistics', 27), ('installation', 3), ('hands-on work', 1)]
+    [['logistics']] title='GN-I&E-Industrial-T&L(Rail)-Senior Manager'  req='Railway logistics and operations optimization'
+    [['logistics']] title='GN-I&E-Industrial-T&L(Rail)-Senior Manager'  req='Large program delivery for digital and enterprise transformation in railways and logistics'
+    [['logistics']] title='Manager, ASIC Chip - GPU'  req='Collaborate with packaging, system design, DFT, test engineering, test software, and chip logistics teams to support silicon bring-up.'
+    [['logistics']] title='Senior Logistics Specialist'  req='Experience with logistics support, material supply chain, depot warehouse facilities, and/or related processes or manufacturing.'
+    [['installation']] title='Service and Installation Technician'  req='Develop mechanical skills, learn new techniques, and remain current with product requirements for installation materials to meet safety specifications'
+
+=== [experience_inventory] Waffle House ===
+  trusted_alone hits: 126/2000 = 6.30%  99% CI=[5.04%,7.85%]  total_supported=116 (5.8%)
+  driver words: [('customer service', 126)]
+    [['customer service']] title='Digital Support Specialist I'  req='+2 years of experience in sales or customer service.'
+    [['customer service']] title='GN-I&E-Industrial-T&L(Rail)-Senior Manager'  req='Process reimagination and operational optimization across networks, yards, stations, and customer services'
+    [['customer service']] title='Customer Service Parcel Specialist'  req='Provide customer service, including anticipating customer needs, suggesting alternatives and problem solving, and is able to satisfy those needs with '
+    [['customer service']] title='US-Technical Specialist'  req='Follow troubleshooting steps to identify the root cause of a technical issue in a customer service environment.'
+    [['customer service']] title='US-Technical Specialist'  req='Navigate customer service issues with care and strong interpersonal skills.'
+
+=== [project_inventory] Standup-OCR ===
+  trusted_alone hits: 354/2000 = 17.70%  99% CI=[15.61%,20.00%]  total_supported=288 (14.4%)
+  driver words: [('automation', 220), ('python', 132), ('transcription', 1), ('ocr', 1)]
+    [['automation']] title='Senior Data Engineer #4885'  req='Partner with and advise systems engineers, lab operations, data scientists, and automation engineers on difficult technical matters, adapting your com'
+    [['python']] title='Senior Backend Software Engineer'  req='Languages: Python, TypeScript'
+    [['automation']] title='GN-I&E-Industrial-T&L(Rail)-Senior Manager'  req='Digital transformations and new-age technologies (IoT, AI/ML, automation, predictive maintenance)'
+    [['python']] title='Full-Stack Software Engineer'  req='Backend: FastAPI Python'
+    [['automation']] title='Staff Software Engineer, MetalDev'  req='Build automation for data center bring-up, hardware discovery, health monitoring, remediation, and production operations.'
+
+=== [project_inventory] CAP Predictor ===
+  trusted_alone hits: 174/2000 = 8.70%  99% CI=[7.21%,10.46%]  total_supported=157 (7.8%)
+  driver words: [('python', 140), ('data collection', 11), ('data processing', 10), ('quantitative', 10), ('feature engineering', 2), ('cap', 1)]
+    [['data collection']] title='Epic Willow Build Senior Consultant'  req='This role will perform analysis of workflows, data collection, report details and other technical issues associated with Epic software'
+    [['python']] title='Senior Backend Software Engineer'  req='Languages: Python, TypeScript'
+    [['python']] title='Full-Stack Software Engineer'  req='Backend: FastAPI Python'
+    [['data processing']] title='Staff Software Engineer - Logs Observability Pipelines'  req='You have strong expertise in distributed systems, including scalability, performance optimization, and high-throughput data processing'
+    [['python']] title='Software Engineer'  req='Experience building REST APIs using Java 21 with Spring Boot 3.x and Spring Data JPA, and Python 3.10+ with Django REST Framework or Flask RESTful to '
+
+=== [project_inventory] Express_Engine ===
+  trusted_alone hits: 353/2000 = 17.65%  99% CI=[15.56%,19.95%]  total_supported=288 (14.4%)
+  driver words: [('automation', 220), ('python', 132), ('educational technology', 1)]
+    [['automation']] title='Senior Data Engineer #4885'  req='Partner with and advise systems engineers, lab operations, data scientists, and automation engineers on difficult technical matters, adapting your com'
+    [['python']] title='Senior Backend Software Engineer'  req='Languages: Python, TypeScript'
+    [['automation']] title='GN-I&E-Industrial-T&L(Rail)-Senior Manager'  req='Digital transformations and new-age technologies (IoT, AI/ML, automation, predictive maintenance)'
+    [['python']] title='Full-Stack Software Engineer'  req='Backend: FastAPI Python'
+    [['automation']] title='Staff Software Engineer, MetalDev'  req='Build automation for data center bring-up, hardware discovery, health monitoring, remediation, and production operations.'
+
+=== [project_inventory] You Power You ===
+  trusted_alone hits: 142/2000 = 7.10%  99% CI=[5.76%,8.73%]  total_supported=116 (5.8%)
+  driver words: [('web', 73), ('marketing', 67), ('digital media', 1), ('customer-facing technical', 1)]
+    [['web']] title='Security Managed Services Practitioner'  req='Develop and maintain WAF security policies to protect web applications against OWASP Top 10 threats: SQL injection, XSS, CSRF, RFI/LFI, command inject'
+    [['web']] title='Security Managed Services Practitioner'  req='Lead the deployment and management of Zscaler Internet Access (ZIA) — including secure web gateway (SWG), SSL/TLS inspection, CASB, cloud sandbox, DLP'
+    [['web']] title='Software Engineer (all teams)'  req='Ship production-grade software across Compa’s web app and backend systems'
+    [['web']] title='Software Engineer (all teams)'  req='Strong proficiency in at least one modern web development language or framework'
+    [['marketing']] title='Head of Editorial Content '  req='Partner with communications, product marketing, brand, design, video, and demand generation.'
+
+=== [project_inventory] I_hate_social_media ===
+  trusted_alone hits: 23/2000 = 1.15%  99% CI=[0.68%,1.95%]  total_supported=21 (1.1%)
+  driver words: [('data processing', 12), ('social media', 6), ('structured data', 5)]
+    [['data processing']] title='Staff Software Engineer - Logs Observability Pipelines'  req='You have strong expertise in distributed systems, including scalability, performance optimization, and high-throughput data processing'
+    [['structured data']] title='Staff Software Engineer, Storage Services'  req='Experience building and/or managing core infrastructure systems at scale, preferably in online structured data storage, distributed databases, or larg'
+    [['data processing']] title='Software Engineer'  req='Experience working with distributed data processing frameworks such as Hadoop or Apache Spark for analytics and large scale data processing tasks.'
+    [['data processing']] title='IT Manager (Gastonia, NC)'  req='Managing the analysis, development and administration of data and voice networks as well as data processing operations'
+    [['structured data']] title='Senior Data Intelligence Engineer'  req='AI-Native Technical Skills: Mastery of SQL and Python (production-grade) with a proven track record of building RAG or Agentic systems on top of struc'
+
+=== [project_inventory] Sunburn ===
+  trusted_alone hits: 29/2000 = 1.45%  99% CI=[0.90%,2.32%]  total_supported=27 (1.4%)
+  driver words: [('experimentation', 22), ('targeting', 7)]
+    [['targeting']] title='Software Development Engineer III, Advertising Technology'  req='Work closely with Product, ML data scientists and data teams on features such as relevance optimization, targeting, and performance modeling'
+    [['experimentation']] title='Staff Software Engineer, Storage Services'  req='Improve query throughput and latency across systems handling 100TB+ datasets and 1.5M+ queries per second, using rigorous measurement, experimentation'
+    [['targeting']] title='Business Development Representative, San Francisco'  req='Generate qualified, workflow-first pipeline by identifying and targeting high-potential accounts in your assigned book, partnering with your sellers o'
+    [['targeting']] title='Business Development Representative, San Francisco'  req='Leverage GTM System tooling and intent data to sharpen targeting, prioritize accounts by signal strength, and increase the quality and consistency of '
+    [['experimentation']] title='Partner Director, McKinsey Alliance '  req='Build a deep working relationship with QuantumBlack and other McKinsey technology and AI teams to develop repeatable solutions and move customer progr'
+
+=== [skills_inventory] Python ===
+  trusted_alone hits: 353/2000 = 17.65%  99% CI=[15.56%,19.95%]  total_supported=287 (14.3%)
+  driver words: [('automation', 220), ('python', 132), ('ocr', 1)]
+    [['automation']] title='Senior Data Engineer #4885'  req='Partner with and advise systems engineers, lab operations, data scientists, and automation engineers on difficult technical matters, adapting your com'
+    [['python']] title='Senior Backend Software Engineer'  req='Languages: Python, TypeScript'
+    [['automation']] title='GN-I&E-Industrial-T&L(Rail)-Senior Manager'  req='Digital transformations and new-age technologies (IoT, AI/ML, automation, predictive maintenance)'
+    [['python']] title='Full-Stack Software Engineer'  req='Backend: FastAPI Python'
+    [['automation']] title='Staff Software Engineer, MetalDev'  req='Build automation for data center bring-up, hardware discovery, health monitoring, remediation, and production operations.'
+
+=== [skills_inventory] Photography ===
+  trusted_alone hits: 5/2000 = 0.25%  99% CI=[0.08%,0.75%]  total_supported=1 (0.1%)
+  driver words: [('photography', 5)]
+    [['photography']] title='Photographer, Zillow Media Experts (Columbus, OH)'  req='Capture industry-leading, professional still photography, listing videos, 3D or 360° virtual tours, drone photography & videos (depending on a busines'
+    [['photography']] title='Photographer, Zillow Media Experts (Columbus, OH)'  req='Utilize advanced photography techniques and equipment to showcase the unique features and aesthetics of each property, allowing sellers and real estat'
+    [['photography']] title='Photographer, Zillow Media Experts (Columbus, OH)'  req='Coordinate and interact with clients on-site to understand their specific photography needs and expectations'
+    [['photography']] title='Photographer, Zillow Media Experts (Columbus, OH)'  req='Provide guidance and direction to clients and property owners during photography sessions to achieve desired results and maximize the visual impact of'
+    [['photography']] title='Photographer, Zillow Media Experts (Columbus, OH)'  req='Manage and maintain photography equipment, including cameras, lenses, and accessories, to ensure optimal performance and reliability'
+
+=== [skills_inventory] Videography ===
+  trusted_alone hits: 0/2000 = 0.00%  99% CI=[0.00%,0.33%]  total_supported=0 (0.0%)
+
+=== [skills_inventory] Web Design ===
+  trusted_alone hits: 74/2000 = 3.70%  99% CI=[2.76%,4.95%]  total_supported=64 (3.2%)
+  driver words: [('web', 74)]
+    [['web']] title='Security Managed Services Practitioner'  req='Develop and maintain WAF security policies to protect web applications against OWASP Top 10 threats: SQL injection, XSS, CSRF, RFI/LFI, command inject'
+    [['web']] title='Security Managed Services Practitioner'  req='Lead the deployment and management of Zscaler Internet Access (ZIA) — including secure web gateway (SWG), SSL/TLS inspection, CASB, cloud sandbox, DLP'
+    [['web']] title='Software Engineer (all teams)'  req='Ship production-grade software across Compa’s web app and backend systems'
+    [['web']] title='Software Engineer (all teams)'  req='Strong proficiency in at least one modern web development language or framework'
+    [['web']] title='Junior Associate-Workplace Services'  req='Experience with office technology (MS Office 365, Web-based Applications, One Drive).'
+
+=== [certifications] CompTIA A+ ===
+  trusted_alone hits: 67/2000 = 3.35%  99% CI=[2.46%,4.55%]  total_supported=65 (3.2%)
+  driver words: [('technical support', 56), ('help desk', 6), ('comptia', 3), ('desktop support', 2)]
+    [['technical support']] title='Customer Support Technician I (US Remote)'  req='Deliver first- and second-level technical support to end-users via phone, email, chat, and in-person channels.'
+    [['technical support']] title='D365 SCM Techno-Functional Consultant'  req='A minimum of 5+ years of experience working with D365 Finance & Operations or AX, demonstrating a strong blend of functional supply chain management e'
+    [['technical support']] title='Customer Support Specialist (SAP/GHX/EDI)'  req='Supports customers and internal users with referral to the appropriate specialist for technical support and/or problem resolution when warranted.'
+    [['technical support']] title='Lead Structural Analysis Engineer'  req='Mentor and provide technical support as required'
+    [['technical support']] title='Network Engineer - Hybrid'  req='Provide technical support to end users regarding hardware and application issues'
+
+wrote all_inventories_audit.json
