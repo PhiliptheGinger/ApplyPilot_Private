@@ -1,0 +1,15 @@
+total deterministic_fallback rows: 362
+
+rows whose score actually changes: 10
+  'Software Engineer II': score 3 -> 1  (years None -> 5, family=software_engineering)
+  'Software Engineer II (Java/AWS)': score 4 -> 2  (years None -> 3, family=software_engineering)
+  'Systems Software Engineer, (Linux, CUDA)': score 3 -> 1  (years None -> 5, family=software_engineering)
+  'Software Engineer II (Java/React)': score 4 -> 2  (years None -> 2, family=software_engineering)
+  'Software Development Engineer II - Payments': score 5 -> 3  (years None -> 2, family=software_engineering)
+  'Cloud Engineer': score 9 -> 5  (years None -> 3, family=it_or_tech_support)
+  'Network Engineer (xAI Battery Storage)': score 7 -> 3  (years None -> 6, family=it_or_tech_support)
+  'User Experience Designer': score 5 -> 3  (years None -> 5, family=software_engineering)
+  'Security Engineer': score 9 -> 5  (years None -> 8, family=it_or_tech_support)
+  'Technical Systems Engineer (Hybrid)': score 9 -> 5  (years None -> 3, family=it_or_tech_support)
+
+DRY RUN -- no DB writes. Re-run with --apply to commit these corrections.

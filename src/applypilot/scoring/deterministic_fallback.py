@@ -97,6 +97,28 @@ _YEARS_MENTION_RE = re.compile(
     re.IGNORECASE,
 )
 _REQUIRED_CONTEXT_RE = re.compile(r"\b(?:required|must have|minimum of)\b", re.IGNORECASE)
+
+# 2026-09-08 (decision #82): found via a real manual accuracy spot-check of
+# a live scoring batch -- a real Sourcegraph "Security Engineer" posting
+# ("MINIMUM QUALIFICATIONS\n\nBachelor's degree with 8+ years of hands-on
+# experience with Tenable.io...") scored a false-positive 9/10 because its
+# years requirement is established by a SECTION HEADER, not an inline
+# "required"/"must have"/"minimum of" phrase next to the number --
+# _REQUIRED_CONTEXT_RE's 60-char window never sees any of those words. A
+# live check of the same batch found this wasn't a one-off: 4/125 jobs
+# scored >=7 had a qualifications header + a years-mention that
+# extract_years_required missed entirely. "Preferred"/"desired"/"nice to
+# have" headers are deliberately excluded from this -- a years-mention
+# under a preferred-only section is genuinely optional, not a hard
+# requirement, and must still return None.
+_REQUIRED_SECTION_HEADER_RE = re.compile(
+    r"\b(?:minimum|required|basic)\s+qualifications\b",
+    re.IGNORECASE,
+)
+_NEXT_SECTION_HEADER_RE = re.compile(
+    r"\b(?:preferred|desired|nice.to.have|bonus)\s+qualifications\b|\bpreferred\s+skills\b|\bnice.to.haves?\b",
+    re.IGNORECASE,
+)
 _CS_DEGREE_REQUIRED_RE = re.compile(
     r"\b(?:bachelor'?s?|b\.?s\.?)\s+degree\b[^.\n]{0,60}\b"
     r"(?:computer science|computer engineering|software engineering)\b[^.\n]{0,30}\brequired\b"
@@ -106,18 +128,42 @@ _CS_DEGREE_REQUIRED_RE = re.compile(
 )
 
 
+def _required_section_span(text: str) -> tuple[int, int] | None:
+    """Find a "Minimum/Required/Basic Qualifications"-style section header
+    and return (start, end) of the text it covers -- from just after the
+    header to the next section header (a "Preferred Qualifications"-style
+    heading) or a bounded 1500-char window, whichever comes first. Returns
+    None if no such header is found. See extract_years_required's
+    2026-09-08 decision #82 note for why this exists alongside the
+    inline-phrase check."""
+    m = _REQUIRED_SECTION_HEADER_RE.search(text)
+    if not m:
+        return None
+    start = m.end()
+    stop_m = _NEXT_SECTION_HEADER_RE.search(text, start)
+    end = stop_m.start() if stop_m else min(len(text), start + 1500)
+    return start, end
+
+
 def extract_years_required(description: str) -> int | None:
     """Minimum years-of-experience explicitly stated as REQUIRED (not just
-    "preferred"), or None if no such hard requirement is found. Only counts
-    a years-mention if "required"/"must have"/"minimum of" appears within a
-    nearby window -- a bare years-mention with no required-context is
-    treated as not-a-hard-requirement. Takes the smallest qualifying number
-    in the first 3000 chars."""
+    "preferred"), or None if no such hard requirement is found. A
+    years-mention qualifies if EITHER "required"/"must have"/"minimum of"
+    appears within a nearby inline window, OR it falls inside a "Minimum/
+    Required/Basic Qualifications" section (2026-09-08, decision #82 --
+    real postings very commonly state requirements under a section HEADER
+    rather than repeating "required" next to every number). A bare
+    years-mention with neither signal, or one that only appears under a
+    "Preferred Qualifications"-style section, is treated as not-a-hard-
+    requirement. Takes the smallest qualifying number in the first 3000
+    chars."""
     text = (description or "")[:3000]
     qualifying: list[int] = []
+    required_span = _required_section_span(text)
     for m in _YEARS_MENTION_RE.finditer(text):
         window = text[max(0, m.start() - 60) : m.end() + 60]
-        if _REQUIRED_CONTEXT_RE.search(window):
+        in_required_section = required_span is not None and required_span[0] <= m.start() < required_span[1]
+        if in_required_section or _REQUIRED_CONTEXT_RE.search(window):
             qualifying.append(int(m.group(1)))
     if not qualifying:
         return None

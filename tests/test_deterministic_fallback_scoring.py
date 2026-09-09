@@ -51,6 +51,56 @@ class TestExtractYearsRequired:
         assert extract_years_required("") is None
         assert extract_years_required(None) is None
 
+    def test_years_under_minimum_qualifications_header_counts(self):
+        """2026-09-08 (decision #82): real regression found via a manual
+        accuracy spot-check of a live scoring batch -- a real Sourcegraph/
+        Tenable "Security Engineer" posting stated its requirement as
+        "MINIMUM QUALIFICATIONS\n\nBachelor's degree with 8+ years of
+        hands-on experience with Tenable.io..." with no inline "required"/
+        "must have"/"minimum of" phrase near the number, so the old
+        inline-only context check missed it entirely -- the job scored a
+        false-positive 9/10 instead of being caught by the years gate."""
+        text = (
+            "MINIMUM QUALIFICATIONS\n\n"
+            "Bachelor's degree with 8+ years of hands-on experience with Tenable.io, "
+            "Tenable.sc, and related enterprise vulnerability management tools."
+        )
+        assert extract_years_required(text) == 8
+
+    def test_years_under_required_qualifications_header_counts(self):
+        text = "REQUIRED QUALIFICATIONS\n- 5 years of experience with AWS infrastructure\n- Strong Python skills"
+        assert extract_years_required(text) == 5
+
+    def test_years_under_basic_qualifications_header_counts(self):
+        text = "Basic Qualifications\n- 3 years of experience in a customer-facing technical role"
+        assert extract_years_required(text) == 3
+
+    def test_years_under_preferred_header_still_not_counted(self):
+        """Real 'Sales Engineer' case found in the same batch: a
+        'Preferred Qualifications:' section explicitly states '5 years
+        industry experience, preferred' -- this is genuinely optional, and
+        must still return None even with the new header-based check."""
+        text = (
+            "Minimum Qualifications:\n"
+            "- Electrical Design/Engineering Background\n"
+            "- Communication Proficiency\n"
+            "Preferred Qualifications:\n"
+            "- 5 years industry experience, preferred\n"
+        )
+        assert extract_years_required(text) is None
+
+    def test_years_mention_after_required_section_ends_not_counted(self):
+        """A years-mention appearing well past the required section (e.g.
+        in a benefits/compensation blurb near the end of a long posting)
+        must not be swept in just because SOME required-qualifications
+        header exists earlier in the text."""
+        text = (
+            "Required Qualifications:\n- Strong communication skills\n- Team player\n"
+            + ("filler text. " * 400)
+            + "Employees with 10 years of tenure receive additional PTO."
+        )
+        assert extract_years_required(text) is None
+
 
 class TestExtractCsDegreeRequired:
     def test_cs_degree_required_detected(self):
