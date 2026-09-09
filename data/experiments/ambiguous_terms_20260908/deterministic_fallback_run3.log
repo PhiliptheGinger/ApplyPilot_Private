@@ -1,0 +1,2 @@
+14:44:50 - WARNING - Skipping score write for already-archived job (preserving its archived fit_score/reasoning for audit): https://builtin.com/job/software-engineer-ios-level-3/10570121
+14:44:54 - INFO - Fallback chain (quality): qwen3:8b (gemini) -> gemini-3.1-pro-preview (gemini) -> gemini-3.6-flash (gemini) -> gemini-3.5-flash (gemini) -> gpt-4.1-mini (openai) -> gpt-4.1-nano (openai) -> qwen3:1.7b (local)

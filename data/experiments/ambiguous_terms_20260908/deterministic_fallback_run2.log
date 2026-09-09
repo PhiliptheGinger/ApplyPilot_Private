@@ -1,0 +1,12 @@
+14:35:17 - WARNING - Skipping score write for already-archived job (preserving its archived fit_score/reasoning for audit): https://builtin.com/job/software-engineer-ios-level-3/10570121
+14:35:18 - INFO - Fallback chain (quality): gemini-3.1-pro-preview (gemini) -> gemini-3.6-flash (gemini) -> gemini-3.5-flash (gemini) -> gpt-4.1-mini (openai) -> gpt-4.1-nano (openai) -> qwen3:1.7b (local)
+14:36:11 - INFO - Fallback chain (quality): gemini-3.1-pro-preview (gemini) -> gemini-3.6-flash (gemini) -> gemini-3.5-flash (gemini) -> gpt-4.1-mini (openai) -> gpt-4.1-nano (openai) -> qwen3:1.7b (local)
+14:36:18 - INFO - Fallback chain (quality): gemini-3.1-pro-preview (gemini) -> gemini-3.6-flash (gemini) -> gemini-3.5-flash (gemini) -> gpt-4.1-mini (openai) -> gpt-4.1-nano (openai) -> qwen3:1.7b (local)
+14:36:32 - INFO - Fallback chain (quality): gemini-3.1-pro-preview (gemini) -> gemini-3.6-flash (gemini) -> gemini-3.5-flash (gemini) -> gpt-4.1-mini (openai) -> gpt-4.1-nano (openai) -> qwen3:1.7b (local)
+14:36:45 - INFO - Fallback chain (quality): gemini-3.1-pro-preview (gemini) -> gemini-3.6-flash (gemini) -> gemini-3.5-flash (gemini) -> gpt-4.1-mini (openai) -> gpt-4.1-nano (openai) -> qwen3:1.7b (local)
+14:37:01 - INFO - Fallback chain (quality): gemini-3.1-pro-preview (gemini) -> gemini-3.6-flash (gemini) -> gemini-3.5-flash (gemini) -> gpt-4.1-mini (openai) -> gpt-4.1-nano (openai) -> qwen3:1.7b (local)
+14:37:19 - INFO - Fallback chain (quality): gemini-3.1-pro-preview (gemini) -> gemini-3.6-flash (gemini) -> gemini-3.5-flash (gemini) -> gpt-4.1-mini (openai) -> gpt-4.1-nano (openai) -> qwen3:1.7b (local)
+14:37:35 - INFO - Fallback chain (quality): gemini-3.1-pro-preview (gemini) -> gemini-3.6-flash (gemini) -> gemini-3.5-flash (gemini) -> gpt-4.1-mini (openai) -> gpt-4.1-nano (openai) -> qwen3:1.7b (local)
+14:37:49 - INFO - Fallback chain (quality): gemini-3.1-pro-preview (gemini) -> gemini-3.6-flash (gemini) -> gemini-3.5-flash (gemini) -> gpt-4.1-mini (openai) -> gpt-4.1-nano (openai) -> qwen3:1.7b (local)
+14:38:06 - INFO - Fallback chain (quality): qwen3:8b (gemini) -> gemini-3.1-pro-preview (gemini) -> gemini-3.6-flash (gemini) -> gemini-3.5-flash (gemini) -> gpt-4.1-mini (openai) -> gpt-4.1-nano (openai) -> qwen3:1.7b (local)
+14:40:09 - WARNING - local/qwen3:8b (native) timeout, retry in 1s
