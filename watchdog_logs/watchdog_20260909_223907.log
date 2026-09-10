@@ -1,0 +1,574 @@
+2026-09-09 22:44:10.753445 Ollama not running -- nothing to stop.
+2026-09-09 22:44:10.767610 Ollama running but only using 400.0 MB (< 500 MB threshold) -- leaving it alone, not implicated in this emergency.
+2026-09-09 22:44:10.786763 Ollama using 2500.0 MB -- stopping it as a contributing factor.
+2026-09-09 22:44:10.786763 Terminating Ollama PID 999 (2500.0 MB)
+2026-09-09 22:44:10.805242 Ollama using 2500.0 MB -- stopping it as a contributing factor.
+2026-09-09 22:44:10.805242 Terminating Ollama PID 999 (2500.0 MB)
+2026-09-09 22:44:10.805242 Force-killing Ollama PID 999
+2026-09-09 22:44:11.739731 Top processes by RAM:
+2026-09-09 22:44:11.739731       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:11.739731        727.2 MB  PID   2668  MemCompression
+2026-09-09 22:44:11.739731        414.0 MB  PID  12660  msedge.exe
+2026-09-09 22:44:11.771562 === ApplyPilot watchdog starting ===
+2026-09-09 22:44:11.771562 Project: C:\Users\phili\Projects\resume-agent
+2026-09-09 22:44:11.771562 Command: applypilot run discover --workers 1 --quiet
+2026-09-09 22:44:11.771562 Log file: C:\Users\phili\Projects\resume-agent\watchdog_logs\watchdog_20260909_223907.log
+2026-09-09 22:44:11.771562 Thresholds: disk active>=99% AND latency>=1000ms, OR RAM available<2000MB -- sustained 10 consecutive samples (20s) before acting.
+2026-09-09 22:44:11.771562 ApplyPilot PID: 999999
+2026-09-09 22:44:11.771562 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:11.771562 WARNING: disk-stat query failed/timed out: Command 'powershell.exe' timed out after 5 seconds
+2026-09-09 22:44:11.771562 WARNING: Could not obtain Disk 0 performance data.
+2026-09-09 22:44:11.771562 WARNING: severe pressure (RAM) (1/10)
+2026-09-09 22:44:12.555823 Top processes by RAM:
+2026-09-09 22:44:12.555823       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:12.555823        727.2 MB  PID   2668  MemCompression
+2026-09-09 22:44:12.571963        414.0 MB  PID  12660  msedge.exe
+2026-09-09 22:44:12.571963        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:12.571963        301.0 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:12.571963        293.4 MB  PID   9176  explorer.exe
+2026-09-09 22:44:12.571963        290.0 MB  PID   9196  msedge.exe
+2026-09-09 22:44:12.571963        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:12.571963 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:12.571963 WARNING: severe pressure (RAM) (2/10)
+2026-09-09 22:44:13.365886 Top processes by RAM:
+2026-09-09 22:44:13.365886       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:13.365886        727.0 MB  PID   2668  MemCompression
+2026-09-09 22:44:13.365886        414.0 MB  PID  12660  msedge.exe
+2026-09-09 22:44:13.381624        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:13.381624        300.8 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:13.381624        293.4 MB  PID   9176  explorer.exe
+2026-09-09 22:44:13.381624        290.0 MB  PID   9196  msedge.exe
+2026-09-09 22:44:13.381624        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:13.381624 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:13.381624 WARNING: severe pressure (RAM) (3/10)
+2026-09-09 22:44:14.212656 Top processes by RAM:
+2026-09-09 22:44:14.212656       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:14.212656        727.0 MB  PID   2668  MemCompression
+2026-09-09 22:44:14.212656        414.0 MB  PID  12660  msedge.exe
+2026-09-09 22:44:14.225303        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:14.225303        301.0 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:14.225303        293.4 MB  PID   9176  explorer.exe
+2026-09-09 22:44:14.225303        290.0 MB  PID   9196  msedge.exe
+2026-09-09 22:44:14.225303        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:14.225303 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:14.225303 WARNING: severe pressure (RAM) (4/10)
+2026-09-09 22:44:15.085563 Top processes by RAM:
+2026-09-09 22:44:15.087690       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:15.087690        727.0 MB  PID   2668  MemCompression
+2026-09-09 22:44:15.089708        414.0 MB  PID  12660  msedge.exe
+2026-09-09 22:44:15.089708        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:15.089708        300.8 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:15.089708        293.4 MB  PID   9176  explorer.exe
+2026-09-09 22:44:15.089708        290.0 MB  PID   9196  msedge.exe
+2026-09-09 22:44:15.089708        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:15.089708 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:15.089708 WARNING: severe pressure (RAM) (5/10)
+2026-09-09 22:44:15.947767 Top processes by RAM:
+2026-09-09 22:44:15.949437       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:15.951452        727.0 MB  PID   2668  MemCompression
+2026-09-09 22:44:15.951452        414.0 MB  PID  12660  msedge.exe
+2026-09-09 22:44:15.951452        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:15.951452        301.0 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:15.951452        293.4 MB  PID   9176  explorer.exe
+2026-09-09 22:44:15.951452        290.0 MB  PID   9196  msedge.exe
+2026-09-09 22:44:15.951452        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:15.951452 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:15.951452 WARNING: disk-stat query failed/timed out: Command 'powershell.exe' timed out after 5 seconds
+2026-09-09 22:44:15.951452 WARNING: Could not obtain Disk 0 performance data.
+2026-09-09 22:44:15.951452 WARNING: severe pressure (RAM) (6/10)
+2026-09-09 22:44:16.774650 Top processes by RAM:
+2026-09-09 22:44:16.775663       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:16.775663        726.9 MB  PID   2668  MemCompression
+2026-09-09 22:44:16.777682        414.0 MB  PID  12660  msedge.exe
+2026-09-09 22:44:16.777682        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:16.779696        301.0 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:16.779696        293.4 MB  PID   9176  explorer.exe
+2026-09-09 22:44:16.779696        290.0 MB  PID   9196  msedge.exe
+2026-09-09 22:44:16.781709        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:16.781709 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:16.781709 WARNING: severe pressure (RAM) (7/10)
+2026-09-09 22:44:17.565546 Top processes by RAM:
+2026-09-09 22:44:17.565546       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:17.565546        726.9 MB  PID   2668  MemCompression
+2026-09-09 22:44:17.565546        414.0 MB  PID  12660  msedge.exe
+2026-09-09 22:44:17.565546        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:17.565546        300.8 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:17.565546        293.1 MB  PID   9176  explorer.exe
+2026-09-09 22:44:17.565546        290.0 MB  PID   9196  msedge.exe
+2026-09-09 22:44:17.572540        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:17.572540 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:17.572540 WARNING: severe pressure (RAM) (8/10)
+2026-09-09 22:44:18.421618 Top processes by RAM:
+2026-09-09 22:44:18.421618       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:18.421618        726.9 MB  PID   2668  MemCompression
+2026-09-09 22:44:18.421618        414.0 MB  PID  12660  msedge.exe
+2026-09-09 22:44:18.437361        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:18.437361        301.0 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:18.437361        293.1 MB  PID   9176  explorer.exe
+2026-09-09 22:44:18.437361        290.0 MB  PID   9196  msedge.exe
+2026-09-09 22:44:18.437361        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:18.437361 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:18.437361 WARNING: severe pressure (RAM) (9/10)
+2026-09-09 22:44:19.263558 Top processes by RAM:
+2026-09-09 22:44:19.263558       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:19.263558        726.9 MB  PID   2668  MemCompression
+2026-09-09 22:44:19.263558        414.0 MB  PID  12660  msedge.exe
+2026-09-09 22:44:19.263558        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:19.263558        300.8 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:19.263558        293.1 MB  PID   9176  explorer.exe
+2026-09-09 22:44:19.263558        290.0 MB  PID   9196  msedge.exe
+2026-09-09 22:44:19.263558        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:19.263558 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:19.263558 WARNING: severe pressure (RAM) (10/10)
+2026-09-09 22:44:20.105086 Top processes by RAM:
+2026-09-09 22:44:20.105086       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:20.105086        726.9 MB  PID   2668  MemCompression
+2026-09-09 22:44:20.121233        414.0 MB  PID  12660  msedge.exe
+2026-09-09 22:44:20.121233        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:20.121233        300.8 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:20.121233        293.1 MB  PID   9176  explorer.exe
+2026-09-09 22:44:20.125081        289.9 MB  PID   9196  msedge.exe
+2026-09-09 22:44:20.125081        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:20.125081 !!! EMERGENCY CONDITION TRIGGERED !!!
+2026-09-09 22:44:20.125081 Sustained severe pressure for 20s (disk_bad=False, ram_bad=True).
+2026-09-09 22:44:20.125081 Final process snapshot before shutdown:
+2026-09-09 22:44:21.071627 Top processes by RAM:
+2026-09-09 22:44:21.071627       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:21.071627        726.9 MB  PID   2668  MemCompression
+2026-09-09 22:44:21.071627        414.0 MB  PID  12660  msedge.exe
+2026-09-09 22:44:21.071627        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:21.071627        300.8 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:21.071627        293.1 MB  PID   9176  explorer.exe
+2026-09-09 22:44:21.071627        289.9 MB  PID   9196  msedge.exe
+2026-09-09 22:44:21.071627        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:21.087537        181.9 MB  PID  13376  CrossDeviceService.exe
+2026-09-09 22:44:21.087537        174.1 MB  PID  16636  PSExpressCore.exe
+2026-09-09 22:44:21.087537        170.0 MB  PID  23100  python.exe
+2026-09-09 22:44:21.087537        167.8 MB  PID   2464  svchost.exe
+2026-09-09 22:44:21.087537        139.3 MB  PID   8856  msedge.exe
+2026-09-09 22:44:21.087537        134.1 MB  PID   3024  claude.exe
+2026-09-09 22:44:21.087537        127.1 MB  PID  24912  msedgewebview2.exe
+2026-09-09 22:44:21.087537 Stopping ApplyPilot process tree...
+2026-09-09 22:44:21.087537 ApplyPilot stopped due to sustained resource pressure. Machine sleep is NOT triggered by default (set APPLYPILOT_WATCHDOG_SLEEP=1 to restore that). If a restart-on-exit supervisor is running this workload, it will relaunch ApplyPilot once conditions recover.
+2026-09-09 22:44:21.103736 === ApplyPilot watchdog starting ===
+2026-09-09 22:44:21.103736 Project: C:\Users\phili\Projects\resume-agent
+2026-09-09 22:44:21.119369 Command: applypilot run discover --workers 1 --quiet
+2026-09-09 22:44:21.119369 Log file: C:\Users\phili\Projects\resume-agent\watchdog_logs\watchdog_20260909_223907.log
+2026-09-09 22:44:21.119369 Thresholds: disk active>=99% AND latency>=1000ms, OR RAM available<2000MB -- sustained 10 consecutive samples (20s) before acting.
+2026-09-09 22:44:21.119369 ApplyPilot PID: 999999
+2026-09-09 22:44:21.119369 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:21.119369 WARNING: disk-stat query failed/timed out: Command 'powershell.exe' timed out after 5 seconds
+2026-09-09 22:44:21.119369 WARNING: Could not obtain Disk 0 performance data.
+2026-09-09 22:44:21.119369 WARNING: severe pressure (RAM) (1/10)
+2026-09-09 22:44:21.895917 Top processes by RAM:
+2026-09-09 22:44:21.902074       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:21.902074        750.3 MB  PID   2668  MemCompression
+2026-09-09 22:44:21.904092        414.0 MB  PID  12660  msedge.exe
+2026-09-09 22:44:21.904092        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:21.906105        301.1 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:21.906105        293.1 MB  PID   9176  explorer.exe
+2026-09-09 22:44:21.906105        289.9 MB  PID   9196  msedge.exe
+2026-09-09 22:44:21.908119        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:21.908119 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:21.908119 WARNING: severe pressure (RAM) (2/10)
+2026-09-09 22:44:22.739184 Top processes by RAM:
+2026-09-09 22:44:22.739184       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:22.739184        750.3 MB  PID   2668  MemCompression
+2026-09-09 22:44:22.739184        414.0 MB  PID  12660  msedge.exe
+2026-09-09 22:44:22.739184        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:22.739184        300.8 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:22.739184        293.1 MB  PID   9176  explorer.exe
+2026-09-09 22:44:22.755173        289.9 MB  PID   9196  msedge.exe
+2026-09-09 22:44:22.755173        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:22.755173 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:22.755173 WARNING: severe pressure (RAM) (3/10)
+2026-09-09 22:44:23.563302 Top processes by RAM:
+2026-09-09 22:44:23.563302       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:23.566563        750.3 MB  PID   2668  MemCompression
+2026-09-09 22:44:23.566563        414.0 MB  PID  12660  msedge.exe
+2026-09-09 22:44:23.566563        348.1 MB  PID  14992  claude.exe
+2026-09-09 22:44:23.566563        301.0 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:23.566563        293.1 MB  PID   9176  explorer.exe
+2026-09-09 22:44:23.566563        289.9 MB  PID   9196  msedge.exe
+2026-09-09 22:44:23.566563        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:23.566563 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:23.566563 WARNING: severe pressure (RAM) (4/10)
+2026-09-09 22:44:24.410259 Top processes by RAM:
+2026-09-09 22:44:24.410259       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:24.410259        750.3 MB  PID   2668  MemCompression
+2026-09-09 22:44:24.410259        414.0 MB  PID  12660  msedge.exe
+2026-09-09 22:44:24.410259        348.1 MB  PID  14992  claude.exe
+2026-09-09 22:44:24.410259        300.8 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:24.410259        293.1 MB  PID   9176  explorer.exe
+2026-09-09 22:44:24.410259        289.9 MB  PID   9196  msedge.exe
+2026-09-09 22:44:24.410259        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:24.410259 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:24.410259 WARNING: severe pressure (RAM) (5/10)
+2026-09-09 22:44:25.283243 Top processes by RAM:
+2026-09-09 22:44:25.283243       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:25.283243        750.3 MB  PID   2668  MemCompression
+2026-09-09 22:44:25.283243        414.0 MB  PID  12660  msedge.exe
+2026-09-09 22:44:25.283243        348.1 MB  PID  14992  claude.exe
+2026-09-09 22:44:25.283243        300.8 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:25.283243        293.1 MB  PID   9176  explorer.exe
+2026-09-09 22:44:25.283243        289.9 MB  PID   9196  msedge.exe
+2026-09-09 22:44:25.283243        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:25.283243 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:25.283243 WARNING: disk-stat query failed/timed out: Command 'powershell.exe' timed out after 5 seconds
+2026-09-09 22:44:25.283243 WARNING: Could not obtain Disk 0 performance data.
+2026-09-09 22:44:25.283243 WARNING: severe pressure (RAM) (6/10)
+2026-09-09 22:44:26.136571 Top processes by RAM:
+2026-09-09 22:44:26.136571       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:26.142617        750.3 MB  PID   2668  MemCompression
+2026-09-09 22:44:26.142617        414.8 MB  PID  12660  msedge.exe
+2026-09-09 22:44:26.144637        348.1 MB  PID  14992  claude.exe
+2026-09-09 22:44:26.144637        301.1 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:26.146655        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:26.146655        290.3 MB  PID   9196  msedge.exe
+2026-09-09 22:44:26.148676        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:26.150756 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:26.150756 WARNING: severe pressure (RAM) (7/10)
+2026-09-09 22:44:26.993670 Top processes by RAM:
+2026-09-09 22:44:26.994841       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:26.994841        750.3 MB  PID   2668  MemCompression
+2026-09-09 22:44:26.994841        414.8 MB  PID  12660  msedge.exe
+2026-09-09 22:44:26.996856        348.1 MB  PID  14992  claude.exe
+2026-09-09 22:44:26.996856        300.7 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:26.996856        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:26.998868        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:26.999889        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:26.999889 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:27.001907 WARNING: severe pressure (RAM) (8/10)
+2026-09-09 22:44:27.879693 Top processes by RAM:
+2026-09-09 22:44:27.879693       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:27.879693        750.3 MB  PID   2668  MemCompression
+2026-09-09 22:44:27.879693        414.8 MB  PID  12660  msedge.exe
+2026-09-09 22:44:27.879693        348.1 MB  PID  14992  claude.exe
+2026-09-09 22:44:27.879693        318.1 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:27.886315        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:27.886315        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:27.886315        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:27.886315 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:27.889785 WARNING: severe pressure (RAM) (9/10)
+2026-09-09 22:44:28.778180 Top processes by RAM:
+2026-09-09 22:44:28.778180       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:28.778180        750.3 MB  PID   2668  MemCompression
+2026-09-09 22:44:28.778180        414.8 MB  PID  12660  msedge.exe
+2026-09-09 22:44:28.778180        348.1 MB  PID  14992  claude.exe
+2026-09-09 22:44:28.778180        314.9 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:28.778180        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:28.778180        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:28.778180        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:28.778180 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:28.778180 WARNING: severe pressure (RAM) (10/10)
+2026-09-09 22:44:29.638270 Top processes by RAM:
+2026-09-09 22:44:29.640906       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:29.640906        750.3 MB  PID   2668  MemCompression
+2026-09-09 22:44:29.640906        414.8 MB  PID  12660  msedge.exe
+2026-09-09 22:44:29.640906        348.1 MB  PID  14992  claude.exe
+2026-09-09 22:44:29.640906        314.3 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:29.640906        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:29.640906        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:29.640906        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:29.640906 !!! EMERGENCY CONDITION TRIGGERED !!!
+2026-09-09 22:44:29.640906 Sustained severe pressure for 20s (disk_bad=False, ram_bad=True).
+2026-09-09 22:44:29.640906 Final process snapshot before shutdown:
+2026-09-09 22:44:30.527403 Top processes by RAM:
+2026-09-09 22:44:30.527403       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:30.527403        750.7 MB  PID   2668  MemCompression
+2026-09-09 22:44:30.527403        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:30.527403        348.1 MB  PID  14992  claude.exe
+2026-09-09 22:44:30.527403        314.5 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:30.527403        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:30.527403        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:30.527403        218.5 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:30.527403        181.8 MB  PID  13376  CrossDeviceService.exe
+2026-09-09 22:44:30.527403        174.1 MB  PID  16636  PSExpressCore.exe
+2026-09-09 22:44:30.527403        170.0 MB  PID  23100  python.exe
+2026-09-09 22:44:30.527403        169.0 MB  PID   2464  svchost.exe
+2026-09-09 22:44:30.538167        139.3 MB  PID   8856  msedge.exe
+2026-09-09 22:44:30.538167        131.5 MB  PID   3024  claude.exe
+2026-09-09 22:44:30.538167        127.1 MB  PID  24912  msedgewebview2.exe
+2026-09-09 22:44:30.538167 Stopping ApplyPilot process tree...
+2026-09-09 22:44:30.538167 ApplyPilot stopped due to sustained resource pressure. Machine sleep is NOT triggered by default (set APPLYPILOT_WATCHDOG_SLEEP=1 to restore that). If a restart-on-exit supervisor is running this workload, it will relaunch ApplyPilot once conditions recover.
+2026-09-09 22:44:30.561117 === ApplyPilot watchdog starting ===
+2026-09-09 22:44:30.561117 Project: C:\Users\phili\Projects\resume-agent
+2026-09-09 22:44:30.561117 Command: applypilot run discover --workers 1 --quiet
+2026-09-09 22:44:30.568617 Log file: C:\Users\phili\Projects\resume-agent\watchdog_logs\watchdog_20260909_223907.log
+2026-09-09 22:44:30.568617 Thresholds: disk active>=99% AND latency>=1000ms, OR RAM available<2000MB -- sustained 10 consecutive samples (20s) before acting.
+2026-09-09 22:44:30.568617 ApplyPilot PID: 999999
+2026-09-09 22:44:30.568617 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:30.568617 WARNING: disk-stat query failed/timed out: Command 'powershell.exe' timed out after 5 seconds
+2026-09-09 22:44:30.568617 WARNING: Could not obtain Disk 0 performance data.
+2026-09-09 22:44:30.568617 WARNING: severe pressure (RAM) (1/10)
+2026-09-09 22:44:31.448249 Top processes by RAM:
+2026-09-09 22:44:31.463988       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:31.463988        750.0 MB  PID   2668  MemCompression
+2026-09-09 22:44:31.463988        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:31.463988        348.1 MB  PID  14992  claude.exe
+2026-09-09 22:44:31.463988        314.4 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:31.463988        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:31.463988        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:31.463988        218.5 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:31.463988 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:31.463988 WARNING: severe pressure (RAM) (2/10)
+2026-09-09 22:44:32.449875 Top processes by RAM:
+2026-09-09 22:44:32.449875       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:32.449875        750.0 MB  PID   2668  MemCompression
+2026-09-09 22:44:32.449875        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:32.449875        348.8 MB  PID  14992  claude.exe
+2026-09-09 22:44:32.449875        314.7 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:32.449875        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:32.449875        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:32.449875        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:32.449875 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:32.449875 WARNING: severe pressure (RAM) (3/10)
+2026-09-09 22:44:33.452011 Top processes by RAM:
+2026-09-09 22:44:33.452011       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:33.452011        750.0 MB  PID   2668  MemCompression
+2026-09-09 22:44:33.452011        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:33.452011        348.5 MB  PID  14992  claude.exe
+2026-09-09 22:44:33.452011        314.6 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:33.452011        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:33.467723        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:33.467723        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:33.467723 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:33.467723 WARNING: severe pressure (RAM) (4/10)
+2026-09-09 22:44:34.408994 Top processes by RAM:
+2026-09-09 22:44:34.408994       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:34.408994        754.3 MB  PID   2668  MemCompression
+2026-09-09 22:44:34.408994        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:34.408994        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:34.408994        315.6 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:34.408994        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:34.408994        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:34.417847        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:34.417847 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:34.417847 WARNING: severe pressure (RAM) (5/10)
+2026-09-09 22:44:35.294512 Top processes by RAM:
+2026-09-09 22:44:35.294512       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:35.310632        754.3 MB  PID   2668  MemCompression
+2026-09-09 22:44:35.310632        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:35.310632        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:35.310632        316.0 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:35.310632        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:35.310632        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:35.315271        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:35.315271 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:35.315271 WARNING: disk-stat query failed/timed out: Command 'powershell.exe' timed out after 5 seconds
+2026-09-09 22:44:35.315271 WARNING: Could not obtain Disk 0 performance data.
+2026-09-09 22:44:35.315271 WARNING: severe pressure (RAM) (6/10)
+2026-09-09 22:44:36.124298 Top processes by RAM:
+2026-09-09 22:44:36.124298       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:36.125916        749.9 MB  PID   2668  MemCompression
+2026-09-09 22:44:36.125916        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:36.125916        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:36.128441        316.0 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:36.130033        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:36.130033        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:36.132050        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:36.132050 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:36.134067 WARNING: severe pressure (RAM) (7/10)
+2026-09-09 22:44:37.013217 Top processes by RAM:
+2026-09-09 22:44:37.013217       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:37.013217        749.9 MB  PID   2668  MemCompression
+2026-09-09 22:44:37.013217        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:37.013217        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:37.013217        315.9 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:37.013217        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:37.028453        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:37.028453        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:37.030474 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:37.030474 WARNING: severe pressure (RAM) (8/10)
+2026-09-09 22:44:37.995353 Top processes by RAM:
+2026-09-09 22:44:37.995353       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:37.995353        750.0 MB  PID   2668  MemCompression
+2026-09-09 22:44:37.995353        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:37.995353        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:37.995353        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:38.011441        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:38.011441        279.2 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:38.011441        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:38.011441 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:38.011441 WARNING: severe pressure (RAM) (9/10)
+2026-09-09 22:44:38.869239 Top processes by RAM:
+2026-09-09 22:44:38.869239       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:38.869239        755.2 MB  PID   2668  MemCompression
+2026-09-09 22:44:38.869239        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:38.869239        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:38.869239        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:38.869239        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:38.869239        278.9 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:38.869239        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:38.869239 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:38.869239 WARNING: severe pressure (RAM) (10/10)
+2026-09-09 22:44:39.696035 Top processes by RAM:
+2026-09-09 22:44:39.696035       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:39.696035        781.0 MB  PID   2668  MemCompression
+2026-09-09 22:44:39.696035        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:39.696035        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:39.696035        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:39.696035        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:39.696035        279.2 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:39.696035        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:39.696035 !!! EMERGENCY CONDITION TRIGGERED !!!
+2026-09-09 22:44:39.696035 Sustained severe pressure for 20s (disk_bad=False, ram_bad=True).
+2026-09-09 22:44:39.696035 Final process snapshot before shutdown:
+2026-09-09 22:44:40.491689 Top processes by RAM:
+2026-09-09 22:44:40.491689       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:40.491689        775.7 MB  PID   2668  MemCompression
+2026-09-09 22:44:40.491689        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:40.491689        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:40.491689        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:40.491689        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:40.491689        278.9 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:40.491689        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:40.491689        181.9 MB  PID  13376  CrossDeviceService.exe
+2026-09-09 22:44:40.491689        174.1 MB  PID  16636  PSExpressCore.exe
+2026-09-09 22:44:40.506151        170.1 MB  PID  23100  python.exe
+2026-09-09 22:44:40.506151        168.8 MB  PID   2464  svchost.exe
+2026-09-09 22:44:40.507762        139.3 MB  PID   8856  msedge.exe
+2026-09-09 22:44:40.507762        131.6 MB  PID   3024  claude.exe
+2026-09-09 22:44:40.507762        127.1 MB  PID  24912  msedgewebview2.exe
+2026-09-09 22:44:40.507762 Stopping ApplyPilot process tree...
+2026-09-09 22:44:40.507762 APPLYPILOT_WATCHDOG_SLEEP=1 -- attempting to put Windows to sleep...
+2026-09-09 22:44:40.507762 WARNING: sleep command did not return within 15s -- abandoning it (ApplyPilot is already stopped).
+2026-09-09 22:44:40.523943 === ApplyPilot watchdog starting ===
+2026-09-09 22:44:40.523943 Project: C:\Users\phili\Projects\resume-agent
+2026-09-09 22:44:40.540001 Command: applypilot run discover --workers 1 --quiet
+2026-09-09 22:44:40.540001 Log file: C:\Users\phili\Projects\resume-agent\watchdog_logs\watchdog_20260909_223907.log
+2026-09-09 22:44:40.540001 Thresholds: disk active>=99% AND latency>=1000ms, OR RAM available<2000MB -- sustained 10 consecutive samples (20s) before acting.
+2026-09-09 22:44:40.540001 ApplyPilot PID: 999999
+2026-09-09 22:44:40.540001 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:40.540001 WARNING: Could not obtain Disk 0 performance data.
+2026-09-09 22:44:40.540001 WARNING: severe pressure (RAM) (1/10)
+2026-09-09 22:44:41.383796 Top processes by RAM:
+2026-09-09 22:44:41.383796       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:41.383796        775.7 MB  PID   2668  MemCompression
+2026-09-09 22:44:41.383796        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:41.383796        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:41.383796        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:41.383796        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:41.383796        279.2 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:41.383796        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:41.383796 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:41.383796 WARNING: severe pressure (RAM) (2/10)
+2026-09-09 22:44:42.195582 Top processes by RAM:
+2026-09-09 22:44:42.195582       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:42.195582        775.7 MB  PID   2668  MemCompression
+2026-09-09 22:44:42.195582        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:42.195582        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:42.195582        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:42.195582        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:42.195582        279.1 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:42.195582        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:42.195582 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:42.195582 WARNING: severe pressure (RAM) (3/10)
+2026-09-09 22:44:43.038288 Top processes by RAM:
+2026-09-09 22:44:43.038288       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:43.038288        775.7 MB  PID   2668  MemCompression
+2026-09-09 22:44:43.038288        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:43.038288        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:43.038288        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:43.038288        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:43.038288        279.1 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:43.038288        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:43.038288 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:43.038288 WARNING: severe pressure (RAM) (4/10)
+2026-09-09 22:44:43.868133 Top processes by RAM:
+2026-09-09 22:44:43.868133       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:43.868133        775.7 MB  PID   2668  MemCompression
+2026-09-09 22:44:43.868133        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:43.868133        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:43.868133        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:43.868133        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:43.868133        279.3 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:43.881703        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:43.881703 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:43.881703 WARNING: severe pressure (RAM) (5/10)
+2026-09-09 22:44:44.708945 Top processes by RAM:
+2026-09-09 22:44:44.708945       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:44.708945        775.7 MB  PID   2668  MemCompression
+2026-09-09 22:44:44.708945        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:44.708945        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:44.708945        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:44.708945        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:44.708945        279.0 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:44.708945        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:44.708945 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:44.708945 WARNING: Could not obtain Disk 0 performance data.
+2026-09-09 22:44:44.708945 WARNING: severe pressure (RAM) (6/10)
+2026-09-09 22:44:45.520315 Top processes by RAM:
+2026-09-09 22:44:45.520315       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:45.520315        775.7 MB  PID   2668  MemCompression
+2026-09-09 22:44:45.520315        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:45.520315        348.4 MB  PID  14992  claude.exe
+2026-09-09 22:44:45.520315        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:45.536054        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:45.536054        279.3 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:45.536054        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:45.538063 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:45.538063 WARNING: severe pressure (RAM) (7/10)
+2026-09-09 22:44:46.346534 Top processes by RAM:
+2026-09-09 22:44:46.346534       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:46.346534        775.7 MB  PID   2668  MemCompression
+2026-09-09 22:44:46.346534        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:46.346534        349.3 MB  PID  14992  claude.exe
+2026-09-09 22:44:46.346534        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:46.346534        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:46.346534        279.0 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:46.346534        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:46.346534 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:46.346534 WARNING: severe pressure (RAM) (8/10)
+2026-09-09 22:44:47.189788 Top processes by RAM:
+2026-09-09 22:44:47.189788       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:47.189788        775.7 MB  PID   2668  MemCompression
+2026-09-09 22:44:47.189788        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:47.189788        349.3 MB  PID  14992  claude.exe
+2026-09-09 22:44:47.189788        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:47.197263        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:47.197263        279.0 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:47.197263        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:47.198858 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:47.198858 WARNING: severe pressure (RAM) (9/10)
+2026-09-09 22:44:48.002525 Top processes by RAM:
+2026-09-09 22:44:48.002525       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:48.002525        775.7 MB  PID   2668  MemCompression
+2026-09-09 22:44:48.002525        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:48.002525        349.3 MB  PID  14992  claude.exe
+2026-09-09 22:44:48.002525        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:48.002525        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:48.002525        279.3 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:48.002525        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:48.002525 RAM available=1900 MB used=95.0%
+2026-09-09 22:44:48.002525 WARNING: severe pressure (RAM) (10/10)
+2026-09-09 22:44:48.828517 Top processes by RAM:
+2026-09-09 22:44:48.828517       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:48.828517        775.7 MB  PID   2668  MemCompression
+2026-09-09 22:44:48.828517        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:48.828517        349.3 MB  PID  14992  claude.exe
+2026-09-09 22:44:48.840572        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:48.840572        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:48.842371        279.1 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:48.842371        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:48.842371 !!! EMERGENCY CONDITION TRIGGERED !!!
+2026-09-09 22:44:48.842371 Sustained severe pressure for 20s (disk_bad=False, ram_bad=True).
+2026-09-09 22:44:48.842371 Final process snapshot before shutdown:
+2026-09-09 22:44:49.683772 Top processes by RAM:
+2026-09-09 22:44:49.683772       1801.2 MB  PID  24796  llama-server.exe
+2026-09-09 22:44:49.683772        775.7 MB  PID   2668  MemCompression
+2026-09-09 22:44:49.683772        414.9 MB  PID  12660  msedge.exe
+2026-09-09 22:44:49.683772        350.1 MB  PID  14992  claude.exe
+2026-09-09 22:44:49.683772        293.2 MB  PID   9176  explorer.exe
+2026-09-09 22:44:49.683772        290.2 MB  PID   9196  msedge.exe
+2026-09-09 22:44:49.683772        279.3 MB  PID   5888  MsMpEng.exe
+2026-09-09 22:44:49.683772        218.4 MB  PID  14832  Spotify.exe
+2026-09-09 22:44:49.683772        181.9 MB  PID  13376  CrossDeviceService.exe
+2026-09-09 22:44:49.683772        174.1 MB  PID  16636  PSExpressCore.exe
+2026-09-09 22:44:49.683772        170.1 MB  PID  23100  python.exe
+2026-09-09 22:44:49.683772        169.1 MB  PID   2464  svchost.exe
+2026-09-09 22:44:49.683772        139.3 MB  PID   8856  msedge.exe
+2026-09-09 22:44:49.683772        131.6 MB  PID   3024  claude.exe
+2026-09-09 22:44:49.699528        127.1 MB  PID  24912  msedgewebview2.exe
+2026-09-09 22:44:49.699528 Stopping ApplyPilot process tree...
+2026-09-09 22:44:49.699528 ApplyPilot stopped due to sustained resource pressure. Machine sleep is NOT triggered by default (set APPLYPILOT_WATCHDOG_SLEEP=1 to restore that). If a restart-on-exit supervisor is running this workload, it will relaunch ApplyPilot once conditions recover.

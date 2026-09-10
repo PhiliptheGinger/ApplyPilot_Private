@@ -150,6 +150,37 @@ def init() -> None:
     run_wizard()
 
 
+@app.command("import-github")
+def import_github(
+    username: str = typer.Argument(..., help="Public GitHub username to import project evidence from."),
+) -> None:
+    """Pull public GitHub repos as candidate project_inventory evidence.
+
+    Same flow as the `init` wizard's optional GitHub-import step (CLAUDE.md
+    decision #84/85), for a user who already ran `init` and wants to add
+    repos later. Every repo is screened for reputational concerns (vulgar
+    language, anti-corporate/political content, automation tools that could
+    read as ToS-violating, etc.) via discovery/github_profile.py and shown
+    to you before anything is added -- nothing is included automatically,
+    and sparse/stub repos default to excluded.
+    """
+    _bootstrap()
+
+    from applypilot.config import PROFILE_PATH, load_profile
+    from applypilot.discovery.github_profile import import_github_projects
+
+    profile = load_profile()
+    entries = import_github_projects(username)
+    if not entries:
+        console.print("[dim]No projects were added.[/dim]")
+        return
+
+    profile.setdefault("project_inventory", []).extend(entries)
+    PROFILE_PATH.write_text(json.dumps(profile, indent=2, ensure_ascii=False), encoding="utf-8")
+    console.print(f"[green]Added {len(entries)} project(s) to {PROFILE_PATH}[/green]")
+    console.print("[dim]Review the generated entries -- they're a starting point, not final copy.[/dim]")
+
+
 @app.command()
 def run(
     stages: list[str] | None = typer.Argument(

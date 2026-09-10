@@ -389,6 +389,57 @@ def _setup_optional_files(profile: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
+# GitHub project import (optional)
+# ---------------------------------------------------------------------------
+
+
+def _setup_github_import(profile: dict) -> None:
+    """Optionally pull public GitHub repos as project_inventory evidence.
+
+    2026-09-09 (CLAUDE.md decision #84/85): opt-in, off by default -- this
+    step makes a network call and (for reputational flagging) an LLM call
+    per repo, and every repo gets an explicit human review before it's
+    added, per the "show what was found, let them exclude anything"
+    principle. See discovery/github_profile.py for the fetch/flag/review
+    implementation.
+    """
+    console.print(
+        Panel(
+            "[bold]Step 7: Import GitHub Projects (optional)[/bold]\n"
+            "Pull your public GitHub repos as candidate project evidence. Each repo is "
+            "screened for reputational concerns (vulgar language, anti-corporate/political "
+            "content, automation tools that could look ToS-violating, etc.) and shown to you "
+            "before anything is added -- nothing is included automatically."
+        )
+    )
+
+    if not Confirm.ask("Import projects from a public GitHub account?", default=False):
+        console.print("[dim]Skipped. You can add projects to profile.json manually later.[/dim]")
+        return
+
+    username = Prompt.ask("GitHub username").strip()
+    if not username:
+        return
+
+    from applypilot.discovery.github_profile import import_github_projects
+
+    try:
+        entries = import_github_projects(username)
+    except Exception as e:  # noqa: BLE001
+        console.print(f"[red]GitHub import failed: {e}[/red]")
+        return
+
+    if not entries:
+        console.print("[dim]No projects were added.[/dim]")
+        return
+
+    profile.setdefault("project_inventory", []).extend(entries)
+    PROFILE_PATH.write_text(json.dumps(profile, indent=2, ensure_ascii=False), encoding="utf-8")
+    console.print(f"[green]Added {len(entries)} project(s) to profile.json[/green]")
+    console.print("[dim]Review the generated entries in profile.json -- they're a starting point, not final copy.[/dim]")
+
+
+# ---------------------------------------------------------------------------
 # Main entry
 # ---------------------------------------------------------------------------
 
@@ -431,6 +482,10 @@ def run_wizard() -> None:
 
     # Step 6: Optional documents (profile photo, ID, certs)
     _setup_optional_files(profile)
+    console.print()
+
+    # Step 7: GitHub project import (optional)
+    _setup_github_import(profile)
     console.print()
 
     # Done — show tier status

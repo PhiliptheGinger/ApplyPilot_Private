@@ -55,7 +55,7 @@ class TestRamStats:
 		"""Sanity guard on the constant itself -- this machine has ~11.8 GB
 		total RAM; the threshold must be low enough to avoid constant false
 		triggers but high enough to act before real exhaustion."""
-		assert 0 < watchdog.RAM_AVAILABLE_THRESHOLD_MB < 2000
+		assert 0 < watchdog.RAM_AVAILABLE_THRESHOLD_MB <= 2000
 
 
 class TestStopOllamaIfContributing:

@@ -982,7 +982,18 @@ class LLMClient:
                         time.sleep(wait)
                         continue
                     elif not is_last:
-                        log.warning("%s/%s still 503, trying next model", entry.provider, entry.name)
+                        # 2026-09-09: found live -- persistent 503 never got
+                        # remembered at all (unlike 429/rate_limit above,
+                        # which mark a short exhaustion window), so EVERY
+                        # subsequent call in the same batch re-paid the full
+                        # retry cost against the same currently-down model
+                        # from scratch. Confirmed live: gemini-3.6-flash and
+                        # gemini-3.5-flash both 503'd on back-to-back calls a
+                        # few seconds apart -- a real, if short-lived, outage,
+                        # not one-off flakiness. Mirrors the transient
+                        # rate_limit case's own 60s mark just above.
+                        log.warning("%s/%s still 503, trying next model (marking exhausted for 60s)", entry.provider, entry.name)
+                        self._mark_exhausted(entry.name, time.time() + 60)
                         return None
                     else:
                         # 2026-09-05 production crash, same root cause as the

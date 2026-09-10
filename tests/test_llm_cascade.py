@@ -1787,6 +1787,33 @@ class TestPersistent503FallsThroughToNextProvider(unittest.TestCase):
         self.assertEqual(result, "recovered")
         self.assertEqual(call_count["n"], 2)
 
+    def test_persistent_503_marks_model_exhausted_briefly(self):
+        """2026-09-09: found live during a real Gemini-vs-local scoring
+        comparison run -- unlike the transient rate_limit/429 cases just
+        above (which mark a short exhaustion window so the NEXT call in a
+        batch skips straight past a known-currently-down model), a
+        persistent 503 never got remembered at all. Every job in a batch
+        re-paid the full retry cost against the same dead model from
+        scratch -- confirmed live: gemini-3.6-flash and gemini-3.5-flash
+        both 503'd on back-to-back real calls a few seconds apart, turning
+        a single job's score into a 121s call. Fixed to mark exhausted for
+        60s on fall-through, mirroring the rate_limit case's own pattern."""
+        client = _make_client(2)
+        first_name = client._fallback_chain[0].name
+
+        def fake_post(url, **kwargs):
+            if kwargs["json"]["model"] == first_name:
+                return self._persistent_503_response()
+            return self._ok_response("second provider answered")
+
+        with patch.object(client._client, "post", side_effect=fake_post), patch("time.sleep"):
+            client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertIn(first_name, client._exhausted)
+        remaining = client._exhausted[first_name] - time.time()
+        self.assertGreater(remaining, 0)
+        self.assertLessEqual(remaining, 60)
+
 
 class TestFrequencyPresencePenaltyPassthrough(unittest.TestCase):
     """2026-09-04, added for the sentence-diversity bake-off: chat() can

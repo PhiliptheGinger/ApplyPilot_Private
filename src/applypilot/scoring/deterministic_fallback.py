@@ -38,6 +38,7 @@ revalidation-eligible once quota returns.
 
 from __future__ import annotations
 
+import math
 import os
 import re
 from datetime import UTC, datetime
@@ -47,6 +48,18 @@ from applypilot.scoring.compensation import classify_compensation, compensation_
 from applypilot.scoring.scorer import _check_ineligible, _classify_ineligibility, _flush_score_batch
 
 SCORE_METHOD = "deterministic_fallback"
+
+# 2026-09-09: found via the same real Gemini-comparison batch as the
+# years-mention/header fixes above -- a real BuiltIn "Software Engineer,
+# Front-End" posting's requirements section (a bare "Qualifications"
+# header, "7 years of experience...") starts at character 3196 of a
+# 6208-char description, past the old 3000-char cutoff every extraction
+# function in this module used -- longer, more verbose postings routinely
+# put a lengthy company-intro/responsibilities section before
+# requirements. scorer.py's own real LLM-scoring prompt already uses a
+# 6000-char window for the full description; this module's deterministic
+# extraction functions had never been aligned to it.
+DESCRIPTION_WINDOW = 6000
 
 # 8b is the recommended default: this path is only ever invoked explicitly
 # by a human already choosing to accept slower scoring during a quota
@@ -92,11 +105,167 @@ posting. Then, on its own final line, output exactly one of: FAMILY: it_or_tech_
 FAMILY: hands_on_repair_or_trade, FAMILY: customer_facing_or_sales, \
 FAMILY: software_engineering, or FAMILY: specialized_or_other."""
 
+# 2026-09-09: found via a real accuracy spot-check of the 2026-09-08
+# backlog run -- a Sana "Physician" posting and an Eagle Family Medicine
+# "Medical Assistant or LPN" posting both got FAMILY: customer_facing_or_sales
+# (score 9) from qwen3:1.7b, despite _FAMILY_SYSTEM already explicitly
+# listing "clinical work" under specialized_or_other. Root cause: these
+# postings are full of patient/compassion/service language ("compassionate
+# and patient-oriented", "serving customers") that reads to the small model
+# like customer-service vocabulary, overriding its own explicit
+# instruction. Rather than trust the LLM to reliably honor a carve-out it
+# already ignored twice, this is a narrow, high-confidence deterministic
+# override -- same design philosophy as scorer.py's _TS_SCI_PATTERN/
+# _CLEARANCE_REQUIRED_PATTERN: any clearly-licensed clinical title bypasses
+# the LLM call entirely and goes straight to specialized_or_other (also
+# saves a local-model call on these unambiguous cases).
+_CLINICAL_LICENSE_TITLE_RE = re.compile(
+    r"\bphysician\b|\bnurse\s*practitioner\b|\bregistered\s+nurse\b|\b(?:rn|lpn|lvn|pa-c)\b"
+    r"|\bphysician\s+assistant\b|\bmedical\s+assistant\b|\bdentist\b|\bpharmacist\b"
+    r"|\bveterinarian\b|\b(?:physical|occupational)\s+therapist\b|\bpsychiatrist\b",
+    re.IGNORECASE,
+)
+
+# 2026-09-09: found via a real Gemini-vs-local comparison run (30 real
+# jobs re-scored by both) -- nearly every "software_engineering" family
+# job in the sample had years_required=None locally despite Gemini's own
+# reasoning quoting an explicit, real stated requirement from the SAME
+# posting text. Real phrasing gaps, each confirmed against real posting
+# text before fixing (not guessed):
+# (a) a spelled-out number repeated parenthetically -- "at least eight (8)
+#     years of professional experience" (Clear Street) -- the digit isn't
+#     directly followed by whitespace+"years"; ")" sits in between, so the
+#     old \s*years? never matched at all. Fixed with an optional
+#     "word (" prefix before the captured digit and an optional ")" after.
+# (b) "N+ years" or bare "N years" with NO "experience" word anywhere
+#     nearby -- "5+ years working on complex systems..." (Cash App). The
+#     old regex hard-required "...experience" appear in a trailing window
+#     regardless of phrasing, which means catching every real verb
+#     phrasing ("working on"/"building"/"leading"/...) would need an
+#     ever-growing, never-complete word inventory. Fixed by DECOUPLING
+#     "is this worth considering as a candidate mention" (now maximally
+#     permissive -- any "N(+)? years/yrs", no trailing-context
+#     requirement at all) from "does it count as a hard requirement"
+#     (unchanged: only a recognized required-section header or an inline
+#     required/must-have/minimum-of phrase qualifies -- see
+#     extract_years_required). The requirement-detection logic never
+#     needs a verb list at all this way.
+# (c) "yrs" abbreviation and a hyphenated "5-years" separator, both
+#     common in real postings, added to the unit-word/separator classes.
+# (d) an explicit range -- "Entry Level / 1 - 3 years in the role"
+#     (real Truist "Wealth Support Specialist I" posting, en dash "-"
+#     between the numbers) -- previously extracted the UPPER bound (3),
+#     since the single-number alternative matches starting at the second
+#     digit once the first digit's own attempt fails (the "-3" after "1"
+#     isn't "years"). Taking the upper bound systematically
+#     under-credits a candidate who meets the range's actual floor,
+#     inconsistent with this function's own stated intent of taking the
+#     SMALLEST qualifying number across the whole posting. A dedicated
+#     range alternative, tried first, now captures the LOWER bound
+#     instead. Handles hyphen, en dash, and em dash separators (real
+#     postings use all three depending on source formatting).
+# (e) a decimal years mention -- "1.5+ years of experience as a software
+#     engineer" (real Affirm posting) -- the old \d{1,2}-only pattern
+#     matched nothing at this position at all (found via decision #88's
+#     real Claude-vs-Gemini comparison). Both number slots now accept an
+#     optional decimal component; extract_years_required rounds UP
+#     (ceil) when converting to the int deterministic_combine expects --
+#     "1.5+ years" is closer in spirit to "you need almost 2 years" than
+#     "you need just 1", so rounding down would understate the real bar.
+# (f) "N or more years" (real Boeing postings, "9 or more years of
+#     related work experience") -- a natural-English equivalent of "N+"
+#     that the old pattern, which only recognized a literal "+", never
+#     matched. Added as an alternative to "+" wherever it appeared.
+# (g) a SPELLED-OUT number word -- "Two years of teller or cash handling
+#     experience" (real, recurring Truist template across multiple branch
+#     postings) -- no digit at all, so no numeric pattern could ever have
+#     matched. A dedicated word-number alternative (one-twelve) with its
+#     own capture group; the caller looks the word up in _NUMBER_WORDS.
+_NUMBER_WORDS = {
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
+}
 _YEARS_MENTION_RE = re.compile(
-    r"\b(\d{1,2})\+?\s*years?\b[^.\n]{0,50}\b(?:of\s+)?(?:professional\s+)?experience\b",
+    r"\b(\d{1,2}(?:\.\d+)?)\s*[-–—]\s*\d{1,2}(?:\.\d+)?(?:\+|\s+or\s+more)?[\s-]*(?:years?|yrs?)\b"
+    r"|\b(?:[a-z]+\s*\()?(\d{1,2}(?:\.\d+)?)\)?(?:\+|\s+or\s+more)?[\s-]*(?:years?|yrs?)\b"
+    r"|\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+(?:years?|yrs?)\b",
     re.IGNORECASE,
 )
 _REQUIRED_CONTEXT_RE = re.compile(r"\b(?:required|must have|minimum of)\b", re.IGNORECASE)
+# 2026-09-09: "minimum N years" (no "of") -- real RTX "Supplier Performance
+# Specialist" posting, "minimum 5 years prior relevant experience" -- the
+# _REQUIRED_CONTEXT_RE phrase above only recognized "minimum of", missing
+# this extremely common variant entirely. Deliberately a SEPARATE, tightly
+# proximity-scoped check (immediately before the mention, not the wide
+# symmetric 60-char window _REQUIRED_CONTEXT_RE uses) rather than just
+# adding bare "minimum" to that shared pattern -- a first attempt doing
+# exactly that caused a real false positive caught before shipping: a
+# Sherwin-Williams posting's "Minimum Requirements:" SECTION HEADER (an
+# unrelated line, describing a completely different bullet) sat within
+# the wide window of an unrelated "eighteen (18) years of age" mention
+# nearby and wrongly vouched for it as an experience requirement.
+_MINIMUM_PREFIX_RE = re.compile(r"\bminimum\s*$", re.IGNORECASE)
+# 2026-09-09: broadening (b) above means a bare "N years" mention no
+# longer needs the word "experience" nearby to be considered a candidate
+# -- opening a real false-positive class the old "experience" requirement
+# used to block structurally: a number-of-years mention that has nothing
+# to do with professional experience at all (license/certification
+# RENEWAL CADENCE, warranty periods, tenure/anniversary benefits) sitting
+# inside an otherwise-recognized required-qualifications section. Rather
+# than an open-ended positive list of experience-indicating verbs, this is
+# a short, closed negative list -- checked against just the mention's OWN
+# LINE (not a flat character radius, which can wrongly bleed context from
+# an adjacent, unrelated bullet point in a tightly-packed list -- confirmed
+# this exact cross-bullet contamination with a real-shaped two-bullet test
+# before scoping it to the line). Deliberately keyed on the
+# RENEWAL/VALIDITY-PERIOD framing (renew/valid for/expire/warranty/tenure/
+# anniversary/PTO), NOT on the bare credential nouns "license"/
+# "certificate" themselves -- a real false-negative caught before shipping:
+# a genuine Boeing "Machine Repair Mechanic" requirement, "1+ years of
+# related experience OR A COMPLETED TECHNICAL CERTIFICATE / post-secondary
+# degree," uses "certificate" as an ALTERNATIVE-credential noun in the same
+# bullet as the real years-of-experience requirement -- the original
+# broader list (bare "licen[cs]\w*"/"certificat\w*") wrongly excluded this
+# entirely valid mention just because that word appeared later in the same
+# sentence for an unrelated reason.
+# 2026-09-09: added "of age" -- real Sherwin-Williams "Bilingual Customer
+# Service Specialist" posting, "Must be at least eighteen (18) years of
+# age" -- a minimum-AGE requirement (universal, harmless, present on
+# nearly every job posting), not an experience requirement. Caught while
+# verifying the "minimum N years" fix below: "Minimum Requirements:"
+# (the section's own header, unrelated to this bullet) sat within the
+# qualifying window and wrongly vouched for the age mention.
+# 2026-09-09: added "full[- ]time education" -- Accenture's own recurring
+# real template across its India/Philippines postings, "15 years full
+# time education" (India's convention for "equivalent of a bachelor's
+# degree," counting years of schooling, not professional tenure), often
+# phrased "A 15 years full time education is required" -- the literal
+# word "required" sits right next to it, letting an EDUCATION-duration
+# marker qualify as an experience-years mention. Confirmed dormant rather
+# than yet-consequential in the live 362-job batch (a real, smaller
+# professional-experience mention always won the min() comparison in
+# every case checked), but a real defect nonetheless: 9/13 rows with this
+# marker have "required" close enough to trigger it, and this exact
+# phrasing is Accenture's own reused template, not a one-off.
+# 2026-09-09 (decision #92): added "or older" -- a real Avionics
+# Technician posting phrases the same universal minimum-age requirement
+# as "Must be 18 years or older" rather than "18 years of age" -- the
+# existing "of age" exclusion didn't cover this equally common phrasing.
+_NON_EXPERIENCE_YEARS_CONTEXT_RE = re.compile(
+    r"\b(?:renew\w*|valid\s+for|expir\w*|warrant\w*|tenure|anniversary|"
+    r"\bpto\b|paid\s+time\s+off|of\s+age|or\s+older|full.?time\s+education)\b",
+    re.IGNORECASE,
+)
 
 # 2026-09-08 (decision #82): found via a real manual accuracy spot-check of
 # a live scoring batch -- a real Sourcegraph "Security Engineer" posting
@@ -111,21 +280,95 @@ _REQUIRED_CONTEXT_RE = re.compile(r"\b(?:required|must have|minimum of)\b", re.I
 # have" headers are deliberately excluded from this -- a years-mention
 # under a preferred-only section is genuinely optional, not a hard
 # requirement, and must still return None.
+# 2026-09-09: extended with four more real header conventions found in the
+# same Gemini-comparison batch, each on its OWN line followed directly by
+# a plain bullet list of hard requirements: "Requirements:" (Clear
+# Street), "About You:" (Vercel), "You Have" (Cash App -- no colon at
+# all), "Qualifications" bare, no Minimum/Required/Basic prefix (a
+# front-end role at an unnamed employer -- also no colon). The colon is
+# inconsistent across real postings (some HTML-to-text conversions keep
+# it, some don't), so this is now anchored to the header being ALONE on
+# its own line (^...$ with MULTILINE) rather than requiring a trailing
+# colon -- bare single words like "requirements"/"qualifications" are
+# extremely common in ordinary prose ("this role has strict requirements
+# around location", "system requirements: 8GB RAM"), but never as the
+# ENTIRE content of their own line the way a real section header is;
+# verified this discriminates correctly against exactly those two
+# realistic false-positive shapes before shipping.
+# 2026-09-09: extended further via a real larger-batch scoring comparison.
+# (h) Boeing's own recurring template, "Basic Qualifications (Required
+#     Skills and Experience):" / "...(Required Skills/Experience):" --
+#     appeared in multiple real Boeing postings in the same batch and
+#     never matched, since the old pattern required the header to be
+#     JUST "Basic Qualifications" with nothing else on the line. Now
+#     allows an optional parenthetical annotation before the colon.
+# (i) three more real header conventions: "What We're Looking For" (a
+#     real Accenture posting; distinct from the already-handled bare
+#     "What We Look For"), "What You'll Bring", "What We Require", and
+#     "Typically requires:" (a real RTX posting). Apostrophes matched via
+#     "." (any char) rather than a literal quote, mirroring the earlier
+#     curly-vs-straight-apostrophe lesson from _CS_DEGREE_RE.
+# 2026-09-09 (decision #92): a real SunTech Medical "Technical Support
+# Repair Technician" posting renders its header as
+# "**Minimum Qualifications  \n  \n**" -- a Markdown-to-text conversion
+# artifact (bold markers + hard-line-break trailing spaces) that split
+# the header's own "**" wrapper across two lines. The whole-line match
+# never allowed for leading/trailing "**" at all, so this recognized
+# header phrase was invisible and its "3+ years working in electronics
+# manufacturing facility" requirement went uncredited. Added optional
+# `\*{0,2}` on both sides of the phrase -- still a strict whole-line
+# match otherwise, so this can't match a header phrase merely mentioned
+# mid-sentence for emphasis.
 _REQUIRED_SECTION_HEADER_RE = re.compile(
-    r"\b(?:minimum|required|basic)\s+qualifications\b",
-    re.IGNORECASE,
+    r"^\s*\*{0,2}\s*(?:(?:minimum|required|basic)\s+qualifications(?:\s*\([^)]{0,80}\))?|requirements|about\s+you|"
+    r"you\s+have|qualifications|what\s+we\s+look\s+for|what\s+we.re\s+looking\s+for|"
+    r"what\s+you.ll\s+bring|what\s+we\s+require|typically\s+requires)\s*:?\s*\*{0,2}\s*$",
+    re.IGNORECASE | re.MULTILINE,
 )
 _NEXT_SECTION_HEADER_RE = re.compile(
     r"\b(?:preferred|desired|nice.to.have|bonus)\s+qualifications\b|\bpreferred\s+skills\b|\bnice.to.haves?\b",
     re.IGNORECASE,
 )
-_CS_DEGREE_REQUIRED_RE = re.compile(
-    r"\b(?:bachelor'?s?|b\.?s\.?)\s+degree\b[^.\n]{0,60}\b"
-    r"(?:computer science|computer engineering|software engineering)\b[^.\n]{0,30}\brequired\b"
-    r"|\brequired\b[^.\n]{0,30}\b(?:bachelor'?s?|b\.?s\.?)\s+degree\b[^.\n]{0,60}\b"
+# 2026-09-09 (decision #92): a real Rooms To Go "Furniture Service Tech"
+# posting has no "Preferred Qualifications"-style closing header, so
+# _required_section_span's 1500-char fallback window swept in an
+# unrelated "About Rooms To Go" company-history blurb ("Founded in 1991
+# ... More than 30 years later...") sitting right after the requirements
+# bullet list -- "30 years" wrongly counted as an experience requirement.
+# Whole-line anchored like _REQUIRED_SECTION_HEADER_RE (so it can't match
+# "about" merely appearing mid-sentence); deliberately excludes "about
+# you", which is itself a REQUIRED-section start header above, not an
+# end-of-section boundary.
+_ABOUT_COMPANY_HEADER_RE = re.compile(
+    r"^\s*\*{0,2}\s*about\s+(?!you\b)\S.*?\s*:?\s*\*{0,2}\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+# 2026-09-09: found via the same real spot-check that surfaced the
+# clinical-title bug above -- a Cisco "Cloud Engineer" posting states
+# "Minimum Qualifications \n\n Bachelor's degree in computer science,
+# Computer Engineering, or a related technical field" and scored a
+# false-positive 9. This is the exact same section-HEADER-not-inline-word
+# gap decision #82 already found and fixed for extract_years_required, just
+# never ported to this sibling function -- the degree phrase has no literal
+# "required" anywhere near it, so the old regex (which demanded "required"
+# within 30 chars) never matched. Fixed the same way: a degree+field match
+# now also qualifies if it falls inside a "Minimum/Required/Basic
+# Qualifications" section, not just next to the literal word "required".
+_CS_DEGREE_RE = re.compile(
+    r"\b(?:bachelor(?:['’]s)?|b\.?s\.?)\s+degree\b[^.\n]{0,60}\b"
     r"(?:computer science|computer engineering|software engineering)\b",
     re.IGNORECASE,
 )
+
+
+def _line_span(text: str, pos: int) -> tuple[int, int]:
+    """Start/end of the line containing ``pos`` -- used to scope the
+    _NON_EXPERIENCE_YEARS_CONTEXT_RE check to the mention's own bullet
+    point rather than a flat character radius that can bleed context from
+    an adjacent, unrelated line."""
+    start = text.rfind("\n", 0, pos) + 1
+    end = text.find("\n", pos)
+    return start, end if end != -1 else len(text)
 
 
 def _required_section_span(text: str) -> tuple[int, int] | None:
@@ -140,8 +383,15 @@ def _required_section_span(text: str) -> tuple[int, int] | None:
     if not m:
         return None
     start = m.end()
-    stop_m = _NEXT_SECTION_HEADER_RE.search(text, start)
-    end = stop_m.start() if stop_m else min(len(text), start + 1500)
+    candidates = [
+        stop.start()
+        for stop in (
+            _NEXT_SECTION_HEADER_RE.search(text, start),
+            _ABOUT_COMPANY_HEADER_RE.search(text, start),
+        )
+        if stop is not None
+    ]
+    end = min(candidates) if candidates else min(len(text), start + 1500)
     return start, end
 
 
@@ -155,23 +405,66 @@ def extract_years_required(description: str) -> int | None:
     rather than repeating "required" next to every number). A bare
     years-mention with neither signal, or one that only appears under a
     "Preferred Qualifications"-style section, is treated as not-a-hard-
-    requirement. Takes the smallest qualifying number in the first 3000
-    chars."""
-    text = (description or "")[:3000]
+    requirement. A mention whose own line reads as clearly non-experience
+    (license/certification renewal, warranty, tenure -- see
+    _NON_EXPERIENCE_YEARS_CONTEXT_RE) is excluded even if it otherwise
+    qualifies. No length limit -- this is a pure regex scan, not an LLM
+    call, so there's no cost reason to truncate (2026-09-09: found via a
+    real BuiltIn posting whose requirements section started past the old
+    3000-char cutoff -- unlike classify_family's LLM prompt, which stays
+    bounded at DESCRIPTION_WINDOW for real token-cost reasons, these
+    regex-only extractors now scan the full description)."""
+    text = description or ""
     qualifying: list[int] = []
     required_span = _required_section_span(text)
     for m in _YEARS_MENTION_RE.finditer(text):
-        window = text[max(0, m.start() - 60) : m.end() + 60]
+        ls, le = _line_span(text, m.start())
+        if _NON_EXPERIENCE_YEARS_CONTEXT_RE.search(text[ls:le]):
+            continue
+        # 2026-09-09: the trailing side of this window is bounded to the
+        # mention's OWN LINE (`le`), not a flat +60 chars -- a real cross-
+        # section bleed found via a live "IT and Telecom Field Technicians"
+        # posting: "...5+ years verifiable field experience in I.T./
+        # Telecom\nRequired Equipment & Qualifications\n..." -- the word
+        # "Required" starting an entirely different, unrelated section
+        # (equipment, not experience) on the NEXT line wrongly vouched for
+        # this mention. A same-line (or earlier-line, via the leading
+        # -60 side, unchanged) "required"/"must have" still counts --
+        # e.g. "5 years of experience required." (same line, trailing) and
+        # "Qualifications You Must Have\n...\n1+ years..." (must-have on
+        # an earlier line) both still work, verified directly against
+        # both real cases before shipping this narrower bound.
+        window = text[max(0, m.start() - 60) : min(m.end() + 60, le)]
         in_required_section = required_span is not None and required_span[0] <= m.start() < required_span[1]
-        if in_required_section or _REQUIRED_CONTEXT_RE.search(window):
-            qualifying.append(int(m.group(1)))
+        minimum_prefix = _MINIMUM_PREFIX_RE.search(text[max(0, m.start() - 15) : m.start()])
+        if in_required_section or _REQUIRED_CONTEXT_RE.search(window) or minimum_prefix:
+            numeric = m.group(1) or m.group(2)
+            if numeric is not None:
+                qualifying.append(math.ceil(float(numeric)))
+            else:
+                word_years = _NUMBER_WORDS.get((m.group(3) or "").lower())
+                if word_years is not None:
+                    qualifying.append(word_years)
     if not qualifying:
         return None
     return min(qualifying)
 
 
 def extract_cs_degree_required(description: str) -> bool:
-    return bool(_CS_DEGREE_REQUIRED_RE.search((description or "")[:3000]))
+    """A Bachelor's-in-CS/CE/SWE degree stated as a hard requirement --
+    either inline next to "required", or under a "Minimum/Required/Basic
+    Qualifications" section header (see _CS_DEGREE_RE's 2026-09-09 note).
+    No length limit -- see extract_years_required's note on why these
+    regex-only extractors don't share classify_family's LLM-prompt-cost
+    reason to truncate."""
+    text = description or ""
+    required_span = _required_section_span(text)
+    for m in _CS_DEGREE_RE.finditer(text):
+        in_required_section = required_span is not None and required_span[0] <= m.start() < required_span[1]
+        window = text[max(0, m.start() - 30) : m.end() + 30]
+        if in_required_section or _REQUIRED_CONTEXT_RE.search(window):
+            return True
+    return False
 
 
 def local_only_client(model: str) -> LLMClient:
@@ -181,8 +474,10 @@ def local_only_client(model: str) -> LLMClient:
 
 
 def classify_family(client: LLMClient, job: dict) -> str | None:
+    if _CLINICAL_LICENSE_TITLE_RE.search(job.get("title") or ""):
+        return "specialized_or_other"
     job_text = (
-        f"TITLE: {job['title']}\nCOMPANY: {job['site']}\n\nDESCRIPTION:\n{(job.get('full_description') or '')[:3000]}"
+        f"TITLE: {job['title']}\nCOMPANY: {job['site']}\n\nDESCRIPTION:\n{(job.get('full_description') or '')[:DESCRIPTION_WINDOW]}"
     )
     messages = [{"role": "system", "content": _FAMILY_SYSTEM}, {"role": "user", "content": job_text}]
     try:
@@ -220,7 +515,25 @@ def deterministic_combine(family: str | None, years: int | None, cs_degree: bool
             return 7  # explicitly entry-level
         if years is None:
             return 5  # uncertain, not optimistic -- ownership/scope language can imply seniority regex can't see
-        return 3  # years >= 1 required professional experience
+        # 2026-09-09 (decision #89): found via a real Claude-vs-Gemini
+        # comparison run (27 real jobs, decision #88) -- this branch used
+        # to map EVERY years>=1 to a flat 3, never distinguishing "1 year,
+        # rest learnable" from "10+ years, deep specialist" the way the
+        # sibling families above already do (years==1 -> 7, years>=2 ->
+        # 5). Both Claude and Gemini independently scored every real 5+/
+        # 6+/7/8/10+-year software posting a 1, while a real 1-3-year-
+        # range posting (floor=1) landed at 5 for both -- and the written
+        # SCORE_PROMPT_TEMPLATE rubric itself already describes exactly
+        # this ladder in prose ("5-6: ...nominally ~1 year... learnable",
+        # "3-4: ...2+ years...", "1-2: ...3+ years...") that this lookup
+        # table had never actually implemented. Calibrated directly
+        # against both the rubric's own stated bands and the real n=27
+        # convergence, not guessed.
+        if years == 1:
+            return 5
+        if years == 2:
+            return 3
+        return 1  # years >= 3
     return 5
 
 
@@ -389,6 +702,18 @@ def run_deterministic_fallback_scoring(
     long run (qwen3:8b: ~76s/job) must be safely interruptible without
     losing already-scored progress, and should show real-time DB progress
     to anyone watching, not go silent until the whole run finishes.
+
+    Jobs are processed in TWO GROUPED PASSES (all ``model`` jobs, then all
+    ``escalate_model`` jobs) rather than in whatever order the DB query
+    returns, so the local model only ever switches once per run instead of
+    interleaving. 2026-09-09: real log timing from the 2026-09-08 backlog
+    run showed escalated (qwen3:8b) calls costing 139-420s EACH, recurring
+    throughout the run rather than warming up once and settling into the
+    ~76s/call steady state a dedicated qwen3:8b run shows (decision #77) --
+    consistent with Ollama evicting/reloading a model every time the
+    requested model differs from what's currently loaded on this machine's
+    constrained RAM, not a one-time cold-start cost. Grouping avoids paying
+    that reload cost once per escalated title scattered through the run.
     """
     from applypilot.config import load_profile
     from applypilot.database import get_connection
@@ -404,6 +729,11 @@ def run_deterministic_fallback_scoring(
     jobs = [dict(r) for r in rows]
     if limit:
         jobs = jobs[:limit]
+
+    if escalate_model and escalate_model != model:
+        fast_jobs = [j for j in jobs if not _AMBIGUOUS_TITLE_RE.search(j.get("title") or "")]
+        escalate_jobs = [j for j in jobs if _AMBIGUOUS_TITLE_RE.search(j.get("title") or "")]
+        jobs = fast_jobs + escalate_jobs
 
     scored = 0
     for job in jobs:

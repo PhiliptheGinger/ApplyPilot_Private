@@ -314,6 +314,53 @@ def test_non_us_country_in_location_rejected(loc):
     assert _check_ineligible(_job(location=loc)) is not None
 
 
+# ── Non-English posting text as a non-US signal (2026-09-09) ──────────
+# Found via a real larger-batch scoring comparison: four real Accenture/
+# international postings scored 7-9 because the `location` field was
+# blank and none of the existing patterns require English phrasing --
+# they only catch things like "based in Spain," never the posting's OWN
+# text actually being written in a non-English language.
+
+
+def test_spanish_eeo_boilerplate_rejected():
+    """Real Accenture Madrid/Buenos Aires postings both contain this
+    exact Spanish EEO disclaimer verbatim."""
+    desc = (
+        "Job Description\n\nAt Accenture, we work with the leading platforms...\n\n"
+        "Declaración de igualdad de oportunidades en el empleo\n\n"
+        "Creemos que nadie debe ser discriminado por sus diferencias."
+    )
+    assert _check_ineligible(_job(location="", description=desc)) is not None
+
+
+def test_spanish_years_of_experience_phrase_rejected():
+    """Real Accenture Buenos Aires "DBA Especialista en PostgreSQL"
+    posting -- "Buscamos un DBA... con más de 4 años de experiencia"."""
+    desc = "Buscamos un DBA especialista en PostgreSQL con más de 4 años de experiencia para unirse a nuestro equipo."
+    assert _check_ineligible(_job(location="", description=desc)) is not None
+
+
+def test_polish_law_phrase_rejected():
+    """Real Accenture Warsaw posting's own EEO clause: "...or any other
+    basis impermissible under Polish law."."""
+    desc = "We do not discriminate on any basis impermissible under Polish law."
+    assert _check_ineligible(_job(location="", description=desc)) is not None
+
+
+def test_fluency_in_non_english_language_required_rejected():
+    """Real Accenture Brussels "Infra & Cloud Technical Coordinator"
+    posting -- "Fluency in French and/or Dutch is required."."""
+    desc = "Languages\nFluent English.\n\nFluency in French and/or Dutch is required."
+    assert _check_ineligible(_job(location="", description=desc)) is not None
+
+
+def test_english_posting_mentioning_spanish_as_a_skill_not_rejected():
+    """Must not over-trigger on an ordinary US posting that simply lists
+    Spanish as a nice-to-have language skill."""
+    desc = "Bilingual (English/Spanish) candidates are strongly preferred but are not required."
+    assert _check_ineligible(_job(title="Customer Service Specialist", location="Burlington, NC", description=desc)) is None
+
+
 # ── LLM rubric text (2026-08-25 sales/recruiting policy realignment) ─
 # Regression guard: the rubric must not tell the LLM to score sales/
 # recruiting/marketing/etc. low merely because of occupation.

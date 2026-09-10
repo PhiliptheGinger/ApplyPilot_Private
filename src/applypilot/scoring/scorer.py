@@ -349,7 +349,29 @@ _INELIGIBLE_DESC_PATTERNS = re.compile(
     # Timezone restrictions
     r"|CET\s+timezone"
     r"|GMT[+\-]\d+\s+timezone"
-    r"|IST\s+timezone",
+    r"|IST\s+timezone"
+    # 2026-09-09: found via a real larger-batch scoring comparison -- four
+    # real Accenture/international postings (Madrid, Buenos Aires, Brussels,
+    # Warsaw) scored 7-9 by the deterministic fallback because NONE of the
+    # patterns above fire when the posting is itself substantially written
+    # in a non-English language (the giveaway is the posting's own text,
+    # not an English phrase like "based in Spain" -- and the `location`
+    # field was blank for all four real cases, so _INELIGIBLE_LOCATION_
+    # PATTERNS had nothing to check either). Rather than build a general
+    # language detector, added the SPECIFIC real recurring signals found:
+    # Accenture's own Spanish-market EEO boilerplate ("Declaración de
+    # igualdad de oportunidades en el empleo," verbatim in two of the four
+    # real postings), the generic Spanish phrase "años de experiencia"
+    # ("years of experience" -- present in a real Buenos Aires posting),
+    # the literal phrase "Polish law" (a real Warsaw posting's own EEO
+    # clause), and a "fluency in <language> is required" pattern for
+    # non-English-language requirements stated in otherwise-English text
+    # (a real Brussels posting requiring French/Dutch fluency).
+    r"|Declaraci[oó]n\s+de\s+igualdad\s+de\s+oportunidades"
+    r"|a[nñ]os\s+de\s+experiencia"
+    r"|Polish\s+law"
+    r"|\bfluency\s+in\s+(?:french|dutch|german|spanish|italian|portuguese|polish|"
+    r"swedish|norwegian|danish|mandarin|japanese|korean)\b[^.\n]{0,40}\bis\s+required\b",
     re.IGNORECASE,
 )
 
