@@ -460,7 +460,24 @@ def _append_profile_integrity_errors(
             continue
         official = str(item.get("official_degree", "")).lower()
         field = str(item.get("field_of_study", "")).lower()
-        if official and field and field not in text_lower:
+        # 2026-09-12: this used to fire whenever BOTH profile fields were
+        # populated, regardless of whether the text mentioned education at
+        # all -- an unconditional "you must always restate your degree
+        # field" requirement, not the anti-fabrication guard its own
+        # sibling check two lines below (the "bachelor of science" check)
+        # already correctly models by gating on the degree phrase actually
+        # appearing in the text first. Invisible for resumes (the rendered
+        # Education section always contains the real field verbatim, so
+        # the condition was trivially satisfied there) but found by testing
+        # cover-letter degraded mode against a real job/profile: a real,
+        # already-shipped, previously-approved cover letter that never
+        # mentions education at all failed this check when re-validated,
+        # and would have blocked every future cover letter (cloud or
+        # degraded) once `official`/`field` are both populated in
+        # profile.json, regardless of whether education is even relevant
+        # to what a cover letter is about. Gated the same way the sibling
+        # check already does.
+        if official and field and official in text_lower and field not in text_lower:
             errors.append(f"Official education field missing or changed: '{item.get('field_of_study')}'")
         if "bachelor of science" in text_lower and "bachelor of science" not in official:
             errors.append("Official education incorrectly changed to Bachelor of Science")

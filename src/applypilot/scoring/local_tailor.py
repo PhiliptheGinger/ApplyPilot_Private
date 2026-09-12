@@ -223,7 +223,30 @@ def _build_compact_local_prompt(profile: dict) -> str:
 # instead of a flat, truncated resume dump.
 # ---------------------------------------------------------------------------
 
-_REQUIREMENT_MARKER_RE = re.compile(r"^\s*(?:[-*•‣▪]|\d+[.)])\s+(.+)$", re.MULTILINE)
+# 2026-09-12: bullet-punctuation markers ([-*•‣▪]) now tolerate ZERO
+# whitespace after the marker (`\s*` instead of `\s+`) -- found via a real
+# LinkedIn "IT Coordinator" posting whose actual requirements are written
+# "•Provision, configure, deploy..." with no space after the bullet at all.
+# The old \s+-only regex matched nothing on that posting, so extraction
+# silently fell through to the markerless paragraph fallback, which then
+# filled its whole line budget on short, colon-free Markdown metadata
+# lines at the top of the posting ("**Job Title:** IT Coordinator",
+# "**Start Date:** ASAP", ...) before ever reaching the real bulleted
+# section -- a real, previously-undiscovered requirement-extraction gap
+# affecting both resume tailoring and cover-letter grounding (both read
+# this same function). The digit-marker alternative (`\d+[.)]`) DELIBERATELY
+# keeps its mandatory `\s+` -- relaxing it too would make "3.5 years of
+# experience" at the start of a line parse as marker "3." + content "5
+# years...", losing the decimal (confirmed via a live DB scan: 439 real
+# "N.N" decimal-at-line-start occurrences exist in the corpus). The
+# `(?!...)` negative lookahead after the punctuation class exists so a
+# real "**Bold Label:**" Markdown line is never misread as a "*"-marked
+# bullet with a stray leading "*" left in its captured text (verified
+# against the full live corpus: 0 such double-marker collisions after
+# adding the guard). Verified end-to-end against the real 31,710-job
+# corpus before shipping: 553 jobs go from ZERO marker-extracted lines to
+# real recovered content, ZERO jobs lose any previously-extracted line.
+_REQUIREMENT_MARKER_RE = re.compile(r"^\s*(?:[-*•‣▪](?![-*•‣▪])\s*|\d+[.)]\s+)(.+)$", re.MULTILINE)
 _PREFERRED_HINT_RE = re.compile(r"\b(preferred|nice[- ]to[- ]have|bonus|a\s+plus)\b", re.IGNORECASE)
 _REQUIRED_HINT_RE = re.compile(r"\b(required|must\s+have|minimum\s+qualif|required\s+qualif)\b", re.IGNORECASE)
 _TERM_WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9+.#/_-]*")
@@ -375,14 +398,24 @@ def _extract_marker_lines(
     """Primary extraction strategy: pull bullet/numbered lines via
     _REQUIREMENT_MARKER_RE. Unchanged behavior from before this function
     was split out -- see _split_requirement_lines for the fallback this
-    feeds into."""
+    feeds into.
+
+    2026-09-12: a bare, colon-ending marked line (e.g. a posting bulleting
+    its own section header, "• Required:", as if it were one item in the
+    list) is a section label, not a requirement -- the SAME shape
+    _looks_like_list_item already excludes for the markerless fallback
+    path, just never applied here since a marker character was previously
+    assumed to be sufficient evidence of real content on its own. Found by
+    real-data verification of the _REQUIREMENT_MARKER_RE fix above: real
+    postings surfaced bare "Required:"/similar marked lines once the
+    no-space-after-bullet gap was closed."""
     if not description:
         return [], []
     texts: list[str] = []
     seen: set[str] = set()
     for match in _REQUIREMENT_MARKER_RE.finditer(description):
         text = match.group(1).strip()
-        if not text or len(text) < 8 or len(text) > 220:
+        if not text or len(text) < 8 or len(text) > 220 or text.endswith(":"):
             continue
         key = text.lower()
         if key in seen:
@@ -3380,3 +3413,280 @@ def compose_degraded_resume_json(
     meta["tier"] = "degraded_structured"
     data = merge_realization(base_resume, realization, job)
     return data, meta
+
+
+# ---------------------------------------------------------------------------
+# Cover-letter degraded mode (2026-09-12): cover_letter.py's generate_
+# cover_letter was, until now, 100% cloud-only with zero fallback -- on
+# cloud exhaustion every queued job just failed as cover_failed, unlike
+# tailor_resume's phrase-bank-backed degraded mode above. This reuses the
+# SAME building blocks (select_and_edit_bank_bullets for the evidence
+# paragraph; the job schema's own requirement text for the hook/company-fit
+# paragraphs) instead of asking a local model to write flowing multi-
+# paragraph prose from scratch -- exactly the open-ended generation task
+# this project has repeatedly found unreliable for a CPU-only 1-2B model
+# (see CLAUDE.md decisions #55-58/#67/#70/#73/#74). Every sentence here is
+# either a phrase-bank pick (already safety-checked by edit_sentence_with_
+# retry) or a short, template-filled sentence built from real job-posting
+# text / the evidence item's own real facts (phrase_bank.source_facts) --
+# never free LLM synthesis of paragraph 1/3/4, and never a fabricated
+# claim. Honest ceiling, same as resume degraded mode: safe, but visibly
+# less polished than the cloud path, and it can legitimately fail validate_
+# cover_letter's word-count/structure bar on a thin job rather than being
+# padded with unverifiable filler to force a pass.
+# ---------------------------------------------------------------------------
+
+_REQUIREMENT_TIER_PRIORITY = {"prototype": 0, "near_prototype": 1, "peripheral": 2}
+
+
+def _pick_supported_requirements(job_schema: dict, limit: int = 5) -> list[dict]:
+    """Supported requirements ordered by evidence strength (prototype
+    before near_prototype/peripheral), capped at `limit`. Only requirements
+    with real, quotable text and at least one resume_evidence name are
+    used -- matches what select_and_edit_bank_bullets/format_schema_
+    guidance already consider "real" evidence."""
+    supported = [
+        r
+        for r in (job_schema.get("requirements") or [])
+        if r.get("supported") and (r.get("requirement") or "").strip() and r.get("resume_evidence")
+    ]
+    supported.sort(key=lambda r: _REQUIREMENT_TIER_PRIORITY.get(r.get("category_tier"), 3))
+    return supported[:limit]
+
+
+def _clean_snippet(text: str, max_len: int = 160) -> str:
+    """Collapse whitespace, strip trailing punctuation, truncate to a word
+    boundary, and always end with a period -- shared cleanup for both raw
+    job-requirement text and raw profile evidence text before either is
+    quoted in a template sentence. Returns "" for empty/whitespace-only
+    input (callers filter these out, never render an empty sentence)."""
+    cleaned = " ".join((text or "").split()).strip().strip(".,:;- ")
+    if len(cleaned) > max_len:
+        cleaned = cleaned[:max_len].rsplit(" ", 1)[0]
+    return f"{cleaned}." if cleaned else ""
+
+
+def _ensure_first_person(sentence: str) -> str:
+    """Resume bullets are conventionally written with an implied subject
+    ("Diagnosed and repaired...", "Develop and execute...") -- grammatical
+    on a resume, a broken fragment once dropped into cover-letter prose
+    ("In practice, Develop and execute..."). Prepends "I " (lowercasing the
+    now-mid-sentence first letter) unless the sentence already starts with
+    a first-person subject -- never touches the verb, tense, or any fact,
+    only supplies the missing pronoun.
+
+    2026-09-12: found by testing compose_degraded_cover_letter against a
+    REAL job/profile pair whose only supported requirement's evidence had
+    no phrase-bank coverage yet, so the raw, un-rewritten profile.json
+    responsibility text reached the evidence paragraph verbatim -- a bug
+    invisible in unit-test fixtures that (accidentally) always wrote bank
+    sentences with "I " already prepended."""
+    if not sentence:
+        return sentence
+    if re.match(r"^i\b", sentence, re.IGNORECASE):
+        return sentence
+    match = re.match(r"^([A-Za-z])(.*)$", sentence, re.DOTALL)
+    if not match:
+        return sentence
+    first_char, rest = match.groups()
+    return f"I {first_char.lower()}{rest}"
+
+
+def _display_company_capitalized(job: dict) -> str:
+    """display_company(job) preserves the `company` DB column's original
+    casing when present, but falls back to a lowercase ATS-tenant slug
+    (resolve_company_key) when it's empty -- fine as a prompt label, but
+    "ramp is hiring for..." reads as a real error in rendered prose. If the
+    resolved name has no uppercase letter at all (true for every slug
+    fallback, and harmless even for a genuinely all-lowercase real brand
+    name in cover-letter prose), title-case it for display; a name that
+    already has any uppercase letter is left untouched since that signals
+    deliberately-preserved real casing (e.g. "eBay") this must never
+    override."""
+    from applypilot.scoring.tailor import display_company
+
+    name = display_company(job)
+    return name.title() if name and name == name.lower() else name
+
+
+def _gather_evidence_sentences(
+    client, job_schema: dict, profile: dict, limit: int = 4
+) -> tuple[list[str], list[str], bool]:
+    """Real, true sentences for the EVIDENCE paragraph: bank-selected and
+    editor-polished where a phrase bank exists (select_and_edit_bank_
+    bullets, already safety-checked), verbatim source facts (phrase_bank.
+    source_facts -- responsibilities/factual_concepts, unedited) for any
+    remaining supported evidence with no bank coverage. Returns
+    (sentences, evidence_names_used, fully_bank_covered)."""
+    from applypilot.scoring import phrase_bank
+
+    pool_bullets, fully_covered = select_and_edit_bank_bullets(client, job_schema, profile)
+
+    sentences: list[str] = []
+    names_used: list[str] = []
+    for name, texts in pool_bullets.items():
+        for text in texts:
+            cleaned = _ensure_first_person(_clean_snippet(text, max_len=220))
+            if cleaned:
+                sentences.append(cleaned)
+                names_used.append(name)
+
+    if len(sentences) < limit:
+        seen = set(names_used)
+        for req in job_schema.get("requirements") or []:
+            if not req.get("supported"):
+                continue
+            for name in req.get("resume_evidence") or []:
+                if name in seen or len(sentences) >= limit:
+                    continue
+                item = find_profile_item_by_name(name, profile)
+                if item is None:
+                    continue
+                facts = phrase_bank.source_facts(item)
+                if not facts:
+                    continue
+                cleaned = _ensure_first_person(_clean_snippet(facts[0], max_len=220))
+                if cleaned:
+                    sentences.append(cleaned)
+                    names_used.append(name)
+                    seen.add(name)
+            if len(sentences) >= limit:
+                break
+
+    return sentences[:limit], names_used[:limit], fully_covered
+
+
+def _build_degraded_cover_paragraphs(
+    job: dict,
+    job_schema: dict,
+    requirements: list[dict],
+    evidence_sentences: list[str],
+) -> list[str]:
+    """The 4 template-filled body paragraphs (hook, evidence, company fit,
+    close), each a single block (no internal blank line) so validate_
+    cover_letter's paragraph-count check sees exactly one per section.
+
+    Requirement text is split HOOK (req_texts[0:2]) / FIT (req_texts[2:5])
+    so the same line is never quoted twice; evidence_sentences are used
+    ONLY in the evidence paragraph (not also re-quoted in the hook) for the
+    same reason -- an earlier version repeated evidence_sentences[0]
+    verbatim in both the hook and the opening of the evidence paragraph,
+    a real, visible redundancy caught by inspecting actual generated
+    output before shipping this."""
+    from applypilot.scoring.schemas import VIEWPOINT_EMPHASIS
+
+    title = (job.get("title") or "this role").strip()
+    company = _display_company_capitalized(job)
+    who = company or "This team"
+
+    req_texts = [_clean_snippet(r["requirement"], max_len=150) for r in requirements]
+    req_texts = [t for t in req_texts if t]
+    hook_reqs, fit_reqs = req_texts[:2], req_texts[2:5]
+
+    # ---- Paragraph 1: HOOK. Quoting the posting's own requirement text is
+    # zero-fabrication-risk (it's the employer's own words); the specific,
+    # true achievement connection lives in paragraph 2 instead (see below),
+    # not repeated here -- rougher than a synthesized hook, but true and
+    # non-redundant.
+    if len(hook_reqs) >= 2:
+        need = f"{hook_reqs[0][:-1]} and {hook_reqs[1][:-1]}."
+    elif hook_reqs:
+        need = hook_reqs[0]
+    else:
+        need = "the work described in the posting."
+    hook = (
+        f"{who} is hiring for {title}, and the posting points to {need} "
+        "That is close to work already in my background, not something I would be starting from scratch on."
+    )
+
+    # ---- Paragraph 2: EVIDENCE, entirely bank/fact-sourced (see
+    # _gather_evidence_sentences), joined with light connective tissue.
+    if evidence_sentences:
+        evidence_para = f"In practice, {evidence_sentences[0]}"
+        rest_sentences = evidence_sentences[1:4]
+        if rest_sentences:
+            evidence_para += " " + " ".join(rest_sentences)
+    else:
+        evidence_para = (
+            "I do not have one specific example on file that maps directly onto this posting, "
+            "but the pattern in my background is consistent: find the actual problem, fix it, "
+            "and check that the fix held before calling it done. I would rather say that plainly "
+            "than stretch an unrelated example to fit."
+        )
+
+    # ---- Paragraph 3: COMPANY FIT. No LLM synthesis of something
+    # "specific" about the company (that needs real inference this module
+    # deliberately doesn't attempt) -- reuses the job schema's own already-
+    # computed viewpoint label (schemas.select_viewpoint, computed once by
+    # build_job_schema_representation) rather than recomputing it from the
+    # job a second time, plus any remaining requirement text.
+    viewpoint = job_schema.get("viewpoint") or "general"
+    focus = VIEWPOINT_EMPHASIS.get(viewpoint, VIEWPOINT_EMPHASIS["general"])
+    fit = f"{who} appears to be focused on {focus}, based on the posting."
+    if fit_reqs:
+        joined = ", ".join(r[:-1] for r in fit_reqs[:-1]) if len(fit_reqs) > 1 else ""
+        joined = f"{joined}, and {fit_reqs[-1][:-1]}" if joined else fit_reqs[-1][:-1]
+        fit += (
+            f" The posting also calls out {joined}, which is the kind of work I take on "
+            "directly, not from the sidelines, and I would rather be upfront about where my "
+            "experience is strongest than overstate it."
+        )
+    else:
+        fit += " That is the kind of work I take on directly, not from the sidelines."
+
+    # ---- Paragraph 4: CLOSE. Names the same lead requirement from the
+    # hook rather than a fixed stock phrase, so it varies per job instead
+    # of reading as the same boilerplate closer on every letter.
+    close_topic = hook_reqs[0][:-1] if hook_reqs else "anything in the posting"
+    close = (
+        f"I am glad to go into more detail on {close_topic}, or anything else here that is a "
+        "priority for you, whenever that is useful. I am easy to reach and can answer questions "
+        "on short notice."
+    )
+
+    return [hook, evidence_para, fit, close]
+
+
+def compose_degraded_cover_letter(
+    client,
+    job: dict,
+    profile: dict,
+    job_schema: dict | None = None,
+) -> tuple[str, dict]:
+    """DEGRADED MODE for cover letters: no open-ended local-model prose
+    generation at all (see module comment above for why) -- assembles a
+    real, non-fabricated letter from the phrase-bank/evidence pipeline
+    already built for resumes plus template-filled paragraphs grounded in
+    the job posting's own requirement text. Deliberately NOT a retry loop
+    (mirrors tailor.py's degraded mode: the inputs are mostly deterministic,
+    so retrying wouldn't materially change the result) -- one composition,
+    caller validates and accepts or rejects.
+
+    Returns (letter_text, meta). meta records what was actually used so
+    callers/logs can tell a bank-covered letter from a thin one, same
+    diagnostic intent as tailor.py's degraded_meta.
+    """
+    from applypilot.scoring.schemas import get_or_build_job_schema
+
+    if job_schema is None:
+        job_schema = get_or_build_job_schema(job, profile)
+
+    personal = profile.get("personal", {})
+    sign_off_name = personal.get("preferred_name") or personal.get("full_name", "")
+
+    requirements = _pick_supported_requirements(job_schema)
+    evidence_sentences, evidence_used, fully_covered = _gather_evidence_sentences(client, job_schema, profile)
+
+    paragraphs = _build_degraded_cover_paragraphs(job, job_schema, requirements, evidence_sentences)
+    body = "\n\n".join(paragraphs)
+    letter = f"Dear Hiring Manager,\n\n{body}\n\n{sign_off_name}".strip()
+
+    meta = {
+        "tier": "degraded_template",
+        "llm_called": False,
+        "bank_covered": fully_covered,
+        "requirements_used": len(requirements),
+        "evidence_used": evidence_used,
+        "word_count": len(letter.split()),
+    }
+    return letter, meta

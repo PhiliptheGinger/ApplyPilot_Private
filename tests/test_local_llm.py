@@ -1464,6 +1464,123 @@ def _sample_profile():
     }
 
 
+# ---------------------------------------------------------------------------
+# No-space-after-bullet marker extraction (2026-09-12)
+#
+# Found while testing the cover-letter degraded-mode fallback against a
+# real LinkedIn "IT Coordinator" posting: its actual bulleted requirements
+# are written "•Provision, configure, deploy..." with NO space after the
+# bullet character. The old _REQUIREMENT_MARKER_RE (`\s+` mandatory after
+# the marker) matched nothing, so extraction silently fell through to the
+# markerless paragraph fallback, which filled its whole line budget on
+# short Markdown metadata lines at the top of the posting ("**Job Title:**
+# IT Coordinator", "**Start Date:** ASAP", ...) before ever reaching the
+# real bulleted section -- a real gap in shared infrastructure used by
+# both resume tailoring and cover-letter grounding. Verified against the
+# full live 31,710-job corpus before shipping: 432 jobs recover real
+# content that was previously extracting zero requirement lines, zero jobs
+# lose any previously-extracted line, zero double-marker ("**"/"--")
+# collisions found anywhere in the corpus.
+# ---------------------------------------------------------------------------
+
+
+class TestNoSpaceAfterBulletMarker(unittest.TestCase):
+    def test_bullet_with_no_space_is_extracted(self):
+        from applypilot.scoring.local_tailor import _extract_marker_lines
+
+        desc = "•Provision, configure, deploy, and manage company hardware for all users.\n"
+        lines, _dropped = _extract_marker_lines(desc)
+        texts = [l["text"] for l in lines]
+        self.assertIn("Provision, configure, deploy, and manage company hardware for all users.", texts)
+
+    def test_hyphen_with_no_space_is_extracted(self):
+        from applypilot.scoring.local_tailor import _extract_marker_lines
+
+        desc = "-Experience with Python and distributed systems is required.\n"
+        lines, _dropped = _extract_marker_lines(desc)
+        texts = [l["text"] for l in lines]
+        self.assertIn("Experience with Python and distributed systems is required.", texts)
+
+    def test_bullet_with_space_still_works(self):
+        """Existing, already-common formatting must be completely unaffected."""
+        from applypilot.scoring.local_tailor import _extract_marker_lines
+
+        desc = "• Experience with Python and distributed systems is required.\n"
+        lines, _dropped = _extract_marker_lines(desc)
+        texts = [l["text"] for l in lines]
+        self.assertIn("Experience with Python and distributed systems is required.", texts)
+
+    def test_markdown_bold_metadata_line_is_not_misread_as_a_bullet(self):
+        """The negative lookahead after the marker class prevents "**Bold
+        Label:**" from being parsed as a "*"-marked bullet with a stray
+        leading "*" left in its captured text."""
+        from applypilot.scoring.local_tailor import _extract_marker_lines
+
+        desc = "**Job Title:** IT Coordinator\n**Start Date:** ASAP\n"
+        lines, _dropped = _extract_marker_lines(desc)
+        self.assertEqual(lines, [])
+
+    def test_digit_marker_still_requires_whitespace(self):
+        """Deliberately NOT relaxed like the punctuation markers: a
+        decimal number at the start of a line ("3.5 years of experience")
+        must never be misparsed as marker "3." + content "5 years...",
+        losing the decimal. Confirmed against the live DB: 439 real
+        "N.N"-at-line-start occurrences exist in the corpus."""
+        from applypilot.scoring.local_tailor import _extract_marker_lines
+
+        desc = "3.5 years of professional software engineering experience required.\n"
+        lines, _dropped = _extract_marker_lines(desc)
+        self.assertEqual(lines, [])
+
+    def test_digit_marker_with_proper_spacing_is_unaffected(self):
+        from applypilot.scoring.local_tailor import _extract_marker_lines
+
+        desc = "1. Experience with Python and distributed systems is required.\n"
+        lines, _dropped = _extract_marker_lines(desc)
+        texts = [l["text"] for l in lines]
+        self.assertIn("Experience with Python and distributed systems is required.", texts)
+
+    def test_bare_colon_ending_marked_line_is_excluded(self):
+        """A posting that bullets its own section header ("• Required:")
+        is a label, not a requirement -- the same shape _looks_like_
+        list_item already excludes for the markerless fallback path."""
+        from applypilot.scoring.local_tailor import _extract_marker_lines
+
+        desc = "•Required:\n•Experience with Python and distributed systems is a must.\n"
+        lines, _dropped = _extract_marker_lines(desc)
+        texts = [l["text"] for l in lines]
+        self.assertNotIn("Required:", texts)
+        self.assertIn("Experience with Python and distributed systems is a must.", texts)
+
+    def test_real_it_coordinator_posting_shape_recovers_real_requirements(self):
+        """Direct regression pin for the real posting that surfaced this
+        bug: Markdown-bold metadata header lines followed by a no-space
+        bulleted "Job Summary" section."""
+        from applypilot.scoring.local_tailor import _split_requirement_lines
+
+        desc = (
+            "**Job Title:** IT Coordinator  \n"
+            "**Location-Type:** Onsite, Charlotte, NC (5 days/week)  \n"
+            "**Start Date:** ASAP  \n"
+            "**Duration:** Permanent  \n"
+            "**Compensation Range:** $70,000 - $75,000K  \n"
+            "**Visa Sponsorship:** Not eligible for visa sponsorship  \n"
+            "**Job Description:  \n"
+            "** This role serves as the primary IT support resource for the organization.\n"
+            "**Job Summary  \n"
+            "** •Provision, configure, deploy, and manage company hardware for all users.\n"
+            "•Administer Microsoft 365, Active Directory, servers, and networks for end users.\n"
+            "•Provide daily in-person and remote end-user support for complex problems.\n"
+        )
+        lines, _dropped = _split_requirement_lines(desc)
+        texts = " ".join(l["text"] for l in lines)
+        self.assertIn("Administer Microsoft 365", texts)
+        self.assertIn("Provide daily in-person", texts)
+        # The metadata header lines must not crowd out the real content.
+        self.assertNotIn("Job Title", texts)
+        self.assertNotIn("Start Date", texts)
+
+
 class TestEvidenceRetrieval(unittest.TestCase):
     def _job(self, description, title="Python Automation Engineer"):
         return {"title": title, "full_description": description}

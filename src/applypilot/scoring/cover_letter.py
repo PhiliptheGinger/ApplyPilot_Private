@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime
 
 from applypilot.config import COVER_LETTER_DIR, load_profile
-from applypilot.llm import get_stage_client, get_token_limit
+from applypilot.llm import get_stage_client, get_token_limit, is_local_configured
 from applypilot.scoring.resume_router import (
     is_communication_role,
     load_resume_text_for_job,
@@ -189,7 +189,11 @@ def generate_cover_letter(resume_text: str, job: dict, profile: dict, max_retrie
     # grounding at all (just the raw description dump above); this gives the
     # cover-letter model the same requirement/evidence/schema mapping.
     # Failure here must never block cover-letter generation -- it's guidance.
+    # job_schema is kept (not just the rendered schema_guidance string) so
+    # degraded mode below can reuse the SAME computation rather than
+    # recomputing it a second time.
     schema_guidance = ""
+    job_schema: dict | None = None
     try:
         from applypilot.scoring.schemas import format_schema_guidance, get_or_build_job_schema
 
@@ -202,9 +206,51 @@ def generate_cover_letter(resume_text: str, job: dict, profile: dict, max_retrie
     letter = ""
     validation: dict = {"passed": False, "errors": ["no attempts"], "warnings": []}
     client = get_client(quality=True)
+    # has_cloud_available() is an LLMClient-specific introspection method --
+    # see tailor.py's identical defensive getattr for why this doesn't just
+    # assume every caller's client is a real LLMClient.
+    client_has_cloud_available = getattr(client, "has_cloud_available", lambda: True)
     cl_prompt_base = _build_cover_letter_prompt(profile, job)
 
+    # 2026-09-12: cover letters had ZERO degraded-mode fallback until now --
+    # any cloud exhaustion just failed the job outright (see the `except
+    # RuntimeError` branch below), unlike tailor_resume's phrase-bank-backed
+    # degraded mode. This composes a template-based letter from the same
+    # phrase-bank/evidence pipeline instead of asking a local model to write
+    # open-ended prose (see local_tailor.compose_degraded_cover_letter's
+    # module comment for why that's deliberately avoided). Not a retry loop
+    # -- one composition, validated exactly like a cloud attempt.
+    def _run_degraded_cover() -> tuple[str, dict]:
+        log.warning(
+            "DEGRADED MODE: all cloud cover-letter models are exhausted; composing a "
+            "template-based letter from real evidence/requirement text for %s. Quality is "
+            "lower than cloud generation -- this is an emergency fallback, not normal operation.",
+            job.get("title", "")[:40],
+        )
+        from applypilot.scoring.local_tailor import compose_degraded_cover_letter
+
+        draft, degraded_meta = compose_degraded_cover_letter(client, job, profile, job_schema)
+        draft = sanitize_text(draft)
+        draft_validation = validate_cover_letter(draft, profile)
+        log.info(
+            "Degraded-mode cover letter for %s: bank_covered=%s, requirements_used=%d, "
+            "evidence_used=%d, words=%d, validation_passed=%s",
+            job.get("title", "")[:40],
+            degraded_meta.get("bank_covered"),
+            degraded_meta.get("requirements_used"),
+            len(degraded_meta.get("evidence_used") or []),
+            degraded_meta.get("word_count"),
+            draft_validation["passed"],
+        )
+        return draft, draft_validation
+
     for attempt in range(max_retries + 1):
+        # Steady-state case: a later job in the same run, after an earlier
+        # job already discovered exhaustion (mirrors tailor_resume's
+        # identical fast-path check).
+        if is_local_configured() and not client_has_cloud_available():
+            return _run_degraded_cover()
+
         # Fresh conversation every attempt
         prompt = cl_prompt_base
         if avoid_notes:
@@ -225,9 +271,14 @@ def generate_cover_letter(resume_text: str, job: dict, profile: dict, max_retrie
         # Higher ceiling helps thinking-models avoid truncation while
         # still letting prompts enforce concise output.
         try:
-            # Mirror tailor.py's heavy-call behavior: keep cover generation
-            # cloud-only so quota exhaustion fails fast instead of silently
-            # falling through to slow local generation.
+            # Mirror tailor.py's heavy-call behavior: this HEAVY prompt call
+            # itself stays cloud-only (exclude_providers) so quota exhaustion
+            # fails fast (a few seconds of rejected cloud attempts) instead of
+            # silently falling through to a multi-minute local generation
+            # this whole-letter prompt was never designed for. On exhaustion
+            # WE explicitly redirect to the bounded, template-based degraded
+            # mode below -- see _run_degraded_cover -- rather than letting
+            # this call fall through to local on its own.
             letter = client.chat(
                 messages,
                 max_tokens=get_token_limit("cover", 8192),
@@ -236,10 +287,12 @@ def generate_cover_letter(resume_text: str, job: dict, profile: dict, max_retrie
             )
         except RuntimeError as exc:
             log.warning(
-                "Cover-letter cloud generation exhausted for %s; skipping local fallback: %s",
+                "Cover-letter cloud generation exhausted for %s: %s",
                 (job.get("title") or "")[:40],
                 exc,
             )
+            if is_local_configured():
+                return _run_degraded_cover()
             return "", {
                 "passed": False,
                 "errors": [f"cloud_cover_generation_exhausted: {exc}"],
