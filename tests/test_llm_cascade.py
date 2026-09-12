@@ -1814,6 +1814,83 @@ class TestPersistent503FallsThroughToNextProvider(unittest.TestCase):
         self.assertGreater(remaining, 0)
         self.assertLessEqual(remaining, 60)
 
+    def test_persistent_503_on_last_entry_marks_exhausted_before_raising(self):
+        """2026-09-11: real bug found testing the tailor stage directly --
+        a real `applypilot run tailor` job hit this exact last-entry-503
+        case and ended up with status="provider_unavailable" instead of
+        falling back to degraded mode. Root cause: this raise branch never
+        called _mark_exhausted, so tailor.py's `client.has_cloud_available()`
+        check (which reads client._exhausted directly) wrongly reported
+        cloud as still available even though the only entry left had just
+        failed. Fixed to mark exhausted for 60s before raising, mirroring
+        the sibling not-is_last branch just above it."""
+        client = _make_client(1)
+        name = client._fallback_chain[0].name
+        with patch.object(client._client, "post", return_value=self._persistent_503_response()), patch("time.sleep"):
+            with self.assertRaises(RuntimeError):
+                client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertIn(name, client._exhausted)
+        self.assertFalse(client.has_cloud_available())
+
+    def test_persistent_429_on_last_entry_marks_exhausted_before_raising(self):
+        """Same real bug and fix as the 503 sibling above, for the 429
+        last-entry branch."""
+        resp = MagicMock()
+        resp.status_code = 429
+        resp.text = "Too Many Requests"
+        resp.json.return_value = {}
+
+        def _raise():
+            import httpx as httpx_mod
+
+            raise httpx_mod.HTTPStatusError("429", request=MagicMock(), response=resp)
+
+        resp.raise_for_status.side_effect = _raise
+
+        client = _make_client(1)
+        name = client._fallback_chain[0].name
+        with patch.object(client._client, "post", return_value=resp), patch("time.sleep"):
+            with self.assertRaises(RuntimeError):
+                client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertIn(name, client._exhausted)
+        self.assertFalse(client.has_cloud_available())
+
+    def test_persistent_429_on_non_last_entry_marks_exhausted_briefly(self):
+        """2026-09-11: the 429 not-is_last branch never marked exhaustion
+        at all (unlike its 503 sibling, decision #86) -- a later job in the
+        same batch would re-pay the full retry cost against the same
+        currently rate-limited entry from scratch. Fixed to mark for 60s,
+        matching the 503 sibling's own pattern exactly."""
+        resp = MagicMock()
+        resp.status_code = 429
+        resp.text = "Too Many Requests"
+        resp.json.return_value = {}
+
+        def _raise():
+            import httpx as httpx_mod
+
+            raise httpx_mod.HTTPStatusError("429", request=MagicMock(), response=resp)
+
+        resp.raise_for_status.side_effect = _raise
+
+        def fake_post(url, **kwargs):
+            if kwargs["json"]["model"] == first_name:
+                return resp
+            return self._ok_response("second provider answered")
+
+        client = _make_client(2)
+        first_name = client._fallback_chain[0].name
+
+        with patch.object(client._client, "post", side_effect=fake_post), patch("time.sleep"):
+            client.chat([{"role": "user", "content": "hi"}])
+
+        self.assertIn(first_name, client._exhausted)
+        remaining = client._exhausted[first_name] - time.time()
+        self.assertGreater(remaining, 0)
+        self.assertLessEqual(remaining, 60)
+
 
 class TestFrequencyPresencePenaltyPassthrough(unittest.TestCase):
     """2026-09-04, added for the sentence-diversity bake-off: chat() can

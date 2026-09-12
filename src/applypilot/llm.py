@@ -937,7 +937,14 @@ class LLMClient:
                         time.sleep(wait)
                         continue
                     elif not is_last:
-                        log.warning("%s/%s still 429, trying next model", entry.provider, entry.name)
+                        # 2026-09-11: mark exhausted for 60s, mirroring the
+                        # 503 branch's own fix just below -- without this, a
+                        # LATER job in the same batch re-pays the full
+                        # multi-retry cost against the same currently-down
+                        # entry from scratch instead of skipping straight
+                        # past it.
+                        log.warning("%s/%s still 429, trying next model (marking exhausted for 60s)", entry.provider, entry.name)
+                        self._mark_exhausted(entry.name, time.time() + 60)
                         return None
                     else:
                         # 2026-09-05 production crash: when this is the ONLY
@@ -959,6 +966,23 @@ class LLMClient:
                         # to fall through to and needed to raise RuntimeError
                         # itself, same as the "all models exhausted" raise at
                         # the end of chat()'s loop.
+                        # 2026-09-11 real bug found testing the tailor stage
+                        # directly: this branch raised RuntimeError WITHOUT
+                        # marking the entry exhausted first (unlike every
+                        # other giving-up branch in this function) --
+                        # tailor.py's `except RuntimeError` handler decides
+                        # whether to redirect to degraded mode by calling
+                        # `client.has_cloud_available()`, which checks
+                        # `self._exhausted` directly. Since this entry was
+                        # never recorded as exhausted, that check incorrectly
+                        # reported "cloud still available" even though the
+                        # call that JUST failed was the only entry left --
+                        # tailoring gave up with status="provider_unavailable"
+                        # instead of ever attempting the local/phrase-bank
+                        # degraded path, the exact "stuck on a dead cloud
+                        # provider with no real fallback" failure mode
+                        # decision #119 fixed for the scorer.
+                        self._mark_exhausted(entry.name, time.time() + 60)
                         raise RuntimeError(
                             f"{entry.provider}/{entry.name} still rate-limited (429) after {_MAX_RETRIES} attempts "
                             "and no other provider is available."
@@ -1005,6 +1029,15 @@ class LLMClient:
                         # redirect never catches it, crashing the job instead
                         # of falling back. Confirmed live during the first
                         # real end-to-end phrase-bank verification run.
+                        # 2026-09-11: same real bug as the 429 is_last branch
+                        # above -- this raised without marking the entry
+                        # exhausted, so `client.has_cloud_available()` wrongly
+                        # reported cloud as still available and tailor.py
+                        # never redirected to degraded mode (status ended up
+                        # "provider_unavailable" instead). Mark exhausted for
+                        # 60s (matching the sibling not-is_last branch above)
+                        # before raising.
+                        self._mark_exhausted(entry.name, time.time() + 60)
                         raise RuntimeError(
                             f"{entry.provider}/{entry.name} still returning 503 after {_MAX_RETRIES} attempts "
                             "and no other provider is available."

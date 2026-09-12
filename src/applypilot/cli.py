@@ -212,7 +212,7 @@ def run(
     ),
     stream: bool = typer.Option(False, "--stream", help="Run stages concurrently (streaming mode)."),
     doc_format: str = typer.Option(
-        "docx", "--doc-format", help="Document format for resumes/cover letters: docx (default) or pdf."
+        "pdf", "--doc-format", help="Document format for resumes/cover letters: pdf (default) or docx."
     ),
     dry_run: bool = typer.Option(False, "--dry-run", help="Preview stages without executing."),
     source: list[str] | None = typer.Option(
@@ -1098,15 +1098,25 @@ def score_deterministic_fallback(
         "--model qwen3:1.7b --escalate-model qwen3:8b for ~3x faster average scoring with most of 8b's "
         "accuracy on the cases that matter most.",
     ),
+    scope: str = typer.Option(
+        "quota_cooldown",
+        "--scope",
+        help="'quota_cooldown' (default): only jobs stuck on a quota-cooldown score_error. "
+        "'all_unscored': every unscored enriched job regardless of score_error/attempts -- a deliberate "
+        "widening (decision #129), authorized once the multi-day Claude-direct audit found no more real "
+        "extraction gaps (decision #105's own stated trigger for moving the rest of the backlog to local "
+        "scoring). With a large backlog this can take many hours to days -- check the real candidate count "
+        "first and prefer running in the background.",
+    ),
 ) -> None:
-    """Score jobs stuck on a Gemini/OpenAI quota-cooldown error using the
-    local/deterministic fallback scorer (CLAUDE.md decision #76), instead of
-    waiting for cloud quota to reset.
+    """Score jobs using the local/deterministic fallback scorer (CLAUDE.md
+    decision #76), instead of waiting for cloud quota to reset.
 
     Explicit-invocation only -- never runs automatically as part of the
-    normal `applypilot run score` path. Only touches jobs whose score_error
-    literally contains "quota cooldown"; a job unscored for any other
-    reason is left untouched. Every scored row is tagged
+    normal `applypilot run score` path. By default (--scope quota_cooldown)
+    only touches jobs whose score_error literally contains "quota cooldown";
+    pass --scope all_unscored to widen this to the entire unscored backlog
+    (decision #129). Every scored row is tagged
     score_method='deterministic_fallback' so it can be found again and
     revalidated by a real LLM once quota returns (see
     revalidate-deterministic-fallback-scores).
@@ -1121,13 +1131,14 @@ def score_deterministic_fallback(
 
     from applypilot.scoring.deterministic_fallback import run_deterministic_fallback_scoring
 
-    result = run_deterministic_fallback_scoring(limit=limit, model=model, escalate_model=escalate_model)
+    result = run_deterministic_fallback_scoring(limit=limit, model=model, escalate_model=escalate_model, scope=scope)
+    noun = "quota-cooldown-stuck" if scope == "quota_cooldown" else "unscored"
     console.print(
-        f"[cyan]Deterministic fallback scoring (model={result['model']}):[/cyan] "
-        f"scored {result['scored']} / {result['candidates']} quota-cooldown-stuck job(s)."
+        f"[cyan]Deterministic fallback scoring (model={result['model']}, scope={scope}):[/cyan] "
+        f"scored {result['scored']} / {result['candidates']} {noun} job(s)."
     )
     if result["scored"] == 0 and result["candidates"] == 0:
-        console.print("[dim]No jobs currently stuck on a quota-cooldown error -- nothing to do.[/dim]")
+        console.print(f"[dim]No {noun} jobs found -- nothing to do.[/dim]")
 
 
 @app.command("revalidate-deterministic-fallback-scores")
@@ -1298,7 +1309,7 @@ def run_continuous(
         help=f"Skip jobs older than this many days (default: {config.DEFAULTS['max_job_age_days']}).",
     ),
     doc_format: str = typer.Option(
-        "docx", "--doc-format", help="Document format for resumes/cover letters: docx (default) or pdf."
+        "pdf", "--doc-format", help="Document format for resumes/cover letters: pdf (default) or docx."
     ),
     no_continuous_apply: bool = typer.Option(
         False,
@@ -1564,7 +1575,7 @@ def apply(
     headless: bool = typer.Option(False, "--headless", help="Run browsers in headless mode."),
     url: str | None = typer.Option(None, "--url", help="Apply to a specific job URL."),
     doc_format: str = typer.Option(
-        "docx", "--doc-format", help="Document format for resumes/cover letters: docx (default) or pdf."
+        "pdf", "--doc-format", help="Document format for resumes/cover letters: pdf (default) or docx."
     ),
     gen: bool = typer.Option(False, "--gen", help="Generate prompt file for manual debugging instead of running."),
     mark_applied: str | None = typer.Option(None, "--mark-applied", help="Manually mark a job URL as applied."),

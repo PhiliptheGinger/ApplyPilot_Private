@@ -529,20 +529,48 @@ def _build_tailor_prompt(profile: dict, standup_decision: str = STANDUP_EXCLUDE)
     if standup_decision not in {STANDUP_INCLUDE, STANDUP_OPTIONAL, STANDUP_EXCLUDE}:
         standup_decision = STANDUP_EXCLUDE
 
+    # 2026-09-11: the standup entry was previously ungrounded -- it exists
+    # nowhere in experience_inventory/employment_history/resume_facts, so
+    # INCLUDE/OPTIONAL only ever told the model "this is relevant, frame it
+    # in terms of public speaking..." with zero real facts to draw from.
+    # Confirmed live: a real tailoring run invented an entire "Stand-Up
+    # Comedian" entry (header, bullets) out of nothing but that instruction.
+    # This candidate's own explicit correction: keep the entry (it's real),
+    # but ground its first bullet in an exact, user-authored sentence rather
+    # than letting the model free-invent framing. Deliberately NOT added as
+    # a normal experience_inventory entry -- that would make it selectable
+    # by the generic evidence-matching path regardless of standup_decision,
+    # defeating the whole point of classify_standup_relevance's title-based
+    # gate (decision #62/#63). `standup_experience` lives in profile.json
+    # (gitignored, candidate-specific data) precisely so this mechanism --
+    # generic, reusable -- carries no personal content into the shared
+    # pipeline code; only THIS candidate's profile.json has the actual text.
+    standup_info = profile.get("standup_experience") or {}
+    standup_title = standup_info.get("role_title") or "Stand-Up Comedian"
+    pinned_bullet = standup_info.get("pinned_first_bullet") or ""
+    pinned_instruction = (
+        f'The header must read "{standup_title}". The FIRST bullet under it must be '
+        f'exactly this sentence, verbatim, unedited: "{pinned_bullet}" '
+        "Any additional bullets must use only general, non-specific framing (public "
+        "speaking, audience awareness, adapting communication) -- never invent specific "
+        "venues, dates, durations, or metrics, since none exist in the candidate's profile."
+        if pinned_bullet
+        else "Frame it in terms of public speaking, audience awareness, verbal "
+        "communication, presentation, improvisation, or adapting communication to "
+        "different audiences, but do not invent accomplishments or metrics."
+    )
+
     standup_block = {
         STANDUP_INCLUDE: (
             "STAND-UP EXPERIENCE DECISION: INCLUDE\n\n"
             "The candidate's stand-up comedy experience is relevant to this job. "
-            "Include it when appropriate as professional experience. Frame it in terms "
-            "of public speaking, audience awareness, verbal communication, presentation, "
-            "improvisation, or adapting communication to different audiences, but do not "
-            "invent accomplishments or metrics."
+            f"Include it when appropriate as professional experience. {pinned_instruction}"
         ),
         STANDUP_OPTIONAL: (
             "STAND-UP EXPERIENCE DECISION: OPTIONAL\n\n"
             "Stand-up comedy may be included only if space permits and it adds meaningful "
             "value for this particular job. It must not displace more directly relevant "
-            "technical experience. Do not force it into the resume."
+            f"technical experience. Do not force it into the resume. If included, {pinned_instruction}"
         ),
         STANDUP_EXCLUDE: (
             "STAND-UP EXPERIENCE DECISION: EXCLUDE\n\n"
@@ -1242,6 +1270,13 @@ def tailor_resume(
             avoid_notes.append("Output was not valid JSON. Return ONLY a JSON object, nothing else.")
             continue
 
+        # 2026-09-11: guarantee the standup pinned first bullet regardless
+        # of whether the model actually followed the prompt instruction --
+        # same "never fully trust the LLM for a hard requirement" discipline
+        # as the phrase-bank overlay just below.
+        if standup_decision != STANDUP_EXCLUDE:
+            _enforce_standup_pinned_bullet(data, profile)
+
         # 2026-09-05 phrase-bank overlay (cloud path): for whichever
         # evidence a persisted phrase bank exists, overlay a bank-
         # selected, editor-polished bullet onto the cloud's own freshly-
@@ -1403,6 +1438,36 @@ def resolve_company_key(job: dict) -> str | None:
         if site:
             return site
     return None
+
+
+_STANDUP_HEADER_RE = re.compile(r"stand.?up|comedian|comedy", re.IGNORECASE)
+
+
+def _enforce_standup_pinned_bullet(data: dict, profile: dict) -> None:
+    """If the model included a stand-up entry, force its first bullet to be
+    the candidate's own exact, pre-authored sentence (profile.json's
+    ``standup_experience.pinned_first_bullet``) -- a prompt instruction
+    alone (see `_build_tailor_prompt`) is advisory, not a guarantee. Mutates
+    ``data`` in place. No-op if the entry isn't present, or if profile.json
+    has no pinned bullet configured (nothing to enforce)."""
+    pinned = (profile.get("standup_experience") or {}).get("pinned_first_bullet") or ""
+    if not pinned:
+        return
+    for entry in data.get("experience") or []:
+        if not isinstance(entry, dict):
+            continue
+        header = str(entry.get("header") or "")
+        if not _STANDUP_HEADER_RE.search(header):
+            continue
+        bullets = entry.get("bullets")
+        if not isinstance(bullets, list):
+            bullets = []
+        # Replace an existing first bullet if the model wrote its own
+        # version (even a close paraphrase must not survive -- the whole
+        # point is this exact sentence, verbatim); otherwise prepend.
+        if bullets and bullets[0].strip() == pinned.strip():
+            continue
+        entry["bullets"] = [pinned, *[b for b in bullets if b.strip() != pinned.strip()]]
 
 
 def display_company(job: dict) -> str:
@@ -1568,17 +1633,22 @@ def _tailor_one_job(job: dict, resume_text: str | None, profile: dict, doc_forma
 
             personal = profile.get("personal", {})
             full_name = personal.get("full_name") or personal.get("preferred_name") or ""
-            job_title = (job.get("title") or "").strip()[:150]
-            site = (job.get("site") or "").strip()[:80]
+            # 2026-09-11: title/subject/comments used to embed the job title,
+            # source site, and an explicit "Customized for: ..." note into
+            # the file's own metadata (visible via File > Properties, not
+            # just the filename) -- a much less visible but more explicit
+            # signal that this resume was auto-tailored/generated than the
+            # already-clean upload filename (apply/prompt.py's
+            # "{name}_Resume.{ext}") ever was. `keywords` is left alone --
+            # ATS keyword-metadata optimization (Jobscan-style, see the
+            # filename comment above) is a real technique a diligent human
+            # applicant might also do by hand, unlike a literal "Customized
+            # for" comment.
             metadata = {
-                "title": f"Resume — {full_name} for {job_title}" if full_name else f"Resume — {job_title}",
-                "subject": job_title,
+                "title": f"{full_name} Resume" if full_name else "Resume",
                 "author": full_name,
                 "category": "Resume",
                 "keywords": _extract_keywords(job, profile),
-                "comments": (
-                    f"Customized for: {job_title}\nSource: {site}\nDate: {datetime.now(UTC).strftime('%Y-%m-%d')}"
-                ),
             }
             doc_path = str(convert_to_pdf(txt_path, doc_format=doc_format, metadata=metadata))
         except Exception:

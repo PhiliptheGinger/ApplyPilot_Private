@@ -20,6 +20,7 @@ chrome-workers/
 apply-workers/
 apply_logs/
 logs/
+watchdog_logs/
 tmp_*
 
 # MCP configs (per-machine)

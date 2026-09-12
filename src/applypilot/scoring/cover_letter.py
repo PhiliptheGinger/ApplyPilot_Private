@@ -326,17 +326,16 @@ def _cover_one_job(job: dict, resume_text: str | None, profile: dict, doc_format
 
         personal = profile.get("personal", {})
         full_name = personal.get("full_name") or personal.get("preferred_name") or ""
-        job_title = (job.get("title") or "").strip()[:150]
-        site = (job.get("site") or "").strip()[:80]
+        # 2026-09-11: see tailor.py's matching fix -- title/subject/comments
+        # used to embed the job title/source site/an explicit "Cover letter
+        # for: ..." note into the file's own metadata, a more explicit
+        # auto-generation signal than the already-clean upload filename.
+        # `keywords` is left alone (legitimate ATS optimization technique).
         cl_metadata = {
-            "title": f"Cover Letter — {full_name} for {job_title}" if full_name else f"Cover Letter — {job_title}",
-            "subject": job_title,
+            "title": f"{full_name} Cover Letter" if full_name else "Cover Letter",
             "author": full_name,
             "category": "Cover Letter",
             "keywords": _extract_keywords(job, profile),
-            "comments": (
-                f"Cover letter for: {job_title}\nSource: {site}\nDate: {datetime.now(UTC).strftime('%Y-%m-%d')}"
-            ),
         }
         doc_path = str(convert_to_pdf(cl_path, doc_format=doc_format, metadata=cl_metadata, content_type="cover_letter"))
     except Exception:

@@ -5,6 +5,7 @@ from applypilot.scoring.tailor import (
     STANDUP_INCLUDE,
     STANDUP_OPTIONAL,
     _build_tailor_prompt,
+    _enforce_standup_pinned_bullet,
     classify_standup_relevance,
     tailor_resume,
 )
@@ -337,3 +338,80 @@ State University
     out = validate_tailored_resume(text, profile, standup_decision=STANDUP_EXCLUDE)
     assert not out["passed"]
     assert any("Stand-up content present" in e for e in out["errors"])
+
+
+# 2026-09-11: the standup entry was previously wholly ungrounded (no
+# experience_inventory/employment_history/resume_facts entry at all) --
+# confirmed live via a real tailoring run that invented an entire
+# "Stand-Up Comedian" section from nothing but the STANDUP_INCLUDE prompt
+# instruction. Fixed with profile.json's new `standup_experience.
+# pinned_first_bullet` (gitignored, candidate-specific data -- never in
+# `experience_inventory`, which would make it selectable regardless of
+# classify_standup_relevance's gate) plus a deterministic enforcement step
+# that never fully trusts the model to follow the prompt instruction.
+_PINNED = (
+    "Not something I'd normally put on a resume, but Stand-up is certainly a "
+    "legitimate differentiator for roles that require clear communication, "
+    "dealing with possible rejection, and charisma."
+)
+
+
+def test_build_tailor_prompt_includes_pinned_bullet_verbatim_when_include():
+    profile = {
+        "skills_boundary": {},
+        "resume_facts": {},
+        "standup_experience": {"role_title": "Stand-Up Comedian", "pinned_first_bullet": _PINNED},
+    }
+    prompt = _build_tailor_prompt(profile, standup_decision=STANDUP_INCLUDE)
+    assert _PINNED in prompt
+    assert "Stand-Up Comedian" in prompt
+
+
+def test_build_tailor_prompt_omits_pinned_bullet_when_exclude():
+    profile = {
+        "skills_boundary": {},
+        "resume_facts": {},
+        "standup_experience": {"role_title": "Stand-Up Comedian", "pinned_first_bullet": _PINNED},
+    }
+    prompt = _build_tailor_prompt(profile, standup_decision=STANDUP_EXCLUDE)
+    assert _PINNED not in prompt
+
+
+def test_enforce_standup_pinned_bullet_prepends_when_model_wrote_something_else():
+    profile = {"standup_experience": {"pinned_first_bullet": _PINNED}}
+    data = {
+        "experience": [
+            {
+                "header": "Stand-Up Comedian",
+                "bullets": ["Delivered public speaking presentations to live audiences."],
+            }
+        ]
+    }
+    _enforce_standup_pinned_bullet(data, profile)
+    entry = data["experience"][0]
+    assert entry["bullets"][0] == _PINNED
+    assert "Delivered public speaking presentations to live audiences." in entry["bullets"]
+
+
+def test_enforce_standup_pinned_bullet_is_noop_when_already_correct():
+    profile = {"standup_experience": {"pinned_first_bullet": _PINNED}}
+    data = {"experience": [{"header": "Stand-Up Comedian", "bullets": [_PINNED, "Second bullet."]}]}
+    _enforce_standup_pinned_bullet(data, profile)
+    assert data["experience"][0]["bullets"] == [_PINNED, "Second bullet."]
+
+
+def test_enforce_standup_pinned_bullet_is_noop_when_no_standup_entry_present():
+    profile = {"standup_experience": {"pinned_first_bullet": _PINNED}}
+    data = {"experience": [{"header": "Alignment Technician | Mavis", "bullets": ["Diagnosed issues."]}]}
+    _enforce_standup_pinned_bullet(data, profile)
+    assert data["experience"][0]["bullets"] == ["Diagnosed issues."]
+
+
+def test_enforce_standup_pinned_bullet_is_noop_when_profile_has_no_pinned_bullet():
+    """A profile with no standup_experience configured (or no pinned_first_bullet
+    set) must never inject anything -- this mechanism is reusable pipeline
+    code, but produces zero output for any profile that hasn't opted in."""
+    profile = {}
+    data = {"experience": [{"header": "Stand-Up Comedian", "bullets": ["Some bullet."]}]}
+    _enforce_standup_pinned_bullet(data, profile)
+    assert data["experience"][0]["bullets"] == ["Some bullet."]
