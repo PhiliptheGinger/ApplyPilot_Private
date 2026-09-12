@@ -46,7 +46,35 @@ SENIORITY_TITLE_PATTERN = re.compile(
     # manager/head, "CTO" has essentially no legitimate non-technical
     # meaning in a job title, so this is a narrow, low-risk addition rather
     # than the kind of breadth tradeoff those other words represent.
-    r"cto)\b|"
+    r"cto|"
+    # 2026-09-10 (decision #94/#95): "founding" added -- found live via a
+    # Claude-direct scoring batch on 3 real postings ("Founding Engineer",
+    # "Founding Researcher", "Founding Infrastructure Engineer") that all
+    # slipped past this pattern entirely (no senior/staff/lead/architect/etc.
+    # token present) despite being genuinely early-hire, outsized-scope,
+    # senior-tier roles by well-established startup convention. Verified
+    # against 99 real DB titles containing "found" before shipping: `\bfound
+    # ing\b` cannot collide with "Foundation"/"Foundational"/"Foundry" (none
+    # contain the literal substring "founding"), and every real "Founding
+    # X" title sampled (Founding Software/Backend/Full-Stack/ML Platform/AI
+    # Engineer, Founding Data Scientist, Founding Researcher, Founding
+    # Customer Success Manager) is a genuine senior/early-hire role with no
+    # counter-example found -- same "no legitimate non-senior meaning" bar
+    # the "cto" addition used.
+    r"founding|"
+    # 2026-09-10 (decision #106): "supervisor" added -- found live via a
+    # Claude-direct scoring batch ("Field Service Technician Supervisor")
+    # that slipped past this pattern despite explicitly leading, coaching,
+    # and performance-reviewing a team, the same people-management category
+    # "manager"/"head"/"director" already disqualify. Verified against 63
+    # real DB titles containing "Supervisor" before shipping: only 16 were
+    # already caught (via a co-occurring "senior"/"sr" token); the other 47
+    # bare "Supervisor" titles (Production Supervisor, Maintenance
+    # Supervisor, Field Service Supervisor, Inventory Control Supervisor,
+    # etc.) were all genuine team-leadership roles with no counter-example
+    # found -- same "no legitimate non-management meaning" bar the "cto"
+    # and "founding" additions used.
+    r"supervisor)\b|"
     # Explicit level-number conventions: III/IV/V/VI and 3/4/5/6.
     # I/II and 1/2 remain allowed because they can represent entry-level
     # or early-career roles. "swe"/"sde" added 2026-08-25 alongside the

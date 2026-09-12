@@ -96,6 +96,14 @@ ADDITIONAL RULES:
   location/relocation area above, and is not remote, cap the score at 6.
 - Roles requiring a security clearance, or roles at defense, weapons, military, or law-enforcement
   contractors, are OUT OF SCOPE regardless of technical fit — score 1-2 and say why in REASONING.
+- "Commercial experience" (a common British-English phrasing) means paid, professional experience
+  -- treat a requirement for "commercial experience" the same as a requirement for professional
+  experience, even when no specific year count is attached.
+- A posting that restricts eligibility to candidates CURRENTLY ENROLLED in a degree program with a
+  graduation window (e.g. a new-grad/intern-to-hire pipeline, "graduating between X and Y") is a
+  hard disqualifier (score 1-2) unless the candidate is actually enrolled in such a program -- this
+  is a different disqualifying reason than simply lacking a completed CS/engineering degree, and
+  applies even if the candidate would otherwise be well-suited by skills alone.
 
 Output ONLY the four lines below -- no walkthrough, no markdown headers, no
 preamble before them. You MUST include all four lines. Do not skip REASONING.
@@ -165,6 +173,19 @@ _INELIGIBLE_LOCATION_PATTERNS = re.compile(
     r"\bEMEA\b"
     r"|\bAPAC\b"
     r"|\bEurope\b"
+    # North America (non-US). Negative lookahead excludes "Canada" used as a
+    # literal US place name immediately followed by a real US state
+    # abbreviation -- e.g. "Canada, KY, USA" and "Canada, NC" are both real,
+    # live DB locations (Canada, Kentucky and Canada, North Carolina are
+    # real unincorporated US communities, found 2026-09-10 while adding this
+    # pattern). Deliberately an enumerated US-state list, not a bare
+    # "any 2 letters" guard -- a bare guard would also swallow genuine
+    # Canadian postings like "Canada, BC, Vancouver" (BC = British
+    # Columbia), which must still match.
+    r"|\bCanada\b(?!,?\s*(?:AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|"
+    r"LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|"
+    r"TN|TX|UT|VT|VA|WA|WV|WI|WY)\b)"
+    r"|\bUK\b|\bUnited Kingdom\b"
     # Europe
     r"|\bGermany\b|\bNetherlands\b|\bFrance\b|\bSpain\b|\bItaly\b"
     r"|\bPoland\b|\bUkraine\b|\bCzech\b|\bPortugal\b|\bIreland\b"
@@ -176,14 +197,49 @@ _INELIGIBLE_LOCATION_PATTERNS = re.compile(
     r"|\bIndia\b|\bSingapore\b|\bJapan\b|\bVietnam\b|\bThailand\b"
     r"|\bPhilippines\b|\bIndonesia\b|\bKorea\b|\bTaiwan\b|\bHong Kong\b"
     r"|\bChina\b|\bPakistan\b|\bBangladesh\b|\bMalaysia\b"
-    # Latin America
+    # Latin America. "São Paulo" as a bare city name (no "Brazil"/"Brasil"
+    # elsewhere in the string) -- verified 2026-09-10 against 6 real DB rows
+    # ("remote, São Paulo"): 4/6 were wrongly NOT rejected (the other 2 only
+    # incidentally caught via an unrelated "Director" seniority-title match,
+    # not the location check). Deliberately narrow (one specific, unambiguous
+    # city) rather than a general city-name-matching expansion, which would
+    # be much broader unverified scope.
     r"|\bBrazil\b|\bBrasil\b|\bMexico\b|\bMéxico\b|\bArgentina\b"
-    r"|\bChile\b|\bColombia\b|\bPeru\b|\bUruguay\b"
+    r"|\bChile\b|\bColombia\b|\bPeru\b|\bUruguay\b|S[aã]o\s+Paulo"
     # Middle East / Africa
     r"|\bEgypt\b|\bNigeria\b|\bKenya\b|\bSouth Africa\b|\bIsrael\b"
     r"|\bTurkey\b|\bTürkiye\b|\bUAE\b|\bSaudi Arabia\b"
-    # Oceania
-    r"|\bAustralia\b|\bNew Zealand\b",
+    # Oceania. "AUS" as a bare country-code abbreviation (e.g. "AUS MLBN
+    # Virtual" = Melbourne, Australia) -- verified 2026-09-10 against all 3
+    # real standalone \bAUS\b DB locations (AUS SYDN 55 / AUS MLBN Virtual /
+    # AUS (Remote)), all genuine Australia references. Word-boundary-safe
+    # against "Austin" (no real DB location abbreviates Austin as bare
+    # "AUS" -- they all spell it out, and "Austin" itself doesn't end at a
+    # word boundary after "aus" anyway).
+    # "Sydney" as a bare city name (no "Australia"/"AUS" elsewhere in the
+    # string) -- verified 2026-09-10 against a real Accenture posting
+    # ("Sydney, International House, 3 Sussex St", 1/14 real DB "Sydney"
+    # rows, the other 13 already caught via "Australia" elsewhere in the
+    # string). No US collision risk: US towns spelled similarly use "Sidney"
+    # (Sidney, Ohio/Montana/Nebraska), not "Sydney" -- confirmed zero
+    # "Sydney"-spelled US locations in the live DB.
+    r"|\bAustralia\b|\bNew Zealand\b|\bAUS\b|\bSydney\b",
+    re.IGNORECASE,
+)
+
+# Guards the location-field check above against multi-location strings that
+# list the US ALONGSIDE a non-US country as one of several accepted options
+# (e.g. "Remote (US & Canada)", "United States or Canada", "US, UK, EU, APAC
+# ONSITE PREFERRED") -- these postings genuinely accept a US-based candidate,
+# so the mere presence of a non-US country elsewhere in the same string must
+# not reject them. Found 2026-09-10 while adding the Canada/UK/AUS patterns
+# above: a live DB scan found 125 real job rows across 51 distinct locations
+# wrongly excluded this way -- a pre-existing gap (affects every country in
+# the list above, not just the ones just added), the opposite failure mode
+# from every other fix this session (wrongly EXCLUDING a US-eligible job,
+# not wrongly INCLUDING an ineligible one).
+_US_ALSO_LISTED_PATTERN = re.compile(
+    r"\bUS\b|\bU\.S\.?\b|\bUSA\b|\bUnited States\b",
     re.IGNORECASE,
 )
 
@@ -262,13 +318,40 @@ def _candidate_has_advanced_degree(profile: dict) -> bool:
 # risked meaningfully diverging from that "ability to obtain is a different
 # case" carve-out -- so this gate stays conservative for Secret/Top Secret
 # and requires an explicit hard-requirement qualifier for those two tiers.
-_TS_SCI_PATTERN = re.compile(r"\bTS[/\s-]?SCI\b", re.IGNORECASE)
+# 2026-09-10 (decision #94/#99): the bare abbreviation "TS/SCI" only ever
+# matched the literal abbreviated form -- a real, live-DB scan (Captivation
+# Software's "Top Secret/SCI U.S. Government security clearance with a
+# favorable Polygraph" requirement, found via a Claude-direct scoring batch)
+# showed the abbreviation is far LESS common in real postings than spelling
+# the tier out: "Top Secret SCI" / "Top Secret/SCI" / "Top Secret clearance
+# with SCI eligibility" all refer to the exact same rare, sponsor-requiring
+# clearance tier this gate exists to catch (per the design note above: bare
+# TS/SCI disqualifies regardless of "required"/"obtain" framing), but none
+# matched the old pattern -- confirmed against 20 real live rows, only one
+# of which ("Active U.S. Top Secret or TS/SCI clearance") happened to also
+# contain the literal abbreviation.
+_TS_SCI_PATTERN = re.compile(
+    r"\bTS[/\s-]?SCI\b"
+    r"|\btop\s+secret\s*/?\s*sci\b"
+    r"|\btop\s+secret\s+clearance\s+with\s+sci\b",
+    re.IGNORECASE,
+)
 
 _CLEARANCE_REQUIRED_PATTERN = re.compile(
     r"(?:top\s+secret|secret)\s+clearance\s+(?:is\s+)?required"
     r"|(?:active|current)\s+security\s+clearance\s+(?:is\s+)?required"
     r"|must\s+(?:currently\s+)?(?:possess|hold|have)\s+(?:an?\s+)?(?:active|current)\s+(?:security\s+)?clearance"
-    r"|requires?\s+(?:an?\s+)?(?:active|current)\s+(?:security\s+)?clearance",
+    r"|requires?\s+(?:an?\s+)?(?:active|current)\s+(?:security\s+)?clearance"
+    # 2026-09-10: Boeing's own recurring boilerplate, "requires an active
+    # U.S. Secret Security Clearance" / "... U.S. Top Secret Security
+    # Clearance" -- an unconditional REQUIRES-active statement (squarely
+    # the hard-disqualifying case this pattern already covers), just with
+    # "U.S."/the tier name inserted between "active" and "security
+    # clearance" that the existing alternative's tight adjacency missed.
+    # Verified against the live DB before shipping: 190 real rows use this
+    # exact phrasing and were missed by every existing alternative.
+    r"|requires?\s+(?:an?\s+)?(?:active|current)\s+U\.?S\.?\s+"
+    r"(?:top[\s-]+secret\s+|secret\s+)?security\s+clearance",
     re.IGNORECASE,
 )
 
@@ -338,7 +421,17 @@ _INELIGIBLE_DESC_PATTERNS = re.compile(
     r"|EMEA\s*(only|region|remote|based)"
     r"|(Europe|European)\s*(only|Time\s*Zone|timezone|based|remote)"
     # Belt-and-suspenders: catches "based in (the) UK", "based in Europe", etc.
-    r"|based\s+in\s+(the\s+)?(Europe|EU|UK|United\s+Kingdom|Germany|India|Netherlands|Canada|Ireland|France|Spain|Italy|Brazil|Mexico|Australia|New\s+Zealand|Singapore|Japan|Israel|South\s+Africa|Portugal|Poland|Romania)"
+    # 2026-09-10 (decision #94/#96): "Latin\s+America" added -- a real Gofasti
+    # posting ("must be...based in Latin America... work remotely through a
+    # LatAm payroll platform") slipped through with LOCATION field stored as
+    # "USA" and no country-specific match in this list. Deliberately the
+    # specific phrase "based in Latin America" (verified 4/4 real DB matches
+    # genuinely non-US-restricting, zero false positives), NOT a bare
+    # "LATAM" token -- checked and rejected: many real US-based sales/legal/
+    # marketing postings mention "LATAM" merely as a territory they cover
+    # ("Florida-based LATAM Sales team", "Canada and/or LATAM markets"), not
+    # a restriction on the employee's own location.
+    r"|based\s+in\s+(the\s+)?(Europe|EU|UK|United\s+Kingdom|Germany|India|Netherlands|Canada|Ireland|France|Spain|Italy|Brazil|Mexico|Australia|New\s+Zealand|Singapore|Japan|Israel|South\s+Africa|Portugal|Poland|Romania|Latin\s+America)"
     r"|will\s+be\s+remote\s+and\s+based\s+in\s+(the\s+)?(UK|United\s+Kingdom|Canada|Ireland|Germany|Europe|EMEA|India)"
     # Canadian-province patterns (Twilio L3 example)
     r"|Remote\s+(in|from|—|-)\s*(Ontario|British\s+Columbia|Alberta|Quebec|Manitoba|Nova\s+Scotia|Saskatchewan)"
@@ -377,8 +470,15 @@ _INELIGIBLE_DESC_PATTERNS = re.compile(
 
 # Window scanned for description-level patterns. Bumped from 800 to 6000 chars
 # 2026-04-30 — Twilio buried the UK restriction in a paragraph below the
-# requirements list, past the 800-char head.
-_DESC_SCAN_CHARS = 6000
+# requirements list, past the 800-char head. 2026-09-10: removed the cap
+# entirely -- a live scan found Boeing's own recurring "requires an active
+# U.S. Secret/Top Secret Security Clearance" boilerplate routinely sits past
+# 6000 chars (one real posting had it at char 7073 of an 8167-char
+# description), and every one of these checks is pure regex with no LLM
+# token cost to economize on (same reasoning as the deterministic_fallback
+# module's own DESCRIPTION_WINDOW removal, decision #87) -- real description
+# lengths top out at 29,094 chars live, not pathologically large.
+_DESC_SCAN_CHARS = None
 
 
 def _check_ineligible(job: dict, profile: dict | None = None) -> str | None:
@@ -386,16 +486,20 @@ def _check_ineligible(job: dict, profile: dict | None = None) -> str | None:
     candidate categorically can't meet a stated hard requirement, else None.
 
     Checked before the LLM call to save tokens and ensure consistency.
-    Scans title, location field, and the first ``_DESC_SCAN_CHARS`` of the
-    description.
+    Scans title, location field, and the full description (pure regex, no
+    LLM cost to bound).
     """
     title = job.get("title") or ""
     location = job.get("location") or ""
-    desc_head = (job.get("full_description") or "")[:_DESC_SCAN_CHARS]
+    desc_head = job.get("full_description") or ""
 
     if _INELIGIBLE_TITLE_PATTERNS.search(title):
         return f"non-US geography in title: {title}"
-    if location and _INELIGIBLE_LOCATION_PATTERNS.search(location):
+    if (
+        location
+        and _INELIGIBLE_LOCATION_PATTERNS.search(location)
+        and not _US_ALSO_LISTED_PATTERN.search(location)
+    ):
         return f"non-US location field: {location}"
     m = _INELIGIBLE_DESC_PATTERNS.search(desc_head)
     if m:
@@ -796,12 +900,56 @@ def _score_backoff_minutes(retry_count: int) -> int:
     return min(5 * (4**retry_count), 24 * 60)
 
 
+def _try_exhaustion_fallback(conn, url: str) -> dict | None:
+    """Last-resort local scoring for a job about to permanently give up
+    after MAX_SCORE_RETRIES cloud failures (CLAUDE.md decision #119,
+    2026-09-11).
+
+    Decision #76's `deterministic_fallback` module was deliberately kept
+    manual-invocation-only, reasoning that "an honest score_error/pending-
+    retry is recoverable once quota resets; a bad deterministic score
+    silently reaching tailored/ready_to_apply is not." That's still true in
+    general -- but a real production run (decision #117) found 62 real jobs
+    that had exhausted all 5 cloud retries purely on repeated quota-outage
+    bad luck, about to be marked `score_failed` forever with no automatic
+    recovery path at all. This function narrows the gap rather than
+    reversing the original caution: it ONLY fires at the exact moment a job
+    would otherwise die permanently, so the normal fast cloud-scoring path
+    (the vast majority of jobs, which succeed well before hitting 5
+    retries) is completely unaffected -- "permanently failed" is strictly
+    worse than "imperfect but real, and still revalidation-eligible via
+    revalidate-deterministic-fallback-scores once quota returns."
+
+    Returns the score_job_deterministic() result dict on success, or None
+    if the local model itself is unavailable/erroring -- in which case the
+    caller falls through to the original give-up behavior unchanged (this
+    is a genuine last resort, not a new single point of failure).
+    """
+    try:
+        from applypilot.scoring.deterministic_fallback import score_job_deterministic
+
+        row = conn.execute("SELECT * FROM jobs WHERE url = ?", (url,)).fetchone()
+        if row is None:
+            return None
+        job = dict(row)
+        profile = load_profile()
+        result = score_job_deterministic(job, profile, conn=conn)
+        if result.get("score") is None:
+            return None
+        return result
+    except Exception:
+        log.exception("Exhaustion-fallback local scoring failed for %s -- giving up as before", url[:80])
+        return None
+
+
 def _flush_score_batch(conn, batch: list[dict], now: str, score_method: str | None = None) -> None:
     """Write a batch of scoring results to the DB.
 
     On success (score is not None): writes fit_score, clears score_error.
     On failure (score is None): leaves fit_score NULL, writes score_error + backoff.
-    Jobs that have already hit MAX_SCORE_RETRIES stay unscored indefinitely (manual rescue needed).
+    Jobs that have already hit MAX_SCORE_RETRIES first get one automatic
+    local-model rescue attempt (_try_exhaustion_fallback, decision #119) --
+    only if that ALSO fails do they stay unscored indefinitely.
 
     ``score_method``: audit tag for which scorer produced these results.
     None (default) leaves the column untouched -- the normal LLM scoring
@@ -893,6 +1041,24 @@ def _flush_score_batch(conn, batch: list[dict], now: str, score_method: str | No
             row = conn.execute("SELECT COALESCE(score_attempts, 0) FROM jobs WHERE url = ?", (r["url"],)).fetchone()
             retry_count = row[0] if row else 0
             if retry_count >= MAX_SCORE_RETRIES:
+                # 2026-09-11 (decision #119): before giving up forever, try
+                # the local deterministic-fallback scorer as a genuine last
+                # resort -- see _try_exhaustion_fallback's docstring for why
+                # this is narrower than reversing decision #76's original
+                # manual-invocation-only caution.
+                fallback = _try_exhaustion_fallback(conn, r["url"])
+                if fallback is not None:
+                    log.info(
+                        "Cloud retries exhausted for %s -- local fallback scored it %s instead of giving up",
+                        r["url"][:60],
+                        fallback.get("score"),
+                    )
+                    _flush_score_batch(conn, [{**fallback, "url": r["url"]}], now, score_method="deterministic_fallback")
+                    continue
+                log.warning(
+                    "Cloud retries exhausted AND local fallback unavailable for %s -- giving up",
+                    r["url"][:60],
+                )
                 # Give up — write score_error but don't schedule another retry
                 conn.execute(
                     "UPDATE jobs SET score_error = ?, score_attempts = ?, "

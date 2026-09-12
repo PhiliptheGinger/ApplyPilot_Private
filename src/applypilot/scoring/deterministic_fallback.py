@@ -19,21 +19,37 @@ gate agreement (recall 0.83, precision 0.73, ~26s/job); qwen3:8b gets ~87%
 (recall 0.83, precision 0.86, ~76s/job, slower but meaningfully more
 precise) -- both real, both options here via the `model` parameter.
 
-Deliberately NOT wired into the automatic score_job() fallback chain, and
-NOT run automatically as part of the normal pipeline. This is real,
-imperfect data (81-87% gate agreement, not 100%) -- an honest
-score_error/pending-retry is recoverable once quota resets; a bad
-deterministic score silently reaching `tailored`/`ready_to_apply` is not
-(see the real fabricated-identity-score incident, decision #75, for exactly
-what that class of mistake costs). So this module is only ever invoked
-explicitly (`applypilot revalidate-deterministic-fallback-scores` covers
-the cleanup half; the scoring half is `run_deterministic_fallback_scoring`,
-wired to a dedicated CLI flag) against jobs already stuck specifically on a
+Deliberately NOT wired into the automatic score_job() fallback chain for
+the general case, and NOT run automatically as part of the normal
+pipeline's happy path. This is real, imperfect data (81-87% gate
+agreement, not 100%) -- an honest score_error/pending-retry is normally
+recoverable once quota resets; a bad deterministic score silently reaching
+`tailored`/`ready_to_apply` is not (see the real fabricated-identity-score
+incident, decision #75, for exactly what that class of mistake costs). So
+this module is still only ever invoked explicitly for BULK/manual use
+(`applypilot revalidate-deterministic-fallback-scores` covers the cleanup
+half; the scoring half is `run_deterministic_fallback_scoring`, wired to a
+dedicated CLI flag) against jobs already stuck specifically on a
 quota-cooldown score_error -- never against jobs that simply haven't been
-scored yet for other reasons. Every fallback-scored row is tagged
-`score_method = 'deterministic_fallback'` (see database.py's `_ALL_COLUMNS`)
-so it stays visibly distinguishable from a real LLM score and is
-revalidation-eligible once quota returns.
+scored yet for other reasons.
+
+2026-09-11 (decision #119) narrowed, not reversed, the "no automatic path"
+rule above: `scorer._flush_score_batch` now calls `score_job_deterministic`
+directly, but ONLY at the exact moment a job has exhausted all
+`MAX_SCORE_RETRIES` cloud attempts and would otherwise be marked
+`score_failed` permanently -- a real production run found 62 such jobs,
+stuck purely on repeated quota-outage bad luck with no recovery path at
+all. "Permanently failed" is strictly worse than "imperfect but real, and
+still revalidation-eligible" -- the original caution's own logic (prefer
+recoverable-via-retry over an unrevalidated bad guess) doesn't apply once
+retry has genuinely been exhausted, since there's nothing left to recover.
+This one narrow caller is the ONLY automatic invocation; the general "score
+whatever's currently pending" path is still 100% manual.
+
+Every fallback-scored row (whether reached via the manual bulk path or this
+one narrow automatic rescue) is tagged `score_method = 'deterministic_fallback'`
+(see database.py's `_ALL_COLUMNS`) so it stays visibly distinguishable from
+a real LLM score and is revalidation-eligible once quota returns.
 """
 
 from __future__ import annotations
@@ -686,10 +702,33 @@ def run_deterministic_fallback_scoring(
     limit: int = DEFAULT_LIMIT,
     model: str | None = None,
     escalate_model: str | None = None,
+    scope: str = "quota_cooldown",
 ) -> dict:
-    """Score ONLY jobs currently stuck on a quota-cooldown score_error.
-    Never touches a job that hasn't been scored for any other reason --
-    this is explicitly a quota-outage rescue, not a general scoring path.
+    """Score jobs using the local deterministic fallback scorer.
+
+    ``scope="quota_cooldown"`` (default): ONLY jobs currently stuck on a
+    quota-cooldown score_error -- the original decision #76 design, never
+    touching a job that hasn't been scored for any other reason.
+
+    ``scope="all_unscored"`` (2026-09-11, decision #129): every job sitting
+    in `state='enriched'` with no `fit_score` yet, regardless of
+    score_error/score_attempts -- covers jobs never yet attempted
+    (score_error IS NULL), jobs that failed for a related-but-differently-
+    worded reason (e.g. "All models exhausted after trying: [...]", the
+    live-retry sibling of the fast-fail "All LLM providers are on quota
+    cooldown" message -- see llm.py's two exhaustion-message call sites),
+    and jobs already at MAX_SCORE_RETRIES. This is an explicit, deliberate
+    widening of decision #76's original scope, authorized after the
+    multi-day Claude-direct scoring audit (CLAUDE.md decisions #94-128,
+    1000 real jobs) found the deterministic-gate bug-hunting cluster
+    (location patterns, seniority-title regex, clearance phrasing --
+    shared by both the real LLM path and this module via `_check_ineligible`)
+    flatten to zero new findings across its final several batches -- exactly
+    the "evidence there aren't more extraction gaps" condition the user set
+    as the trigger for moving the rest of the backlog to local scoring
+    (decision #105). Still explicit-invocation only, never wired into the
+    automatic pipeline -- this widens WHICH jobs are eligible for a manual
+    invocation, not WHEN one happens automatically.
 
     ``limit`` defaults to DEFAULT_LIMIT (NOT unlimited -- see the 2026-09-07
     near-miss note above); pass ``limit=0`` explicitly to process every
@@ -722,10 +761,15 @@ def run_deterministic_fallback_scoring(
         conn = get_connection()
     profile = load_profile()
 
-    rows = conn.execute(
-        "SELECT * FROM jobs WHERE fit_score IS NULL AND score_error IS NOT NULL "
-        "AND score_error LIKE '%quota cooldown%'"
-    ).fetchall()
+    if scope == "all_unscored":
+        rows = conn.execute("SELECT * FROM jobs WHERE state = 'enriched' AND fit_score IS NULL").fetchall()
+    elif scope == "quota_cooldown":
+        rows = conn.execute(
+            "SELECT * FROM jobs WHERE fit_score IS NULL AND score_error IS NOT NULL "
+            "AND score_error LIKE '%quota cooldown%'"
+        ).fetchall()
+    else:
+        raise ValueError(f"Unknown scope {scope!r}: expected 'quota_cooldown' or 'all_unscored'")
     jobs = [dict(r) for r in rows]
     if limit:
         jobs = jobs[:limit]

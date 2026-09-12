@@ -67,10 +67,45 @@ from applypilot.eligibility import seniority_disqualifier
         "Software Engineer 4",
         "Software Engineer 5",
         "Software Engineer 6",
+        # 2026-09-10 (decision #94/#95): "Founding X" titles -- real examples
+        # pulled live from a Claude-direct scoring batch that slipped past
+        # this predicate entirely (no senior/staff/lead/architect/etc. token
+        # present) despite being genuinely early-hire, senior-tier roles by
+        # startup convention.
+        "Founding Engineer",
+        "Founding Researcher",
+        "Founding Infrastructure Engineer",
+        "Founding Software Engineer",
+        "founding security engineer",
+        # 2026-09-10 (decision #106): "Supervisor" titles -- real examples
+        # pulled live from a Claude-direct scoring batch, none of which
+        # contained any other seniority keyword.
+        "Field Service Technician Supervisor",
+        "Production Supervisor",
+        "Maintenance Supervisor",
+        "Inventory Control Supervisor",
+        "Supervisor, Accounts Payable",
     ],
 )
 def test_senior_titles_disqualified(title):
     assert seniority_disqualifier(title) is not None, f"{title!r} should be disqualified"
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        # 2026-09-10 (decision #94/#95): "founding" must not collide with
+        # "Foundation"/"Foundational"/"Foundry" -- real DB titles use these
+        # constantly as team/product names with no seniority implication of
+        # their own (e.g. "Software Engineer, Foundations").
+        "Software Engineer, Foundations",
+        "Software Engineer, Data Foundation",
+        "Palantir Foundry Consultant / Developer",
+        "Software Engineer, Applied Foundations",
+    ],
+)
+def test_foundation_foundry_titles_not_confused_with_founding(title):
+    assert seniority_disqualifier(title) is None, f"{title!r} should NOT be disqualified"
 
 
 @pytest.mark.parametrize(

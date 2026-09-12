@@ -314,6 +314,138 @@ def test_non_us_country_in_location_rejected(loc):
     assert _check_ineligible(_job(location=loc)) is not None
 
 
+# ── Canada/UK missing from the location-field pattern (2026-09-10) ────
+# Found via a real Claude-direct scoring batch: a real Expedia Group job's
+# location field was literally "Canada - British Columbia - Vancouver" --
+# despite the module's own docstring citing "Canada" as a covered example,
+# and despite the sibling _INELIGIBLE_DESC_PATTERNS covering Canada/UK for
+# description text, the LOCATION-field-specific pattern never actually
+# included either country.
+
+
+@pytest.mark.parametrize(
+    "loc",
+    [
+        "Canada - British Columbia - Vancouver",
+        "Toronto, Ontario, Canada",
+        "Canada, BC, Vancouver",
+        "London, UK",
+        "Remote, United Kingdom",
+    ],
+)
+def test_canada_and_uk_in_location_rejected(loc):
+    assert _check_ineligible(_job(location=loc)) is not None
+
+
+@pytest.mark.parametrize(
+    "loc",
+    [
+        "Canada, KY, USA",
+        "Canada, NC",
+    ],
+)
+def test_canada_us_place_name_not_rejected(loc):
+    # Canada, Kentucky and Canada, North Carolina are real, live unincorporated
+    # US communities -- the Canada-as-country pattern must not fire on these.
+    assert _check_ineligible(_job(title="Software Engineer", location=loc)) is None
+
+
+@pytest.mark.parametrize(
+    "loc",
+    [
+        "AUS MLBN Virtual",
+        "AUS SYDN 55",
+        "AUS (Remote)",
+    ],
+)
+def test_bare_aus_country_code_rejected(loc):
+    assert _check_ineligible(_job(title="Software Engineer", location=loc)) is not None
+
+
+@pytest.mark.parametrize(
+    "loc",
+    [
+        "Austin, TX",
+        "Austin, Texas, USA",
+        "US, TX, Austin",
+    ],
+)
+def test_austin_texas_not_confused_with_aus(loc):
+    assert _check_ineligible(_job(title="Software Engineer", location=loc)) is None
+
+
+# ── Multi-location strings that also list the US (2026-09-10) ────────
+# Found via a live DB scan while adding the Canada/UK/AUS patterns: 125
+# real job rows across 51 distinct locations were wrongly excluded despite
+# explicitly listing the US as one of several accepted locations. This is
+# a pre-existing gap affecting every country already in the pattern, not
+# just the ones added this session.
+
+
+@pytest.mark.parametrize(
+    "loc",
+    [
+        "Remote (US & Canada)",
+        "Remote (US, Canada)",
+        "United States or Canada, Remote Opportunity",
+        "Remote (US/Canada/Brazil/Poland/UK/India)",
+        "US, UK, EU, APAC ONSITE PREFERRED",
+        "the EU, the US, Canada, the UK, Australia, Singapore",
+        "USA (Remote) / Barcelona, Spain",
+        "Poland,Germany,Bulgaria,UK,USA",
+    ],
+)
+def test_us_also_listed_alongside_non_us_not_rejected(loc):
+    assert _check_ineligible(_job(title="Software Engineer", location=loc)) is None
+
+
+@pytest.mark.parametrize(
+    "loc",
+    [
+        "Toronto, Ontario, Canada",
+        "London, UK",
+        "Remote - Canada",
+        "Sydney, Australia",
+    ],
+)
+def test_genuine_non_us_only_still_rejected_when_us_not_mentioned(loc):
+    assert _check_ineligible(_job(title="Software Engineer", location=loc)) is not None
+
+
+# ── São Paulo bare city name (2026-09-10) ─────────────────────────────
+# A real OpenAI "Codex Deployment Engineer" posting listed location as
+# "remote, São Paulo" -- no "Brazil"/"Brasil" elsewhere in the string, so
+# the country-name check alone never caught it.
+
+
+@pytest.mark.parametrize(
+    "loc",
+    [
+        "remote, São Paulo",
+        "Sao Paulo, Brazil",  # still matches via the country name too
+        "São Paulo",
+    ],
+)
+def test_sao_paulo_city_name_rejected(loc):
+    assert _check_ineligible(_job(title="Software Engineer", location=loc)) is not None
+
+
+# ── Sydney bare city name (2026-09-10) ────────────────────────────────
+# A real Accenture "ServiceNow Developers" posting listed location as
+# "Sydney, International House, 3 Sussex St" -- no "Australia" elsewhere.
+
+
+@pytest.mark.parametrize(
+    "loc",
+    [
+        "Sydney, International House, 3 Sussex St",
+        "Sydney",
+    ],
+)
+def test_sydney_city_name_rejected(loc):
+    assert _check_ineligible(_job(title="Software Engineer", location=loc)) is not None
+
+
 # ── Non-English posting text as a non-US signal (2026-09-09) ──────────
 # Found via a real larger-batch scoring comparison: four real Accenture/
 # international postings scored 7-9 because the `location` field was
@@ -359,6 +491,32 @@ def test_english_posting_mentioning_spanish_as_a_skill_not_rejected():
     Spanish as a nice-to-have language skill."""
     desc = "Bilingual (English/Spanish) candidates are strongly preferred but are not required."
     assert _check_ineligible(_job(title="Customer Service Specialist", location="Burlington, NC", description=desc)) is None
+
+
+def test_based_in_latin_america_rejected():
+    """Real Gofasti posting: LOCATION field stored as 'USA', but the body
+    explicitly requires the candidate be based in Latin America (decision
+    #94/#96) -- a real non-US restriction the country-specific patterns
+    above never caught until this phrase was added."""
+    desc = "We need an English-fluent Full Stack Software Engineer, based in Latin America, available to work remotely."
+    assert _check_ineligible(_job(location="USA", description=desc)) is not None
+
+
+def test_currently_based_in_latin_america_rejected():
+    """Real 'Luxury Customer Care Specialist' posting phrasing: 'you must
+    be currently based in Latin America (LATAM) or Europe.'"""
+    desc = "To be considered for this role, you must be currently based in Latin America (LATAM) or Europe."
+    assert _check_ineligible(_job(location="", description=desc)) is not None
+
+
+def test_bare_latam_territory_coverage_not_rejected():
+    """Must not over-trigger on a real US-based role that merely covers a
+    LATAM sales/support territory -- e.g. a real Databricks posting for a
+    'Florida-based LATAM Sales team' AE, and 'Canada and/or LATAM markets'
+    legal-counsel language. The employee's own location isn't restricted;
+    only the specific phrase 'based in Latin America' is disqualifying."""
+    desc = "This role is part of our Florida-based LATAM Sales team, selling to customers across the region."
+    assert _check_ineligible(_job(title="Account Executive", location="Tampa, FL, USA", description=desc)) is None
 
 
 # ── LLM rubric text (2026-08-25 sales/recruiting policy realignment) ─

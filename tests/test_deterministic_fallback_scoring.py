@@ -719,6 +719,65 @@ class TestRunDeterministicFallbackScoring:
             assert row["fit_score"] is None
             assert row["score_method"] is None
 
+    def test_scope_all_unscored_touches_every_unscored_enriched_job(self, tmp_db, seed_job):
+        """2026-09-11 (decision #129): scope='all_unscored' is a deliberate
+        widening of the default quota_cooldown-only scope -- confirms it
+        touches jobs the default scope explicitly leaves alone (never
+        attempted at all, or failed for a differently-worded reason)."""
+        conn = tmp_db()
+        stuck = seed_job(
+            conn,
+            url_suffix="quota-stuck",
+            title="Maintenance Technician",
+            fit_score=None,
+            score_error="LLM error: All LLM providers are on quota cooldown (min wait: 2.0h).",
+            state="enriched",
+        )
+        other_error = seed_job(
+            conn,
+            url_suffix="other-error",
+            title="Software Engineer",
+            fit_score=None,
+            score_error="LLM error: All models exhausted after trying: ['gemini-3.6-flash'].",
+            state="enriched",
+        )
+        never_scored = seed_job(
+            conn,
+            url_suffix="never-scored",
+            title="Software Engineer",
+            fit_score=None,
+            score_error=None,
+            state="enriched",
+        )
+
+        with (
+            patch("applypilot.scoring.deterministic_fallback._check_ineligible", return_value=None),
+            patch("applypilot.scoring.deterministic_fallback.local_only_client", return_value=object()),
+            patch(
+                "applypilot.scoring.deterministic_fallback.classify_family",
+                return_value="hands_on_repair_or_trade",
+            ),
+            patch(
+                "applypilot.scoring.deterministic_fallback.classify_compensation",
+                return_value={"status": "stated", "subtype": "annual"},
+            ),
+            patch("applypilot.config.load_profile", return_value={}),
+        ):
+            result = run_deterministic_fallback_scoring(conn=conn, model="qwen3:1.7b", scope="all_unscored")
+
+        assert result["candidates"] == 3
+        assert result["scored"] == 3
+
+        for touched in (stuck, other_error, never_scored):
+            row = conn.execute("SELECT fit_score, score_method FROM jobs WHERE url = ?", (touched["url"],)).fetchone()
+            assert row["fit_score"] is not None
+            assert row["score_method"] == SCORE_METHOD
+
+    def test_unknown_scope_raises(self, tmp_db, seed_job):
+        conn = tmp_db()
+        with pytest.raises(ValueError, match="Unknown scope"):
+            run_deterministic_fallback_scoring(conn=tmp_db(), scope="bogus")
+
     def test_no_candidates_is_a_clean_noop(self, tmp_db, seed_job):
         conn = tmp_db()
         seed_job(conn, url_suffix="clean", fit_score=9, score_error=None)

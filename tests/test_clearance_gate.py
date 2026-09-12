@@ -63,6 +63,27 @@ def test_ts_sci_bare_mention_without_required_wording_still_rejected():
     assert "clearance" in reason.lower()
 
 
+@pytest.mark.parametrize(
+    "description",
+    [
+        # 2026-09-10 (decision #94/#99): the abbreviated "TS/SCI" pattern
+        # never matched the tier when a real posting spells it out --
+        # confirmed against 20 real live DB rows, most of which use exactly
+        # these phrasings rather than the bare abbreviation.
+        "Must currently hold a Top Secret/SCI U.S. Government security clearance with a favorable Polygraph.",
+        "Ability to obtain and maintain a U.S. Top Secret SCI security clearance.",
+        "DoD Top Secret clearance with SCI eligibility with current investigation required.",
+    ],
+)
+def test_spelled_out_top_secret_sci_rejected(description):
+    """Same rare, sponsor-requiring clearance tier as bare TS/SCI -- must be
+    disqualifying regardless of whether the posting uses the abbreviation or
+    spells it out, and regardless of soft ('ability to obtain') framing."""
+    reason = _check_ineligible(_job(description=description))
+    assert reason is not None
+    assert "clearance" in reason.lower()
+
+
 # ── Top Secret / Secret / generic "active clearance": require an explicit
 # ── hard-requirement qualifier, not just a bare mention ──────────────────
 
@@ -89,6 +110,50 @@ def test_current_security_clearance_required_rejected():
 
 def test_must_possess_active_clearance_rejected():
     description = "You must possess an active security clearance on day one."
+    assert _check_ineligible(_job(description=description)) is not None
+
+
+# ── Boeing's recurring "requires an active U.S. ... Security Clearance"
+# boilerplate (2026-09-10) -- an unconditional REQUIRES-active statement,
+# just with "U.S."/the tier name inserted between "active" and "security
+# clearance" that broke the existing alternative's tight word adjacency.
+# Verified against 256 real live DB rows sharing this exact phrasing before
+# shipping (190 missed pre-fix, 1 residual real miss post-fix -- a genuinely
+# generic, untiered "U.S. Government security clearance" mention correctly
+# left alone per the same tier-specificity policy as the "ability to obtain"
+# cases above).
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "Security Clearance: This position requires an active U.S. Secret Security Clearance (U.S. Citizenship Required).",
+        "Security Clearance: This position requires an active U.S. Top Secret Security Clearance (U.S. Citizenship Required).",
+        "This position requires an active U.S. Top-Secret Security Clearance (U.S. Citizenship Required).",
+    ],
+)
+def test_boeing_style_active_us_clearance_phrasing_rejected(description):
+    assert _check_ineligible(_job(description=description)) is not None
+
+
+def test_generic_untiered_government_clearance_not_rejected():
+    """A bare 'U.S. Government security clearance' with no Secret/Top Secret
+    tier named stays outside this gate's scope, consistent with the same
+    tier-specificity discipline the 'ability to obtain' cases above use --
+    the one real residual case found while fixing the Boeing phrasing
+    above."""
+    description = "This position requires an active U.S. Government security clearance, applicants who do not currently hold the required clearance will not be considered."
+    assert _check_ineligible(_job(description=description)) is None
+
+
+def test_clearance_text_past_old_6000_char_window_still_caught():
+    """A real Boeing posting had this exact phrase at character 7073 of an
+    8167-char description -- past the old _DESC_SCAN_CHARS=6000 window,
+    which has since been removed entirely (pure regex, no LLM-token-cost
+    reason to bound it)."""
+    padding = "Responsibility filler text. " * 250  # pushes well past 6000 chars
+    description = padding + "This position requires an active U.S. Secret Security Clearance (U.S. Citizenship Required)."
+    assert len(description) > 6500
     assert _check_ineligible(_job(description=description)) is not None
 
 
