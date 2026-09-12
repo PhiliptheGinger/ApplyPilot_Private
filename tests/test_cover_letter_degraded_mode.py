@@ -28,6 +28,19 @@ from applypilot.scoring.validator import validate_cover_letter
 
 # ── Fixtures ──────────────────────────────────────────────────────────────
 
+
+def _stub_client(reply: str = "Understood, thanks for reaching out.") -> Mock:
+    """A client whose .chat() returns a real, benign string -- needed since
+    2026-09-13's filler-polish feature means compose_degraded_cover_letter
+    now genuinely calls client.chat() (for the hook-closer/close polish),
+    not just the mocked-away bank-editor path. A bare Mock()'s .chat()
+    returns another Mock, which crashes deep inside check_banned_patterns's
+    re.search() -- a real mocking gap, not a production bug (a real
+    LLMClient.chat() always returns str)."""
+    client = Mock()
+    client.chat.return_value = reply
+    return client
+
 PROFILE = {
     "personal": {"full_name": "Jordan Alexander Lee", "preferred_name": "Jordan"},
     "skills_boundary": {"languages": ["Python"]},
@@ -106,13 +119,13 @@ RICH_JOB_SCHEMA = {
 _BANK_SENTENCES = {
     "Mavis": [
         "I diagnosed and repaired vehicle alignment issues for walk-in customers on every shift I "
-        "worked, without a second technician double-checking my work.",
+        "worked, without a second technician double-checking my work, even during the busiest weeks.",
         "I explained repair options and real cost tradeoffs directly to customers before any work "
-        "began, so nobody was surprised by the final bill.",
+        "began, so nobody was surprised by the final bill or felt talked into anything.",
     ],
     "Waffle House": [
         "I took orders and resolved customer complaints on my own during the busiest rush periods, "
-        "when the whole floor was full and short-staffed.",
+        "when the whole floor was full and short-staffed and everyone else was already stretched thin.",
         "I trained new servers on the register and the floor during their first two weeks on shift.",
     ],
 }
@@ -122,7 +135,7 @@ def _patch_bank(monkeypatch, fully_covered=True):
     monkeypatch.setattr(
         local_tailor,
         "select_and_edit_bank_bullets",
-        lambda client, job_schema, profile: (dict(_BANK_SENTENCES), fully_covered),
+        lambda client, job_schema, profile, **_kwargs: (dict(_BANK_SENTENCES), fully_covered),
     )
 
 
@@ -233,7 +246,7 @@ def test_gather_evidence_sentences_uses_bank_when_available(monkeypatch):
 
 
 def test_gather_evidence_sentences_falls_back_to_source_facts_when_no_bank(monkeypatch):
-    monkeypatch.setattr(local_tailor, "select_and_edit_bank_bullets", lambda client, job_schema, profile: ({}, False))
+    monkeypatch.setattr(local_tailor, "select_and_edit_bank_bullets", lambda client, job_schema, profile, **_kwargs: ({}, False))
     sentences, names, fully_covered = local_tailor._gather_evidence_sentences(
         Mock(), RICH_JOB_SCHEMA, PROFILE, limit=4
     )
@@ -253,12 +266,79 @@ def test_gather_evidence_sentences_falls_back_to_source_facts_when_no_bank(monke
 
 
 def test_gather_evidence_sentences_empty_when_nothing_available(monkeypatch):
-    monkeypatch.setattr(local_tailor, "select_and_edit_bank_bullets", lambda client, job_schema, profile: ({}, False))
+    monkeypatch.setattr(local_tailor, "select_and_edit_bank_bullets", lambda client, job_schema, profile, **_kwargs: ({}, False))
     empty_schema = {"requirements": [_req("no matching evidence here", evidence=("Unknown",))]}
     sentences, names, fully_covered = local_tailor._gather_evidence_sentences(Mock(), empty_schema, PROFILE)
     assert sentences == []
     assert names == []
     assert fully_covered is False
+
+
+def test_gather_evidence_sentences_passes_cl_banned_patterns_to_bank_selector(monkeypatch):
+    """Real bug found live, twice: the editor's own rewording introduced a
+    cover-letter-banned style word ("demonstrate"/"align with") it has no
+    knowledge of. Confirms _gather_evidence_sentences opts the editor in to
+    checking for it, via select_and_edit_bank_bullets's banned_patterns."""
+    from applypilot.scoring.validator import CL_BANNED_PATTERNS
+
+    captured = {}
+
+    def _fake_select(client, job_schema, profile, **kwargs):
+        captured["banned_patterns"] = kwargs.get("banned_patterns")
+        return dict(_BANK_SENTENCES), True
+
+    monkeypatch.setattr(local_tailor, "select_and_edit_bank_bullets", _fake_select)
+    local_tailor._gather_evidence_sentences(Mock(), RICH_JOB_SCHEMA, PROFILE, limit=4)
+    assert captured["banned_patterns"] == CL_BANNED_PATTERNS
+
+
+def test_gather_evidence_sentences_drops_a_bank_sentence_containing_a_banned_phrase(monkeypatch):
+    """Belt-and-suspenders: even if select_and_edit_bank_bullets somehow
+    returns a sentence containing a banned phrase (e.g. the editor's
+    fallback-to-original path doesn't itself re-check the original),
+    _gather_evidence_sentences must never ship it -- it should be dropped,
+    not patched, and a clean alternative used instead."""
+    monkeypatch.setattr(
+        local_tailor,
+        "select_and_edit_bank_bullets",
+        lambda client, job_schema, profile, **_kwargs: (
+            {
+                "Mavis": [
+                    "I demonstrate strong diagnostic ability with alignment equipment.",  # banned
+                    "I diagnosed and repaired vehicle alignment issues for walk-in customers.",  # clean
+                ]
+            },
+            True,
+        ),
+    )
+    sentences, _names, _covered = local_tailor._gather_evidence_sentences(Mock(), RICH_JOB_SCHEMA, PROFILE, limit=4)
+    assert not any("demonstrate" in s.lower() for s in sentences)
+    assert any("diagnosed and repaired" in s.lower() for s in sentences)
+
+
+def test_gather_evidence_sentences_drops_a_fallback_sentence_containing_a_banned_phrase(monkeypatch):
+    """Same guarantee for the raw source_facts fallback path (no bank at
+    all) -- a real profile responsibility line could in principle contain
+    one of these words too."""
+    monkeypatch.setattr(local_tailor, "select_and_edit_bank_bullets", lambda client, job_schema, profile, **_kwargs: ({}, False))
+    profile_with_banned_fact = {
+        **PROFILE,
+        "experience_inventory": [
+            {
+                "name": "Mavis",
+                "role_title": "Automotive Technician",
+                "responsibilities": [
+                    "Demonstrates strong diagnostic ability with alignment equipment.",  # banned
+                    "Repaired vehicle alignment issues for walk-in customers every shift.",  # clean
+                ],
+            },
+        ],
+    }
+    sentences, _names, _covered = local_tailor._gather_evidence_sentences(
+        Mock(), RICH_JOB_SCHEMA, profile_with_banned_fact, limit=4
+    )
+    assert not any("demonstrate" in s.lower() for s in sentences)
+    assert any("repaired vehicle alignment" in s.lower() for s in sentences)
 
 
 # ── _build_degraded_cover_paragraphs ─────────────────────────────────────
@@ -318,12 +398,66 @@ def test_build_paragraphs_handles_zero_requirements_and_zero_evidence_without_cr
     assert all(p.strip() for p in paragraphs)
 
 
+# 2026-09-13: a job with only 1 supported requirement -- traced (per the
+# user's direct request) to be the typical real case for this candidate's
+# actual job mix, and previously left FIT with zero per-job content since
+# req_texts[2:5] is empty whenever there's only 1-2 supported requirements.
+THIN_JOB_SCHEMA = {
+    "job_url": "https://example.com/job/thin",
+    "requirements": [_req("Diagnose and repair customer equipment issues", tier="prototype")],
+    "viewpoint": "support",
+}
+
+_FOUR_EVIDENCE_SENTENCES = [
+    "I diagnosed and repaired vehicle alignment issues for walk-in customers on every shift I worked.",
+    "I explained repair options and real cost tradeoffs directly to customers before any work began.",
+    "I took orders and resolved customer complaints on my own during the busiest rush periods.",
+    "I trained new servers on the register and the floor during their first two weeks on shift.",
+]
+
+
+def test_build_paragraphs_fit_uses_spare_evidence_when_no_leftover_requirements():
+    reqs = local_tailor._pick_supported_requirements(THIN_JOB_SCHEMA)
+    _hook, evidence_para, fit, _close = local_tailor._build_degraded_cover_paragraphs(
+        JOB, THIN_JOB_SCHEMA, reqs, _FOUR_EVIDENCE_SENTENCES
+    )
+    # EVIDENCE only ever uses the first 3 -- the 4th is genuinely spare,
+    # not silently discarded.
+    assert _FOUR_EVIDENCE_SENTENCES[3] not in evidence_para
+    assert _FOUR_EVIDENCE_SENTENCES[3] in fit
+
+
+def test_build_paragraphs_fit_stays_generic_when_no_spare_evidence_available():
+    """2026-09-13: the FIT opener is now one of several deterministic
+    variants (see _FIT_OPENER_VARIANTS), so this no longer asserts one
+    variant's exact wording -- only that the paragraph is a real,
+    non-empty opener and that nothing spare was fabricated in."""
+    reqs = local_tailor._pick_supported_requirements(THIN_JOB_SCHEMA)
+    _hook, _evidence_para, fit, _close = local_tailor._build_degraded_cover_paragraphs(
+        JOB, THIN_JOB_SCHEMA, reqs, _FOUR_EVIDENCE_SENTENCES[:1]
+    )
+    assert fit.strip()
+    assert "In a similar vein" not in fit  # nothing spare to add -- never fabricated
+
+
+def test_build_paragraphs_fit_prefers_leftover_requirements_over_spare_evidence():
+    """When a job HAS enough supported requirements, FIT must keep using
+    requirement text (unchanged behavior) rather than reaching for spare
+    evidence sentences even when some exist."""
+    reqs = local_tailor._pick_supported_requirements(RICH_JOB_SCHEMA)
+    _hook, _evidence_para, fit, _close = local_tailor._build_degraded_cover_paragraphs(
+        JOB, RICH_JOB_SCHEMA, reqs, _FOUR_EVIDENCE_SENTENCES
+    )
+    assert "In a similar vein" not in fit
+    assert "The posting also calls out" in fit
+
+
 # ── compose_degraded_cover_letter (integration) ──────────────────────────
 
 
 def test_compose_degraded_cover_letter_passes_real_validation(monkeypatch):
     _patch_bank(monkeypatch, fully_covered=True)
-    letter, meta = local_tailor.compose_degraded_cover_letter(Mock(), JOB, PROFILE, RICH_JOB_SCHEMA)
+    letter, meta = local_tailor.compose_degraded_cover_letter(_stub_client(), JOB, PROFILE, RICH_JOB_SCHEMA)
 
     assert letter.startswith("Dear Hiring Manager,")
     assert letter.rstrip().endswith("Jordan")
@@ -335,26 +469,35 @@ def test_compose_degraded_cover_letter_passes_real_validation(monkeypatch):
     assert validation["passed"], validation["errors"]
 
 
-def test_compose_degraded_cover_letter_never_calls_the_client_directly(monkeypatch):
-    """compose_degraded_cover_letter itself makes zero LLM calls -- any calls
-    happen only inside select_and_edit_bank_bullets, which is mocked here."""
+def test_compose_degraded_cover_letter_evidence_gathering_itself_makes_no_calls(monkeypatch):
+    """2026-09-13: previously this asserted client.chat() was NEVER called
+    at all -- no longer true by design, since the filler-polish feature
+    deliberately calls it for the hook-closer/close polish (see
+    _build_degraded_cover_paragraphs). What's still true, and worth
+    pinning: evidence GATHERING itself (select_and_edit_bank_bullets,
+    mocked here) doesn't independently call the client too -- every real
+    call comes from the filler-polish layer alone, not duplicated work."""
     _patch_bank(monkeypatch, fully_covered=True)
-    client = Mock()
+    client = _stub_client()
     local_tailor.compose_degraded_cover_letter(client, JOB, PROFILE, RICH_JOB_SCHEMA)
-    client.chat.assert_not_called()
+    assert client.chat.called  # the filler-polish layer does call it now
+    for call in client.chat.call_args_list:
+        messages = call.args[0]
+        system_prompt = messages[0]["content"]
+        assert "cover letter" in system_prompt.lower()  # a filler-polish call, not a bank-editor one
 
 
 def test_compose_degraded_cover_letter_no_supported_requirements_does_not_crash(monkeypatch):
-    monkeypatch.setattr(local_tailor, "select_and_edit_bank_bullets", lambda client, job_schema, profile: ({}, False))
+    monkeypatch.setattr(local_tailor, "select_and_edit_bank_bullets", lambda client, job_schema, profile, **_kwargs: ({}, False))
     thin_schema = {"requirements": [_req("unrelated", supported=False)], "viewpoint": "general"}
-    letter, meta = local_tailor.compose_degraded_cover_letter(Mock(), JOB, PROFILE, thin_schema)
+    letter, meta = local_tailor.compose_degraded_cover_letter(_stub_client(), JOB, PROFILE, thin_schema)
     assert letter.startswith("Dear Hiring Manager,")
     assert meta["requirements_used"] == 0
     assert meta["evidence_used"] == []
 
 
 def test_compose_degraded_cover_letter_builds_job_schema_when_not_given(monkeypatch):
-    monkeypatch.setattr(local_tailor, "select_and_edit_bank_bullets", lambda client, job_schema, profile: ({}, False))
+    monkeypatch.setattr(local_tailor, "select_and_edit_bank_bullets", lambda client, job_schema, profile, **_kwargs: ({}, False))
     called = {}
 
     def _fake_get_or_build(job, profile):
@@ -362,8 +505,20 @@ def test_compose_degraded_cover_letter_builds_job_schema_when_not_given(monkeypa
         return {"requirements": [], "viewpoint": "general"}
 
     monkeypatch.setattr("applypilot.scoring.schemas.get_or_build_job_schema", _fake_get_or_build)
-    local_tailor.compose_degraded_cover_letter(Mock(), JOB, PROFILE, job_schema=None)
+    local_tailor.compose_degraded_cover_letter(_stub_client(), JOB, PROFILE, job_schema=None)
     assert called.get("yes") is True
+
+
+def test_compose_degraded_cover_letter_filler_polish_attempted_flag(monkeypatch):
+    """meta["filler_polish_attempted"] is distinct from llm_called (which
+    tracks the heavy full-writer fallback cover letters don't have) -- it
+    reflects whether a client was available to attempt the lighter,
+    optional filler-polish pass."""
+    monkeypatch.setattr(local_tailor, "select_and_edit_bank_bullets", lambda client, job_schema, profile, **_kwargs: ({}, False))
+    thin_schema = {"requirements": [], "viewpoint": "general"}
+    _letter, meta = local_tailor.compose_degraded_cover_letter(_stub_client(), JOB, PROFILE, thin_schema)
+    assert meta["filler_polish_attempted"] is True
+    assert meta["llm_called"] is False
 
 
 # ── cover_letter.py wiring ────────────────────────────────────────────────

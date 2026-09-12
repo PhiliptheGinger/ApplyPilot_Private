@@ -1455,6 +1455,48 @@ class TestBuildPoolRealization(unittest.TestCase):
         with patch("applypilot.scoring.semantic_match.embed_texts", return_value=None):
             self.assertIsNone(local_tailor.build_pool_realization(schema, pools))
 
+    def test_max_per_evidence_default_still_caps_at_three(self):
+        """2026-09-13: MAX_BULLETS_PER_EVIDENCE was a hardcoded local
+        constant; now a parameter, default unchanged -- every existing
+        resume caller (never passes this) sees byte-identical behavior."""
+        schema = {
+            "requirements": [{"supported": True, "requirement": "install customer equipment", "resume_evidence": ["Acme"]}]
+        }
+        pools = {
+            "Acme": [
+                "Installed customer equipment on site every day.",
+                "Installed customer devices according to instructions.",
+                "Installed customer hardware following documented procedures.",
+                "Installed customer systems for new accounts.",
+                "Installed customer terminals during onboarding.",
+            ]
+        }
+        with patch("applypilot.scoring.semantic_match.embed_texts", side_effect=self._patched_embed()):
+            result = local_tailor.build_pool_realization(schema, pools)
+        self.assertEqual(len(result["bullets"]["Acme"]), 3)
+
+    def test_max_per_evidence_raised_surfaces_more_real_sentences(self):
+        """2026-09-13: found by tracing a real thin job (only 1 supported
+        requirement) -- the real AMP Smart bank had 18 sentences with
+        smoothly-decaying real relevance scores past the old cap of 3,
+        genuine unused content, not noise. Cover-letter degraded mode now
+        asks for more."""
+        schema = {
+            "requirements": [{"supported": True, "requirement": "install customer equipment", "resume_evidence": ["Acme"]}]
+        }
+        pools = {
+            "Acme": [
+                "Installed customer equipment on site every day.",
+                "Installed customer devices according to instructions.",
+                "Installed customer hardware following documented procedures.",
+                "Installed customer systems for new accounts.",
+                "Installed customer terminals during onboarding.",
+            ]
+        }
+        with patch("applypilot.scoring.semantic_match.embed_texts", side_effect=self._patched_embed()):
+            result = local_tailor.build_pool_realization(schema, pools, max_per_evidence=5)
+        self.assertEqual(len(result["bullets"]["Acme"]), 5)
+
     def test_plugs_into_existing_merge_realization_unchanged(self):
         """Integration: build_pool_realization's output flows through the
         SAME merge_realization every other realization source already
@@ -1586,6 +1628,342 @@ class TestEditSentenceWithRetry(unittest.TestCase):
         )
         self.assertFalse(was_edited)
         self.assertEqual(sentence, self._MAVIS["responsibilities"][0])
+
+
+class TestCheckBannedPatterns(unittest.TestCase):
+    """2026-09-13: found live, twice, across two real cover-letter batches
+    -- the editor's own rewording introduced a cover-letter-banned style
+    word ("demonstrate"/"align with") it has no knowledge of, silently
+    wasting the whole call (only caught later by the FINAL letter's own
+    validation). This check lets a caller opt in to screening for that."""
+
+    _PATTERNS = [
+        ("align with", r"\balign(s|ed|ing)?\s+with\b"),
+        ("demonstrate", r"\bdemonstrat\w*\b"),
+    ]
+
+    def test_no_patterns_given_always_passes(self):
+        result = local_tailor.check_banned_patterns("This aligns with the role.", None)
+        self.assertTrue(result["passed"])
+
+    def test_empty_text_always_passes(self):
+        result = local_tailor.check_banned_patterns("", self._PATTERNS)
+        self.assertTrue(result["passed"])
+
+    def test_clean_text_passes(self):
+        result = local_tailor.check_banned_patterns("Diagnosed and repaired the issue.", self._PATTERNS)
+        self.assertTrue(result["passed"])
+
+    def test_banned_word_fails(self):
+        result = local_tailor.check_banned_patterns(
+            "This experience demonstrates strong technical skills.", self._PATTERNS
+        )
+        self.assertFalse(result["passed"])
+        self.assertIn("demonstrate", result["violation"])
+
+    def test_banned_stem_variant_fails(self):
+        """Stem-based -- catches suffix variants, not just the bare word."""
+        result = local_tailor.check_banned_patterns("My background aligns with this role.", self._PATTERNS)
+        self.assertFalse(result["passed"])
+        self.assertIn("align with", result["violation"])
+
+
+class TestEditSentenceWithRetryBannedPatterns(unittest.TestCase):
+    _MAVIS = TestEditSentenceWithRetry._MAVIS
+    _CL_PATTERNS = [
+        ("align with", r"\balign(s|ed|ing)?\s+with\b"),
+        ("demonstrate", r"\bdemonstrat\w*\b"),
+    ]
+
+    def test_default_none_never_rejects_on_banned_words(self):
+        """Every existing resume caller doesn't pass banned_patterns --
+        confirms the default is a true no-op, exact prior behavior."""
+        client = MagicMock()
+        client.chat.return_value = "This demonstrates strong diagnostic skills using specialized equipment."
+        sentence, was_edited, attempts = local_tailor.edit_sentence_with_retry(
+            client, self._MAVIS["responsibilities"][0], "vehicle diagnostics", self._MAVIS, max_attempts=3
+        )
+        self.assertTrue(was_edited)
+        self.assertEqual(attempts, 1)
+
+    def test_banned_word_rejected_when_patterns_given(self):
+        client = MagicMock()
+        client.chat.return_value = "This demonstrates strong diagnostic skills using specialized equipment."
+        sentence, was_edited, attempts = local_tailor.edit_sentence_with_retry(
+            client,
+            self._MAVIS["responsibilities"][0],
+            "vehicle diagnostics",
+            self._MAVIS,
+            max_attempts=2,
+            banned_patterns=self._CL_PATTERNS,
+        )
+        self.assertFalse(was_edited)
+        self.assertEqual(sentence, self._MAVIS["responsibilities"][0])
+        self.assertEqual(client.chat.call_count, 2)
+
+    def test_retries_past_a_banned_word_to_a_clean_edit(self):
+        client = MagicMock()
+        client.chat.side_effect = [
+            "This demonstrates strong diagnostic skills using specialized equipment.",  # banned word
+            "Diagnosed vehicle alignment issues using specialized diagnostic equipment.",  # clean
+        ]
+        sentence, was_edited, attempts = local_tailor.edit_sentence_with_retry(
+            client,
+            self._MAVIS["responsibilities"][0],
+            "vehicle diagnostics",
+            self._MAVIS,
+            max_attempts=3,
+            banned_patterns=self._CL_PATTERNS,
+        )
+        self.assertTrue(was_edited)
+        self.assertEqual(attempts, 2)
+        self.assertNotIn("demonstrat", sentence.lower())
+
+
+class TestSelectAndEditBankBulletsThreadsBannedPatterns(unittest.TestCase):
+    """select_and_edit_bank_bullets must forward banned_patterns to every
+    edit_sentence_with_retry call unchanged -- the resume caller (tailor.py)
+    never passes one, so this confirms the default stays None for it."""
+
+    def setUp(self):
+        schemas.clear_schema_cache()
+
+    def test_banned_patterns_forwarded_to_editor_calls(self):
+        cl_patterns = [("demonstrate", r"\bdemonstrat\w*\b")]
+        fake_schema = {
+            "requirements": [
+                {
+                    "supported": True,
+                    "requirement": "Troubleshoot hardware and identify root cause",
+                    "resume_evidence": ["Auto Shop Diagnostic Tech"],
+                },
+            ],
+        }
+        pool_result = {"bullets": {"Auto Shop Diagnostic Tech": ["A pool-selected true sentence."]}}
+        editor_mock = MagicMock(return_value=("edited.", True, 1))
+        with (
+            patch("applypilot.scoring.phrase_bank.load_bank", return_value={"x": ["A pool-selected true sentence."]}),
+            patch("applypilot.scoring.local_tailor.build_pool_realization", return_value=pool_result),
+            patch("applypilot.scoring.local_tailor.edit_sentence_with_retry", editor_mock),
+        ):
+            local_tailor.select_and_edit_bank_bullets(
+                MagicMock(), fake_schema, PROFILE, banned_patterns=cl_patterns
+            )
+        _args, kwargs = editor_mock.call_args
+        self.assertEqual(kwargs.get("banned_patterns"), cl_patterns)
+
+    def test_default_forwards_none(self):
+        fake_schema = {
+            "requirements": [
+                {
+                    "supported": True,
+                    "requirement": "Troubleshoot hardware and identify root cause",
+                    "resume_evidence": ["Auto Shop Diagnostic Tech"],
+                },
+            ],
+        }
+        pool_result = {"bullets": {"Auto Shop Diagnostic Tech": ["A pool-selected true sentence."]}}
+        editor_mock = MagicMock(return_value=("edited.", True, 1))
+        with (
+            patch("applypilot.scoring.phrase_bank.load_bank", return_value={"x": ["A pool-selected true sentence."]}),
+            patch("applypilot.scoring.local_tailor.build_pool_realization", return_value=pool_result),
+            patch("applypilot.scoring.local_tailor.edit_sentence_with_retry", editor_mock),
+        ):
+            local_tailor.select_and_edit_bank_bullets(MagicMock(), fake_schema, PROFILE)
+        _args, kwargs = editor_mock.call_args
+        self.assertIsNone(kwargs.get("banned_patterns"))
+
+
+class TestSelectAndEditBankBulletsThreadsMaxPerEvidence(unittest.TestCase):
+    """select_and_edit_bank_bullets must forward max_per_evidence to
+    build_pool_realization unchanged -- the resume caller (tailor.py)
+    never passes one, so this confirms the default (3) stays the same."""
+
+    def setUp(self):
+        schemas.clear_schema_cache()
+
+    _FAKE_SCHEMA = {
+        "requirements": [
+            {
+                "supported": True,
+                "requirement": "Troubleshoot hardware and identify root cause",
+                "resume_evidence": ["Auto Shop Diagnostic Tech"],
+            },
+        ],
+    }
+
+    def test_max_per_evidence_forwarded_to_build_pool_realization(self):
+        pool_mock = MagicMock(return_value={"bullets": {}})
+        with (
+            patch("applypilot.scoring.phrase_bank.load_bank", return_value={"x": ["A pool-selected true sentence."]}),
+            patch("applypilot.scoring.local_tailor.build_pool_realization", pool_mock),
+        ):
+            local_tailor.select_and_edit_bank_bullets(MagicMock(), self._FAKE_SCHEMA, PROFILE, max_per_evidence=5)
+        _args, kwargs = pool_mock.call_args
+        self.assertEqual(kwargs.get("max_per_evidence"), 5)
+
+    def test_default_forwards_three(self):
+        pool_mock = MagicMock(return_value={"bullets": {}})
+        with (
+            patch("applypilot.scoring.phrase_bank.load_bank", return_value={"x": ["A pool-selected true sentence."]}),
+            patch("applypilot.scoring.local_tailor.build_pool_realization", pool_mock),
+        ):
+            local_tailor.select_and_edit_bank_bullets(MagicMock(), self._FAKE_SCHEMA, PROFILE)
+        _args, kwargs = pool_mock.call_args
+        self.assertEqual(kwargs.get("max_per_evidence"), 3)
+
+
+class TestFillerVariantsAreLengthBalancedWithinPools(unittest.TestCase):
+    """Direct regression pin: a real forced-local-only batch found all 3
+    real jobs tested happened to hash onto the SHORTEST _CLOSE_VARIANTS
+    option (24-25 words vs. the original's 36), quietly undoing part of
+    this same session's own earlier word-count fix (decision #140).
+    Variety must never come at the cost of length -- every variant within
+    a pool must stay within a small word-count spread of the others, not
+    just be checked by eye once."""
+
+    _MAX_SPREAD = 3
+
+    def _pools(self):
+        return {
+            "_HOOK_LEAD_VARIANTS": local_tailor._HOOK_LEAD_VARIANTS,
+            "_HOOK_CLOSER_VARIANTS": local_tailor._HOOK_CLOSER_VARIANTS,
+            "_EVIDENCE_LEAD_VARIANTS": local_tailor._EVIDENCE_LEAD_VARIANTS,
+            "_FIT_OPENER_VARIANTS": local_tailor._FIT_OPENER_VARIANTS,
+            "_FIT_CLOSER_VARIANTS": local_tailor._FIT_CLOSER_VARIANTS,
+            "_CLOSE_VARIANTS": local_tailor._CLOSE_VARIANTS,
+        }
+
+    def test_every_pool_stays_within_a_small_word_count_spread(self):
+        for name, variants in self._pools().items():
+            counts = [len(v.split()) for v in variants]
+            spread = max(counts) - min(counts)
+            with self.subTest(pool=name):
+                self.assertLessEqual(
+                    spread,
+                    self._MAX_SPREAD,
+                    f"{name} word counts {counts} span {spread} words (max allowed {self._MAX_SPREAD})",
+                )
+
+
+class TestPickVariant(unittest.TestCase):
+    """2026-09-13: deterministic filler-phrase variety -- the SAME (job,
+    slot) pair must always land on the SAME option (stable across retries/
+    re-runs of the same job), but different jobs should vary."""
+
+    _VARIANTS = ["option A", "option B", "option C", "option D"]
+
+    def test_same_seed_always_returns_same_variant(self):
+        picks = {local_tailor._pick_variant(self._VARIANTS, "job-123:hook_closer") for _ in range(20)}
+        self.assertEqual(len(picks), 1)
+
+    def test_different_seeds_can_return_different_variants(self):
+        """Not guaranteed for any TWO specific seeds (hash collisions are
+        possible), but across enough distinct seeds we must see more than
+        one option -- otherwise the "variety" claim is false."""
+        seeds = [f"https://example.com/job/{i}:hook_closer" for i in range(30)]
+        picks = {local_tailor._pick_variant(self._VARIANTS, s) for s in seeds}
+        self.assertGreater(len(picks), 1)
+
+    def test_always_returns_one_of_the_given_variants(self):
+        for i in range(10):
+            pick = local_tailor._pick_variant(self._VARIANTS, f"seed-{i}")
+            self.assertIn(pick, self._VARIANTS)
+
+
+class TestCheckNotMuchShorter(unittest.TestCase):
+    """2026-09-13: found live, by this module's OWN test suite -- a naive
+    stub client's fixed short reply silently shrank a paragraph below
+    validate_cover_letter's 15-word "substantial paragraph" floor,
+    reintroducing the exact word-count problem the rest of this session's
+    work was fixing. This check exists so that failure mode is caught
+    deterministically, whether the short reply comes from a test stub or a
+    real model ignoring the "keep about the same length" instruction."""
+
+    def test_similar_length_passes(self):
+        original = "That is close to work already in my background, not something new."
+        candidate = "That work is already familiar to me, not something I would be learning fresh."
+        result = local_tailor.check_not_much_shorter(original, candidate)
+        self.assertTrue(result["passed"])
+
+    def test_much_shorter_fails(self):
+        original = "That is close to work already in my background, not something I would be starting from scratch on."
+        candidate = "Understood, thanks."
+        result = local_tailor.check_not_much_shorter(original, candidate)
+        self.assertFalse(result["passed"])
+        self.assertIn("too short", result["violation"])
+
+    def test_longer_candidate_always_passes(self):
+        original = "Short original."
+        candidate = "A meaningfully longer reworded version of the same original idea, expressed differently."
+        result = local_tailor.check_not_much_shorter(original, candidate)
+        self.assertTrue(result["passed"])
+
+    def test_moderate_shrinkage_now_rejected_at_the_tightened_ratio(self):
+        """Direct regression pin: found live in a real forced-local-only
+        batch, run AFTER the variant pools were already rebalanced -- a
+        real successful polish shrank a ~35-word close paragraph to ~21
+        words (a 0.6 ratio, which used to pass) and still measurably hurt
+        the letter's total word count. The default was raised 0.6 -> 0.85
+        specifically to catch this shape of moderate-but-real shrinkage,
+        not just a naive test stub's extreme case."""
+        original = "I am glad to go into more detail on this topic, or anything else here that is a priority for you, whenever that is useful."  # 25 words
+        candidate = "I can share more on this whenever it would help, and I am easy to reach."  # 16 words, ratio 0.64
+        result = local_tailor.check_not_much_shorter(original, candidate)
+        self.assertFalse(result["passed"])
+
+
+class TestPolishFillerWithRetry(unittest.TestCase):
+    _CL_PATTERNS = [
+        ("align with", r"\balign(s|ed|ing)?\s+with\b"),
+        ("demonstrate", r"\bdemonstrat\w*\b"),
+    ]
+    _ORIGINAL = "That is close to work already in my background, not something I would be starting from scratch on."
+
+    def test_successful_polish_returns_candidate(self):
+        client = MagicMock()
+        client.chat.return_value = "That work is already familiar to me, not something new I would be picking up cold."
+        result, polished = local_tailor.polish_filler_with_retry(client, self._ORIGINAL)
+        self.assertTrue(polished)
+        self.assertEqual(result, client.chat.return_value)
+
+    def test_banned_phrase_in_response_falls_back_to_original(self):
+        client = MagicMock()
+        client.chat.return_value = "This demonstrates work already in my background, not something new."
+        result, polished = local_tailor.polish_filler_with_retry(
+            client, self._ORIGINAL, banned_patterns=self._CL_PATTERNS, max_attempts=1
+        )
+        self.assertFalse(polished)
+        self.assertEqual(result, self._ORIGINAL)
+
+    def test_too_short_response_falls_back_to_original(self):
+        """Direct regression pin for the real bug this session's own test
+        suite caught: a short, generic reply must not silently replace a
+        much longer real sentence."""
+        client = MagicMock()
+        client.chat.return_value = "Understood, thanks."
+        result, polished = local_tailor.polish_filler_with_retry(client, self._ORIGINAL, max_attempts=1)
+        self.assertFalse(polished)
+        self.assertEqual(result, self._ORIGINAL)
+
+    def test_call_failure_falls_back_to_original(self):
+        client = MagicMock()
+        client.chat.side_effect = RuntimeError("local model unreachable")
+        result, polished = local_tailor.polish_filler_with_retry(client, self._ORIGINAL, max_attempts=2)
+        self.assertFalse(polished)
+        self.assertEqual(result, self._ORIGINAL)
+
+    def test_retries_past_a_bad_attempt_to_a_good_one(self):
+        client = MagicMock()
+        client.chat.side_effect = [
+            "This demonstrates work already in my background.",  # banned word, rejected
+            "That work is already familiar to me, not something new I would be picking up cold.",  # clean
+        ]
+        result, polished = local_tailor.polish_filler_with_retry(
+            client, self._ORIGINAL, banned_patterns=self._CL_PATTERNS, max_attempts=2
+        )
+        self.assertTrue(polished)
+        self.assertNotIn("demonstrat", result.lower())
 
 
 if __name__ == "__main__":

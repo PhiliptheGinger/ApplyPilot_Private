@@ -1176,6 +1176,12 @@ class TestDeterministicRequirementExtraction(unittest.TestCase):
             "Vision insurance and life insurance",
             "Optional Flexible Spending Account (FSA)",
             "FSA and HSA options",
+            # 2026-09-12: found by testing cover-letter degraded mode
+            # against a real job batch -- these are real, previously
+            # unfiltered benefit-list lines.
+            "Fitness Programs",
+            "Emotional & Mental Wellness support",
+            "Financial Wellness Support from PNC Workplace Banking",
         ]:
             with self.subTest(line=line):
                 self.assertTrue(_is_benefit_line(line), f"not filtered: {line!r}")
@@ -1203,6 +1209,14 @@ class TestDeterministicRequirementExtraction(unittest.TestCase):
             "ASE certification",
             "Fluency in multiple languages (Spanish is highly desired)",
             "Bachelor's degree preferred",
+            # 2026-09-12: real requirement lines containing "fitness" that
+            # must survive the new topic-word addition -- verified against
+            # the live 31,710-job corpus before shipping, none of these
+            # also contain an existing benefit FRAME word, so the two-part
+            # AND-gate correctly leaves them alone.
+            "Maintain a level of physical fitness to ensure the readiness required to perform law enforcement duties.",
+            "You have sales, service, or fitness experience in a customer-centric environment",
+            "Delivering personalized service to help customers reach their fitness goals.",
         ]:
             with self.subTest(line=line):
                 self.assertFalse(_is_benefit_line(line), f"wrongly filtered: {line!r}")
@@ -1579,6 +1593,122 @@ class TestNoSpaceAfterBulletMarker(unittest.TestCase):
         # The metadata header lines must not crowd out the real content.
         self.assertNotIn("Job Title", texts)
         self.assertNotIn("Start Date", texts)
+
+
+# ---------------------------------------------------------------------------
+# Label-prefix cleanup (2026-09-13)
+#
+# Found while fixing a real, visible bleed: a degraded-mode cover letter
+# quoted a real job requirement verbatim as "Requirement: Previous
+# experience in machine installation is required." -- the source posting's
+# own "Requirement:" label was captured as part of the requirement text. A
+# live corpus scan (before guessing at a fix) found this is one instance of
+# a much bigger real pattern: 13,805 real extracted lines across the full
+# corpus are shaped "Label: content", split into three real categories --
+# redundant requirement labels (strip, keep content), pure administrative
+# metadata (drop the whole line -- the content alone would be nonsense if
+# ever quoted, e.g. "United States of America"), and genuine skill/topic
+# labels ("SQL:", "Languages:") where the label IS real content and must
+# stay untouched. Only the first two are acted on here.
+# ---------------------------------------------------------------------------
+
+
+class TestLabelPrefixCleanup(unittest.TestCase):
+    def test_redundant_requirement_label_is_stripped_keeping_content(self):
+        from applypilot.scoring.local_tailor import _extract_marker_lines
+
+        desc = "•Requirement: Previous experience in machine installation is required.\n"
+        lines, _dropped = _extract_marker_lines(desc)
+        texts = [l["text"] for l in lines]
+        self.assertIn("Previous experience in machine installation is required.", texts)
+        self.assertNotIn("Requirement: Previous experience in machine installation is required.", texts)
+
+    def test_must_to_have_skills_label_is_stripped(self):
+        """The single most common real label in the corpus (2,341 real
+        occurrences) -- a redundant requirement-qualifier label, not a
+        skill-category label like "SQL:" (which must stay untouched)."""
+        from applypilot.scoring.local_tailor import _extract_marker_lines
+
+        desc = "•Must To Have Skills: Proficiency in Databricks Unified Data Analytics Platform.\n"
+        lines, _dropped = _extract_marker_lines(desc)
+        texts = [l["text"] for l in lines]
+        self.assertIn("Proficiency in Databricks Unified Data Analytics Platform.", texts)
+
+    def test_admin_metadata_line_is_dropped_entirely(self):
+        """A real Pay Range line found live in the exact same job that
+        surfaced the original "Requirement:" bleed -- the content alone
+        ("$18.00 per hour to $21.00 per hour") is not a requirement, label-
+        stripping alone would leave nonsense."""
+        from applypilot.scoring.local_tailor import _extract_marker_lines
+
+        desc = (
+            "•Requirement: Previous experience in machine installation is required.\n"
+            "•Pay Range: $18.00 per hour to $21.00 per hour.\n"
+        )
+        lines, _dropped = _extract_marker_lines(desc)
+        texts = " ".join(l["text"] for l in lines)
+        self.assertNotIn("Pay Range", texts)
+        self.assertNotIn("18.00", texts)
+
+    def test_genuine_skill_category_labels_are_never_touched(self):
+        """The largest category by real line count -- the label itself IS
+        meaningful content and must never be stripped or dropped."""
+        from applypilot.scoring.local_tailor import _extract_marker_lines
+
+        desc = (
+            "•SQL: Understanding of SQL queries to work with data.\n"
+            "•Languages: Go, Typescript, and Python are all required.\n"
+            "•Distributed Systems: Strong theoretical and practical understanding required.\n"
+        )
+        lines, _dropped = _extract_marker_lines(desc)
+        texts = [l["text"] for l in lines]
+        self.assertTrue(any(t.startswith("SQL:") for t in texts))
+        self.assertTrue(any(t.startswith("Languages:") for t in texts))
+        self.assertTrue(any(t.startswith("Distributed Systems:") for t in texts))
+
+    def test_real_location_and_schedule_lines_are_dropped(self):
+        from applypilot.scoring.local_tailor import _extract_marker_lines
+
+        desc = (
+            "•Location: United Kingdom - Remote (must be based in the UK for this role)\n"
+            "•Schedule: Full Time\n"
+            "•Reports to: Head of Public Sector Enterprise, UK&I\n"
+            "•Diagnosed and repaired customer equipment on site every day.\n"
+        )
+        lines, _dropped = _extract_marker_lines(desc)
+        texts = " ".join(l["text"] for l in lines)
+        self.assertNotIn("United Kingdom", texts)
+        self.assertNotIn("Full Time", texts)
+        self.assertNotIn("Reports to", texts)
+        self.assertIn("Diagnosed and repaired customer equipment", texts)
+
+    def test_stripped_text_shorter_than_eight_chars_is_dropped_not_kept(self):
+        """A defensive guard: if stripping a label leaves almost nothing
+        real behind, drop it rather than keep a near-empty fragment."""
+        from applypilot.scoring.local_tailor import _extract_marker_lines
+
+        desc = "•Required: SQL\n"
+        lines, _dropped = _extract_marker_lines(desc)
+        self.assertEqual(lines, [])
+
+    def test_real_it_coordinator_posting_still_recovers_correctly(self):
+        """Direct regression pin: decision #138's own fixture (Markdown
+        metadata header + no-space bullets) must still work identically
+        after this label-cleanup layer is added on top."""
+        from applypilot.scoring.local_tailor import _split_requirement_lines
+
+        desc = (
+            "**Job Title:** IT Coordinator  \n"
+            "**Location-Type:** Onsite, Charlotte, NC (5 days/week)  \n"
+            "**Start Date:** ASAP  \n"
+            "**Job Summary  \n"
+            "** •Provision, configure, deploy, and manage company hardware for all users.\n"
+            "•Administer Microsoft 365, Active Directory, servers, and networks for end users.\n"
+        )
+        lines, _dropped = _split_requirement_lines(desc)
+        texts = " ".join(l["text"] for l in lines)
+        self.assertIn("Administer Microsoft 365", texts)
+        self.assertNotIn("Job Title", texts)
 
 
 class TestEvidenceRetrieval(unittest.TestCase):

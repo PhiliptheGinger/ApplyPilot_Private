@@ -102,6 +102,7 @@ Neither capability runs automatically:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -300,7 +301,19 @@ _BENEFIT_LINE_RE = re.compile(
     r"paid\s+time\s+off|compensation)\b|"
     r"\b(?:benefits?|compensation|total\s+rewards?)\s+package\b|"
     r"\bemployee\s+discounts?\b|\bgym\s+membership\b|\bcommuter\s+benefits?\b|"
-    r"\bprofessional\s+development\s+(?:budget|stipend|allowance|fund)\b"
+    r"\bprofessional\s+development\s+(?:budget|stipend|allowance|fund)\b|"
+    # 2026-09-12: found by testing cover-letter degraded mode against a real
+    # batch -- "Emotional & Mental Wellness support"/"Financial Wellness
+    # Support from PNC Workplace Banking" are real perks-list lines that
+    # neither tier caught (topic "wellness" was present, but "support" was
+    # never a recognized frame word -- and adding bare "support" to the
+    # general frame regex was checked and rejected: it collides with real
+    # requirement lines like "customer support experience"/"IT support"
+    # that make up a large share of this candidate's actual target jobs).
+    # Scoped to this specific compound phrase instead, verified against the
+    # full live corpus: 8/8 real "___ support" hits for this exact phrase
+    # were genuine benefits, 0 false positives.
+    r"\b(?:wellness|mental\s+health|emotional)\s+support\b"
     r")",
     re.IGNORECASE,
 )
@@ -313,7 +326,7 @@ _BENEFIT_LINE_RE = re.compile(
 # this tier is subject to the _CANDIDATE_SIGNAL_RE veto.
 _BENEFIT_TOPIC_RE = re.compile(
     r"\b("
-    r"health|healthcare|health\s?care|wellness|well-?being|medical|dental|vision|"
+    r"health|healthcare|health\s?care|wellness|well-?being|fitness|medical|dental|vision|"
     r"insurance|coverage|tuition|education(?:al)?|career|advancement|"
     r"professional\s+development|retirement|pension|401k?|stock|equity|"
     r"compensation|salary|salaries|wages?|pay|payroll|bonus(?:es)?|"
@@ -352,6 +365,85 @@ _CANDIDATE_SIGNAL_RE = re.compile(
 )
 
 
+# 2026-09-13: found while fixing a real, visible bleed -- one posting's own
+# "Requirement:" label ended up quoted verbatim in a degraded-mode cover
+# letter ("the posting points to Requirement: Previous experience..."). A
+# live corpus scan (before guessing at a fix) found this is one instance of
+# a MUCH bigger, real pattern: 13,805 real extracted lines (across the full
+# 31,710-job corpus) are shaped "Label: content", covering 3,216 distinct
+# labels. Reading real examples split them into three genuinely different
+# categories, only two of which are safe to act on without a hand-curated,
+# per-label judgment call:
+#
+#   1. REDUNDANT REQUIREMENT LABELS ("Must To Have Skills:", "Required:",
+#      "Requirement:", "Educational Qualification:") -- the label adds
+#      nothing beyond "this is a requirement"; the real content that
+#      follows already says what it needs to. Safe to STRIP the label,
+#      keep the content -- _REQUIREMENT_LABEL_PREFIX_RE below.
+#   2. ADMINISTRATIVE METADATA ("Location:", "Date Posted:", "Salary:",
+#      "Job Type:", "Reports To:") -- describes the POSTING, never the
+#      candidate; the content alone ("United States of America", "Full
+#      Time") is meaningless or actively wrong if ever quoted as a
+#      "requirement." Safe to DROP the whole line -- same mechanism as an
+#      employer-benefit line -- _ADMIN_METADATA_LABEL_RE below.
+#   3. GENUINE SKILL/TOPIC CATEGORY LABELS ("SQL:", "Languages:",
+#      "Distributed Systems:", "Automation:", "Compliance:") -- the label
+#      IS meaningful content (the skill/topic itself), and stripping it
+#      would delete real information ("Languages: Go, Typescript" loses
+#      the fact that Go/Typescript are languages). By far the largest
+#      category by both line count and distinct-label count in the real
+#      scan. Deliberately left completely untouched -- neither regex below
+#      matches these, so today's existing behavior (keep the whole line,
+#      label included) is unchanged for them. NOT attempting to hand-
+#      curate this category -- it's thousands of distinct, mostly one-off
+#      labels; guessing at more than the two verified lists below would
+#      risk exactly the information-loss category 3 represents.
+#
+# Both lists below were built from real label frequency counts (every
+# label at or above ~8 real occurrences was read in context before
+# deciding which bucket, if any, it belongs in) -- not guessed.
+_REQUIREMENT_LABEL_PREFIX_RE = re.compile(
+    r"^(?:"
+    r"(?:must|good)[\s-]*to?[\s-]*have\s+skills?|"
+    r"required\s+(?:technical\s+)?skills?|skills?\s+required|"
+    r"educational\s+qualifications?|qualifications?|"
+    r"years?\s+of\s+experience|experience|education|"
+    r"preferred(?:\s+experience)?|required|"
+    r"typically\s+requires?|"
+    r"physical\s+requirements?|"
+    r"requirements?"
+    r")\s*:\s*",
+    re.IGNORECASE,
+)
+
+_ADMIN_METADATA_LABEL_RE = re.compile(
+    r"^(?:"
+    r"location|date\s+posted|country|position\s+role\s+type|reports?\s+to|"
+    r"project\s+role(?:\s+description)?|schedule|designation|job\s+type|"
+    r"direct\s+reports|salary\s+type|job\s+location|team|management\s+level|"
+    r"practice|job\s+title|title|entity|travel|career\s+level|position\s+type|"
+    r"work\s+location|primary\s+location|shift(?:\s+information)?|duration|"
+    r"employment\s+type|compensation|salary|hourly\s+wage|starting\s+salary|"
+    r"pay\s+grade|classification|department|organi[sz]ation|position\s+term|"
+    r"time\s+basis|level|position|onsite|work\s+arrangement|work\s+schedule|"
+    r"fixed\s+pay\s+rate|target\s+start\s+date|target\s+base\s+salary\s+range|"
+    r"src\s+indicator|work\s+shift|monday\s+to\s+friday|tuesday\s+to\s+saturday|"
+    r"security\s+clearance\s+(?:type|status)|role|"
+    # Compensation-metadata variants -- found by a second real-data pass
+    # after the first fix left "Pay Range: $18.00 per hour..." quoted
+    # verbatim in a real cover letter. Each phrase below was individually
+    # read in context (not guessed) before being added.
+    r"pay\s+range|primary\s+location\s+base\s+pay\s+range|starting\s+pay|"
+    r"hourly\s+rate|base\s+pay|pay\s+rate\s+range|pay\s+rate|"
+    r"starting\s+salary\s+for\s+position|hourly\s+pay\s+range|"
+    r"total\s+target\s+cash\s+pay\s+range|summary\s+pay\s+range|salary\s+range|"
+    r"monthly\s+salary|target\s+hourly\s+base\s+pay\s+range|"
+    r"recruitment\s+salary\s+range|vendor\s+rate|rate|pay"
+    r")\s*:\s*.+$",
+    re.IGNORECASE,
+)
+
+
 def _is_benefit_line(text: str) -> bool:
     """True if `text` reads as something the employer OFFERS (a benefit,
     perk, or compensation item) rather than something it wants FROM the
@@ -367,15 +459,32 @@ def _classify_candidate_lines(
     texts: list[str],
     max_lines: int,
 ) -> tuple[list[dict], list[str]]:
-    """Shared tail for both extraction strategies below: drop employer-
-    benefit lines, tag required/preferred/unspecified importance, cap at
-    max_lines. `texts` must already be a deduplicated, order-preserved
-    list of candidate strings -- this function makes no structural
-    judgment about whether a candidate is well-formed, only whether it's
-    a benefit line and how it should be tagged."""
+    """Shared tail for both extraction strategies below: drop administrative-
+    metadata and employer-benefit lines, strip a redundant requirement-label
+    prefix where one exists, tag required/preferred/unspecified importance,
+    cap at max_lines. `texts` must already be a deduplicated, order-preserved
+    list of candidate strings -- this function makes no structural judgment
+    about whether a candidate is well-formed, only whether it's a benefit/
+    metadata line, whether it carries a redundant label, and how it should
+    be tagged."""
     lines: list[dict] = []
     dropped: list[str] = []
     for text in texts:
+        if _ADMIN_METADATA_LABEL_RE.match(text):
+            dropped.append(text)
+            continue
+        # Only re-check length when a label prefix was ACTUALLY stripped --
+        # a real regression caught by the existing test suite: applying
+        # this floor unconditionally to every line silently broke the
+        # paragraph-fallback path's own, intentionally shorter minimum
+        # (_PARAGRAPH_MIN_LEN=2), dropping legitimate bare terms like
+        # "Python" that the strip regex never touches in the first place.
+        stripped = _REQUIREMENT_LABEL_PREFIX_RE.sub("", text, count=1).strip()
+        if stripped != text:
+            if len(stripped) < 8:
+                dropped.append(stripped)
+                continue
+            text = stripped
         if _is_benefit_line(text):
             dropped.append(text)
             continue
@@ -2855,6 +2964,7 @@ def request_local_realization(
 def build_pool_realization(
     job_schema: dict,
     sentence_pools: dict[str, list[str]] | None,
+    max_per_evidence: int = 3,
 ) -> dict | None:
     """Deterministic counterpart to request_local_realization: instead of
     asking an LLM to WRITE new bullet text, SELECTS the best-matching
@@ -2900,7 +3010,16 @@ def build_pool_realization(
 
     from applypilot.scoring import semantic_match
 
-    MAX_BULLETS_PER_EVIDENCE = 3
+    # 2026-09-13: was a hardcoded local constant (3) -- now a parameter, so
+    # cover_letter's degraded mode can ask for more distinct sentences per
+    # evidence item than a resume bullet list wants (resumes never pass
+    # this, so their behavior is byte-for-byte unchanged). Verified against
+    # real phrase banks before raising the cover-letter caller's value: a
+    # real AMP Smart/"Sales Development Representative" pool's relevance
+    # scores decay smoothly past rank 3 (0.644/0.531/0.471/0.465/0.460/...),
+    # not a cliff -- there was genuine, real, still-relevant unused content
+    # being discarded, not noise.
+    MAX_BULLETS_PER_EVIDENCE = max_per_evidence
 
     pool_embeddings_cache: dict[str, list[list[float]] | None] = {}
 
@@ -3029,6 +3148,31 @@ def edit_sentence_for_requirement(
     return text or None
 
 
+def check_banned_patterns(text: str, patterns: list[tuple[str, str]] | None) -> dict:
+    """Deterministic post-generation check: does `text` contain any of the
+    given (label, regex) style-ban patterns -- e.g. validator.
+    CL_BANNED_PATTERNS. Returns the same {"passed", "violation"} shape as
+    the claim/agency/causal/metric checks, so it can sit alongside them in
+    edit_sentence_with_retry's existing check tuple.
+
+    2026-09-13: added because a real editor call (edit_sentence_for_
+    requirement, shared with resume tailoring) has no knowledge of cover-
+    letter-specific style bans -- confirmed live twice (two real cover-
+    letter batches, two different jobs) where the editor's own rewording
+    introduced "demonstrate"/"align with", each time silently wasting the
+    call (the FINAL letter validation caught it, but only after the whole
+    letter was already assembled). `patterns=None` (the default, used by
+    every existing resume caller) always passes -- this function is a
+    strict no-op unless a caller opts in."""
+    if not patterns or not text:
+        return {"passed": True, "violation": None}
+    text_lower = text.lower()
+    hits = [label for label, pat in patterns if re.search(pat, text_lower)]
+    if hits:
+        return {"passed": False, "violation": f"banned phrase(s): {', '.join(hits)}"}
+    return {"passed": True, "violation": None}
+
+
 def edit_sentence_with_retry(
     client,
     original_sentence: str,
@@ -3036,14 +3180,27 @@ def edit_sentence_with_retry(
     evidence_item: dict,
     profile: dict | None = None,
     max_attempts: int = 3,
+    banned_patterns: list[tuple[str, str]] | None = None,
 ) -> tuple[str, bool, int]:
     """Bounded-retry wrapper around edit_sentence_for_requirement: tries up
     to `max_attempts` times to produce an edit that passes the SAME claim/
-    agency/causal/metric checks request_local_realization already enforces,
-    and falls back to `original_sentence` UNCHANGED (guaranteed true,
-    guaranteed non-empty) if every attempt fails -- directly closes the
-    "dropped output == no output" gap: a caller always gets a real
-    sentence back, never nothing.
+    agency/causal/metric checks request_local_realization already enforces
+    (plus, if `banned_patterns` is given, a style-ban check -- see
+    check_banned_patterns), and falls back to `original_sentence`
+    UNCHANGED (guaranteed true, guaranteed non-empty) if every attempt
+    fails -- directly closes the "dropped output == no output" gap: a
+    caller always gets a real sentence back, never nothing.
+
+    `banned_patterns` is caller-supplied (not hardcoded) and defaults to
+    None -- every existing resume caller is completely unaffected; only a
+    caller that explicitly opts in (cover_letter's degraded mode, via
+    select_and_edit_bank_bullets) gets the extra check. Note the fallback-
+    to-original path does NOT itself re-check `original_sentence` against
+    banned_patterns -- an original bank/profile sentence containing a
+    banned style phrase is a separate, much rarer case (these patterns are
+    about robotic COVER-LETTER phrasing, not resume-bullet source text);
+    callers that need that guarantee too should filter their own final
+    sentence list (see cover_letter's _gather_evidence_sentences).
 
     Returns (final_sentence, was_edited, attempts_used) so a caller can
     log/inspect what happened rather than only seeing the end result.
@@ -3072,6 +3229,7 @@ def edit_sentence_with_retry(
             check_agency_strength(candidate, agency_ceiling),
             check_causal_claim(candidate, evidence_text),
             check_metric_fabrication(candidate, evidence_text, known_metrics),
+            check_banned_patterns(candidate, banned_patterns),
         )
         if all(c.get("passed", True) for c in checks):
             return candidate, True, attempt
@@ -3196,7 +3354,13 @@ def _bank_passes_fabrication_checks(
     return [f"{name}: {res.get('violation')}" for name, res in checks.items() if not res.get("passed", True)]
 
 
-def select_and_edit_bank_bullets(client, job_schema: dict, profile: dict) -> tuple[dict[str, list[str]], bool]:
+def select_and_edit_bank_bullets(
+    client,
+    job_schema: dict,
+    profile: dict,
+    banned_patterns: list[tuple[str, str]] | None = None,
+    max_per_evidence: int = 3,
+) -> tuple[dict[str, list[str]], bool]:
     """The phrase-bank selector + editor pipeline, shared by BOTH tailoring
     paths (the cloud path's overlay and degraded mode) so this logic
     exists in exactly one place, not duplicated per caller.
@@ -3208,6 +3372,14 @@ def select_and_edit_bank_bullets(client, job_schema: dict, profile: dict) -> tup
     each selected sentence through edit_sentence_with_retry to fit that
     evidence's specific requirement text (one bounded, safety-checked LLM
     call per bullet).
+
+    `banned_patterns` (see edit_sentence_with_retry/check_banned_patterns)
+    is forwarded as-is and defaults to None -- the resume caller (tailor.py)
+    doesn't pass one, so its behavior is completely unchanged; the cover-
+    letter caller passes validator.CL_BANNED_PATTERNS. `max_per_evidence`
+    (see build_pool_realization) is forwarded the same way -- default 3
+    matches the resume caller's unchanged behavior; cover_letter passes a
+    higher value to surface more of a real, often-underused bank.
 
     Returns (edited_bullets_by_evidence, fully_covered). fully_covered is
     True iff EVERY evidence name cited by a supported requirement ended up
@@ -3237,7 +3409,11 @@ def select_and_edit_bank_bullets(client, job_schema: dict, profile: dict) -> tup
         if flat:
             sentence_pools[name] = flat
 
-    pool_realization = build_pool_realization(job_schema, sentence_pools) if sentence_pools else None
+    pool_realization = (
+        build_pool_realization(job_schema, sentence_pools, max_per_evidence=max_per_evidence)
+        if sentence_pools
+        else None
+    )
     edited_bullets: dict[str, list[str]] = {}
     for name, texts in (pool_realization or {}).get("bullets", {}).items():
         item = find_profile_item_by_name(name, profile)
@@ -3245,7 +3421,10 @@ def select_and_edit_bank_bullets(client, job_schema: dict, profile: dict) -> tup
         if item is None or not req_text:
             edited_bullets[name] = texts
             continue
-        edited = [edit_sentence_with_retry(client, text, req_text, item, profile)[0] for text in texts]
+        edited = [
+            edit_sentence_with_retry(client, text, req_text, item, profile, banned_patterns=banned_patterns)[0]
+            for text in texts
+        ]
         edited_bullets[name] = edited
 
     fully_covered = bool(requirement_evidence_names) and requirement_evidence_names <= set(edited_bullets)
@@ -3510,24 +3689,52 @@ def _display_company_capitalized(job: dict) -> str:
 
 
 def _gather_evidence_sentences(
-    client, job_schema: dict, profile: dict, limit: int = 4
+    client, job_schema: dict, profile: dict, limit: int = 6, max_per_evidence: int = 5
 ) -> tuple[list[str], list[str], bool]:
-    """Real, true sentences for the EVIDENCE paragraph: bank-selected and
-    editor-polished where a phrase bank exists (select_and_edit_bank_
-    bullets, already safety-checked), verbatim source facts (phrase_bank.
-    source_facts -- responsibilities/factual_concepts, unedited) for any
-    remaining supported evidence with no bank coverage. Returns
-    (sentences, evidence_names_used, fully_bank_covered)."""
-    from applypilot.scoring import phrase_bank
+    """Real, true sentences for the EVIDENCE (and, when there's spare
+    material, FIT) paragraphs: bank-selected and editor-polished where a
+    phrase bank exists (select_and_edit_bank_bullets, already safety-
+    checked), verbatim source facts (phrase_bank.source_facts --
+    responsibilities/factual_concepts, unedited) for any remaining
+    supported evidence with no bank coverage. Returns
+    (sentences, evidence_names_used, fully_bank_covered).
 
-    pool_bullets, fully_covered = select_and_edit_bank_bullets(client, job_schema, profile)
+    2026-09-13: `limit`/`max_per_evidence` raised from the prior 4/3 --
+    found by tracing a real thin job (1 supported requirement, "Sales
+    Development Representative, SMB") that the real AMP Smart phrase bank
+    has 18 sentences total, of which only the top 3 (the old
+    max_per_evidence) were ever surfaced, even though real relevance scores
+    decay smoothly past that point (0.644/0.531/0.471/0.465/0.460/...,
+    verified against real embeddings before raising this, not assumed) --
+    genuine, real, still-relevant material was being discarded, not noise.
+    _build_degraded_cover_paragraphs now reserves anything beyond the first
+    3 (still the EVIDENCE paragraph's own cap, unchanged) for the FIT
+    paragraph when it has no requirement text of its own to draw on.
+
+    Also passes validator.CL_BANNED_PATTERNS into select_and_edit_bank_
+    bullets so the editor gets real retry chances to avoid a banned style
+    phrase (found live, twice, across two real batches: the editor's own
+    rewording introduced "demonstrate"/"align with", each time only caught
+    later by the final letter's own validation, wasting the whole call).
+    Belt-and-suspenders: every candidate sentence, from BOTH the bank path
+    and the raw source_facts fallback, is re-checked here too -- the
+    editor's fallback-to-original guarantee doesn't itself re-check the
+    ORIGINAL (pre-edit) text against these patterns, and raw profile text
+    could in principle contain one too. A rejected candidate is skipped
+    (never patched), so the caller can try the next one instead."""
+    from applypilot.scoring import phrase_bank
+    from applypilot.scoring.validator import CL_BANNED_PATTERNS
+
+    pool_bullets, fully_covered = select_and_edit_bank_bullets(
+        client, job_schema, profile, banned_patterns=CL_BANNED_PATTERNS, max_per_evidence=max_per_evidence
+    )
 
     sentences: list[str] = []
     names_used: list[str] = []
     for name, texts in pool_bullets.items():
         for text in texts:
             cleaned = _ensure_first_person(_clean_snippet(text, max_len=220))
-            if cleaned:
+            if cleaned and check_banned_patterns(cleaned, CL_BANNED_PATTERNS)["passed"]:
                 sentences.append(cleaned)
                 names_used.append(name)
 
@@ -3543,17 +3750,201 @@ def _gather_evidence_sentences(
                 if item is None:
                     continue
                 facts = phrase_bank.source_facts(item)
-                if not facts:
-                    continue
-                cleaned = _ensure_first_person(_clean_snippet(facts[0], max_len=220))
-                if cleaned:
-                    sentences.append(cleaned)
-                    names_used.append(name)
-                    seen.add(name)
+                for fact in facts:
+                    cleaned = _ensure_first_person(_clean_snippet(fact, max_len=220))
+                    if cleaned and check_banned_patterns(cleaned, CL_BANNED_PATTERNS)["passed"]:
+                        sentences.append(cleaned)
+                        names_used.append(name)
+                        seen.add(name)
+                        break
             if len(sentences) >= limit:
                 break
 
     return sentences[:limit], names_used[:limit], fully_covered
+
+
+# ---------------------------------------------------------------------------
+# Filler-phrase variety (2026-09-13): every degraded-mode letter used to
+# read IDENTICALLY in its connective tissue -- the same hook lead-in, the
+# same "not from the sidelines" fit closer, the same close template, word
+# for word, on every single job. Two layers, deliberately in this order:
+#
+#   1. DETERMINISTIC phrase-variety pools (below) -- zero LLM calls, zero
+#      risk (every option is hand-written, fact-free connective text), and
+#      the load-bearing fix: the SAME job always gets the SAME phrasing
+#      (stable across retries), but DIFFERENT jobs get varied phrasing, via
+#      a stable hash of (job url, slot name). This alone closes most of the
+#      "reads templated" gap, always available even with no local model.
+#   2. An OPTIONAL local-model "polish" pass (polish_filler_with_retry),
+#      applied on top of the deterministic pick for the two most
+#      noticeably stock-sounding spots (the hook's closing sentence and the
+#      whole close paragraph) -- same bounded, fallback-to-original safety
+#      architecture as edit_sentence_with_retry, but scoped to text that
+#      carries NO factual claims to begin with (there is nothing to
+#      fabricate, only phrasing to vary), so the safety bar is lighter:
+#      a banned-style-phrase check (reused) plus a new check that the
+#      reworded text never introduces a number that wasn't already there.
+#      Strictly additive and opt-in (client=None skips it entirely) --
+#      _build_degraded_cover_paragraphs remains fully deterministic and
+#      LLM-free by default, matching every existing test that calls it
+#      without a client.
+# ---------------------------------------------------------------------------
+
+# 2026-09-13: every variant within a pool is kept within a few words of the
+# others (checked directly, not eyeballed -- see TestFillerVariantsAreLength
+# BalancedWithinPools) after a real forced-local-only batch caught a real
+# regression: the ORIGINAL _CLOSE_VARIANTS ranged 24-36 words, and all 3
+# real jobs in that batch happened to hash onto one of the two SHORTER
+# options, quietly undoing part of the SAME session's own earlier word-
+# count fix (decision #140). Variety must never come at the cost of length
+# -- these pools give phrasing variety while keeping length effectively
+# constant.
+_HOOK_LEAD_VARIANTS = [
+    "{who} is hiring for {title}, and the posting points to {need}",
+    "{who} is looking to fill {title}, and the posting calls out {need}",
+    "{who}'s posting for {title} calls out {need} as part of the role",
+]
+_HOOK_CLOSER_VARIANTS = [
+    "That is close to work already in my background, not something I would be starting from scratch on.",
+    "That lines up with work I have already done, not something new I would be learning on the job.",
+    "That is familiar ground for me already, built from real experience, not something I would be picking up cold.",
+]
+_EVIDENCE_LEAD_VARIANTS = ["In practice,", "In real terms,", "Concretely speaking,"]
+_FIT_OPENER_VARIANTS = [
+    "{who} appears to be focused on {focus}, based on the posting.",
+    "Based on the posting, {who} seems focused on {focus} in this role.",
+    "From the posting, {who}'s focus here looks to be {focus}.",
+]
+_FIT_CLOSER_VARIANTS = [
+    "That is the kind of work I take on directly, not from the sidelines.",
+    "That is work I take on myself, not something I hand off to someone else.",
+    "I take that kind of work on directly myself, rather than watching from the sidelines.",
+]
+_CLOSE_VARIANTS = [
+    "I am glad to go into more detail on {topic}, or anything else here that is a priority for "
+    "you, whenever that is useful. I am easy to reach and can answer questions on short notice.",
+    "If it would help, I am glad to say more about {topic} or anything else in the posting that "
+    "matters to you. I am easy to reach and can respond quickly whenever that is useful.",
+    "I can go deeper on {topic}, or on anything else here, whenever that would be useful for you. "
+    "Feel free to reach out any time, I am easy to reach and quick to respond.",
+]
+
+
+def _pick_variant(variants: list[str], seed: str) -> str:
+    """Deterministic phrase-variety selection: the SAME (job, slot) pair
+    always picks the SAME option (stable across retries/re-runs of the
+    same job), but different jobs land on different options -- a plain
+    hash, not randomness, so this stays reproducible and testable."""
+    idx = int(hashlib.sha256(seed.encode("utf-8")).hexdigest(), 16) % len(variants)
+    return variants[idx]
+
+
+_FILLER_EDITOR_SYSTEM = """You are lightly rewording ONE short passage from a cover letter (either \
+a single closing sentence or a short closing paragraph) so it reads naturally and does not sound \
+like a fixed template.
+
+STRICT RULES:
+- Do NOT add, remove, or change any fact, name, number, tool, company, or specific topic already \
+mentioned in the text.
+- Do NOT add any new claim, accomplishment, or offer beyond what is already stated.
+- Keep the same overall meaning and about the same length.
+- Output ONLY the reworded text -- no explanation, no quotation marks, no markdown."""
+
+
+def _polish_filler_text(client, text: str, max_tokens: int = 700) -> str | None:
+    """The one LLM call for filler polishing -- mirrors edit_sentence_for_
+    requirement's contract exactly (returns None on any call failure or
+    empty response, never raises)."""
+    user = f'PASSAGE TO REWORD (keep every fact, name, and number exactly as-is):\n"{text}"'
+    try:
+        raw = client.chat(
+            [{"role": "system", "content": _FILLER_EDITOR_SYSTEM}, {"role": "user", "content": user}],
+            max_tokens=max_tokens,
+            temperature=0.5,
+        )
+    except Exception as exc:  # noqa: BLE001 -- must degrade to None, never break the caller's retry loop
+        log.warning("_polish_filler_text: call failed (%s: %s)", type(exc).__name__, exc)
+        return None
+    result = (raw or "").strip().strip('"').strip()
+    return result or None
+
+
+def check_no_new_numbers(original: str, candidate: str) -> dict:
+    """Deterministic post-generation check: filler text carries no factual
+    claims by construction, so any digit sequence in the reworded version
+    that wasn't already in the original is either an accidental
+    fabrication or a sign the model drifted off-task. Same {"passed",
+    "violation"} shape as the other checks in this module."""
+    original_numbers = set(re.findall(r"\d+", original))
+    candidate_numbers = set(re.findall(r"\d+", candidate))
+    new_numbers = candidate_numbers - original_numbers
+    if new_numbers:
+        return {"passed": False, "violation": f"introduced new number(s): {', '.join(sorted(new_numbers))}"}
+    return {"passed": True, "violation": None}
+
+
+def check_not_much_shorter(original: str, candidate: str, min_ratio: float = 0.85) -> dict:
+    """Deterministic post-generation check: a real local model asked to
+    "reword" a passage can still ignore the "keep about the same length"
+    instruction and return something much shorter. Caught live by this
+    module's own test suite: a naive test stub returning a fixed 6-word
+    reply in place of a real ~15-20 word filler sentence silently dropped
+    the final letter below validate_cover_letter's per-paragraph
+    "substantial" threshold (>=15 words) -- exactly the word-count problem
+    this whole feature area has been fighting, reintroduced by the
+    polish step itself. Guards against that regardless of source (a real
+    model doing the same thing, not just a test artifact).
+
+    2026-09-13: raised 0.6 -> 0.85 after a real forced-local-only batch,
+    run AFTER the variant pools themselves were already rebalanced to a
+    tight word-count spread (see _CLOSE_VARIANTS etc.), still showed a
+    real, if smaller, word-count drop versus the pre-filler-variety
+    baseline -- 0.6 was permissive enough to let a real successful polish
+    shrink a ~35-word close paragraph down to ~21 words and still pass.
+    Given how much of this session was spent closing this exact gap, the
+    bar for "counts as about the same length" needs to be tight, not
+    merely non-trivial."""
+    original_words = len(original.split())
+    candidate_words = len(candidate.split())
+    if original_words and candidate_words < original_words * min_ratio:
+        return {
+            "passed": False,
+            "violation": f"too short ({candidate_words} words vs original {original_words})",
+        }
+    return {"passed": True, "violation": None}
+
+
+def polish_filler_with_retry(
+    client,
+    text: str,
+    banned_patterns: list[tuple[str, str]] | None = None,
+    max_attempts: int = 2,
+) -> tuple[str, bool]:
+    """Bounded-retry wrapper around _polish_filler_text -- same fallback-
+    to-original guarantee as edit_sentence_with_retry: always returns a
+    real, safe passage, never nothing. max_attempts defaults lower than
+    the evidence editor's (2 vs 3) because a filler-polish failure costs
+    nothing but variety -- the deterministic pools above already guarantee
+    real variety with zero LLM calls, so this is a pure bonus layer, never
+    load-bearing."""
+    for attempt in range(1, max_attempts + 1):
+        candidate = _polish_filler_text(client, text)
+        if candidate is None:
+            continue
+        checks = (
+            check_banned_patterns(candidate, banned_patterns),
+            check_no_new_numbers(text, candidate),
+            check_not_much_shorter(text, candidate),
+        )
+        if all(c.get("passed", True) for c in checks):
+            return candidate, True
+        log.info(
+            "polish_filler_with_retry: attempt %d/%d rejected (%s)",
+            attempt,
+            max_attempts,
+            "; ".join(c["violation"] for c in checks if not c.get("passed", True)),
+        )
+    return text, False
 
 
 def _build_degraded_cover_paragraphs(
@@ -3561,6 +3952,7 @@ def _build_degraded_cover_paragraphs(
     job_schema: dict,
     requirements: list[dict],
     evidence_sentences: list[str],
+    client=None,
 ) -> list[str]:
     """The 4 template-filled body paragraphs (hook, evidence, company fit,
     close), each a single block (no internal blank line) so validate_
@@ -3572,9 +3964,22 @@ def _build_degraded_cover_paragraphs(
     same reason -- an earlier version repeated evidence_sentences[0]
     verbatim in both the hook and the opening of the evidence paragraph,
     a real, visible redundancy caught by inspecting actual generated
-    output before shipping this."""
-    from applypilot.scoring.schemas import VIEWPOINT_EMPHASIS
+    output before shipping this.
 
+    Connective/filler phrasing (never the facts) is chosen from the
+    deterministic variant pools above, keyed to this job's own URL so the
+    SAME job reads the same way on a re-run but DIFFERENT jobs vary --
+    always applied, zero LLM calls. `client`, if given (default None,
+    matching every prior caller/test), additionally runs a bounded,
+    fallback-safe local-model polish over the hook's closing sentence and
+    the whole close paragraph -- the two spots most likely to read as a
+    fixed template -- via polish_filler_with_retry. Purely additive: on any
+    failure it silently falls back to the deterministic variant, so this
+    can never make the letter worse, only sometimes a little more natural."""
+    from applypilot.scoring.schemas import VIEWPOINT_EMPHASIS
+    from applypilot.scoring.validator import CL_BANNED_PATTERNS
+
+    job_url = job.get("url") or ""
     title = (job.get("title") or "this role").strip()
     company = _display_company_capitalized(job)
     who = company or "This team"
@@ -3582,6 +3987,16 @@ def _build_degraded_cover_paragraphs(
     req_texts = [_clean_snippet(r["requirement"], max_len=150) for r in requirements]
     req_texts = [t for t in req_texts if t]
     hook_reqs, fit_reqs = req_texts[:2], req_texts[2:5]
+
+    # EVIDENCE gets at most the first 3 gathered sentences (its own,
+    # unchanged cap); anything beyond that is real, genuinely-vetted
+    # material this job simply didn't need for EVIDENCE -- reserved as
+    # `evidence_spare` for FIT below, rather than discarded. 2026-09-13:
+    # before this split, _gather_evidence_sentences's own higher limit/
+    # max_per_evidence had nowhere to go -- EVIDENCE's old slicing
+    # ([0] + [1:4]) already absorbed up to 4 sentences by itself, leaving
+    # FIT with nothing even when more real content existed.
+    evidence_primary, evidence_spare = evidence_sentences[:3], evidence_sentences[3:]
 
     # ---- Paragraph 1: HOOK. Quoting the posting's own requirement text is
     # zero-fabrication-risk (it's the employer's own words); the specific,
@@ -3594,16 +4009,18 @@ def _build_degraded_cover_paragraphs(
         need = hook_reqs[0]
     else:
         need = "the work described in the posting."
-    hook = (
-        f"{who} is hiring for {title}, and the posting points to {need} "
-        "That is close to work already in my background, not something I would be starting from scratch on."
-    )
+    hook_lead = _pick_variant(_HOOK_LEAD_VARIANTS, f"{job_url}:hook_lead").format(who=who, title=title, need=need)
+    hook_closer = _pick_variant(_HOOK_CLOSER_VARIANTS, f"{job_url}:hook_closer")
+    if client is not None:
+        hook_closer, _ = polish_filler_with_retry(client, hook_closer, banned_patterns=CL_BANNED_PATTERNS)
+    hook = f"{hook_lead} {hook_closer}"
 
     # ---- Paragraph 2: EVIDENCE, entirely bank/fact-sourced (see
     # _gather_evidence_sentences), joined with light connective tissue.
-    if evidence_sentences:
-        evidence_para = f"In practice, {evidence_sentences[0]}"
-        rest_sentences = evidence_sentences[1:4]
+    evidence_lead = _pick_variant(_EVIDENCE_LEAD_VARIANTS, f"{job_url}:evidence_lead")
+    if evidence_primary:
+        evidence_para = f"{evidence_lead} {evidence_primary[0]}"
+        rest_sentences = evidence_primary[1:3]
         if rest_sentences:
             evidence_para += " " + " ".join(rest_sentences)
     else:
@@ -3622,7 +4039,9 @@ def _build_degraded_cover_paragraphs(
     # job a second time, plus any remaining requirement text.
     viewpoint = job_schema.get("viewpoint") or "general"
     focus = VIEWPOINT_EMPHASIS.get(viewpoint, VIEWPOINT_EMPHASIS["general"])
-    fit = f"{who} appears to be focused on {focus}, based on the posting."
+    fit_opener = _pick_variant(_FIT_OPENER_VARIANTS, f"{job_url}:fit_opener").format(who=who, focus=focus)
+    fit_closer = _pick_variant(_FIT_CLOSER_VARIANTS, f"{job_url}:fit_closer")
+    fit = fit_opener
     if fit_reqs:
         joined = ", ".join(r[:-1] for r in fit_reqs[:-1]) if len(fit_reqs) > 1 else ""
         joined = f"{joined}, and {fit_reqs[-1][:-1]}" if joined else fit_reqs[-1][:-1]
@@ -3631,18 +4050,25 @@ def _build_degraded_cover_paragraphs(
             "directly, not from the sidelines, and I would rather be upfront about where my "
             "experience is strongest than overstate it."
         )
+    elif evidence_spare:
+        # 2026-09-13: the common thin-job case (0-1 supported requirements,
+        # confirmed via a real 3-job trace to be typical for this
+        # candidate's actual job mix) used to leave FIT with zero real
+        # per-job content -- purely generic filler. A real, unused, already
+        # safety-checked evidence sentence (see the split above) is
+        # genuinely true content this job simply hadn't been given a home
+        # for yet, not new material.
+        fit += f" In a similar vein, {evidence_spare[0]} {fit_closer}"
     else:
-        fit += " That is the kind of work I take on directly, not from the sidelines."
+        fit += f" {fit_closer}"
 
     # ---- Paragraph 4: CLOSE. Names the same lead requirement from the
     # hook rather than a fixed stock phrase, so it varies per job instead
     # of reading as the same boilerplate closer on every letter.
     close_topic = hook_reqs[0][:-1] if hook_reqs else "anything in the posting"
-    close = (
-        f"I am glad to go into more detail on {close_topic}, or anything else here that is a "
-        "priority for you, whenever that is useful. I am easy to reach and can answer questions "
-        "on short notice."
-    )
+    close = _pick_variant(_CLOSE_VARIANTS, f"{job_url}:close").format(topic=close_topic)
+    if client is not None:
+        close, _ = polish_filler_with_retry(client, close, banned_patterns=CL_BANNED_PATTERNS)
 
     return [hook, evidence_para, fit, close]
 
@@ -3677,13 +4103,21 @@ def compose_degraded_cover_letter(
     requirements = _pick_supported_requirements(job_schema)
     evidence_sentences, evidence_used, fully_covered = _gather_evidence_sentences(client, job_schema, profile)
 
-    paragraphs = _build_degraded_cover_paragraphs(job, job_schema, requirements, evidence_sentences)
+    paragraphs = _build_degraded_cover_paragraphs(job, job_schema, requirements, evidence_sentences, client=client)
     body = "\n\n".join(paragraphs)
     letter = f"Dear Hiring Manager,\n\n{body}\n\n{sign_off_name}".strip()
 
     meta = {
         "tier": "degraded_template",
         "llm_called": False,
+        # 2026-09-13: distinct from llm_called (which tracks whether the
+        # heavy full-writer fallback was needed -- cover letters have no
+        # such fallback, so it's always False here by design). This tracks
+        # the much lighter, optional filler-polish pass instead -- True
+        # whenever a client was available to attempt it, regardless of
+        # whether any individual polish attempt actually succeeded (each
+        # one independently falls back to its safe deterministic variant).
+        "filler_polish_attempted": client is not None,
         "bank_covered": fully_covered,
         "requirements_used": len(requirements),
         "evidence_used": evidence_used,
