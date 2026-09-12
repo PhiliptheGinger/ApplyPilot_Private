@@ -7,6 +7,7 @@ import logging
 import math
 import os
 import re
+import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -16,6 +17,24 @@ from rich.console import Console
 from rich.table import Table
 
 from applypilot import __version__, config
+
+# 2026-09-12: real, reproducible `applypilot status` crash -- this
+# environment's Windows console codepage is cp1252, not UTF-8, so rich's
+# legacy-Windows text renderer (which writes through SetConsoleTextAttribute/
+# WriteConsole, not a plain UTF-8 byte stream) hits UnicodeEncodeError on
+# ANY output containing a character outside cp1252 (confirmed live on both
+# the block-bar character and a completely unrelated sub-item arrow
+# elsewhere in this file -- not a single character to patch, a whole class
+# of output). Reconfiguring stdout/stderr to UTF-8 up front is the standard
+# fix for this exact Windows console class of bug; no-op on non-Windows,
+# and `errors="replace"` means even a genuinely UTF-8-incapable terminal
+# degrades to `?` characters instead of crashing the whole command.
+if sys.platform == "win32":
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
 
 logging.basicConfig(
     level=logging.INFO,
@@ -1845,7 +1864,12 @@ def status() -> None:
                 color = "yellow"
             else:
                 color = "red"
-            bar = f"[{color}]{'█' * bar_len}[/{color}]"
+            # 2026-09-12: the Unicode block character crashed with
+            # UnicodeEncodeError on a Windows console using rich's legacy
+            # (non-UTF-8, cp1252) renderer -- confirmed live via a real
+            # `applypilot status` run. ASCII renders identically well and
+            # has no encoding dependency on the terminal at all.
+            bar = f"[{color}]{'#' * bar_len}[/{color}]"
             dist_table.add_row(str(score), str(count), bar)
 
         console.print(dist_table)
