@@ -460,7 +460,9 @@ def test_compose_degraded_cover_letter_passes_real_validation(monkeypatch):
     letter, meta = local_tailor.compose_degraded_cover_letter(_stub_client(), JOB, PROFILE, RICH_JOB_SCHEMA)
 
     assert letter.startswith("Dear Hiring Manager,")
-    assert letter.rstrip().endswith("Jordan")
+    # 2026-09-13: sign-off uses the FULL name for a formal closing signature
+    # (not preferred_name, which is only for resume-header display).
+    assert letter.rstrip().endswith("Jordan Alexander Lee")
     assert meta["llm_called"] is False
     assert meta["tier"] == "degraded_template"
     assert meta["bank_covered"] is True

@@ -392,6 +392,88 @@ class TestLocalOpenAIBaseURLNormalization(unittest.TestCase):
         self.assertEqual(len(local_entries), 1)
         self.assertEqual(local_entries[0].base_url, "http://127.0.0.1:11434/v1")
 
+    def test_detect_provider_falls_back_to_applypilot_local_llm_url(self):
+        """2026-09-13 (Future Work item 20): a user who wants a fully local,
+        cloud-free pipeline (no cloud API keys at all) should only need to
+        set ONE env var, not learn that LLM_URL and APPLYPILOT_LOCAL_LLM_URL
+        are different variables for different purposes. With no cloud keys
+        and no LLM_URL, APPLYPILOT_LOCAL_LLM_URL alone must now resolve as
+        the PRIMARY provider instead of raising 'No LLM provider configured'."""
+        from applypilot.llm import _detect_provider
+
+        env = {
+            k: v
+            for k, v in __import__("os").environ.items()
+            if k
+            not in (
+                "GEMINI_API_KEY",
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "DEEPSEEK_API_KEY",
+                "LLM_URL",
+                "LLM_MODEL",
+                "APPLYPILOT_LOCAL_LLM_URL",
+                "APPLYPILOT_LOCAL_LLM_MODEL",
+            )
+        }
+        env["APPLYPILOT_LOCAL_LLM_URL"] = "http://127.0.0.1:11434"  # bare root, no /v1
+        env["APPLYPILOT_LOCAL_LLM_MODEL"] = "qwen3:1.7b"
+        with patch.dict("os.environ", env, clear=True):
+            base_url, model, api_key = _detect_provider()
+
+        self.assertEqual(base_url, "http://127.0.0.1:11434/v1")
+        self.assertEqual(model, "qwen3:1.7b")
+        self.assertEqual(api_key, "")
+
+    def test_detect_provider_prefers_llm_url_over_applypilot_local_llm_url(self):
+        """Backward compatibility: if a user already has LLM_URL set (the
+        pre-existing primary-provider var), it still wins over the new
+        APPLYPILOT_LOCAL_LLM_URL fallback -- no behavior change for anyone
+        already relying on LLM_URL."""
+        from applypilot.llm import _detect_provider
+
+        env = {
+            k: v
+            for k, v in __import__("os").environ.items()
+            if k
+            not in (
+                "GEMINI_API_KEY",
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "DEEPSEEK_API_KEY",
+                "LLM_URL",
+                "LLM_MODEL",
+                "APPLYPILOT_LOCAL_LLM_URL",
+                "APPLYPILOT_LOCAL_LLM_MODEL",
+            )
+        }
+        env["LLM_URL"] = "http://localhost:9999/v1"
+        env["APPLYPILOT_LOCAL_LLM_URL"] = "http://127.0.0.1:11434"
+        with patch.dict("os.environ", env, clear=True):
+            base_url, _model, _api_key = _detect_provider()
+
+        self.assertEqual(base_url, "http://localhost:9999/v1")
+
+    def test_detect_provider_still_raises_with_nothing_configured(self):
+        from applypilot.llm import _detect_provider
+
+        env = {
+            k: v
+            for k, v in __import__("os").environ.items()
+            if k
+            not in (
+                "GEMINI_API_KEY",
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "DEEPSEEK_API_KEY",
+                "LLM_URL",
+                "APPLYPILOT_LOCAL_LLM_URL",
+            )
+        }
+        with patch.dict("os.environ", env, clear=True), self.assertRaises(RuntimeError) as ctx:
+            _detect_provider()
+        self.assertIn("APPLYPILOT_LOCAL_LLM_URL", str(ctx.exception))
+
     def test_chat_posts_to_v1_chat_completions_not_bare_chat_completions(self):
         """End-to-end at the request-construction level: with a bare-root
         local URL, the actual outgoing POST must hit /v1/chat/completions

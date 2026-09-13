@@ -59,8 +59,12 @@ def _build_cover_letter_prompt(profile: dict, job: dict | None = None) -> str:
     boundary = profile.get("skills_boundary", {})
     resume_facts = profile.get("resume_facts", {})
 
-    # Preferred name for the sign-off (falls back to full name)
-    sign_off_name = personal.get("preferred_name") or personal.get("full_name", "")
+    # 2026-09-13: sign off with the FULL name, not preferred_name -- a cover
+    # letter closing signature is a formal signoff ("Sincerely, Philip
+    # McLaughlin"), unlike a resume header where preferred_name is the
+    # deliberate choice (Security Decision #1: legal name is for background
+    # checks only). Falls back to preferred_name if full_name is missing.
+    sign_off_name = personal.get("full_name") or personal.get("preferred_name", "")
 
     # Flatten all allowed skills
     all_skills: list[str] = []
@@ -153,7 +157,116 @@ Sign off: just "{sign_off_name}"
 Output ONLY the letter. Start with "Dear Hiring Manager," end with the name."""
 
 
+# ── LLM Judge ────────────────────────────────────────────────────────────
+
+# 2026-09-13: cover letters had no judge-style advisory pass at all, unlike
+# tailor.py's judge_tailored_resume -- a real gap surfaced by direct user
+# request to bring the cover-letter generator up to parity with the resume
+# generator's lessons. Same role as the resume judge: catch subtle problems
+# the deterministic checks (validate_cover_letter/CL_BANNED_PATTERNS) can't
+# reliably see -- here, that's mostly genericness/boilerplate a regex can't
+# detect (the exact human-review finding that motivated decision #51's whole
+# quality overhaul) and unsupported claims slipping past the fixed banned-
+# word list, not primarily fabrication (validate_cover_letter's profile-
+# integrity checks and CL_BANNED_PATTERNS already cover the hard-fact risks).
+# Advisory only, same discipline as judge_tailored_resume: never overrides a
+# passed validation outright, and any exception degrades to a failed verdict
+# rather than crashing an already-validated result (decision #73's fix for
+# the resume judge's own call sites, applied here from day one instead of
+# needing a follow-up incident to find it).
+def _build_cover_letter_judge_prompt(profile: dict) -> str:
+    """Build the LLM judge prompt for cover letters from the user's profile."""
+    boundary = profile.get("skills_boundary", {})
+    resume_facts = profile.get("resume_facts", {})
+
+    all_skills: list[str] = []
+    for items in boundary.values():
+        if isinstance(items, list):
+            all_skills.extend(items)
+    skills_str = ", ".join(all_skills) if all_skills else "N/A"
+
+    real_metrics = resume_facts.get("real_metrics", [])
+    metrics_str = ", ".join(real_metrics) if real_metrics else "N/A"
+
+    return f"""You are a cover-letter quality judge. A generation engine wrote a cover letter targeting a specific job, grounded in the candidate's real resume. Your job is to catch LIES and GENERIC BOILERPLATE that a fixed banned-word list can't reliably see, not to police style choices the letter is allowed to make.
+
+You must answer with EXACTLY this format:
+VERDICT: PASS or FAIL
+ISSUES: (list any problems, or "none")
+
+## WHAT IS FABRICATION (FAIL for these):
+1. Mentioning any tool/language/framework not in the candidate's real skills: {skills_str}.
+2. Inventing metrics or numbers not in the original resume text. Real metrics: {metrics_str}.
+3. Claiming work, an employer, or an achievement with no basis anywhere in the resume text.
+4. Claiming a seniority tier (Senior/Staff/Principal/Director/Lead) or professional identity
+   (Engineer/Architect/Developer/Programmer) the candidate's real employment history doesn't support.
+5. Naming the job board (LinkedIn, Indeed, BuiltIn, etc.) as if it were the employer.
+6. Mentioning ApplyPilot or any private/internal project by name.
+
+## WHAT IS GENERIC BOILERPLATE (FAIL for these -- this is the main thing a fixed word
+list cannot catch, and the reason this letter should read like it was written FOR this
+job, not filled into a template):
+7. The hook, evidence, or company-fit paragraph could be pasted into a cover letter for
+   almost any other company with only the company name changed -- no real, specific tie
+   to what THIS posting actually asks for.
+8. Restating the job posting's own language back at it ("I saw you're looking for X, and
+   I have experience with X") instead of naming the actual work.
+9. Vague, unfalsifiable claims of enthusiasm or fit with no concrete evidence attached.
+
+## WHAT IS ALLOWED (do not FAIL for these):
+- Reasonable paraphrasing of real resume content in the letter's own words.
+- A shorter, thinner letter (word count and structure are validate_cover_letter's job,
+  not yours) as long as what IS there is true and specific.
+- Ordinary, honest confidence about real, grounded work.
+
+If nothing here applies, PASS."""
+
+
 # ── Core Generation ──────────────────────────────────────────────────────
+
+
+def judge_cover_letter(resume_text: str, letter_text: str, job_title: str, profile: dict) -> dict:
+    """LLM judge layer: catches fabrication and generic boilerplate that
+    programmatic checks miss. Mirrors tailor.judge_tailored_resume's shape
+    and calling convention exactly.
+
+    Returns:
+        {"passed": bool, "verdict": str, "issues": str, "raw": str}
+    """
+    judge_prompt = _build_cover_letter_judge_prompt(profile)
+
+    messages = [
+        {"role": "system", "content": judge_prompt},
+        {
+            "role": "user",
+            "content": (
+                f"JOB TITLE: {job_title}\n\n"
+                f"RESUME (ground truth):\n{resume_text}\n\n---\n\n"
+                f"COVER LETTER:\n{letter_text}\n\n"
+                "Judge this cover letter:"
+            ),
+        },
+    ]
+
+    client = get_stage_client("judge", quality=False)  # judge uses fast model (binary evaluation)
+    response = client.chat(
+        messages,
+        max_tokens=get_token_limit("judge", 4096),
+        temperature=0.1,
+    )
+
+    passed = "VERDICT: PASS" in response.upper()
+    issues = "none"
+    if "ISSUES:" in response.upper():
+        issues_idx = response.upper().index("ISSUES:")
+        issues = response[issues_idx + 7 :].strip()
+
+    return {
+        "passed": passed,
+        "verdict": "PASS" if passed else "FAIL",
+        "issues": issues,
+        "raw": response,
+    }
 
 
 def generate_cover_letter(resume_text: str, job: dict, profile: dict, max_retries: int = 3) -> tuple[str, dict]:
@@ -242,6 +355,29 @@ def generate_cover_letter(resume_text: str, job: dict, profile: dict, max_retrie
             degraded_meta.get("word_count"),
             draft_validation["passed"],
         )
+        # Judge is advisory-only, single pass, no retry loop here -- degraded
+        # mode has no second draft to fall back to, and the whole point of
+        # this path is to still ship SOMETHING real rather than nothing when
+        # cloud is exhausted. Recorded so a human reviewing degraded-mode
+        # output can see the verdict, but never blocks shipping.
+        if draft_validation["passed"]:
+            try:
+                judge = judge_cover_letter(resume_text, draft, job.get("title", ""), profile)
+            except Exception as exc:  # noqa: BLE001 -- judge is advisory; any failure here must degrade like a failed verdict, never crash an already-validated result
+                log.warning(
+                    "Judge call failed for degraded-mode cover letter on %s (%s: %s), accepting anyway (validation passed)",
+                    job.get("title", "")[:40],
+                    type(exc).__name__,
+                    exc,
+                )
+                judge = {"passed": False, "verdict": "ERROR", "issues": f"{type(exc).__name__}: {exc}", "raw": ""}
+            draft_validation["judge"] = judge
+            if not judge["passed"]:
+                log.warning(
+                    "Judge flagged degraded-mode cover letter for %s, accepting anyway (validation passed): %s",
+                    job.get("title", "")[:40],
+                    judge["issues"],
+                )
         return draft, draft_validation
 
     for attempt in range(max_retries + 1):
@@ -302,7 +438,35 @@ def generate_cover_letter(resume_text: str, job: dict, profile: dict, max_retrie
 
         validation = validate_cover_letter(letter, profile)
         if validation["passed"]:
-            return letter, validation
+            is_last = attempt >= max_retries
+            is_clean = not validation.get("warnings")
+            if attempt == 0 and is_clean:
+                # First attempt with zero warnings -- trust programmatic
+                # validation and skip the judge call, same optimization as
+                # tailor.judge_tailored_resume's identical shortcut.
+                validation["judge"] = {"passed": True, "verdict": "SKIP", "issues": "none", "raw": "skipped (clean first pass)"}
+                return letter, validation
+
+            try:
+                judge = judge_cover_letter(resume_text, letter, job.get("title", ""), profile)
+            except Exception as exc:  # noqa: BLE001 -- judge is advisory; any failure here must degrade like a failed verdict, never crash an already-validated result
+                log.warning(
+                    "Judge call failed for %s (%s: %s)", job.get("title", "")[:40], type(exc).__name__, exc
+                )
+                judge = {"passed": False, "verdict": "ERROR", "issues": f"{type(exc).__name__}: {exc}", "raw": ""}
+            validation["judge"] = judge
+
+            if judge["passed"] or is_last:
+                if not judge["passed"]:
+                    log.warning(
+                        "Judge failed on final attempt for %s, accepting anyway (validation passed): %s",
+                        job.get("title", "")[:40],
+                        judge["issues"],
+                    )
+                return letter, validation
+
+            avoid_notes.append(f"Judge rejected: {judge['issues']}")
+            continue
 
         avoid_notes.extend(validation["errors"])
         # The model chronically undershoots length; a generic "too short"

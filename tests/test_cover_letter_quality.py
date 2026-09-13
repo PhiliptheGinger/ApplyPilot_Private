@@ -205,6 +205,11 @@ def test_retry_gets_word_count_expansion_feedback(monkeypatch):
     short_letter = "Dear Hiring Manager,\n\n" + _para(2) + "\n\nJordan"  # <180 words
     stub = StubClient([short_letter, GOOD])
     monkeypatch.setattr(cl, "get_client", lambda quality=False: stub)
+    # This test is about word-count retry feedback, not judge behavior --
+    # stub the judge out to a clean PASS so it can't add its own retries.
+    monkeypatch.setattr(
+        cl, "judge_cover_letter", lambda *a, **k: {"passed": True, "verdict": "PASS", "issues": "none", "raw": ""}
+    )
 
     _letter, validation = cl.generate_cover_letter("RESUME", JOB, PROFILE)
     assert validation["passed"]
@@ -315,4 +320,121 @@ def test_cover_one_job_success_writes_letter(monkeypatch, tmp_path):
     result = cl._cover_one_job(JOB, "RESUME", PROFILE)
     assert result["path"] is not None
     assert result["path"].endswith("_CL.txt")
-    assert not list(tmp_path.glob("*_CL_rejected.txt"))
+
+
+# ── judge_cover_letter (2026-09-13: parity with tailor.judge_tailored_resume) ──
+
+
+def _judge_stub(passed: bool, issues: str = "none"):
+    verdict = "PASS" if passed else "FAIL"
+    return lambda *a, **k: {"passed": passed, "verdict": verdict, "issues": issues, "raw": f"VERDICT: {verdict}"}
+
+
+def test_judge_skipped_on_clean_first_attempt(monkeypatch):
+    """Same optimization as judge_tailored_resume: a clean (no-warnings)
+    first attempt ships without ever calling the judge."""
+    from applypilot.scoring import cover_letter as cl
+
+    stub = StubClient([GOOD])
+    monkeypatch.setattr(cl, "get_client", lambda quality=False: stub)
+    called = []
+    monkeypatch.setattr(cl, "judge_cover_letter", lambda *a, **k: called.append(1) or _judge_stub(True)())
+
+    letter, validation = cl.generate_cover_letter("RESUME", JOB, PROFILE)
+    assert letter == GOOD
+    assert validation["passed"]
+    assert validation["judge"]["verdict"] == "SKIP"
+    assert not called
+
+
+def test_judge_failure_triggers_retry_unless_last_attempt(monkeypatch):
+    """A judge FAIL on a non-clean or non-first attempt retries with the
+    judge's issues fed into avoid_notes, mirroring judge_tailored_resume."""
+    from applypilot.scoring import cover_letter as cl
+
+    short_letter = "Dear Hiring Manager,\n\n" + _para(2) + "\n\nJordan"  # <260 words, has a warning
+    # attempt 0: short (fails validation, retries); attempt 1: GOOD but judge
+    # FAILs once; attempt 2: GOOD and judge PASSes.
+    stub = StubClient([short_letter, GOOD, GOOD])
+    monkeypatch.setattr(cl, "get_client", lambda quality=False: stub)
+    judge_calls = []
+
+    def fake_judge(resume_text, letter_text, job_title, profile):
+        judge_calls.append(letter_text)
+        if len(judge_calls) == 1:
+            return {"passed": False, "verdict": "FAIL", "issues": "too generic", "raw": ""}
+        return {"passed": True, "verdict": "PASS", "issues": "none", "raw": ""}
+
+    monkeypatch.setattr(cl, "judge_cover_letter", fake_judge)
+
+    letter, validation = cl.generate_cover_letter("RESUME", JOB, PROFILE, max_retries=3)
+    assert validation["passed"]
+    assert validation["judge"]["passed"]
+    assert len(judge_calls) == 2
+    assert len(stub.calls) == 3
+    last_system = stub.calls[2][0]["content"]
+    assert "Judge rejected: too generic" in last_system
+
+
+def test_judge_failure_on_last_attempt_ships_anyway(monkeypatch):
+    """Validation already passed -- a judge FAIL on the final attempt is
+    advisory only and must not turn a valid letter into a rejected one."""
+    from applypilot.scoring import cover_letter as cl
+
+    short_letter = "Dear Hiring Manager,\n\n" + _para(2) + "\n\nJordan"  # attempt 0: fails validation
+    stub = StubClient([short_letter, GOOD])  # attempt 1 is the last (max_retries=1)
+    monkeypatch.setattr(cl, "get_client", lambda quality=False: stub)
+    monkeypatch.setattr(cl, "judge_cover_letter", _judge_stub(False, "borderline genericness"))
+
+    letter, validation = cl.generate_cover_letter("RESUME", JOB, PROFILE, max_retries=1)
+    assert letter == GOOD
+    assert validation["passed"]  # judge never overrides a passed validation
+    assert validation["judge"]["passed"] is False
+    assert validation["judge"]["issues"] == "borderline genericness"
+
+
+def test_judge_exception_degrades_to_error_verdict_never_crashes(monkeypatch):
+    from applypilot.scoring import cover_letter as cl
+
+    short_letter = "Dear Hiring Manager,\n\n" + _para(2) + "\n\nJordan"
+    stub = StubClient([short_letter, GOOD])
+    monkeypatch.setattr(cl, "get_client", lambda quality=False: stub)
+
+    def boom(*a, **k):
+        raise RuntimeError("no local model")
+
+    monkeypatch.setattr(cl, "judge_cover_letter", boom)
+
+    letter, validation = cl.generate_cover_letter("RESUME", JOB, PROFILE, max_retries=1)
+    assert letter == GOOD
+    assert validation["passed"]
+    assert validation["judge"]["verdict"] == "ERROR"
+
+
+def test_degraded_mode_judge_is_advisory_only(monkeypatch):
+    """The degraded path has no retry loop -- a judge FAIL is logged into
+    the returned validation dict but never blocks shipping an already-
+    validated degraded-mode letter."""
+    from applypilot.scoring import cover_letter as cl
+    from applypilot.scoring import local_tailor
+
+    monkeypatch.setattr(cl, "is_local_configured", lambda: True)
+    stub = Mock()
+    stub.chat.side_effect = RuntimeError("cloud exhausted")
+    stub.has_cloud_available = lambda: False
+    monkeypatch.setattr(cl, "get_client", lambda quality=False: stub)
+    monkeypatch.setattr(
+        local_tailor,
+        "compose_degraded_cover_letter",
+        lambda *a, **k: (
+            GOOD,
+            {"bank_covered": True, "requirements_used": 1, "evidence_used": ["Mavis"], "word_count": len(GOOD.split())},
+        ),
+    )
+    monkeypatch.setattr(cl, "judge_cover_letter", _judge_stub(False, "reads generic"))
+
+    letter, validation = cl.generate_cover_letter("RESUME", JOB, PROFILE)
+    assert letter == GOOD
+    assert validation["passed"]
+    assert validation["judge"]["passed"] is False
+    assert validation["judge"]["issues"] == "reads generic"

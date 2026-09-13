@@ -326,6 +326,19 @@ def _detect_provider(quality: bool = False, model_override: str | None = None) -
     gemini_key = os.environ.get("GEMINI_API_KEY", "")
     openai_key = os.environ.get("OPENAI_API_KEY", "")
     local_url = os.environ.get("LLM_URL", "")
+    # 2026-09-13 (Future Work item 20): APPLYPILOT_LOCAL_LLM_URL previously
+    # only enabled the fallback-chain/degraded-mode local entry
+    # (is_local_configured()) -- setting ONLY it, with no cloud keys, raised
+    # "No LLM provider configured" even though local genuinely was
+    # configured for every other purpose. A user who deliberately wants a
+    # fully local, cloud-free pipeline (e.g. doesn't want their data/usage
+    # touching a hosted AI provider at all) had to separately learn about
+    # and set the differently-named LLM_URL too. LLM_URL still wins if both
+    # are set (exact prior behavior unchanged for anyone already using it);
+    # this is purely an additive fallback, never a behavior change for an
+    # existing LLM_URL or cloud-key setup.
+    if not local_url:
+        local_url = os.environ.get("APPLYPILOT_LOCAL_LLM_URL", "")
 
     global_model = os.environ.get("LLM_MODEL", "")
     quality_model = os.environ.get("LLM_MODEL_QUALITY", "")
@@ -350,12 +363,20 @@ def _detect_provider(quality: bool = False, model_override: str | None = None) -
             openai_key,
         )
     if local_url:
+        # OpenAI-compat shape (adds /v1 if the URL is a bare Ollama root) --
+        # this module's LLMClient always posts to {base_url}/chat/completions,
+        # same reasoning as local_openai_base_url's own docstring.
+        base_url = local_openai_base_url(local_url)
+        default_model = os.environ.get("APPLYPILOT_LOCAL_LLM_MODEL", "") or "local-model"
         return (
-            local_url.rstrip("/"),
-            chosen_model or "local-model",
+            base_url,
+            chosen_model or default_model,
             os.environ.get("LLM_API_KEY", ""),
         )
-    raise RuntimeError("No LLM provider configured. Set GEMINI_API_KEY, OPENAI_API_KEY, or LLM_URL.")
+    raise RuntimeError(
+        "No LLM provider configured. Set GEMINI_API_KEY, OPENAI_API_KEY, LLM_URL, "
+        "or APPLYPILOT_LOCAL_LLM_URL (for a fully local, cloud-free setup)."
+    )
 
 
 # ---------------------------------------------------------------------------

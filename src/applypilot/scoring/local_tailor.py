@@ -3982,7 +3982,11 @@ def _build_degraded_cover_paragraphs(
     job_url = job.get("url") or ""
     title = (job.get("title") or "this role").strip()
     company = _display_company_capitalized(job)
-    who = company or "This team"
+    # 2026-09-13: "Your team" reads as direct address (matching "Dear Hiring
+    # Manager" and the rest of the letter's second-person voice) rather than
+    # "This team," which reads like a third-party description of the
+    # employer to someone else -- real user feedback on generated output.
+    who = company or "Your team"
 
     req_texts = [_clean_snippet(r["requirement"], max_len=150) for r in requirements]
     req_texts = [t for t in req_texts if t]
@@ -4098,7 +4102,9 @@ def compose_degraded_cover_letter(
         job_schema = get_or_build_job_schema(job, profile)
 
     personal = profile.get("personal", {})
-    sign_off_name = personal.get("preferred_name") or personal.get("full_name", "")
+    # 2026-09-13: same reasoning as cover_letter.py's cloud-path prompt --
+    # full name for a formal closing signature, not preferred_name.
+    sign_off_name = personal.get("full_name") or personal.get("preferred_name", "")
 
     requirements = _pick_supported_requirements(job_schema)
     evidence_sentences, evidence_used, fully_covered = _gather_evidence_sentences(client, job_schema, profile)
