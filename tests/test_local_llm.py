@@ -1262,16 +1262,51 @@ class TestParagraphFallbackExtraction(unittest.TestCase):
         texts = {l["text"] for l in lines}
         self.assertEqual(texts, {"Python", "Distributed systems", "Kubernetes", "Observability"})
 
-    def test_b_fallback_never_fires_when_marker_extraction_found_anything(self):
-        """Test B: the single most important test in this suite -- marker
-        extraction winning must mean the fallback contributes NOTHING, even
-        when markerless-looking lines sit right next to the marked one."""
+    def test_b_sparse_marker_result_now_merges_with_a_richer_fallback_streak(self):
+        """Test B, REVISED 2026-09-16: this test's own original premise
+        ("marker extraction winning must mean the fallback contributes
+        NOTHING") was found, via a real audit of 34 real Talent.com/
+        SimplyHired jobs, to be actively discarding real content -- a
+        posting can have exactly one real marked bullet (often a single
+        boilerplate footnote, or even a lone page-template separator
+        character with no real requirement meaning at all) while its
+        actual Responsibilities/Qualifications section is written with no
+        markers at all, right next to it. Below _PARAGRAPH_FALLBACK_MIN_
+        ITEMS (3), a marker result this sparse is no longer trusted alone:
+        the paragraph fallback also runs, and a genuine qualifying streak
+        (3+ consecutive markerless lines, the SAME bar the paragraph
+        method already holds itself to) is merged in, marker line(s)
+        first. This fixture's "Distributed systems"/"Kubernetes"/
+        "Something else entirely" trio is deliberately exactly 3 lines --
+        right at that bar -- confirming the merge fires, not just
+        documenting that it theoretically could."""
         from applypilot.scoring.local_tailor import _extract_requirement_lines
 
         desc = "- Experience with Python programming\n\nDistributed systems\n\nKubernetes\n\nSomething else entirely\n"
         lines = _extract_requirement_lines(desc)
         texts = [l["text"] for l in lines]
-        self.assertEqual(texts, ["Experience with Python programming"])
+        self.assertEqual(
+            texts,
+            ["Experience with Python programming", "Distributed systems", "Kubernetes", "Something else entirely"],
+        )
+
+    def test_b2_sufficiently_rich_marker_result_still_excludes_the_fallback(self):
+        """Companion to the revised Test B: the real, important invariant
+        that must NOT change -- once marker extraction already finds
+        _PARAGRAPH_FALLBACK_MIN_ITEMS (3) or more real marked lines, that's
+        sufficient evidence on its own; nearby markerless-looking lines
+        must still never be pulled in (test_e below covers this too, with
+        a different real-shaped fixture -- pinned here directly against
+        the exact scenario test_b used to describe)."""
+        from applypilot.scoring.local_tailor import _extract_requirement_lines
+
+        desc = (
+            "- Experience with Python programming\n- SQL is a plus\n- Docker preferred\n\n"
+            "Distributed systems\n\nKubernetes\n\nSomething else entirely\n"
+        )
+        lines = _extract_requirement_lines(desc)
+        texts = [l["text"] for l in lines]
+        self.assertEqual(texts, ["Experience with Python programming", "SQL is a plus", "Docker preferred"])
         self.assertNotIn("Distributed systems", texts)
         self.assertNotIn("Kubernetes", texts)
 

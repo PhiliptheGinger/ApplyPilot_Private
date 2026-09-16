@@ -416,19 +416,30 @@ _REQUIREMENT_LABEL_PREFIX_RE = re.compile(
     re.IGNORECASE,
 )
 
+# 2026-09-16: a real IT Coordinator posting (the same one decision #138's
+# no-space-bullet fix already used as its fixture) renders these labels as
+# "**Job Title:** IT Coordinator" -- a Markdown-bold-wrapped form-field
+# header, the same convention decision #92 already found and fixed for
+# _REQUIRED_SECTION_HEADER_RE in the sibling deterministic_fallback.py
+# module. The leading/trailing "\*{0,2}" tolerance mirrors that fix exactly.
+# Four labels below (location-type/start date/compensation range/visa
+# sponsorship) are new additions this same posting exposed -- each is an
+# unambiguous job-posting-administrative field (never something a
+# candidate would claim as their own qualification), the same low
+# collision-risk bar the "pay range"/"starting pay" additions used.
 _ADMIN_METADATA_LABEL_RE = re.compile(
-    r"^(?:"
-    r"location|date\s+posted|country|position\s+role\s+type|reports?\s+to|"
+    r"^\*{0,2}(?:"
+    r"location(?:[\s-]*type)?|date\s+posted|country|position\s+role\s+type|reports?\s+to|"
     r"project\s+role(?:\s+description)?|schedule|designation|job\s+type|"
     r"direct\s+reports|salary\s+type|job\s+location|team|management\s+level|"
     r"practice|job\s+title|title|entity|travel|career\s+level|position\s+type|"
     r"work\s+location|primary\s+location|shift(?:\s+information)?|duration|"
-    r"employment\s+type|compensation|salary|hourly\s+wage|starting\s+salary|"
+    r"employment\s+type|compensation(?:\s+range)?|salary|hourly\s+wage|starting\s+salary|"
     r"pay\s+grade|classification|department|organi[sz]ation|position\s+term|"
     r"time\s+basis|level|position|onsite|work\s+arrangement|work\s+schedule|"
-    r"fixed\s+pay\s+rate|target\s+start\s+date|target\s+base\s+salary\s+range|"
+    r"fixed\s+pay\s+rate|target\s+start\s+date|start\s+date|target\s+base\s+salary\s+range|"
     r"src\s+indicator|work\s+shift|monday\s+to\s+friday|tuesday\s+to\s+saturday|"
-    r"security\s+clearance\s+(?:type|status)|role|"
+    r"security\s+clearance\s+(?:type|status)|role|visa\s+sponsorship|"
     # Compensation-metadata variants -- found by a second real-data pass
     # after the first fix left "Pay Range: $18.00 per hour..." quoted
     # verbatim in a real cover letter. Each phrase below was individually
@@ -439,7 +450,7 @@ _ADMIN_METADATA_LABEL_RE = re.compile(
     r"total\s+target\s+cash\s+pay\s+range|summary\s+pay\s+range|salary\s+range|"
     r"monthly\s+salary|target\s+hourly\s+base\s+pay\s+range|"
     r"recruitment\s+salary\s+range|vendor\s+rate|rate|pay"
-    r")\s*:\s*.+$",
+    r")\*{0,2}\s*:\*{0,2}\s*.+$",
     re.IGNORECASE,
 )
 
@@ -599,9 +610,9 @@ def _extract_paragraph_lines(
     description: str,
     max_lines: int = 8,
 ) -> tuple[list[dict], list[str]]:
-    """Fallback extraction strategy -- only ever called by
-    _split_requirement_lines when marker-based extraction found ZERO lines,
-    never when it found any (see that function).
+    """Fallback extraction strategy -- called by _split_requirement_lines
+    when marker-based extraction found zero lines, or too few to trust
+    alone (see that function).
 
     Scans physical lines in order, tracking a running streak of
     consecutive qualifying (_looks_like_list_item) lines; a streak is only
@@ -611,21 +622,36 @@ def _extract_paragraph_lines(
     format); any REJECTED non-blank line ends the current streak. See the
     module comment above _SENTENCE_BOUNDARY_RE for the full rationale and
     the real postings that motivated this design.
+
+    2026-09-16: when a document has MULTIPLE qualifying streaks, they are
+    now merged LONGEST-FIRST rather than in document order. A real Talent.
+    com "Automotive Technician" posting's own page-template front matter
+    (title/company/location/"30+ days ago"/"Apply"/"Salary"/"Job type"/
+    "Full-time"/"Job description" -- none of them containing a colon or
+    matching any existing admin-metadata pattern, so nothing rejected them
+    structurally) forms its own qualifying streak of length 8, sitting
+    right at the very TOP of the document, ahead of the real Responsibilities
+    (12 lines) and Qualifications (10 lines) streaks further down -- under
+    the old document-order-then-cap design, that front-matter streak alone
+    consumed the entire max_lines budget before the real content was ever
+    reached, even though it was correctly DETECTED as a streak. A genuine
+    requirements/qualifications list is reliably the LONGEST qualifying
+    run in a real posting; a front-matter block describing the posting
+    itself (not the candidate) is reliably one of the shortest. This only
+    changes behavior when a document has more than one qualifying streak
+    at all -- the common single-streak case (the vast majority of real
+    postings) is unaffected.
     """
     if not description:
         return [], []
-    texts: list[str] = []
-    seen: set[str] = set()
+    streaks: list[list[str]] = []
     streak: list[str] = []
 
     def _flush_streak() -> None:
+        nonlocal streak
         if len(streak) >= _PARAGRAPH_FALLBACK_MIN_ITEMS:
-            for text in streak:
-                key = text.lower()
-                if key not in seen:
-                    seen.add(key)
-                    texts.append(text)
-        streak.clear()
+            streaks.append(streak)
+        streak = []
 
     for raw_line in description.split("\n"):
         text = raw_line.strip()
@@ -637,8 +663,17 @@ def _extract_paragraph_lines(
             _flush_streak()
     _flush_streak()
 
-    if not texts:
+    if not streaks:
         return [], []
+    streaks.sort(key=len, reverse=True)
+    texts: list[str] = []
+    seen: set[str] = set()
+    for s in streaks:
+        for text in s:
+            key = text.lower()
+            if key not in seen:
+                seen.add(key)
+                texts.append(text)
     return _classify_candidate_lines(texts, max_lines)
 
 
@@ -654,16 +689,72 @@ def _split_requirement_lines(
     had no bullet lines at all" from "every bullet line was an employer
     benefit" -- the second is the interesting one.
 
-    Marker-based extraction (_extract_marker_lines) is always tried first
-    and, if it finds ANYTHING at all, its result is used as-is -- the
-    paragraph fallback (_extract_paragraph_lines) never competes with or
-    overrides it, only fills in for postings where it found nothing.
+    Marker-based extraction (_extract_marker_lines) is always tried first.
+    2026-09-16: a REAL bullet character is not always evidence of a real
+    REQUIREMENT list -- a live audit found 34 real jobs (mostly Talent.com/
+    SimplyHired) where marker extraction found exactly ONE line (often a
+    single boilerplate footnote bullet, e.g. "Please submit your Resume in
+    English." or a stray page-template separator bullet between a company
+    name and location) while the SAME posting's real Responsibilities/
+    Qualifications section was written with no markers at all and would
+    have been fully recovered by the paragraph fallback -- but never got
+    the chance, since the (real, but sparse) marker hit was trusted as
+    sufficient on its own. Below _PARAGRAPH_FALLBACK_MIN_ITEMS (the same
+    "a genuine list has more than 1-2 items" bar the paragraph method
+    already holds itself to), a marker result this sparse is no longer
+    trusted alone -- the paragraph fallback is also tried, and if it finds
+    anything, the two are merged (marker lines first, since a real marker
+    IS real intentional content, just not necessarily the WHOLE story),
+    deduplicated, and capped at max_lines. At or above that count, the
+    original behavior is unchanged: a sufficiently rich marker result is
+    used as-is, never diluted by the paragraph fallback.
     """
     if not description:
         return [], []
     lines, dropped = _extract_marker_lines(description, max_lines=max_lines)
     if not lines:
-        lines, dropped = _extract_paragraph_lines(description, max_lines=max_lines)
+        return _extract_paragraph_lines(description, max_lines=max_lines)
+    if len(lines) < _PARAGRAPH_FALLBACK_MIN_ITEMS:
+        para_lines, para_dropped = _extract_paragraph_lines(description, max_lines=max_lines)
+        if para_lines:
+            # A real regression caught by the existing test suite: the SAME
+            # short marked lines can also independently qualify for the
+            # paragraph method's own scan (which never strips a leading
+            # marker character the way _extract_marker_lines does) --
+            # comparing raw text for dedup let a line like "- Tuition..."
+            # survive as a near-duplicate of the already-kept "Tuition..."
+            # merely because of the leading "- ". Strip the same leading
+            # marker shape on both sides of the comparison (and on the
+            # stored text) so a paragraph-side rediscovery of an
+            # already-kept marker line is recognized as the same line, not
+            # a new one.
+            def _strip_marker(text: str) -> str:
+                return _REQUIREMENT_MARKER_RE.match(text).group(1).strip() if _REQUIREMENT_MARKER_RE.match(text) else text
+
+            seen = {_strip_marker(line["text"]).lower() for line in lines}
+            for line in para_lines:
+                normalized = _strip_marker(line["text"])
+                key = normalized.lower()
+                if key not in seen:
+                    seen.add(key)
+                    lines.append({**line, "text": normalized})
+                    if len(lines) >= max_lines:
+                        break
+            # Same near-duplicate risk applies to the DROPPED lists: the
+            # paragraph fallback rediscovers the same benefit lines the
+            # marker pass already dropped, still carrying their leading
+            # marker character -- normalize before comparing so a
+            # "- Tuition..." rediscovery isn't appended alongside the
+            # already-present "Tuition..." from the marker pass.
+            dropped_seen = {_strip_marker(d).lower() for d in dropped}
+            merged_dropped = list(dropped)
+            for d in para_dropped:
+                key = _strip_marker(d).lower()
+                if key in seen or key in dropped_seen:
+                    continue
+                dropped_seen.add(key)
+                merged_dropped.append(d)
+            dropped = merged_dropped
     return lines, dropped
 
 
