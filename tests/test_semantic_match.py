@@ -41,12 +41,16 @@ class TestConfig(unittest.TestCase):
         with patch.dict("os.environ", {"APPLYPILOT_SEMANTIC_MATCH": "false"}):
             self.assertFalse(semantic_match.is_semantic_match_enabled())
 
-    def test_default_threshold_is_point_three(self):
+    def test_default_threshold_is_point_three_five(self):
+        # 2026-09-16: raised from 0.30 -- real n=98 calibration
+        # (data/experiments/semantic_threshold_20260916/) found 0.35
+        # strictly dominates 0.30 (identical 100% recall, meaningfully
+        # better precision), see _DEFAULT_THRESHOLD's own comment.
         with patch.dict("os.environ", {}, clear=False):
             import os
 
             os.environ.pop("APPLYPILOT_SEMANTIC_MATCH_THRESHOLD", None)
-            self.assertEqual(semantic_match.semantic_match_threshold(), 0.30)
+            self.assertEqual(semantic_match.semantic_match_threshold(), 0.35)
 
     def test_threshold_configurable_via_env_var(self):
         with patch.dict("os.environ", {"APPLYPILOT_SEMANTIC_MATCH_THRESHOLD": "0.45"}):
@@ -54,7 +58,7 @@ class TestConfig(unittest.TestCase):
 
     def test_malformed_threshold_env_var_falls_back_to_default(self):
         with patch.dict("os.environ", {"APPLYPILOT_SEMANTIC_MATCH_THRESHOLD": "not-a-number"}):
-            self.assertEqual(semantic_match.semantic_match_threshold(), 0.30)
+            self.assertEqual(semantic_match.semantic_match_threshold(), 0.35)
 
     def test_ollama_url_strips_trailing_v1(self):
         with patch.dict("os.environ", {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1"}):
@@ -70,6 +74,26 @@ class TestConfig(unittest.TestCase):
 
             os.environ.pop("APPLYPILOT_LOCAL_LLM_URL", None)
             self.assertEqual(semantic_match._ollama_url(), "http://localhost:11434")
+
+    def test_real_calibration_data_reproduces_documented_threshold_finding(self):
+        """Regression pin for the exact empirical numbers cited in
+        _DEFAULT_THRESHOLD's own comment (data/experiments/
+        semantic_threshold_20260916/), using real all-minilm embeddings
+        would require a live Ollama call -- this instead pins the
+        documented cosine scores directly, so a future change to the
+        default can't silently invalidate the documented justification
+        without a test noticing. 0.3690 is the LOWEST-scoring genuine
+        match found across n=98 real labeled pairs (a real CompTIA A+
+        certification correctly matching a desktop-support-shaped
+        requirement) -- the threshold must stay at or below it, or that
+        real match would be silently excluded (exactly why 0.40 was
+        rejected in favor of 0.35)."""
+        threshold = semantic_match.semantic_match_threshold()
+        self.assertLessEqual(threshold, 0.3690)
+        # And it must be meaningfully above the OLD 0.30 default -- this
+        # test would also fail silently (never catching a future
+        # accidental revert to 0.30) without this second assertion.
+        self.assertGreater(threshold, 0.30)
 
     def test_embed_model_default_is_all_minilm(self):
         with patch.dict("os.environ", {}, clear=False):

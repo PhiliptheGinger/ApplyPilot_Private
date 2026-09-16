@@ -58,7 +58,29 @@ log = logging.getLogger(__name__)
 
 _DEFAULT_OLLAMA_URL = "http://localhost:11434"
 _DEFAULT_MODEL = "all-minilm"
-_DEFAULT_THRESHOLD = 0.30
+# 2026-09-16: raised from a guessed 0.30 after real calibration against
+# n=98 manually-labeled (requirement, evidence) cosine pairs, drawn from
+# two independently-sampled real job batches (data/experiments/
+# semantic_threshold_20260916/ -- one batch happened to land entirely
+# within one company's postings due to a rowid-range sampling artifact,
+# caught and fixed by drawing a second, multi-company batch before
+# trusting the result). At 0.30: 100% recall (every real genuine match in
+# the sample scored >=0.3690) but only 20% precision (40/50 admitted
+# pairs were spurious -- inflated by generic word overlap, e.g. "creative"
+# matching a Videography skill entry regardless of actual relevance). At
+# 0.35: recall STAYS 100% (the lowest genuine-match score, 0.3690, is
+# still comfortably above it) while precision improves to 26% (28 FP
+# instead of 40) -- a strict, cost-free improvement over 0.30, not a
+# tradeoff. Deliberately did NOT raise further to 0.40: that would have
+# excluded the single lowest-scoring genuine match found (a CompTIA A+
+# certification correctly matching a "builds/configures/installs
+# desktop..." requirement at 0.3690), dropping recall to 90% for a
+# precision gain (26%->35%) judged not worth losing a real match over,
+# consistent with this project's standing preference for erring toward
+# not losing real signal (e.g. decisions #71/#79's evidence-restoration
+# calls). n=98 with only 10 positives is a real, if modest, sample --
+# revisit if more labeled pairs ever accumulate.
+_DEFAULT_THRESHOLD = 0.35
 
 
 def is_semantic_match_enabled() -> bool:
@@ -75,7 +97,9 @@ def semantic_match_threshold() -> float:
     module docstring: this value exists purely to bound how many marginal
     candidates reach the (already-imperfect) arbitration step, not to
     prove relevance. Configurable via APPLYPILOT_SEMANTIC_MATCH_THRESHOLD
-    for easy adjustment without a new configuration system."""
+    for easy adjustment without a new configuration system. See
+    _DEFAULT_THRESHOLD's own comment for the real calibration this value
+    is based on."""
     try:
         return float(os.environ.get("APPLYPILOT_SEMANTIC_MATCH_THRESHOLD", str(_DEFAULT_THRESHOLD)))
     except ValueError:
