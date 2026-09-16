@@ -269,6 +269,31 @@ def judge_cover_letter(resume_text: str, letter_text: str, job_title: str, profi
     }
 
 
+def _judge_flagged_fabrication(issues: str) -> bool:
+    """True when the judge's own ISSUES text labels a finding as
+    FABRICATION specifically (the judge prompt's own defined category,
+    section "WHAT IS FABRICATION") -- as opposed to the softer GENERIC
+    BOILERPLATE/RESTATING-JOB-POSTING categories, which stay advisory-only.
+
+    2026-09-15: this distinction exists because a real night of degraded-
+    mode cover-letter generation found the judge correctly identifying
+    real, serious fabrication THREE separate times (a fake "Transportation
+    Management System" claim, a fake "virtual events" claim, a fake
+    "finance workstreams" claim) -- each from a genuinely different root
+    cause in the deterministic evidence-matching pipeline (an unflagged
+    ambiguous identity term, a weak peripheral-tier match, and a third,
+    not-yet-isolated cause). Patching individual root causes one at a time
+    could not keep up with how many different ways a deterministic system
+    can produce a plausible-looking but false match -- the judge is a
+    general-purpose, model-based safety net specifically suited to this,
+    and was previously advisory-only for every finding, including these.
+    Genericness/boilerplate findings remain advisory (degraded-mode output
+    is inherently template-based to some degree, and blocking on style
+    complaints alone was the real, valid reason decisions #143 kept the
+    judge advisory in the first place)."""
+    return bool(re.search(r"\bfabrication\b", issues or "", re.IGNORECASE))
+
+
 def generate_cover_letter(resume_text: str, job: dict, profile: dict, max_retries: int = 3) -> tuple[str, dict]:
     """Generate a cover letter with fresh context on each retry + auto-sanitize.
 
@@ -373,11 +398,22 @@ def generate_cover_letter(resume_text: str, job: dict, profile: dict, max_retrie
                 judge = {"passed": False, "verdict": "ERROR", "issues": f"{type(exc).__name__}: {exc}", "raw": ""}
             draft_validation["judge"] = judge
             if not judge["passed"]:
-                log.warning(
-                    "Judge flagged degraded-mode cover letter for %s, accepting anyway (validation passed): %s",
-                    job.get("title", "")[:40],
-                    judge["issues"],
-                )
+                if _judge_flagged_fabrication(judge["issues"]):
+                    log.warning(
+                        "Judge flagged FABRICATION in degraded-mode cover letter for %s -- rejecting, not shipping: %s",
+                        job.get("title", "")[:40],
+                        judge["issues"],
+                    )
+                    draft_validation["passed"] = False
+                    draft_validation["errors"] = list(draft_validation.get("errors") or []) + [
+                        f"judge_flagged_fabrication: {judge['issues']}"
+                    ]
+                else:
+                    log.warning(
+                        "Judge flagged degraded-mode cover letter for %s, accepting anyway (validation passed): %s",
+                        job.get("title", "")[:40],
+                        judge["issues"],
+                    )
         return draft, draft_validation
 
     for attempt in range(max_retries + 1):
@@ -458,6 +494,17 @@ def generate_cover_letter(resume_text: str, job: dict, profile: dict, max_retrie
 
             if judge["passed"] or is_last:
                 if not judge["passed"]:
+                    if is_last and _judge_flagged_fabrication(judge["issues"]):
+                        log.warning(
+                            "Judge flagged FABRICATION on final attempt for %s -- rejecting, not shipping: %s",
+                            job.get("title", "")[:40],
+                            judge["issues"],
+                        )
+                        validation["passed"] = False
+                        validation["errors"] = list(validation.get("errors") or []) + [
+                            f"judge_flagged_fabrication: {judge['issues']}"
+                        ]
+                        return letter, validation
                     log.warning(
                         "Judge failed on final attempt for %s, accepting anyway (validation passed): %s",
                         job.get("title", "")[:40],

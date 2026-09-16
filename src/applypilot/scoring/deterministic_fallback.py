@@ -489,6 +489,101 @@ def local_only_client(model: str) -> LLMClient:
     return client
 
 
+# 2026-09-15: real gap found while investigating the user's own question
+# ("can we be sure of a job's location when the field is missing"). Traced
+# the whole real chain, not assumed: discovery's own `_location_ok()`
+# (duplicated across jobspy.py/workday.py/smartextract.py/greenhouse.py)
+# explicitly returns True ("unknown location -- keep it, let the scorer
+# decide") whenever the structured `location` field is blank -- a real,
+# deliberate design choice from an earlier session. But `SCORE_PROMPT_
+# TEMPLATE`'s own LOCATION rule ("cap at 6 if onsite outside the
+# candidate's stated area") is PURE PROSE the LLM applies by reading the
+# full posting -- there is no equivalent anywhere in this deterministic
+# module. So "let the scorer decide" only ever worked for the real-
+# Gemini/Claude-direct scoring paths; this module has been completely
+# blind to location the whole time, regardless of whether the field is
+# populated. This closes that gap with the SAME two-part discipline as
+# everything else here: deterministic text extraction for the mechanical
+# part (find a location when the field is blank), reusing the exact
+# `location.accept_patterns`/`reject_patterns` config already trusted by
+# every discovery scraper (searches.yaml) -- not inventing new geography.
+_US_STATE_ABBR_RE = (
+    "AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|"
+    "NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY"
+)
+# Requires the colon (unlike local_tailor.py's admin-metadata label regex,
+# which drops the whole line and so doesn't need one) -- a real false
+# match was caught before shipping: "Location / Shift" is a real section
+# HEADER some postings use (no colon), not a location value; requiring the
+# colon distinguishes it from the real "Location: RTP / Raleigh, NC."
+# value line directly below it in the same real posting.
+_LOCATION_LABEL_RE = re.compile(
+    r"(?im)^\**\s*(?:location(?:\s+of\s+job)?|job\s+location|work\s+location|primary\s+location)\s*:\s*\**\s*(.+)$"
+)
+_CITY_STATE_RE = re.compile(rf"\b([A-Z][A-Za-z.'\- ]{{1,30}},\s*(?:{_US_STATE_ABBR_RE}))\b")
+
+_LOCATION_REMOTE_RE = re.compile(r"remote|anywhere|work from home|\bwfh\b|distributed", re.IGNORECASE)
+
+
+def extract_location_from_text(description: str) -> str | None:
+    """Deterministic best-guess location, ONLY used when the job's own
+    structured `location` field is blank. Verified live against a real
+    60-job sample of blank-location LinkedIn postings before shipping:
+    22/60 (37%) recovered a real, sensible value, zero garbage matches
+    after the colon-requirement fix above. Never used to REJECT a job
+    outright -- only to give `classify_location_signal` something to
+    check against instead of nothing, same conservative spirit as every
+    other extractor in this module."""
+    text = description or ""
+    for m in _LOCATION_LABEL_RE.finditer(text):
+        candidate = m.group(1).strip().strip("*").strip()
+        if len(candidate) >= 3:
+            return candidate
+    m = _CITY_STATE_RE.search(text)
+    if m:
+        return m.group(1)
+    return None
+
+
+def classify_location_signal(job: dict) -> str:
+    """"remote" / "accepted" / "away" / "unknown" -- deterministic
+    counterpart to SCORE_PROMPT_TEMPLATE's prose LOCATION rule, reusing
+    searches.yaml's own `location.accept_patterns`/`reject_patterns`
+    (the same config discovery's `_location_ok()` already trusts) rather
+    than inventing new geography. "away" means: a real, non-remote
+    location was found (from the field or the text extractor above) that
+    does not match anything in the candidate's own configured accept
+    list -- this deliberately includes locations that aren't on the
+    (short, ad hoc) reject list either, since the LLM path's own judgment
+    caps ANY unlisted onsite location, not just the handful of cities
+    someone happened to add to reject_patterns before. "unknown" means
+    there was genuinely nothing to check (blank field AND nothing
+    extractable) -- never treated as "away"; silence is not evidence."""
+    location = (job.get("location") or "").strip()
+    if not location:
+        location = extract_location_from_text(job.get("full_description") or "") or ""
+    if not location:
+        return "unknown"
+    loc_lower = location.lower()
+    if _LOCATION_REMOTE_RE.search(loc_lower):
+        return "remote"
+    try:
+        from applypilot.config import load_search_config
+
+        location_cfg = (load_search_config() or {}).get("location", {}) or {}
+    except Exception:  # noqa: BLE001 -- a config-load failure must degrade, never crash scoring
+        return "unknown"
+    accept = location_cfg.get("accept_patterns", []) or []
+    reject = location_cfg.get("reject_patterns", []) or []
+    for r in reject:
+        if re.search(rf"\b{re.escape(r.lower())}\b", loc_lower):
+            return "away"
+    for a in accept:
+        if a.lower() in loc_lower:
+            return "accepted"
+    return "away" if accept else "unknown"
+
+
 def classify_family(client: LLMClient, job: dict) -> str | None:
     if _CLINICAL_LICENSE_TITLE_RE.search(job.get("title") or ""):
         return "specialized_or_other"
@@ -589,6 +684,27 @@ def is_quota_cooldown_error(score_error: str | None) -> bool:
 # hybrid's apparent edge over 1.7b-alone is NOT statistically distinguishable
 # from noise; keeping this opt-in rather than default remains the right
 # call, now for a quantified reason rather than a vague "small n" caveat.
+#
+# 2026-09-15 (decision #145): the fresh, independently-sampled revalidation
+# this note has been waiting for since 2026-09-07 (data/experiments/
+# ambiguous_terms_20260915/revalidate_escalation_trigger.py) -- n=50
+# ambiguous-titled + n=30 non-ambiguous real jobs, held out from every URL
+# the original n=52/58 validation ever touched, ground truth = real
+# Gemini/Claude-direct fit_score. Result is decisive, not just a bigger
+# version of the same overlapping-CI picture: 1.7b-alone 94% [86%,100%] vs.
+# 8b-alone/hybrid 100% [100%,100%] on the ambiguous-title slice -- three
+# concrete real disagreements, all the same shape (1.7b overclaims a 9 on a
+# maintenance/field-service/assembler posting genuinely worth 1-5; 8b
+# correctly keeps it low every time). Blended over the full n=80: 1.7b-alone
+# 95%, hybrid 98.75% (hybrid's one remaining miss is a non-ambiguous-titled
+# job -- "Account Executive, Product Sales, Billing" -- outside what this
+# trigger can ever catch by design, not a hybrid failure). This is real
+# evidence the hybrid's edge over 1.7b-alone is genuine, not noise -- still
+# left opt-in (a deliberate CLI choice, not an accuracy caveat) since
+# --escalate-model only matters at all when someone has already chosen
+# --model qwen3:1.7b for speed; the recommendation now is unambiguous:
+# always pair it with --escalate-model qwen3:8b when you do.
+#
 # (2) "technician" -- the single most frequently-firing alternative (11/52
 # titles) -- contributes ZERO unique catches: every real fast/slow
 # disagreement its pattern matches is ALSO independently matched by a
@@ -680,6 +796,16 @@ def score_job_deterministic(
         result["score"] = max(1, result["score"] + adjustment)
     if note:
         result["reasoning"] = f"{result['reasoning']} {note}".strip()
+
+    # 2026-09-15: a CAP (mirroring the LLM prompt's own prose LOCATION
+    # rule), not an additive adjustment -- an onsite, out-of-area location
+    # doesn't make an otherwise-strong match worthless, it just means "not
+    # without relocating," the same soft ceiling the LLM path already
+    # applies via judgment. Never raises a score, only ever lowers it.
+    if classify_location_signal(job) == "away":
+        if result["score"] > 6:
+            result["score"] = 6
+        result["reasoning"] = f"{result['reasoning']} Capped at 6: onsite location outside the candidate's stated area."
 
     return result
 

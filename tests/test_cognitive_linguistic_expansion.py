@@ -787,14 +787,27 @@ class TestClaimStrengthEnforcementIntegration(unittest.TestCase):
         self.assertIn("Auto Shop Diagnostic Tech", realization["bullets"])
 
     def test_unsupported_causal_claim_is_dropped(self):
-        job = _job("- Experience with automation is required\n")
+        # 2026-09-15: "automation" is now in schemas._AMBIGUOUS_TERMS (a
+        # real shipped cover-letter fabrication found it's a genuine
+        # identity term for one profile item that's ALSO cross-domain
+        # ambiguous, same shape as "reliability"/"processing"/etc.) --
+        # this fixture's job/evidence text now needs genuinely shared
+        # local context ("reporting workflows") for the match to still be
+        # trusted, not just the bare word "automation" itself. This test
+        # is about claim-strength enforcement DOWNSTREAM of a trusted
+        # match, not about the ambiguous-term mechanism, so the fixture is
+        # widened rather than the assertion changed.
+        job = _job("- Experience with automation of reporting workflows is required\n")
         profile = {
             "experience_inventory": [
                 {
                     "name": "Ops Assistant",
                     "relevance_categories": ["automation"],
                     "resume_allowed": True,
-                    "description": "Used scripts to automate repetitive reporting tasks.",
+                    "description": (
+                        "Used scripts to automate repetitive reporting tasks. "
+                        "Automation of manual workflows is a core skill."
+                    ),
                 }
             ],
             "project_inventory": [],

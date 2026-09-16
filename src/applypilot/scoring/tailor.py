@@ -1832,18 +1832,24 @@ def run_tailoring(
         conn=conn, stage="pending_tailor", min_score=min_score, max_age_days=max_age_days, limit=limit, urls=job_ids
     )
 
-    # Jobs with no usable application_url (predominantly LinkedIn/Easy
-    # Apply postings where no static apply link exists to extract) can
-    # never reach acquire_job's actual application path -- it already
-    # requires a nonempty application_url. Divert them to 'manual_only'
-    # here, before spending a tailor (and, transitively, cover-letter)
-    # LLM call on a job that could never be auto-submitted. They remain
-    # fully visible/browsable (dashboard, original listing URL) for a
-    # human to apply to manually -- only automation is excluded.
-    before = len(jobs)
-    jobs = redirect_jobs_missing_application_url(conn, jobs, reason="no application_url — excluded before tailoring")
-    if len(jobs) != before:
-        commit_with_retry(conn)
+    # 2026-09-15: this early diversion used to skip tailoring entirely for
+    # jobs with no application_url (predominantly LinkedIn/Easy Apply
+    # postings, ~410 of a real 450-job backlog on one real night) -- its
+    # own rationale was avoiding "LLM spend...that could never actually be
+    # auto-submitted," written when every tailor call meant real API cost.
+    # That's no longer the binding constraint: degraded-mode tailoring runs
+    # on the local model, which isn't metered the same way, and a real
+    # tailored resume + cover letter is genuinely useful to the user for
+    # manually applying to these jobs themselves -- the actual stated goal
+    # of the "manual_only" bucket in the first place, just previously
+    # served empty-handed. `acquire_job` (apply/launcher.py) already
+    # independently re-checks for a missing application_url and diverts to
+    # 'manual_only' at the actual apply step regardless of what happens
+    # here -- removing this early skip doesn't remove that real safety net,
+    # it just means the job reaches it with real materials already
+    # prepared instead of none. No longer called; kept as a function for
+    # any future caller that still wants the old skip-early behavior.
+    _ = redirect_jobs_missing_application_url  # noqa: F841 -- kept for reference, not called by default anymore
 
     if job_ids is not None:
         log.info(

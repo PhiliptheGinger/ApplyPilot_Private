@@ -31,11 +31,23 @@ accumulating another bypass (the 2026-08-27 audit already flagged
 `force=True` as "the norm, not the exception" as an existing weakness).
 
 These tests exercise the behavioral invariant end to end: candidate
-selection (`pending_tailor`), the diversion itself, `run_tailoring()`
-wiring (via the same `_tailor_one_job` stub pattern test_batch_identity.py
-already uses -- no real LLM/docx work), retry-attempt semantics, the audit
-trail, and dashboard visibility -- not just "the new function does what it
-does."
+selection (`pending_tailor`), the diversion itself, retry-attempt
+semantics, the audit trail, and dashboard visibility -- not just "the new
+function does what it does."
+
+2026-09-15 update: `run_tailoring()` no longer calls `redirect_jobs_
+missing_application_url` before tailoring (see tailor.py's own comment at
+the old call site) -- the function's original rationale (avoid LLM spend
+on a job that can never be auto-submitted) doesn't hold now that degraded-
+mode tailoring runs on the local model, and a real tailored resume is
+genuinely useful to a human applying to a URL-less job manually.
+`redirect_jobs_missing_application_url` itself is UNCHANGED and still
+fully tested here (sections 1-6 below call it directly) -- only the
+`run_tailoring()` INTEGRATION tests (the last section) were updated to
+reflect that both URL-having and URL-less jobs now reach tailoring
+equally. `acquire_job`'s own independent missing-application_url check
+(apply/launcher.py) is untouched and remains the real safety net that
+prevents ever attempting to auto-submit a URL-less job.
 """
 
 from __future__ import annotations
@@ -252,7 +264,16 @@ def test_diverted_job_is_not_resurrected_by_a_later_pending_tailor_run(tmp_db, s
 # ---------------------------------------------------------------------------
 
 
-def test_run_tailoring_diverts_url_less_job_and_still_tailors_the_valid_one(tmp_db, seed_job, monkeypatch, tmp_path):
+def test_run_tailoring_no_longer_diverts_url_less_jobs_before_tailoring(tmp_db, seed_job, monkeypatch, tmp_path):
+    """2026-09-15 policy reversal: the early diversion's own rationale
+    (avoid LLM spend on a job that could never be auto-submitted) no
+    longer holds now that degraded-mode tailoring runs on the local model,
+    not metered cloud spend -- a real tailored resume is genuinely useful
+    to a human applying manually to a URL-less job, the actual point of
+    the manual_only bucket. Both jobs (with and without a URL) must now
+    reach the tailoring call equally; acquire_job (apply/launcher.py)
+    remains the real, unchanged safety net that prevents ever trying to
+    auto-submit a URL-less job at the actual apply step."""
     import applypilot.scoring.tailor as tailor_mod
 
     conn = tmp_db()
@@ -277,31 +298,7 @@ def test_run_tailoring_diverts_url_less_job_and_still_tailors_the_valid_one(tmp_
 
     result = tailor_mod.run_tailoring(min_score=8, limit=10)
 
-    assert calls == [good["url"]], "The url-less job must never reach the tailoring call at all"
-    assert result["approved"] == 1
+    assert set(calls) == {good["url"], bad["url"]}, "Both jobs must now reach the tailoring call, URL or no URL"
+    assert result["approved"] == 2
     assert current_state(conn, good["url"]) == "tailored"
-    assert current_state(conn, bad["url"]) == "manual_only"
-
-
-def test_run_tailoring_makes_no_llm_call_when_only_url_less_jobs_are_pending(tmp_db, seed_job, monkeypatch, tmp_path):
-    """The zero-candidate case: if every pending_tailor candidate lacks an
-    application_url, run_tailoring must divert all of them and return
-    early without ever invoking the (stubbed, would-be-real) tailoring
-    call."""
-    import applypilot.scoring.tailor as tailor_mod
-
-    conn = tmp_db()
-    job = seed_job(
-        conn, url_suffix="rt-only-bad", state="scored", fit_score=9, tailored_resume_path=None, application_url=None
-    )
-
-    calls: list[str] = []
-    monkeypatch.setattr(tailor_mod, "_tailor_one_job", lambda *a, **k: calls.append(a[0]["url"]))
-    monkeypatch.setattr(tailor_mod, "load_profile", dict)
-    monkeypatch.setattr(tailor_mod, "TAILORED_DIR", tmp_path)
-
-    result = tailor_mod.run_tailoring(min_score=8, limit=10)
-
-    assert calls == []
-    assert result["approved"] == 0
-    assert current_state(conn, job["url"]) == "manual_only"
+    assert current_state(conn, bad["url"]) == "tailored"

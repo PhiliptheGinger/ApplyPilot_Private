@@ -70,6 +70,7 @@ tests, and TestNoSupportedEvidenceAndRealizationFailureStatuses below for
 (B).
 """
 
+import re
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -1832,6 +1833,8 @@ class TestFillerVariantsAreLengthBalancedWithinPools(unittest.TestCase):
             "_FIT_OPENER_VARIANTS": local_tailor._FIT_OPENER_VARIANTS,
             "_FIT_CLOSER_VARIANTS": local_tailor._FIT_CLOSER_VARIANTS,
             "_CLOSE_VARIANTS": local_tailor._CLOSE_VARIANTS,
+            "_FIT_ENTHUSIASM_VARIANTS": local_tailor._FIT_ENTHUSIASM_VARIANTS,
+            "_CLOSE_VALUES_VARIANTS": local_tailor._CLOSE_VALUES_VARIANTS,
         }
 
     def test_every_pool_stays_within_a_small_word_count_spread(self):
@@ -1844,6 +1847,36 @@ class TestFillerVariantsAreLengthBalancedWithinPools(unittest.TestCase):
                     self._MAX_SPREAD,
                     f"{name} word counts {counts} span {spread} words (max allowed {self._MAX_SPREAD})",
                 )
+
+
+class TestOpinionFillerPoolsCarryNoFactualClaims(unittest.TestCase):
+    """2026-09-15: _FIT_ENTHUSIASM_VARIANTS/_CLOSE_VALUES_VARIANTS are
+    deliberately opinion/attitude statements, never factual claims, so they
+    can never be "fabricated" the way a bank-sourced bullet could be --
+    verified directly rather than assumed: no digits (nothing to invent a
+    number about) and no banned phrase (same check every other cover-letter
+    sentence has to clear)."""
+
+    def _pools(self):
+        return {
+            "_FIT_ENTHUSIASM_VARIANTS": local_tailor._FIT_ENTHUSIASM_VARIANTS,
+            "_CLOSE_VALUES_VARIANTS": local_tailor._CLOSE_VALUES_VARIANTS,
+        }
+
+    def test_no_variant_contains_a_digit(self):
+        for name, variants in self._pools().items():
+            for v in variants:
+                with self.subTest(pool=name, variant=v):
+                    self.assertFalse(re.search(r"\d", v), f"{name} variant contains a digit: {v!r}")
+
+    def test_no_variant_trips_the_cover_letter_banned_phrase_check(self):
+        from applypilot.scoring.validator import CL_BANNED_PATTERNS
+
+        for name, variants in self._pools().items():
+            for v in variants:
+                with self.subTest(pool=name, variant=v):
+                    result = local_tailor.check_banned_patterns(v, CL_BANNED_PATTERNS)
+                    self.assertTrue(result["passed"], result.get("violation"))
 
 
 class TestPickVariant(unittest.TestCase):

@@ -23,8 +23,10 @@ from applypilot.scoring.deterministic_fallback import (
     _AMBIGUOUS_TITLE_RE,
     _CLINICAL_LICENSE_TITLE_RE,
     classify_family,
+    classify_location_signal,
     deterministic_combine,
     extract_cs_degree_required,
+    extract_location_from_text,
     extract_years_required,
     is_quota_cooldown_error,
     revalidate_deterministic_fallback_scores,
@@ -584,6 +586,132 @@ class TestScoreJobDeterministic:
         assert result["score"] == 7
         assert "deterministic fallback" in result["reasoning"]
         assert "qwen3:1.7b" in result["reasoning"]
+
+
+_FAKE_SEARCH_CFG = {
+    "location": {
+        "accept_patterns": ["Greensboro", "North Carolina", "NC", "Raleigh", "Remote", "United States", "US"],
+        "reject_patterns": ["Seattle", "Bay Area", "San Francisco"],
+    }
+}
+
+
+class TestExtractLocationFromText:
+    def test_extracts_from_a_labeled_location_line(self):
+        desc = "Some intro text.\n\nLocation: Raleigh, North Carolina.\n\nMore text."
+        assert extract_location_from_text(desc) == "Raleigh, North Carolina."
+
+    def test_does_not_match_a_bare_location_header_with_no_colon(self):
+        """2026-09-15 regression: a real posting had 'Location / Shift' as a
+        section HEADER (no colon) immediately followed by the real
+        'Location: RTP / Raleigh, North Carolina.' value line -- the header
+        must not be mistaken for the value."""
+        desc = "Learn MS SQL Server.\n\nLocation / Shift\n\n  \n\nLocation: RTP / Raleigh, North Carolina.\n\nShift: nights."
+        assert extract_location_from_text(desc) == "RTP / Raleigh, North Carolina."
+
+    def test_falls_back_to_a_bare_city_state_pattern(self):
+        desc = "We are hiring for this role based out of our Charlotte, NC office."
+        assert extract_location_from_text(desc) == "Charlotte, NC"
+
+    def test_returns_none_when_nothing_extractable(self):
+        assert extract_location_from_text("A job with no location info anywhere in the text.") is None
+
+    def test_handles_location_of_job_label_variant(self):
+        desc = "Some header.\n\nLocation of Job: US:NC:Chapel Hill\n\nMore text."
+        assert extract_location_from_text(desc) == "US:NC:Chapel Hill"
+
+
+class TestClassifyLocationSignal:
+    def test_blank_location_and_nothing_extractable_is_unknown(self):
+        job = {"location": "", "full_description": "No location mentioned anywhere."}
+        with patch("applypilot.config.load_search_config", return_value=_FAKE_SEARCH_CFG):
+            assert classify_location_signal(job) == "unknown"
+
+    def test_remote_location_field(self):
+        job = {"location": "Remote - US", "full_description": ""}
+        with patch("applypilot.config.load_search_config", return_value=_FAKE_SEARCH_CFG):
+            assert classify_location_signal(job) == "remote"
+
+    def test_location_in_accept_patterns(self):
+        job = {"location": "Raleigh, NC", "full_description": ""}
+        with patch("applypilot.config.load_search_config", return_value=_FAKE_SEARCH_CFG):
+            assert classify_location_signal(job) == "accepted"
+
+    def test_location_in_reject_patterns(self):
+        job = {"location": "Seattle, Washington, United States", "full_description": ""}
+        with patch("applypilot.config.load_search_config", return_value=_FAKE_SEARCH_CFG):
+            assert classify_location_signal(job) == "away"
+
+    def test_a_real_but_unlisted_city_is_still_away_not_unknown(self):
+        """The candidate's accept list is short by design -- an unlisted
+        real city (never explicitly reject-listed) must still be "away",
+        matching the LLM prompt's own judgment (which caps ANY onsite
+        location outside the stated area, not just a handful of named
+        reject cities)."""
+        job = {"location": "Mumbai, India", "full_description": ""}
+        with patch("applypilot.config.load_search_config", return_value=_FAKE_SEARCH_CFG):
+            assert classify_location_signal(job) == "away"
+
+    def test_falls_back_to_description_extraction_when_field_blank(self):
+        job = {"location": "", "full_description": "Location: Seattle, Washington."}
+        with patch("applypilot.config.load_search_config", return_value=_FAKE_SEARCH_CFG):
+            assert classify_location_signal(job) == "away"
+
+    def test_config_load_failure_degrades_to_unknown_not_a_crash(self):
+        job = {"location": "Seattle, WA", "full_description": ""}
+        with patch("applypilot.config.load_search_config", side_effect=RuntimeError("boom")):
+            assert classify_location_signal(job) == "unknown"
+
+
+class TestScoreJobDeterministicLocationCap:
+    def test_away_location_caps_an_otherwise_high_score_at_6(self):
+        job = {
+            "title": "Maintenance Technician",
+            "site": "Acme",
+            "location": "Seattle, Washington, United States",
+            "full_description": "General maintenance work.",
+        }
+        with (
+            patch("applypilot.scoring.deterministic_fallback._check_ineligible", return_value=None),
+            patch("applypilot.scoring.deterministic_fallback.local_only_client", return_value=object()),
+            patch(
+                "applypilot.scoring.deterministic_fallback.classify_family",
+                return_value="hands_on_repair_or_trade",
+            ),
+            patch(
+                "applypilot.scoring.deterministic_fallback.classify_compensation",
+                return_value={"status": "unknown"},
+            ),
+            patch("applypilot.config.load_search_config", return_value=_FAKE_SEARCH_CFG),
+        ):
+            result = score_job_deterministic(job, profile={}, model="qwen3:1.7b")
+        # base would be 9 - 2 (compensation-unknown) = 7, but the away-location cap limits it to 6
+        assert result["score"] == 6
+        assert "Capped at 6" in result["reasoning"]
+
+    def test_accepted_location_never_caps(self):
+        job = {
+            "title": "Maintenance Technician",
+            "site": "Acme",
+            "location": "Raleigh, NC",
+            "full_description": "General maintenance work.",
+        }
+        with (
+            patch("applypilot.scoring.deterministic_fallback._check_ineligible", return_value=None),
+            patch("applypilot.scoring.deterministic_fallback.local_only_client", return_value=object()),
+            patch(
+                "applypilot.scoring.deterministic_fallback.classify_family",
+                return_value="hands_on_repair_or_trade",
+            ),
+            patch(
+                "applypilot.scoring.deterministic_fallback.classify_compensation",
+                return_value={"status": "unknown"},
+            ),
+            patch("applypilot.config.load_search_config", return_value=_FAKE_SEARCH_CFG),
+        ):
+            result = score_job_deterministic(job, profile={}, model="qwen3:1.7b")
+        assert result["score"] == 7
+        assert "Capped" not in result["reasoning"]
 
 
 class TestAmbiguousTitleEscalation:

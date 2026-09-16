@@ -185,7 +185,12 @@ _INELIGIBLE_LOCATION_PATTERNS = re.compile(
     r"|\bCanada\b(?!,?\s*(?:AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|"
     r"LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|"
     r"TN|TX|UT|VT|VA|WA|WV|WI|WY)\b)"
-    r"|\bUK\b|\bUnited Kingdom\b"
+    r"|\bUK\b|\bUnited Kingdom\b|\bGB\b"
+    # "CAN" as a bare country-code abbreviation (e.g. "Toronto, Ontario,
+    # CAN") -- protected by the same _US_ALSO_LISTED_PATTERN guard below as
+    # every other pattern here, so a real "...CAN - Remote;United States -
+    # Remote" multi-location string still correctly passes.
+    r"|\bCAN\b"
     # Europe
     r"|\bGermany\b|\bNetherlands\b|\bFrance\b|\bSpain\b|\bItaly\b"
     r"|\bPoland\b|\bUkraine\b|\bCzech\b|\bPortugal\b|\bIreland\b"
@@ -206,6 +211,8 @@ _INELIGIBLE_LOCATION_PATTERNS = re.compile(
     # be much broader unverified scope.
     r"|\bBrazil\b|\bBrasil\b|\bMexico\b|\bMéxico\b|\bArgentina\b"
     r"|\bChile\b|\bColombia\b|\bPeru\b|\bUruguay\b|S[aã]o\s+Paulo"
+    # "MX" as a bare country-code abbreviation (e.g. "MX-BCN-MEXICALI-238").
+    r"|\bMX\b"
     # Middle East / Africa
     r"|\bEgypt\b|\bNigeria\b|\bKenya\b|\bSouth Africa\b|\bIsrael\b"
     r"|\bTurkey\b|\bTürkiye\b|\bUAE\b|\bSaudi Arabia\b"
@@ -223,7 +230,11 @@ _INELIGIBLE_LOCATION_PATTERNS = re.compile(
     # string). No US collision risk: US towns spelled similarly use "Sidney"
     # (Sidney, Ohio/Montana/Nebraska), not "Sydney" -- confirmed zero
     # "Sydney"-spelled US locations in the live DB.
-    r"|\bAustralia\b|\bNew Zealand\b|\bAUS\b|\bSydney\b",
+    # Bare "AU" (2-letter, distinct from the 3-letter "AUS" code above --
+    # e.g. "AU-WA-HENDERSON-103-CUST", "Remote (AU)"). Re-verified 2026-09-15
+    # against the live DB: 6/6 real matches, all genuine Australia facility
+    # codes, zero collisions with "Austin" or any other real DB location.
+    r"|\bAustralia\b|\bNew Zealand\b|\bAUS\b|\bSydney\b|\bAU\b",
     re.IGNORECASE,
 )
 

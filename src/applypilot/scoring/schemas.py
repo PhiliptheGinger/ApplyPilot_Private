@@ -975,7 +975,12 @@ VIEWPOINT_EMPHASIS: dict[str, str] = {
     "operations": "reliability, efficiency, and reduction of manual effort",
     "support": "responsiveness and resolution of the user's actual problem",
     "leadership": "scope of ownership and outcome, not just the mechanism",
-    "general": "the outcome and its direct relevance to this role",
+    # 2026-09-15: was "...direct relevance to this role" -- real shipped
+    # cover letters showed a visible duplicate ("...relevance to this role
+    # in this role") whenever this collided with _FIT_OPENER_VARIANTS'
+    # own "...in this role." template ending. Reworded so it doesn't end
+    # with "role" at all, since that word already lives in the template.
+    "general": "the outcome and its practical relevance here",
 }
 
 
@@ -1191,10 +1196,141 @@ _AMBIGUOUS_TERMS = frozenset(
         # facing"/"content"/"creative"/"media" above.
         "research",
         "analytics",
+        # "automation" (2026-09-15, found via a REAL shipped-cover-letter
+        # fabrication, not a synthetic audit: a real Uberfreight "Customer
+        # Support Specialist II" posting's "...lead timely performance/
+        # automation objectives" (logistics/TMS automation) was matched to
+        # Standup-OCR's real relevance_category "automation" (an OCR/
+        # transcription pipeline automating a manual review workflow) --
+        # same word, same near_prototype single-keyword trust decision #71
+        # already established for genuine identity terms, but a COMPLETELY
+        # different domain sense, same shape as every other word in this
+        # table. The resulting cover letter told a real employer "I am glad
+        # to provide further details about the Transportation Management
+        # System and my role in overseeing shipment entries" -- a real
+        # fabricated professional claim that shipped before the advisory
+        # judge (decision #143) caught it after the fact. Verified before
+        # shipping: a live n=500 scan of every real job mentioning
+        # "automation" that resolves to Standup-OCR as top candidate found
+        # 0/209 would agree in sense (all genuinely different domains --
+        # general workplace/business-process automation, not OCR/ML
+        # automation) -- a clean win, no real match lost.
+        "automation",
+        # "processing" (2026-09-15, found via the Future Work #25
+        # "establish a pattern" follow-up audit -- data/experiments/
+        # ambiguous_terms_20260915/): a real, deliberately-used word in
+        # Standup-OCR ("Image/document processing"), CAP Predictor ("Data
+        # processing"), and I_hate_social_media ("...data processing"), but
+        # generic enough to appear in almost any data-shaped job posting
+        # regardless of actual domain overlap. Unlike the words above,
+        # this one wasn't found by a false NEGATIVE -- it was the spurious
+        # SHARED CONTEXT WORD behind a false POSITIVE: a real Twilio
+        # "Senior Engineering Manager, V&V Media" posting (audio/video
+        # real-time media-stream engineering) was wrongly counted as
+        # agreeing with I_hate_social_media's "media" (social-media TEXT
+        # data) purely because both texts also happen to contain
+        # "processing" -- the exact same shape as the earlier
+        # "performance" collision for "reliability". A live n=500 audit of
+        # "processing" as its OWN term (once hypothetically added here)
+        # confirmed adding it is a clean net win, not just a fix for this
+        # one Twilio case: CAP Predictor kept its one genuine match (a
+        # real data-pipeline/feature-engineering posting) while correctly
+        # losing 22/23 unrelated "big data / Spark / Hadoop" postings a
+        # small personal financial-prediction project has no real claim
+        # to; I_hate_social_media correctly lost all 22/22 unrelated
+        # "data processing" mentions (warranty-claim processing,
+        # infrastructure architecture, aerospace research) it was
+        # previously never even checked against.
+        "processing",
+    }
+)
+
+# 2026-09-15 (decision #144's shipped fix "d", verified via a real n=500
+# bake-off in data/experiments/ambiguous_terms_20260913/ before shipping):
+# a confirmed real false negative in the "install" family specifically --
+# Alex Prosperity Group's own evidence text is thin enough that a genuine
+# physical-installation job (e.g. "MACHINE INSTALLATION TECHNICIAN") can
+# share zero words with it even though both describe the same kind of
+# on-site physical work (decision #143, CLAUDE.md Future Work #25). This
+# fallback is scoped ONLY to the install family below, not a general
+# relaxation of _context_senses_agree for every _AMBIGUOUS_TERMS entry --
+# the physical/IT signal vocabulary was calibrated specifically for this
+# one collision (physical appliance/equipment installation vs. software/
+# system installation) and hasn't been validated for any other term.
+_INSTALL_FAMILY_TERMS = frozenset(
+    {
+        "install",
+        "installs",
+        "installed",
+        "installing",
+        "installation",
+        "installations",
+        "installation.",
+        "installations.",
+        "installer",
+        "installers",
+    }
+)
+
+_PHYSICAL_SIGNAL_WORDS = frozenset(
+    {
+        "equipment",
+        "appliance",
+        "appliances",
+        "machine",
+        "machines",
+        "unit",
+        "units",
+        "device",
+        "devices",
+        "onsite",
+        "site",
+        "premises",
+        "vehicle",
+        "truck",
+        "vending",
+        "hvac",
+        "furniture",
+        "hardware",
+    }
+)
+
+_IT_COUNTER_SIGNAL_WORDS = frozenset(
+    {
+        "software",
+        "os",
+        "driver",
+        "drivers",
+        "workstation",
+        "workstations",
+        "desktop",
+        "laptop",
+        "ram",
+        "server",
+        "servers",
+        "network",
+        "computing",
+        "printer",
+        "printers",
+        "notebook",
+        "notebooks",
+        "webcam",
+        "webcams",
+        "helpdesk",
     }
 )
 
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+
+
+def _raw_sentence_text_containing_term(text: str, term: str) -> str:
+    """Same sentence-scoping as `_local_context_words`, but returns the raw,
+    UNFILTERED sentence text. Needed because a word like "software" is
+    itself classified as a generic-evidence term (decision #68) and so
+    never survives into `_local_context_words`' filtered output, even
+    though the IT-counter-signal veto below needs to be able to see it."""
+    term_l = term.lower()
+    return " ".join(s for s in _SENTENCE_SPLIT_RE.split(text or "") if _term_in_text(term_l, s.lower())).lower()
 
 
 def _local_context_words(text: str, term: str) -> set[str]:
@@ -1299,12 +1435,29 @@ def _context_senses_agree(requirement_text: str, evidence_text: str, term: str) 
     are topically related, not just lexically identical. Conservative on
     ties: no shared context (or no context to compare at all) means NOT
     agreeing -- silence is never license to trust the match, same
-    philosophy as claim_ceiling_for_evidence's own default."""
+    philosophy as claim_ceiling_for_evidence's own default.
+
+    2026-09-15: for the "install" family only, a second, narrower check
+    runs if the word-overlap check above fails -- agree if BOTH sides'
+    local context contains a physical on-site-installation signal word
+    (equipment/appliance/machine/etc.), UNLESS the requirement's own raw
+    sentence also contains an IT/computing counter-signal (software,
+    server, workstation, ...), which vetoes the agreement even if a
+    physical-signal word is also present. This is a strict OR on top of
+    the original check -- it can only ever recover a match the original
+    check missed, never drop one it already found. See
+    `_INSTALL_FAMILY_TERMS`'s comment for why this is scoped to just this
+    one term family rather than applied generally."""
     req_ctx = _local_context_words(requirement_text, term)
     ev_ctx = _local_context_words(evidence_text, term)
-    if not req_ctx or not ev_ctx:
+    if req_ctx and ev_ctx and (req_ctx & ev_ctx):
+        return True
+    if term.lower() not in _INSTALL_FAMILY_TERMS or not req_ctx or not ev_ctx:
         return False
-    return bool(req_ctx & ev_ctx)
+    raw_req = _raw_sentence_text_containing_term(requirement_text, term)
+    if "operating system" in raw_req or any(_term_in_text(w, raw_req) for w in _IT_COUNTER_SIGNAL_WORDS):
+        return False
+    return bool((req_ctx & _PHYSICAL_SIGNAL_WORDS) and (ev_ctx & _PHYSICAL_SIGNAL_WORDS))
 
 
 def _match_kind(requirement_text: str, evidence_item: dict) -> str:

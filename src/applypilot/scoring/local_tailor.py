@@ -3617,17 +3617,42 @@ def compose_degraded_resume_json(
 
 _REQUIREMENT_TIER_PRIORITY = {"prototype": 0, "near_prototype": 1, "peripheral": 2}
 
+# 2026-09-15: real, shipped fabrication found in a live cover letter (a
+# real Ramp "Virtual Events Associate" posting) -- HOOK/FIT's framing
+# ("that lines up with work I have already done... not something new I
+# would be learning on the job") was applied to a requirement whose ONLY
+# grounding was a "peripheral"-tier, zero-literal-keyword SYNONYM match
+# (schemas.py's weakest surviving confidence tier, by its own documented
+# design -- decisions #59-60's "graded prototype/near_prototype/peripheral/
+# unsupported" scale). A synonym-only, peripheral-tier connection between
+# "virtual events that drive lead generation" and "identify qualified
+# leads" for door-to-door solar sales is a real domain-transfer analogy at
+# best, not something honestly described as "work I have already done."
+# Excluded from the confident-claim paragraphs entirely rather than
+# softening the phrasing per-tier (a second, real fabrication in the same
+# batch -- Standup-OCR's "automation" -- was independently a near_prototype
+# LITERAL match that turned out to need its own fix, see _AMBIGUOUS_TERMS;
+# this exclusion is a second, independent layer of defense for the class of
+# mistake an individual ambiguous-term audit might still miss, not a
+# replacement for it).
+_MIN_CONFIDENT_CLAIM_TIER = frozenset({"prototype", "near_prototype"})
+
 
 def _pick_supported_requirements(job_schema: dict, limit: int = 5) -> list[dict]:
     """Supported requirements ordered by evidence strength (prototype
-    before near_prototype/peripheral), capped at `limit`. Only requirements
-    with real, quotable text and at least one resume_evidence name are
-    used -- matches what select_and_edit_bank_bullets/format_schema_
-    guidance already consider "real" evidence."""
+    before near_prototype), capped at `limit`. Only requirements with real,
+    quotable text, at least one resume_evidence name, AND at least
+    near_prototype-tier confidence are used -- "peripheral" (synonym/
+    semantic-only, zero literal keyword overlap) is deliberately excluded
+    from these confident-claim paragraphs; see _MIN_CONFIDENT_CLAIM_TIER's
+    comment for the real regression that motivated this."""
     supported = [
         r
         for r in (job_schema.get("requirements") or [])
-        if r.get("supported") and (r.get("requirement") or "").strip() and r.get("resume_evidence")
+        if r.get("supported")
+        and (r.get("requirement") or "").strip()
+        and r.get("resume_evidence")
+        and r.get("category_tier") in _MIN_CONFIDENT_CLAIM_TIER
     ]
     supported.sort(key=lambda r: _REQUIREMENT_TIER_PRIORITY.get(r.get("category_tier"), 3))
     return supported[:limit]
@@ -3805,9 +3830,27 @@ _HOOK_LEAD_VARIANTS = [
     "{who}'s posting for {title} calls out {need} as part of the role",
 ]
 _HOOK_CLOSER_VARIANTS = [
-    "That is close to work already in my background, not something I would be starting from scratch on.",
-    "That lines up with work I have already done, not something new I would be learning on the job.",
-    "That is familiar ground for me already, built from real experience, not something I would be picking up cold.",
+    # 2026-09-15: rewritten after a real, shipped fabrication -- a real
+    # Ashby "Product Support Specialist" posting's "You are already
+    # comfortable owning complex SaaS troubleshooting..." matched Mavis's
+    # real automotive-diagnostic evidence via genuinely shared literal
+    # words ("troubleshooting", "isolating") at the STRONGEST tier
+    # ("prototype", 2 matched keywords) -- not a coincidental generic-word
+    # collision the ambiguous-terms table could catch, and not a weak
+    # "peripheral" match _MIN_CONFIDENT_CLAIM_TIER already excludes. The
+    # abstract diagnostic PROCESS (identify symptom, isolate cause, apply
+    # fix) genuinely transfers from cars to software -- that part is real
+    # -- but the old wording ("not something new I would be learning on
+    # the job", "not picking up cold") went further and claimed the
+    # CANDIDATE ALREADY HAS the specific domain experience (SaaS
+    # troubleshooting), which is false. Rewritten to make the TRUE claim
+    # (real, transferable experience) without the false one (zero learning
+    # curve) -- safe regardless of whether a given match is same-domain or
+    # a genuine cross-domain skill transfer, since it never asserts which
+    # one this is.
+    "That connects to real, hands-on experience in my background, even if some of the specific tools here would be new to me.",
+    "That draws on real experience I already have, even though some of the specific tools involved would still be new to me.",
+    "That builds on real, hands-on experience already in my background, even if a few of the specific tools would be new to me.",
 ]
 _EVIDENCE_LEAD_VARIANTS = ["In practice,", "In real terms,", "Concretely speaking,"]
 _FIT_OPENER_VARIANTS = [
@@ -3827,6 +3870,47 @@ _CLOSE_VARIANTS = [
     "matters to you. I am easy to reach and can respond quickly whenever that is useful.",
     "I can go deeper on {topic}, or on anything else here, whenever that would be useful for you. "
     "Feel free to reach out any time, I am easy to reach and quick to respond.",
+]
+
+# 2026-09-15 (decision #145's follow-up, user's own suggestion): the real
+# batches this session found kept coming up short on word count not because
+# they were lying, but because the REAL grounded material for a thin job is
+# genuinely small -- and the safety architecture (correctly) refuses to pad
+# with invented facts. But an opinion/preference/attitude statement isn't a
+# factual claim at all -- it can't be "fabricated" in the sense the claim/
+# agency/causal/metric checks care about, the same way _CLOSE_VARIANTS'
+# scheduling-offer sentence or _FIT_CLOSER_VARIANTS' "I take that on
+# directly" line already aren't. These two pools are just longer, more
+# substantial versions of the same idea: genuine personal preference about
+# the TYPE of work (never a specific skill, tool, or past achievement),
+# always appended regardless of how much real per-job content exists, so
+# every letter gets real length from safe material rather than depending on
+# how much the job happens to overlap with this candidate's evidence.
+# Deliberately NOT run through polish_filler_with_retry (unlike the hook
+# closer / close scheduling-offer) -- three real variants per pool already
+# gives per-job variety at zero LLM cost, and this is meant to be a reliable
+# length floor, not a place to risk an extra failed call.
+_FIT_ENTHUSIASM_VARIANTS = [
+    "Work like this genuinely appeals to me, since there is a clear problem in front of me and a "
+    "real result to see once it is solved. I would rather do that kind of work steadily, day after "
+    "day, than chase something that only sounds impressive on paper.",
+    "This is the kind of work I actually enjoy, since there is a clear problem to work through and a "
+    "real result once it is done. Steady work like that holds my attention far better than something "
+    "flashier that does not really hold up over time.",
+    "I like this kind of work in particular, since there is a real problem to work through and "
+    "something concrete to show for it afterward. That kind of steady, practical work has always "
+    "suited me better than anything more abstract or removed from the actual, everyday result.",
+]
+_CLOSE_VALUES_VARIANTS = [
+    "I would rather learn a new process properly than fake my way through it, and that has always "
+    "mattered more to me than looking polished on day one. I show up ready to put in the work, "
+    "learn quickly, and pull my own weight either way.",
+    "I would rather take the time to learn something properly than fake my way through it, and that "
+    "matters more to me than looking polished early on. Either way, I show up ready to put in the "
+    "work, learn quickly, and pull my own weight.",
+    "I would rather learn something the right way than fake my way through it, and that has always "
+    "felt more important to me than looking polished at first. I show up ready to put the work in, "
+    "learn quickly, and pull my own weight regardless.",
 ]
 
 
@@ -4008,11 +4092,18 @@ def _build_degraded_cover_paragraphs(
     # not repeated here -- rougher than a synthesized hook, but true and
     # non-redundant.
     if len(hook_reqs) >= 2:
-        need = f"{hook_reqs[0][:-1]} and {hook_reqs[1][:-1]}."
+        need = f"{hook_reqs[0].rstrip('.,;: ')} and {hook_reqs[1].rstrip('.,;: ')}."
     elif hook_reqs:
         need = hook_reqs[0]
     else:
-        need = "the work described in the posting."
+        # 2026-09-15: was "the work described in the posting." -- every
+        # _HOOK_LEAD_VARIANTS template already says "...the posting calls
+        # out {need}", so that default produced a real, shipped redundancy
+        # ("the posting calls out the work described in the posting")
+        # whenever no confident-tier requirement existed to quote instead
+        # (see _MIN_CONFIDENT_CLAIM_TIER's comment for why that's now more
+        # common than before).
+        need = "the work this role actually involves."
     hook_lead = _pick_variant(_HOOK_LEAD_VARIANTS, f"{job_url}:hook_lead").format(who=who, title=title, need=need)
     hook_closer = _pick_variant(_HOOK_CLOSER_VARIANTS, f"{job_url}:hook_closer")
     if client is not None:
@@ -4047,8 +4138,8 @@ def _build_degraded_cover_paragraphs(
     fit_closer = _pick_variant(_FIT_CLOSER_VARIANTS, f"{job_url}:fit_closer")
     fit = fit_opener
     if fit_reqs:
-        joined = ", ".join(r[:-1] for r in fit_reqs[:-1]) if len(fit_reqs) > 1 else ""
-        joined = f"{joined}, and {fit_reqs[-1][:-1]}" if joined else fit_reqs[-1][:-1]
+        joined = ", ".join(r.rstrip(".,;: ") for r in fit_reqs[:-1]) if len(fit_reqs) > 1 else ""
+        joined = f"{joined}, and {fit_reqs[-1].rstrip('.,;: ')}" if joined else fit_reqs[-1].rstrip(".,;: ")
         fit += (
             f" The posting also calls out {joined}, which is the kind of work I take on "
             "directly, not from the sidelines, and I would rather be upfront about where my "
@@ -4065,14 +4156,30 @@ def _build_degraded_cover_paragraphs(
         fit += f" In a similar vein, {evidence_spare[0]} {fit_closer}"
     else:
         fit += f" {fit_closer}"
+    # Always appended, regardless of how much real per-job content FIT
+    # already has -- a genuine preference statement, not a fact, so it
+    # never competes with or dilutes the real content above it.
+    fit += f" {_pick_variant(_FIT_ENTHUSIASM_VARIANTS, f'{job_url}:fit_enthusiasm')}"
 
     # ---- Paragraph 4: CLOSE. Names the same lead requirement from the
     # hook rather than a fixed stock phrase, so it varies per job instead
-    # of reading as the same boilerplate closer on every letter.
-    close_topic = hook_reqs[0][:-1] if hook_reqs else "anything in the posting"
-    close = _pick_variant(_CLOSE_VARIANTS, f"{job_url}:close").format(topic=close_topic)
+    # of reading as the same boilerplate closer on every letter. Leads with
+    # a genuine attitude/values statement (never polished -- see the pool's
+    # own comment) before the scheduling-offer sentence, which still gets
+    # its existing polish treatment unchanged.
+    # 2026-09-15: was `hook_reqs[0][:-1]` (strip exactly one trailing char) --
+    # a real shipped letter showed a visible double-comma ("...issues,, or
+    # anything else...") whenever _clean_snippet's forced trailing period
+    # landed after an already-comma-ending truncated requirement (the raw
+    # text ends "...issues," before _clean_snippet appends "."). Stripping
+    # ALL trailing punctuation, not just the last character, fixes this
+    # regardless of what the requirement text happened to end with.
+    close_topic = hook_reqs[0].rstrip(".,;: ") if hook_reqs else "anything in the posting"
+    close_values = _pick_variant(_CLOSE_VALUES_VARIANTS, f"{job_url}:close_values")
+    close_offer = _pick_variant(_CLOSE_VARIANTS, f"{job_url}:close").format(topic=close_topic)
     if client is not None:
-        close, _ = polish_filler_with_retry(client, close, banned_patterns=CL_BANNED_PATTERNS)
+        close_offer, _ = polish_filler_with_retry(client, close_offer, banned_patterns=CL_BANNED_PATTERNS)
+    close = f"{close_values} {close_offer}"
 
     return [hook, evidence_para, fit, close]
 

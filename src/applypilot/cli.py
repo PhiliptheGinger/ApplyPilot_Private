@@ -1111,9 +1111,11 @@ def score_deterministic_fallback(
         help="Opt-in title-keyword escalation (Future Work item 2): use --model as the fast default, but "
         "escalate to THIS model for titles matching a manufacturing/hands-on-adjacent keyword pattern "
         "(maintenance/assembler/composites/field service/embedded/infotainment) -- built from "
-        "real observed 1.7b-vs-8b disagreement cases at n=52, bootstrap-revalidated 2026-09-08 (decision #81; "
-        "still opt-in -- the CI on the hybrid's improvement over 1.7b-alone is wide and overlapping at this "
-        "sample size). Example: "
+        "real observed 1.7b-vs-8b disagreement cases at n=52, revalidated 2026-09-15 on a fresh, "
+        "independently-sampled n=80 (decision #145): ambiguous-title gate agreement 94% (1.7b alone) vs. "
+        "100% (8b/hybrid), a real, decisive gap, not noise. Still opt-in by design (only relevant once you've "
+        "already chosen --model qwen3:1.7b for speed), but now unambiguously recommended whenever you do. "
+        "Example: "
         "--model qwen3:1.7b --escalate-model qwen3:8b for ~3x faster average scoring with most of 8b's "
         "accuracy on the cases that matter most.",
     ),

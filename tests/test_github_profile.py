@@ -82,6 +82,38 @@ class TestFlagRepoDeterministic:
             flags = flag_repo(client=object(), repo=repo, readme="A tool that scrapes and auto-applies to jobs.")
         assert flags == ["automation_or_scraping_tool"]
 
+    def test_real_i_hate_social_media_repo_flagged_correctly(self):
+        """2026-09-15 real regression, pinned at the user's own request after
+        running the importer for real: a real candidate repo (already
+        removed from profile.json's project_inventory as a result) named
+        "I_hate_social_media" -- its own README has no explicit slur or
+        literal rant text, but the repo NAME itself ("I hate social media")
+        plus its purpose (scraping Instagram/Facebook posts) is exactly the
+        kind of framing that could read as hostile-toward-tech-companies to
+        a recruiter, and it also looks like a scraping tool by its own
+        description. No deterministic keyword triggers this (verified: the
+        real README contains neither explicit language nor a piracy/illegal
+        keyword) -- this is entirely the LLM classification's real job,
+        mocked here with the REAL response text this repo actually got
+        during a real live import run, not an invented example."""
+        repo = {
+            "name": "I_hate_social_media",
+            "description": None,
+        }
+        real_readme = (
+            "# I_hate_social_media\n\n"
+            "This repository currently does **not** contain the old Instagram/Facebook event "
+            "collector code.\nAt the moment, the only existing file from earlier work was a "
+            "privacy policy.\n\n## What this means\n\nIf your goal is to find comedy events by "
+            "mining social media posts, we need to rebuild the collector in small, testable steps."
+        )
+        with patch(
+            "applypilot.discovery.github_profile.classify_reputational_flags",
+            return_value=["anti_corporate_or_establishment", "automation_or_scraping_tool"],
+        ):
+            flags = flag_repo(client=object(), repo=repo, readme=real_readme)
+        assert set(flags) == {"anti_corporate_or_establishment", "automation_or_scraping_tool"}
+
 
 class TestClassifyReputationalFlags:
     def _client(self, response_text):

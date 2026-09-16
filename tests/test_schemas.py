@@ -443,6 +443,65 @@ class TestKeywordPreservation(unittest.TestCase):
         # no context to compare on one side -> conservative False, not True
         self.assertFalse(schemas._context_senses_agree("alignment.", "Diagnosed vehicle alignment issues.", "alignment"))
 
+    def test_installation_physical_signal_recovers_thin_evidence_match(self):
+        """2026-09-15 regression (decision #144's shipped fix "d", CLAUDE.md
+        Future Work #25 / decision #143): the plain word-overlap check
+        above has a real, confirmed false negative for the "install"
+        family -- Alex Prosperity Group's own evidence text is thin enough
+        that a genuine physical-installation job can share zero words with
+        it. This mirrors the real Machine Installation Technician job that
+        surfaced the gap: both sides mention on-site physical equipment,
+        but with no literal word overlap, so the ORIGINAL check alone
+        would say False."""
+        requirement_text = (
+            "Perform machine installations, commissioning, and startup activities "
+            "for new equipment and advanced manufacturing solutions."
+        )
+        # real Alex Prosperity Group evidence text, exactly as
+        # schemas._evidence_own_text renders it (no period after "Lowe's" --
+        # matches profile.json's own responsibilities bullet verbatim, which
+        # matters here since it changes how the sentences merge)
+        evidence_text = (
+            "Installed home appliances contracted through Lowe's Performed hands-on "
+            "installation work while following customer requirements and established "
+            "procedures. Communicated clearly with customers throughout installations."
+        )
+        # the plain overlap check alone still fails (no shared context word)
+        req_ctx = schemas._local_context_words(requirement_text, "installation")
+        ev_ctx = schemas._local_context_words(evidence_text, "installation")
+        self.assertFalse(req_ctx & ev_ctx)
+        # but the full check now recovers it via the physical-signal fallback
+        self.assertTrue(schemas._context_senses_agree(requirement_text, evidence_text, "installation"))
+
+    def test_installation_it_counter_signal_still_vetoes_physical_overlap(self):
+        """The physical-signal fallback must not recover a genuinely
+        software/IT installation just because a physical-sounding word
+        ("hardware") is also present -- the IT counter-signal veto exists
+        exactly for this case."""
+        requirement_text = "Perform server hardware installation and configuration in customer data centers."
+        evidence_text = (
+            "Installed home appliances contracted through Lowe's Performed hands-on "
+            "installation work while following customer requirements and established "
+            "procedures. Communicated clearly with customers throughout installations."
+        )
+        # confirm this genuinely exercises the veto (both sides DO share a
+        # physical-signal word -- "hardware"/"appliance" -- so without the
+        # IT counter-signal veto this would wrongly flip to True)
+        req_ctx = schemas._local_context_words(requirement_text, "installation")
+        ev_ctx = schemas._local_context_words(evidence_text, "installation")
+        self.assertTrue(req_ctx & schemas._PHYSICAL_SIGNAL_WORDS)
+        self.assertTrue(ev_ctx & schemas._PHYSICAL_SIGNAL_WORDS)
+        self.assertFalse(schemas._context_senses_agree(requirement_text, evidence_text, "installation"))
+
+    def test_installation_fallback_scoped_to_install_family_only(self):
+        """The physical-signal fallback is deliberately scoped to the
+        "install" family -- it must not make an unrelated ambiguous term
+        (e.g. "reliability") agree just because physical-signal words
+        happen to be present on both sides."""
+        requirement_text = "Ensure reliability of manufacturing equipment on the production line."
+        evidence_text = "Worked with vehicle equipment while ensuring reliability of repairs."
+        self.assertFalse(schemas._context_senses_agree(requirement_text, evidence_text, "reliability"))
+
     def test_ambiguous_terms_do_not_vouch_for_each_other(self):
         """2026-09-08 regression: found via a real escalating-batch audit
         (data/experiments/ambiguous_terms_20260908/) while adding
@@ -819,6 +878,84 @@ class TestKeywordPreservation(unittest.TestCase):
             rep = schemas.build_job_schema_representation(job, profile)
             req = rep["requirements"][0]
             self.assertFalse(req["supported"])
+
+    def test_processing_no_longer_vouches_for_unrelated_media_sense(self):
+        """2026-09-15 regression: found via the Future Work #25 "establish
+        a pattern" follow-up audit -- a real Twilio "Senior Engineering
+        Manager, V&V Media" posting (audio/video real-time media-stream
+        engineering) was wrongly counted as agreeing with
+        I_hate_social_media's "media" (social-media TEXT data) purely
+        because both texts also happen to contain the generic word
+        "processing" -- the same shape as the earlier "performance"/
+        "reliability" collision. Adding "processing" to _AMBIGUOUS_TERMS
+        excludes it from counting as shared context for the "media" check
+        (the same mechanism decision #78 built for "equipment"/
+        "troubleshooting" mutually vouching for each other)."""
+        evidence_text = (
+            "Processing exported social-media data Filtering and retrieving relevant "
+            "posts Extracting useful information Structured data Media/comedy-oriented "
+            "data processing"
+        )
+        twilio_requirement = "Lead a team of senior engineers developing Twilio's next-generation media processing stack"
+        self.assertFalse(schemas._context_senses_agree(twilio_requirement, evidence_text, "media"))
+
+    def test_processing_same_domain_data_pipeline_still_counted(self):
+        """Mirror case: a genuinely same-domain data-pipeline requirement
+        (real ML Software Engineer posting) sharing real vocabulary with
+        CAP Predictor's own evidence -- not just the bare word
+        "processing" -- must still match."""
+        evidence_text = (
+            "Financial/news data Data collection Feature engineering Sentiment "
+            "analysis Statistical/modeling experimentation Data processing"
+        )
+        requirement_text = (
+            "Build and maintain scalable data ingestion, transformation, feature "
+            "engineering, and post-processing pipelines to support model training"
+        )
+        self.assertTrue(schemas._context_senses_agree(requirement_text, evidence_text, "processing"))
+
+    def test_processing_unrelated_data_mention_dropped(self):
+        """A bare, unrelated "data processing" mention (a warranty-claims
+        role) must not be counted as agreeing with either CAP Predictor's
+        or I_hate_social_media's own "processing" usage -- confirms the
+        fix doesn't just fix the one Twilio case but genuinely
+        discriminates."""
+        evidence_text = (
+            "Processing exported social-media data Filtering and retrieving relevant "
+            "posts Extracting useful information Structured data Media/comedy-oriented "
+            "data processing"
+        )
+        requirement_text = "Data processing accuracy, detail oriented, and ability to evaluate/research a warranty claim"
+        self.assertFalse(schemas._context_senses_agree(requirement_text, evidence_text, "processing"))
+
+    def test_automation_cross_domain_fabrication_case_dropped(self):
+        """2026-09-15 real regression: a real Uberfreight "Customer Support
+        Specialist II" posting's "...lead timely performance/automation
+        objectives" (logistics/TMS automation) was matched to Standup-OCR's
+        real relevance_category "automation" (OCR/transcription pipeline
+        automation) -- same word, cross-domain sense, and it shipped in a
+        real cover letter claiming direct Transportation Management System
+        experience the candidate has never had."""
+        evidence_text = (
+            "Python OCR Image/document processing Transcription OCR tooling "
+            "Machine-learning experimentation Human review workflows Training-data preparation automation"
+        )
+        requirement_text = (
+            "Use Transportation Management System to process shipment entries and actively "
+            "lead timely performance/automation objectives"
+        )
+        self.assertFalse(schemas._context_senses_agree(requirement_text, evidence_text, "automation"))
+
+    def test_automation_same_domain_still_counted(self):
+        """Mirror case: a genuinely same-domain OCR/ML-automation
+        requirement sharing real vocabulary with Standup-OCR's own evidence
+        must still match."""
+        evidence_text = (
+            "Python OCR Image/document processing Transcription OCR tooling "
+            "Machine-learning experimentation Human review workflows Training-data preparation automation"
+        )
+        requirement_text = "Build automation tooling to support OCR-based document transcription workflows"
+        self.assertTrue(schemas._context_senses_agree(requirement_text, evidence_text, "automation"))
 
 
 # ---------------------------------------------------------------------------

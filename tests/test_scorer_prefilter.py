@@ -374,6 +374,61 @@ def test_austin_texas_not_confused_with_aus(loc):
     assert _check_ineligible(_job(title="Software Engineer", location=loc)) is None
 
 
+# ── GB/CAN/bare-AU/MX country-code abbreviations (2026-09-15) ─────────
+# Flagged as pre-verified-safe in decision #108 (Future Work item 16) but
+# never shipped; re-verified fresh against the live DB before landing.
+
+
+@pytest.mark.parametrize(
+    "loc",
+    [
+        "GB-WSX-CRAWLEY-990 ~ 1 Pegasus Pl Gatwick Rd ~ PEGASUS",
+        "GB-SOL-SOLIHULL-003 ~ Fore 3 Huskisson Way ~ GOODRICH CONTROLS",
+    ],
+)
+def test_bare_gb_country_code_rejected(loc):
+    assert _check_ineligible(_job(title="Software Engineer", location=loc)) is not None
+
+
+@pytest.mark.parametrize(
+    "loc",
+    [
+        "Toronto, Ontario, CAN",
+        "Ontario, CAN - Remote",
+    ],
+)
+def test_bare_can_country_code_rejected(loc):
+    assert _check_ineligible(_job(title="Software Engineer", location=loc)) is not None
+
+
+def test_can_still_passes_when_us_also_listed():
+    loc = "Ontario, CAN - Remote;Toronto, Ontario, CAN - Remote;United States - Remote"
+    assert _check_ineligible(_job(title="Software Engineer", location=loc)) is None
+
+
+@pytest.mark.parametrize(
+    "loc",
+    [
+        "AU-WA-HENDERSON-103-CUST ~ 103 Quill Way ~ QUILL",
+        "Remote (AU)",
+        "AU-QLD-AMBERLEY-RAAF-CUST ~ RAAF Base Amberley",
+    ],
+)
+def test_bare_au_country_code_rejected(loc):
+    assert _check_ineligible(_job(title="Software Engineer", location=loc)) is not None
+
+
+@pytest.mark.parametrize(
+    "loc",
+    [
+        "MX-BCN-MEXICALI-238 ~ Blvd Venustiano Carranza #238",
+        "MX-BCN-MEXICALI-238B",
+    ],
+)
+def test_bare_mx_country_code_rejected(loc):
+    assert _check_ineligible(_job(title="Software Engineer", location=loc)) is not None
+
+
 # ── Multi-location strings that also list the US (2026-09-10) ────────
 # Found via a live DB scan while adding the Canada/UK/AUS patterns: 125
 # real job rows across 51 distinct locations were wrongly excluded despite

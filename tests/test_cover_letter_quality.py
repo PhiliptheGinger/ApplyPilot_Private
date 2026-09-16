@@ -393,6 +393,32 @@ def test_judge_failure_on_last_attempt_ships_anyway(monkeypatch):
     assert validation["judge"]["issues"] == "borderline genericness"
 
 
+def test_judge_fabrication_on_last_attempt_is_rejected_not_shipped(monkeypatch):
+    """2026-09-15 real regression: a real night of degraded-mode cover
+    letters found the judge correctly identifying real, serious
+    fabrication (fake tools/systems/experience the candidate never had)
+    three separate times, each from a different root cause -- but the old
+    "accepting anyway" behavior shipped all three regardless. Unlike mere
+    genericness (still advisory, see the sibling test above), a judge
+    verdict that specifically labels a finding FABRICATION must now
+    override an already-passed validation, even on the last attempt."""
+    from applypilot.scoring import cover_letter as cl
+
+    short_letter = "Dear Hiring Manager,\n\n" + _para(2) + "\n\nJordan"
+    stub = StubClient([short_letter, GOOD])
+    monkeypatch.setattr(cl, "get_client", lambda quality=False: stub)
+    monkeypatch.setattr(
+        cl,
+        "judge_cover_letter",
+        _judge_stub(False, "1. FABRICATION: The candidate claims experience with a system never mentioned in the resume."),
+    )
+
+    letter, validation = cl.generate_cover_letter("RESUME", JOB, PROFILE, max_retries=1)
+    assert letter == GOOD
+    assert not validation["passed"]
+    assert any("judge_flagged_fabrication" in e for e in validation["errors"])
+
+
 def test_judge_exception_degrades_to_error_verdict_never_crashes(monkeypatch):
     from applypilot.scoring import cover_letter as cl
 
