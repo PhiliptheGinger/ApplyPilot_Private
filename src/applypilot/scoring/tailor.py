@@ -1258,7 +1258,24 @@ def tailor_resume(
                 exclude_providers=frozenset({"local"}),
             )
         except RuntimeError:
-            if is_local_configured() and not client_has_cloud_available():
+            # 2026-09-17: this call just excluded local and raised anyway --
+            # that alone is the definitive signal that no cloud provider
+            # worked THIS TIME, no matter what a fresh has_cloud_available()
+            # check would say. Re-checking it here (as this used to) is not
+            # just redundant, it's actively unsafe: has_cloud_available()
+            # is a wall-clock snapshot against each entry's OWN exhaustion
+            # timestamp, and a multi-provider cascade with real retries can
+            # easily take minutes -- long enough for an EARLIER entry's
+            # short-lived (60s) exhaustion mark to have already expired by
+            # the time a LATER entry's own failure finishes propagating,
+            # making the snapshot look "available again" for a provider
+            # that in reality just failed moments ago in this very call.
+            # Live proof: a real tailor run hit exactly this (3.1-pro-
+            # preview daily-quota'd, 3.6-flash and 3.5-flash both 503'd in
+            # sequence over ~5 real minutes) and reported
+            # status="provider_unavailable" instead of degrading, even
+            # though degraded mode is exactly what should have fired.
+            if is_local_configured():
                 return _run_degraded_mode(attempt + 1)
             report["status"] = "provider_unavailable"
             return "", report

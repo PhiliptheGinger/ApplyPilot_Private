@@ -779,6 +779,52 @@ class TestStaleExhaustionCheckFix(unittest.TestCase):
         )
         self.assertEqual(tailor_client.chat.call_count, 2)
 
+    def test_stale_has_cloud_available_after_the_raise_no_longer_blocks_degraded_mode(self):
+        """2026-09-17: a real live tailor run found that has_cloud_available()
+        can look "available again" by the time the except-RuntimeError
+        handler checks it, even though THIS SAME call just excluded local
+        and confirmed nothing worked. Root cause: has_cloud_available() is
+        a wall-clock snapshot against each entry's own short (60s)
+        exhaustion timestamp -- a real multi-provider cascade with retries
+        (daily-quota hit, then two persistent 503s) can take several real
+        minutes, long enough for an EARLIER entry's 60s mark to expire
+        before the LATER entry's own failure finishes propagating. The old
+        code re-checked has_cloud_available() in the except block and saw
+        a stale "yes" for a provider that had, in reality, just failed
+        moments ago -- reporting status="provider_unavailable" instead of
+        degrading. The fix drops that redundant re-check entirely: a
+        RuntimeError from THIS specific exclude_providers={local} call is
+        already the definitive signal, independent of what a fresh
+        has_cloud_available() snapshot would say. This test pins that by
+        making has_cloud_available() return True on EVERY call (simulating
+        the stale-optimistic read) and confirming degraded mode still
+        fires."""
+        from applypilot.scoring import tailor as tailor_mod
+
+        def fake_chat(messages, max_tokens=None, temperature=None, exclude_providers=None):
+            if exclude_providers and "local" in exclude_providers:
+                raise RuntimeError("All models exhausted after trying: [...].")
+            return REALIZATION_RESPONSE
+
+        tailor_client = MagicMock()
+        # Always "available" -- the stale-optimistic read the real bug produced.
+        tailor_client.has_cloud_available.return_value = True
+        tailor_client.chat.side_effect = fake_chat
+        judge_client = MagicMock()
+        judge_client.chat.return_value = "VERDICT: PASS\nISSUES: none"
+
+        def _fake_get_stage_client(stage, *, quality):
+            return judge_client if stage == "judge" else tailor_client
+
+        with (
+            patch.object(tailor_mod, "get_stage_client", side_effect=_fake_get_stage_client),
+            patch.object(tailor_mod, "is_local_configured", return_value=True),
+        ):
+            _tailored, report = tailor_mod.tailor_resume(RESUME_TEXT, JOB, PROFILE, max_retries=3)
+
+        self.assertNotEqual(report.get("status"), "provider_unavailable")
+        self.assertIn("degraded_mode", report)
+
     def test_already_known_exhaustion_skips_the_heavy_call_entirely(self):
         """When exhaustion is ALREADY known at the start (the normal
         steady-state case for the 2nd+ job in a run after the 1st job
