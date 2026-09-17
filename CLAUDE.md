@@ -308,6 +308,7 @@ verification, root cause, and fix detail.
 | 152 | The overnight local backlog-scoring run finished cleanly on its own: 2,000/6,877 unscored jobs processed, hybrid qwen3:1.7b/8b model, per-job DB flush confirmed safe throughout -- real final numbers pulled, one real concern flagged (not investigated) for a future session |
 | 153 | A real, live tailor-batch run found and fixed a genuine staleness bug in the cloud-exhaustion-to-degraded-mode handoff |
 | 154 | Decision #153's fix verified live: a fresh, unbounded tailor batch hit zero provider_unavailable failures, tailored count rose 341->369 |
+| 155 | Live cover-letter batch found the judge correctly flagging self-defeating filler phrasing ('fake my way through it', 'not from the sidelines', 'I do not have one specific example') that shipped anyway since it wasn't tagged FABRICATION -- reworded to remove the self-deprecation while staying fact-free |
 
 ---
 

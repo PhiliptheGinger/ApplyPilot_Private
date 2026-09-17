@@ -3950,9 +3950,9 @@ _FIT_OPENER_VARIANTS = [
     "From the posting, {who}'s focus here looks to be {focus}.",
 ]
 _FIT_CLOSER_VARIANTS = [
-    "That is the kind of work I take on directly, not from the sidelines.",
+    "That is the kind of work I take on directly, not something I put off.",
     "That is work I take on myself, not something I hand off to someone else.",
-    "I take that kind of work on directly myself, rather than watching from the sidelines.",
+    "I take that kind of work on directly myself, not just from a distance.",
 ]
 _CLOSE_VARIANTS = [
     "I am glad to go into more detail on {topic}, or anything else here that is a priority for "
@@ -3993,15 +3993,15 @@ _FIT_ENTHUSIASM_VARIANTS = [
     "suited me better than anything more abstract or removed from the actual, everyday result.",
 ]
 _CLOSE_VALUES_VARIANTS = [
-    "I would rather learn a new process properly than fake my way through it, and that has always "
-    "mattered more to me than looking polished on day one. I show up ready to put in the work, "
-    "learn quickly, and pull my own weight either way.",
-    "I would rather take the time to learn something properly than fake my way through it, and that "
-    "matters more to me than looking polished early on. Either way, I show up ready to put in the "
-    "work, learn quickly, and pull my own weight.",
-    "I would rather learn something the right way than fake my way through it, and that has always "
-    "felt more important to me than looking polished at first. I show up ready to put the work in, "
-    "learn quickly, and pull my own weight regardless.",
+    "I care more about learning a new process properly than about looking polished on day one, and "
+    "that has always been true for me. I show up ready to put in the work, learn quickly, and pull "
+    "my own weight either way.",
+    "I care more about taking the time to learn something properly than about looking polished "
+    "early on, and that has always mattered to me. Either way, I show up ready to put in the work, "
+    "learn quickly, and pull my own weight.",
+    "I care more about learning something the right way than about looking polished at first, and "
+    "that has always felt important to me. I show up ready to put the work in, learn quickly, and "
+    "pull my own weight regardless.",
 ]
 
 
@@ -4211,10 +4211,11 @@ def _build_degraded_cover_paragraphs(
             evidence_para += " " + " ".join(rest_sentences)
     else:
         evidence_para = (
-            "I do not have one specific example on file that maps directly onto this posting, "
-            "but the pattern in my background is consistent: find the actual problem, fix it, "
-            "and check that the fix held before calling it done. I would rather say that plainly "
-            "than stretch an unrelated example to fit."
+            "The pattern in my background is consistent across roles, even when the specific "
+            "tools or industry differ: find the actual problem, fix it, and check that the fix "
+            "held before calling it done, rather than moving on before it is actually finished. "
+            "I would rather describe that pattern honestly than stretch an unrelated example to "
+            "fit this specific posting."
         )
 
     # ---- Paragraph 3: COMPANY FIT. No LLM synthesis of something
