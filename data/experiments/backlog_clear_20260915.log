@@ -1,0 +1,380 @@
+
+┌──────────────────────────────────┐
+│ ApplyPilot Pipeline (sequential) │
+└──────────────────────────────────┘
+  Max age:   0d
+  Limit:     500 jobs/batch
+  Workers:   1
+  Stages:    tailor -> cover
+  Min score: 8
+  DB:        32582 jobs, 484 pending enrichment
+19:24:49 - INFO - Log file: C:\Users\phili\.applypilot\logs\2026-09-15_23-24-49_tailor+cover.log
+
+======================================================================
+  STAGE: tailor — Resume tailoring (LLM + validation)
+  Started: 23:24:49
+======================================================================
+19:24:51 - INFO - Diverted 410 job(s) with no application_url to manual_only (no application_url — excluded before tailoring)
+19:24:58 - INFO - Tailor cap: skipped 5 job(s) where company is at/over 10 tailored.
+19:25:01 - INFO - Tailoring resumes for 80 jobs (score >= 8, workers=1)...
+19:25:02 - INFO - LLM quality provider: http://localhost:11434/v1  model: qwen3:1.7b
+19:25:02 - INFO - Fallback chain (quality): gemini-3.1-pro-preview (gemini) -> gemini-3.6-flash (gemini) -> gemini-3.5-flash (gemini) -> gpt-4.1-mini (openai) -> gpt-4.1-nano (openai) -> qwen3:1.7b (local)
+19:25:02 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Training Experience Specialist (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:25:02 - INFO - Degraded-mode realization skipped for Training Experience Specialist: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:25:02 - WARNING - Degraded mode: no schema-supported requirements for Training Experience Specialist -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:25:02 - INFO - 1/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 46.7 jobs/min | Training Experience Specialist
+19:25:03 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Retail Support Specialist (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:25:03 - INFO - Degraded-mode realization skipped for Retail Support Specialist: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:25:03 - WARNING - Degraded mode: no schema-supported requirements for Retail Support Specialist -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:25:03 - INFO - 2/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 76.6 jobs/min | Retail Support Specialist
+19:25:03 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Unified Communications Integration Engin (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:25:03 - INFO - Degraded-mode realization skipped for Unified Communications Integration Engin: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:25:03 - WARNING - Degraded mode: no schema-supported requirements for Unified Communications Integration Engin -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:25:03 - INFO - 3/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 101.1 jobs/min | Unified Communications Integration Engin
+19:25:03 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Named Account Executive, State Governmen (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:25:03 - INFO - Degraded-mode realization skipped for Named Account Executive, State Governmen: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:25:03 - WARNING - Degraded mode: no schema-supported requirements for Named Account Executive, State Governmen -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:25:03 - INFO - 4/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 123.1 jobs/min | Named Account Executive, State Governmen
+19:25:03 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for User Safety & Risk Operations Agent (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:25:03 - INFO - Degraded-mode realization skipped for User Safety & Risk Operations Agent: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:25:03 - WARNING - Degraded mode: no schema-supported requirements for User Safety & Risk Operations Agent -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:25:03 - INFO - 5/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 133.4 jobs/min | User Safety & Risk Operations Agent
+19:25:04 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Data Systems Administrator - IT Device O (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:25:04 - INFO - Degraded-mode realization skipped for Data Systems Administrator - IT Device O: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:25:04 - WARNING - Degraded mode: no schema-supported requirements for Data Systems Administrator - IT Device O -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:25:04 - INFO - 6/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 148.1 jobs/min | Data Systems Administrator - IT Device O
+19:25:04 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Filmmaker, Customer Stories (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:25:04 - INFO - Degraded-mode realization skipped for Filmmaker, Customer Stories: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:25:04 - WARNING - Degraded mode: no schema-supported requirements for Filmmaker, Customer Stories -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:25:04 - INFO - 7/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 166.0 jobs/min | Filmmaker, Customer Stories
+19:25:04 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Commercial Solutions Consultant, San Fra (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:25:22 - INFO - 8/80 [FAILED_VALIDATION] attempts=1 | 22.6 jobs/min | Commercial Solutions Consultant, San Fra
+19:25:23 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Site Reliability Engineer (US - Pacific  (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:25:23 - INFO - Degraded-mode realization skipped for Site Reliability Engineer (US - Pacific : no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:25:23 - WARNING - Degraded mode: no schema-supported requirements for Site Reliability Engineer (US - Pacific  -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:25:23 - INFO - 9/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 25.0 jobs/min | Site Reliability Engineer (US - Pacific 
+19:25:23 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Security Engineer (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:25:23 - INFO - Degraded-mode realization skipped for Security Engineer: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:25:23 - WARNING - Degraded mode: no schema-supported requirements for Security Engineer -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:25:23 - INFO - 10/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 27.5 jobs/min | Security Engineer
+19:25:23 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Assembly Mechanic (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:25:23 - INFO - Degraded-mode realization skipped for Assembly Mechanic: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:25:23 - WARNING - Degraded mode: no schema-supported requirements for Assembly Mechanic -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:25:23 - INFO - 11/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 30.0 jobs/min | Assembly Mechanic
+19:25:23 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Pre- & Post-Sales Customer Engineer, Ent (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:25:23 - INFO - Degraded-mode realization skipped for Pre- & Post-Sales Customer Engineer, Ent: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:25:23 - WARNING - Degraded mode: no schema-supported requirements for Pre- & Post-Sales Customer Engineer, Ent -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:25:23 - INFO - 12/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 32.5 jobs/min | Pre- & Post-Sales Customer Engineer, Ent
+19:25:23 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Sales Development Representative - West  (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:25:23 - INFO - Degraded-mode realization skipped for Sales Development Representative - West : no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:25:23 - WARNING - Degraded mode: no schema-supported requirements for Sales Development Representative - West  -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:25:23 - INFO - 13/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 34.9 jobs/min | Sales Development Representative - West 
+19:25:24 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Sales Support Specialist (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:25:24 - INFO - Degraded-mode realization skipped for Sales Support Specialist: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:25:24 - WARNING - Degraded mode: no schema-supported requirements for Sales Support Specialist -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:25:24 - INFO - 14/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 37.4 jobs/min | Sales Support Specialist
+19:25:24 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Unified Communications Integration Engin (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:25:24 - INFO - Degraded-mode realization skipped for Unified Communications Integration Engin: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:25:24 - WARNING - Degraded mode: no schema-supported requirements for Unified Communications Integration Engin -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:25:24 - INFO - 15/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 39.7 jobs/min | Unified Communications Integration Engin
+19:25:24 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Sales Enablement | SDR (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:25:24 - INFO - Degraded-mode realization prompt for Sales Enablement | SDR: 1853 chars (~463 tokens), max_tokens=600, 1 requirement(s) to realize.
+19:25:47 - INFO - Degraded-mode realization call for Sales Enablement | SDR finished in 23.0s
+19:25:47 - WARNING - Degraded-mode realization dropped a bullet for Sales Enablement | SDR (Bring creativity to incentives and performance pushes): 'design'-tier claim exceeds evidence ceiling 'participation'
+19:25:47 - WARNING - Degraded-mode realization dropped a bullet for Sales Enablement | SDR (Fact: Bring creativity to incentives and performance pushes: design, test, and iterate on SPIFFs that SDRs actually care about (not generic rewards), with clear targeting, rules, and measurement): 'design'-tier claim exceeds evidence ceiling 'participation'
+19:25:47 - WARNING - Degraded-mode realization dropped the summary for Sales Enablement | SDR: 'design'-tier claim exceeds evidence ceiling 'participation'
+19:25:50 - INFO - PDF generated: C:\Users\phili\Projects\resume-agent\data\resumes\applypilot\Philip_McLaughlin_Sales_Enablement__SDR_22ac31ed.pdf
+19:25:50 - INFO - 16/80 [APPROVED] attempts=1 | 19.7 jobs/min | Sales Enablement | SDR
+19:25:50 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Mid-Market Solutions Consultant, San Fra (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:02 - INFO - 17/80 [FAILED_VALIDATION] attempts=1 | 16.7 jobs/min | Mid-Market Solutions Consultant, San Fra
+19:26:02 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Site Reliability Engineer (US - Central/ (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:02 - INFO - Degraded-mode realization skipped for Site Reliability Engineer (US - Central/: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:02 - WARNING - Degraded mode: no schema-supported requirements for Site Reliability Engineer (US - Central/ -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:02 - INFO - 18/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 17.6 jobs/min | Site Reliability Engineer (US - Central/
+19:26:03 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Customer Experience Customer Success Spe (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:03 - INFO - Degraded-mode realization skipped for Customer Experience Customer Success Spe: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:03 - WARNING - Degraded mode: no schema-supported requirements for Customer Experience Customer Success Spe -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:03 - INFO - 19/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 18.5 jobs/min | Customer Experience Customer Success Spe
+19:26:03 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Bilingual Multi-Location Customer Servic (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:03 - INFO - Degraded-mode realization skipped for Bilingual Multi-Location Customer Servic: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:03 - WARNING - Degraded mode: no schema-supported requirements for Bilingual Multi-Location Customer Servic -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:03 - INFO - 20/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 19.4 jobs/min | Bilingual Multi-Location Customer Servic
+19:26:03 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Certified Peer Support Specialist (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:03 - INFO - Degraded-mode realization skipped for Certified Peer Support Specialist: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:03 - WARNING - Degraded mode: no schema-supported requirements for Certified Peer Support Specialist -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:03 - INFO - 21/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 20.4 jobs/min | Certified Peer Support Specialist
+19:26:03 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Unified Communications Integration Engin (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:03 - INFO - Degraded-mode realization skipped for Unified Communications Integration Engin: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:03 - WARNING - Degraded mode: no schema-supported requirements for Unified Communications Integration Engin -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:03 - INFO - 22/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 21.3 jobs/min | Unified Communications Integration Engin
+19:26:03 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Especialista de Propostas Comerciais – H (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:03 - INFO - Degraded-mode realization skipped for Especialista de Propostas Comerciais – H: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:03 - WARNING - Degraded mode: no schema-supported requirements for Especialista de Propostas Comerciais – H -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:04 - INFO - 23/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 22.1 jobs/min | Especialista de Propostas Comerciais – H
+19:26:04 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Employee Lifecycle Associate (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:04 - INFO - Degraded-mode realization skipped for Employee Lifecycle Associate: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:04 - WARNING - Degraded mode: no schema-supported requirements for Employee Lifecycle Associate -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:04 - INFO - 24/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 23.0 jobs/min | Employee Lifecycle Associate
+19:26:04 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Enterprise Solutions Consultant, San Fra (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:16 - INFO - 25/80 [FAILED_VALIDATION] attempts=1 | 20.1 jobs/min | Enterprise Solutions Consultant, San Fra
+19:26:16 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Technology Technician I (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:16 - INFO - Degraded-mode realization skipped for Technology Technician I: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:16 - WARNING - Degraded mode: no schema-supported requirements for Technology Technician I -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:16 - INFO - 26/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 20.9 jobs/min | Technology Technician I
+19:26:16 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Customer Support Representative - Work f (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:16 - INFO - Degraded-mode realization skipped for Customer Support Representative - Work f: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:16 - WARNING - Degraded mode: no schema-supported requirements for Customer Support Representative - Work f -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:16 - INFO - 27/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 21.7 jobs/min | Customer Support Representative - Work f
+19:26:16 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Electrical Engineer I (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:30 - INFO - 28/80 [FAILED_VALIDATION] attempts=1 | 19.0 jobs/min | Electrical Engineer I
+19:26:30 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for RELEX Technical Consultant (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:30 - INFO - Degraded-mode realization skipped for RELEX Technical Consultant: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:30 - WARNING - Degraded mode: no schema-supported requirements for RELEX Technical Consultant -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:30 - INFO - 29/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 19.7 jobs/min | RELEX Technical Consultant
+19:26:30 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Recruiting Coordinator (Contract) (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:39 - INFO - edit_sentence_with_retry: attempt 1/3 rejected ('implementation'-tier claim exceeds evidence ceiling 'execution')
+19:26:41 - INFO - edit_sentence_with_retry: attempt 2/3 rejected ('implementation'-tier claim exceeds evidence ceiling 'execution')
+19:26:42 - INFO - edit_sentence_with_retry: attempt 3/3 rejected ('implementation'-tier claim exceeds evidence ceiling 'execution')
+19:26:44 - INFO - 30/80 [FAILED_VALIDATION] attempts=1 | 17.5 jobs/min | Recruiting Coordinator (Contract)
+19:26:44 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for TECH SUPPORT SPEC I (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:44 - INFO - Degraded-mode realization skipped for TECH SUPPORT SPEC I: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:44 - WARNING - Degraded mode: no schema-supported requirements for TECH SUPPORT SPEC I -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:44 - INFO - 31/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 18.0 jobs/min | TECH SUPPORT SPEC I
+19:26:44 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Order Processing & Customer Service Spec (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:44 - INFO - Degraded-mode realization skipped for Order Processing & Customer Service Spec: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:44 - WARNING - Degraded mode: no schema-supported requirements for Order Processing & Customer Service Spec -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:44 - INFO - 32/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 18.6 jobs/min | Order Processing & Customer Service Spec
+19:26:44 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Especialista em Redes (SME) - Inglês Flu (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:44 - INFO - Degraded-mode realization skipped for Especialista em Redes (SME) - Inglês Flu: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:44 - WARNING - Degraded mode: no schema-supported requirements for Especialista em Redes (SME) - Inglês Flu -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:44 - INFO - 33/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 19.2 jobs/min | Especialista em Redes (SME) - Inglês Flu
+19:26:45 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Now Hiring IT and Telecom Field Technici (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:45 - INFO - Degraded-mode realization skipped for Now Hiring IT and Telecom Field Technici: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:45 - WARNING - Degraded mode: no schema-supported requirements for Now Hiring IT and Telecom Field Technici -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:45 - INFO - 34/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 19.7 jobs/min | Now Hiring IT and Telecom Field Technici
+19:26:45 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Certified Peer Support Specialist (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:45 - INFO - Degraded-mode realization skipped for Certified Peer Support Specialist: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:45 - WARNING - Degraded mode: no schema-supported requirements for Certified Peer Support Specialist -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:45 - INFO - 35/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 20.3 jobs/min | Certified Peer Support Specialist
+19:26:45 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Consultor(a) Network Sênior (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:45 - INFO - Degraded-mode realization skipped for Consultor(a) Network Sênior: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:45 - WARNING - Degraded mode: no schema-supported requirements for Consultor(a) Network Sênior -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:45 - INFO - 36/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 20.8 jobs/min | Consultor(a) Network Sênior
+19:26:45 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Textile Machine Operator I (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:45 - INFO - Degraded-mode realization skipped for Textile Machine Operator I: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:45 - WARNING - Degraded mode: no schema-supported requirements for Textile Machine Operator I -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:45 - INFO - 37/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 21.4 jobs/min | Textile Machine Operator I
+19:26:45 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Remote Entry-Level Customer Support – No (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:45 - INFO - Degraded-mode realization skipped for Remote Entry-Level Customer Support – No: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:45 - WARNING - Degraded mode: no schema-supported requirements for Remote Entry-Level Customer Support – No -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:45 - INFO - 38/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 22.0 jobs/min | Remote Entry-Level Customer Support – No
+19:26:45 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Network Engineer (SD-WAN) (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:45 - INFO - Degraded-mode realization skipped for Network Engineer (SD-WAN): no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:45 - WARNING - Degraded mode: no schema-supported requirements for Network Engineer (SD-WAN) -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:45 - INFO - 39/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 22.5 jobs/min | Network Engineer (SD-WAN)
+19:26:45 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Customer Service Technical Support Call  (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:45 - INFO - Degraded-mode realization skipped for Customer Service Technical Support Call : no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:45 - WARNING - Degraded mode: no schema-supported requirements for Customer Service Technical Support Call  -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:45 - INFO - 40/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 23.1 jobs/min | Customer Service Technical Support Call 
+19:26:45 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for SailPoint Consultant (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:45 - INFO - Degraded-mode realization skipped for SailPoint Consultant: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:45 - WARNING - Degraded mode: no schema-supported requirements for SailPoint Consultant -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:45 - INFO - 41/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 23.6 jobs/min | SailPoint Consultant
+19:26:45 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Front Desk Sales Associate (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:45 - INFO - Degraded-mode realization skipped for Front Desk Sales Associate: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:45 - WARNING - Degraded mode: no schema-supported requirements for Front Desk Sales Associate -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:45 - INFO - 42/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 24.2 jobs/min | Front Desk Sales Associate
+19:26:45 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for SYSTEMS ADMINISTRATOR (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:45 - INFO - Degraded-mode realization skipped for SYSTEMS ADMINISTRATOR: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:45 - WARNING - Degraded mode: no schema-supported requirements for SYSTEMS ADMINISTRATOR -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:45 - INFO - 43/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 24.8 jobs/min | SYSTEMS ADMINISTRATOR
+19:26:46 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Temporary Turn Help (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:46 - INFO - Degraded-mode realization skipped for Temporary Turn Help: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:46 - WARNING - Degraded mode: no schema-supported requirements for Temporary Turn Help -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:46 - INFO - 44/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 25.3 jobs/min | Temporary Turn Help
+19:26:46 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for System Administrator - Engineering Compu (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:59 - INFO - 45/80 [FAILED_VALIDATION] attempts=1 | 22.9 jobs/min | System Administrator - Engineering Compu
+19:26:59 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Front Desk Receptionist (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:59 - INFO - Degraded-mode realization skipped for Front Desk Receptionist: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:59 - WARNING - Degraded mode: no schema-supported requirements for Front Desk Receptionist -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:59 - INFO - 46/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 23.4 jobs/min | Front Desk Receptionist
+19:26:59 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Customer Service Specialist (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:59 - INFO - Degraded-mode realization skipped for Customer Service Specialist: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:59 - WARNING - Degraded mode: no schema-supported requirements for Customer Service Specialist -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:59 - INFO - 47/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 23.9 jobs/min | Customer Service Specialist
+19:26:59 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Automotive Technician (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:59 - INFO - Degraded-mode realization skipped for Automotive Technician: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:59 - WARNING - Degraded mode: no schema-supported requirements for Automotive Technician -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:59 - INFO - 48/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 24.4 jobs/min | Automotive Technician
+19:26:59 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Customer Support Specialist (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:59 - INFO - Degraded-mode realization skipped for Customer Support Specialist: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:59 - WARNING - Degraded mode: no schema-supported requirements for Customer Support Specialist -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:59 - INFO - 49/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 24.9 jobs/min | Customer Support Specialist
+19:26:59 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for IT Help Desk Technician (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:26:59 - INFO - Degraded-mode realization skipped for IT Help Desk Technician: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:26:59 - WARNING - Degraded mode: no schema-supported requirements for IT Help Desk Technician -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:26:59 - INFO - 50/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 25.4 jobs/min | IT Help Desk Technician
+19:27:00 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Client Specialist - Small Business Insur (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:00 - INFO - Degraded-mode realization skipped for Client Specialist - Small Business Insur: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:00 - WARNING - Degraded mode: no schema-supported requirements for Client Specialist - Small Business Insur -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:00 - INFO - 51/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 25.8 jobs/min | Client Specialist - Small Business Insur
+19:27:00 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Cyber Specialist  (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:00 - INFO - Degraded-mode realization skipped for Cyber Specialist : no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:00 - WARNING - Degraded mode: no schema-supported requirements for Cyber Specialist  -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:00 - INFO - 52/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 26.3 jobs/min | Cyber Specialist 
+19:27:00 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Floor Technician (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:00 - INFO - Degraded-mode realization skipped for Floor Technician: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:00 - WARNING - Degraded mode: no schema-supported requirements for Floor Technician -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:00 - INFO - 53/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 26.8 jobs/min | Floor Technician
+19:27:00 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Bilingual Multi-Location Customer Servic (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:00 - INFO - Degraded-mode realization skipped for Bilingual Multi-Location Customer Servic: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:00 - WARNING - Degraded mode: no schema-supported requirements for Bilingual Multi-Location Customer Servic -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:00 - INFO - 54/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 27.3 jobs/min | Bilingual Multi-Location Customer Servic
+19:27:00 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Front Desk Sales Representative (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:00 - INFO - Degraded-mode realization skipped for Front Desk Sales Representative: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:00 - WARNING - Degraded mode: no schema-supported requirements for Front Desk Sales Representative -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:00 - INFO - 55/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 27.7 jobs/min | Front Desk Sales Representative
+19:27:00 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Network Engineer (SD-WAN) (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:00 - INFO - Degraded-mode realization skipped for Network Engineer (SD-WAN): no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:00 - WARNING - Degraded mode: no schema-supported requirements for Network Engineer (SD-WAN) -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:00 - INFO - 56/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 28.2 jobs/min | Network Engineer (SD-WAN)
+19:27:00 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Information Technology Technician (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:00 - INFO - Degraded-mode realization skipped for Information Technology Technician: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:00 - WARNING - Degraded mode: no schema-supported requirements for Information Technology Technician -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:00 - INFO - 57/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 28.7 jobs/min | Information Technology Technician
+19:27:00 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Now Hiring IT and Telecom Field Technici (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:00 - INFO - Degraded-mode realization skipped for Now Hiring IT and Telecom Field Technici: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:00 - WARNING - Degraded mode: no schema-supported requirements for Now Hiring IT and Telecom Field Technici -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:00 - INFO - 58/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 29.2 jobs/min | Now Hiring IT and Telecom Field Technici
+19:27:00 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Mobile Service Advisor (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:00 - INFO - Degraded-mode realization skipped for Mobile Service Advisor: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:00 - WARNING - Degraded mode: no schema-supported requirements for Mobile Service Advisor -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:00 - INFO - 59/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 29.7 jobs/min | Mobile Service Advisor
+19:27:01 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Web Developer – Ecommerce, LAMP Stack &  (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:01 - INFO - Degraded-mode realization skipped for Web Developer – Ecommerce, LAMP Stack & : no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:01 - WARNING - Degraded mode: no schema-supported requirements for Web Developer – Ecommerce, LAMP Stack &  -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:01 - INFO - 60/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 30.1 jobs/min | Web Developer – Ecommerce, LAMP Stack & 
+19:27:01 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Manufacturing Operator 2nd Shift (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:01 - INFO - Degraded-mode realization skipped for Manufacturing Operator 2nd Shift: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:01 - WARNING - Degraded mode: no schema-supported requirements for Manufacturing Operator 2nd Shift -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:01 - INFO - 61/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 30.5 jobs/min | Manufacturing Operator 2nd Shift
+19:27:01 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Security Engineer, Application Security (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:01 - INFO - Degraded-mode realization skipped for Security Engineer, Application Security: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:01 - WARNING - Degraded mode: no schema-supported requirements for Security Engineer, Application Security -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:01 - INFO - 62/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 31.0 jobs/min | Security Engineer, Application Security
+19:27:01 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Customer Support Technician I (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:01 - INFO - Degraded-mode realization skipped for Customer Support Technician I: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:01 - WARNING - Degraded mode: no schema-supported requirements for Customer Support Technician I -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:01 - INFO - 63/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 31.5 jobs/min | Customer Support Technician I
+19:27:01 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Support Technician (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:01 - INFO - Degraded-mode realization skipped for Support Technician: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:01 - WARNING - Degraded mode: no schema-supported requirements for Support Technician -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:01 - INFO - 64/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 31.9 jobs/min | Support Technician
+19:27:02 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for ELK Administrator (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:02 - INFO - Degraded-mode realization skipped for ELK Administrator: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:02 - WARNING - Degraded mode: no schema-supported requirements for ELK Administrator -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:02 - INFO - 65/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 32.4 jobs/min | ELK Administrator
+19:27:02 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Inspector - 2nd Shift Weekend (Onsite) (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:02 - INFO - Degraded-mode realization skipped for Inspector - 2nd Shift Weekend (Onsite): no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:02 - WARNING - Degraded mode: no schema-supported requirements for Inspector - 2nd Shift Weekend (Onsite) -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:02 - INFO - 66/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 32.8 jobs/min | Inspector - 2nd Shift Weekend (Onsite)
+19:27:02 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Security Engineer, Detection and Respons (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:02 - INFO - Degraded-mode realization skipped for Security Engineer, Detection and Respons: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:02 - WARNING - Degraded mode: no schema-supported requirements for Security Engineer, Detection and Respons -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:02 - INFO - 67/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 33.3 jobs/min | Security Engineer, Detection and Respons
+19:27:02 - INFO - Seniority mismatch for AI Support Engineer - San Francisco: job requires a seniority tier no authoritative title in the profile supports -- skipping tailoring without an LLM call.
+19:27:02 - INFO - 68/80 [SENIORITY_MISMATCH] attempts=0 | 33.7 jobs/min | AI Support Engineer - San Francisco
+19:27:02 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Receiving Inspector (RX) Meceo (Onsite) (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:02 - INFO - Degraded-mode realization skipped for Receiving Inspector (RX) Meceo (Onsite): no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:02 - WARNING - Degraded mode: no schema-supported requirements for Receiving Inspector (RX) Meceo (Onsite) -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:02 - INFO - 69/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 34.2 jobs/min | Receiving Inspector (RX) Meceo (Onsite)
+19:27:02 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Security Engineer, Infrastructure Securi (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:02 - INFO - Degraded-mode realization skipped for Security Engineer, Infrastructure Securi: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:02 - WARNING - Degraded mode: no schema-supported requirements for Security Engineer, Infrastructure Securi -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:02 - INFO - 70/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 34.6 jobs/min | Security Engineer, Infrastructure Securi
+19:27:03 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for G2 CX Inspection 2nd Shift (Onsite) (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:03 - INFO - Degraded-mode realization skipped for G2 CX Inspection 2nd Shift (Onsite): no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:03 - WARNING - Degraded mode: no schema-supported requirements for G2 CX Inspection 2nd Shift (Onsite) -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:03 - INFO - 71/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 35.1 jobs/min | G2 CX Inspection 2nd Shift (Onsite)
+19:27:03 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Offensive Security Engineer, Agent Produ (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:03 - INFO - Degraded-mode realization skipped for Offensive Security Engineer, Agent Produ: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:03 - WARNING - Degraded mode: no schema-supported requirements for Offensive Security Engineer, Agent Produ -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:03 - INFO - 72/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 35.5 jobs/min | Offensive Security Engineer, Agent Produ
+19:27:03 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Engineer I: Design Engineering (HSE) (Hy (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:03 - INFO - Degraded-mode realization skipped for Engineer I: Design Engineering (HSE) (Hy: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:03 - WARNING - Degraded mode: no schema-supported requirements for Engineer I: Design Engineering (HSE) (Hy -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:03 - INFO - 73/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 36.0 jobs/min | Engineer I: Design Engineering (HSE) (Hy
+19:27:03 - INFO - Seniority mismatch for AI Support Engineer - San Francisco (Wee: job requires a seniority tier no authoritative title in the profile supports -- skipping tailoring without an LLM call.
+19:27:03 - INFO - 74/80 [SENIORITY_MISMATCH] attempts=0 | 36.4 jobs/min | AI Support Engineer - San Francisco (Wee
+19:27:03 - INFO - Seniority mismatch for AI Support Engineer, Government - San Fr: job requires a seniority tier no authoritative title in the profile supports -- skipping tailoring without an LLM call.
+19:27:03 - INFO - 75/80 [SENIORITY_MISMATCH] attempts=0 | 36.8 jobs/min | AI Support Engineer, Government - San Fr
+19:27:03 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for ServiceNow Developer (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:03 - INFO - Degraded-mode realization skipped for ServiceNow Developer: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:03 - WARNING - Degraded mode: no schema-supported requirements for ServiceNow Developer -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:03 - INFO - 76/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 37.3 jobs/min | ServiceNow Developer
+19:27:04 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for F117 MECOE RX Inspector (Onsite) (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:04 - INFO - Degraded-mode realization skipped for F117 MECOE RX Inspector (Onsite): no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:04 - WARNING - Degraded mode: no schema-supported requirements for F117 MECOE RX Inspector (Onsite) -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:04 - INFO - 77/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 37.7 jobs/min | F117 MECOE RX Inspector (Onsite)
+19:27:04 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Workload Porting & Performance Engineer (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:04 - INFO - Degraded-mode realization skipped for Workload Porting & Performance Engineer: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:04 - WARNING - Degraded mode: no schema-supported requirements for Workload Porting & Performance Engineer -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:04 - INFO - 78/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 38.2 jobs/min | Workload Porting & Performance Engineer
+19:27:04 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for I&F Decision Sci Practitioner Specialist (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:04 - INFO - Degraded-mode realization skipped for I&F Decision Sci Practitioner Specialist: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:04 - WARNING - Degraded mode: no schema-supported requirements for I&F Decision Sci Practitioner Specialist -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:04 - INFO - 79/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 38.6 jobs/min | I&F Decision Sci Practitioner Specialist
+19:27:04 - WARNING - DEGRADED MODE: all cloud tailoring models are exhausted; using local structured realization for Systems Software Engineer, Management Pl (schema-bounded, not full-resume generation). Quality is lower than cloud finalization -- this is an emergency fallback, not normal operation.
+19:27:04 - INFO - Degraded-mode realization skipped for Systems Software Engineer, Management Pl: no schema-supported requirements to realize -- keeping the original resume verbatim.
+19:27:04 - WARNING - Degraded mode: no schema-supported requirements for Systems Software Engineer, Management Pl -- nothing could be safely tailored from available evidence; preserving the original resume verbatim.
+19:27:04 - INFO - 80/80 [NO_SUPPORTED_EVIDENCE] attempts=1 | 39.0 jobs/min | Systems Software Engineer, Management Pl
+19:27:04 - INFO - Tailoring done in 123.2s: 1 approved, 6 failed_validation, 0 failed_judge, 70 no_supported_evidence, 0 local_realization_failed, 3 seniority_mismatch, 0 errors
+
+  Stage 'tailor' completed in 134.9s — ok
+
+======================================================================
+  STAGE: cover — Cover letter generation
+  Started: 23:27:04
+======================================================================
+19:27:04 - INFO - Cover letters restricted to a carried batch of 80 job(s) from the preceding tailor stage (1 eligible after the pending_cover filter).
+19:27:04 - INFO - Generating cover letters for 1 jobs (score >= 8, workers=1)...
+19:27:04 - WARNING - DEGRADED MODE: all cloud cover-letter models are exhausted; composing a template-based letter from real evidence/requirement text for Sales Enablement | SDR. Quality is lower than cloud generation -- this is an emergency fallback, not normal operation.
+19:27:10 - INFO - polish_filler_with_retry: attempt 1/2 rejected (banned phrase(s): align with)
+19:27:12 - INFO - polish_filler_with_retry: attempt 2/2 rejected (banned phrase(s): align with; too short (18 words vs original 22))
+19:27:16 - INFO - polish_filler_with_retry: attempt 1/2 rejected (too short (46 words vs original 55))
+19:27:21 - INFO - Degraded-mode cover letter for Sales Enablement | SDR: bank_covered=False, requirements_used=1, evidence_used=0, words=290, validation_passed=True
+19:27:21 - INFO - LLM provider: http://localhost:11434/v1  model: qwen3:1.7b
+19:27:22 - INFO - Fallback chain (fast): gemini-3.6-flash (gemini) -> gemini-3.5-flash (gemini) -> gemini-3.1-flash-lite (gemini) -> gpt-4.1-nano (openai) -> gpt-4.1-mini (openai)
+19:27:26 - INFO - Used fallback gemini/gemini-3.1-flash-lite (primary: qwen3:1.7b)
+19:27:26 - WARNING - Judge flagged degraded-mode cover letter for Sales Enablement | SDR, accepting anyway (validation passed): 1. GENERIC BOILERPLATE: The letter fails to provide any concrete evidence from the candidate's actual work history (such as their experience at AMP Smart or their background in customer-facing roles) to support the claim that they can "design, test, and iterate on SPIFFs." 
+2. VAGUE/UNFALSIFIABLE CLAIMS: The letter explicitly admits, "I do not have one specific example on file that maps directly onto this posting," which is a failure to demonstrate fit. It relies on vague assertions about "taking the time to learn" rather than connecting the candidate's proven experience in sales consultations and outreach to the specific requirements of the Sales Enablement/SDR role.
+3. RESTATING JOB POSTING: The letter repeats the job posting's language regarding "design, test, and iterate on SPIFFs" without providing any actual strategy or relevant experience that would make the candidate qualified to perform those tasks.
+19:27:28 - INFO - PDF generated: C:\Users\phili\.applypilot\cover_letters\Philip_McLaughlin_Sales_Enablement__SDR_22ac31ed_CL.pdf
+19:27:28 - INFO - 1/1 [OK] | 2.6 jobs/min | Sales Enablement | SDR
+19:27:28 - INFO - Cover letters done in 23.1s: 1 generated, 0 rejected by validation, 0 errors
+
+  Stage 'cover' completed in 23.2s — ok
+
+======================================================================
+      Pipeline Summary      
+┌────────┬────────┬────────┐
+│ Stage  │ Status │   Time │
+├────────┼────────┼────────┤
+│ tailor │ ok     │ 134.9s │
+│ cover  │ ok     │  23.2s │
+│        │        │        │
+│ Total  │        │ 158.1s │
+└────────┴────────┴────────┘
+
+  DB Final State:
+    Total jobs:     32582
+    With desc:      31710
+    Scored:         21098
+    Tailored:       338
+    Cover letters:  128
+    Ready to apply: 8
+    Applied:        1
+======================================================================
+  Log saved: 
+C:\Users\phili\.applypilot\logs\2026-09-15_23-24-49_tailor+cover.log
+

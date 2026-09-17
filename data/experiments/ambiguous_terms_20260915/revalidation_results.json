@@ -1,0 +1,536 @@
+{
+  "ambiguous": [
+    {
+      "url": "https://www.linkedin.com/jobs/view/4458774024",
+      "title": "Field Service Representative (FSR) CLNC",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-ND-JAMESTOWN-P1--2604-Highway-20-N--PLANT-1/Mechanical-Assembler-I_01862044",
+      "title": "Mechanical Assembler I",
+      "truth": 5,
+      "score_17b": 7,
+      "score_8b": 3
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/4457975034",
+      "title": "Field Service Engineer Training Program - Medium & Low Voltage Products",
+      "truth": 5,
+      "score_17b": 9,
+      "score_8b": 3
+    },
+    {
+      "url": "https://boards.greenhouse.io/andurilindustries/jobs/5175392007?gh_jid=5175392007",
+      "title": "Senior Embedded Engineer",
+      "truth": 1,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/4437236650",
+      "title": "Maintenance/Construction Technician II",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://job-boards.greenhouse.io/axon/jobs/7633802003",
+      "title": "Maintenance Engineer II (Onsite)",
+      "truth": 2,
+      "score_17b": 7,
+      "score_8b": 1
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/4445468580",
+      "title": "Manufacturing Maintenance Technician",
+      "truth": 3,
+      "score_17b": 7,
+      "score_8b": 1
+    },
+    {
+      "url": "https://boeing.wd1.myworkdayjobs.com/EXTERNAL_CAREERS/job/USA---Berkeley-MO/Associate-Missions-Systems-Software-Engineer---Embedded_JR2026523431-1",
+      "title": "Associate Missions Systems Software Engineer - Embedded",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://boeing.wd1.myworkdayjobs.com/EXTERNAL_CAREERS/job/USA---Berkeley-MO/Missions-Systems-Software-Engineer---Embedded--Associate--Experienced--Senior-_JR2026494876-2",
+      "title": "Missions Systems Software Engineer - Embedded (Associate, Experienced, Senior)",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/4460548083",
+      "title": "Maintenance Technician III",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://boards.greenhouse.io/andurilindustries/jobs/5206616007?gh_jid=5206616007",
+      "title": "Electrical Maintenance Technician",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-PR-SANTA-ISABEL-B1--Felicia-Industrial-Park---St-B1--BLDG-1/Mechanical-Assembler-II-3rd-Shift--Onsite---Puerto-Rico-_01871851",
+      "title": "Mechanical Assembler II 3rd Shift (Onsite - Puerto Rico)",
+      "truth": 5,
+      "score_17b": 1,
+      "score_8b": 1
+    },
+    {
+      "url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-AZ-PHOENIX-3405--3405-S-5th-St--BLDG-3405/Field-Service-Engineer--Onsite-_01858612",
+      "title": "Field Service Engineer (Onsite)",
+      "truth": 1,
+      "score_17b": 7,
+      "score_8b": 1
+    },
+    {
+      "url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-FL-LARGO-382SS--7887-Bryan-Dairy-Rd--BLDG-100/Embedded-Systems-Security-Engineer--Onsite---Largo--FL-_01852629",
+      "title": "Embedded Systems Security Engineer (Onsite - Largo, FL)",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://intel.wd1.myworkdayjobs.com/External/job/US-Arizona-Phoenix/Equipment-Maintenance-Technician-Night-Shift_JR0286439",
+      "title": "Equipment Maintenance Technician Night Shift",
+      "truth": 1,
+      "score_17b": 9,
+      "score_8b": 3
+    },
+    {
+      "url": "https://boards.greenhouse.io/andurilindustries/jobs/5118040007?gh_jid=5118040007",
+      "title": "Senior Firmware Engineer, Embedded Systems",
+      "truth": 1,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-OK-TINKER-AFB-CUST--3001-Staff-Dr--TINKER-AFB-External-Site/Heavy-Maintenance-Center-Planner-Scheduler_01867694",
+      "title": "Heavy Maintenance Center Planner/Scheduler",
+      "truth": 1,
+      "score_17b": 1,
+      "score_8b": 1
+    },
+    {
+      "url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-IA-CEDAR-RAPIDS-137--855-35Th-St-NE--BLDG-137/Senior-DevSecOps-Engineer---Active-Secret--Onsite-_01832734-1",
+      "title": "Sr. Embedded Software Engineer, DevSecOps Specialist - Active Secret (Onsite)",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/4450746275",
+      "title": "General Building Maintenance Technician",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://boards.greenhouse.io/andurilindustries/jobs/5008965007?gh_jid=5008965007",
+      "title": "Senior Maintenance Technician ",
+      "truth": 1,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://boards.greenhouse.io/andurilindustries/jobs/5212828007?gh_jid=5212828007",
+      "title": "Embedded Software Engineer, Intelligence Systems",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://boards.greenhouse.io/andurilindustries/jobs/5118039007?gh_jid=5118039007",
+      "title": "Firmware Engineer, Embedded Systems",
+      "truth": 1,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://boards.greenhouse.io/andurilindustries/jobs/5043617007?gh_jid=5043617007",
+      "title": "Senior Embedded NixOS Engineer",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://boards.greenhouse.io/andurilindustries/jobs/5195344007?gh_jid=5195344007",
+      "title": "Senior Global Sourcing Manager, Composites (Raw Materials)",
+      "truth": 1,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://job-boards.greenhouse.io/axon/jobs/7791817003",
+      "title": "Embedded Technical Account Manager - El Paso 911 District HQ",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://motorolasolutions.wd5.myworkdayjobs.com/Careers/job/Georgia-Remote-Work/Field-Service-Representative--FSR--I---III_R65154",
+      "title": "Field Service Representative (FSR) I - III",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/4440885204",
+      "title": "Technical Lead Software Engineer (Embedded Linux)",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://boards.greenhouse.io/andurilindustries/jobs/5173437007?gh_jid=5173437007",
+      "title": "Director, Manufacturing Maintenance",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite/job/US-CA-Santa-Clara/Senior-Software-Engineer--Embedded-Platform-Middleware---Automotive-and-Robotics_JR2022103",
+      "title": "Senior Software Engineer, Embedded Platform Middleware \u2014 Automotive and Robotics",
+      "truth": 4,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/4462333052",
+      "title": "Maintenance Tech 3 - Day Shift",
+      "truth": 2,
+      "score_17b": 5,
+      "score_8b": 5
+    },
+    {
+      "url": "https://amazon.jobs/en/jobs/3088035/embedded-senior-software-engineer-project-leo-customer-terminals",
+      "title": "Embedded Senior Software Engineer, Project Leo Customer Terminals",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-CT-EAST-HARTFORD-ETC--400-Main-St--BLDG-ETC/CTS---Hot-Section---Field-Service-Engineer----Onsite_01853225",
+      "title": "Principal Field Service Engineer (Onsite)",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-IA-BELLEVUE-186--1500-State-St--STATE/Electrical-Assembler-I---3rd-Shift--Onsite-_01871702",
+      "title": "Electrical Assembler I - 3rd Shift (Onsite)",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/4435378350",
+      "title": "Maintenance Technician",
+      "truth": 4,
+      "score_17b": 3,
+      "score_8b": 3
+    },
+    {
+      "url": "https://boards.greenhouse.io/andurilindustries/jobs/5182286007?gh_jid=5182286007",
+      "title": "Senior Manufacturing Engineer - Composites",
+      "truth": 1,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://amazon.jobs/en/jobs/3136145/sr-embedded-software-engineer-leo-payload-radio",
+      "title": "Sr. Embedded Software Engineer, Leo Payload Radio",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://boards.greenhouse.io/andurilindustries/jobs/5201030007?gh_jid=5201030007",
+      "title": "Senior Embedded Software Engineer",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-GA-ATLANTA-100--100-Galleria-Pkwy-SE--GALLERIA/Principal-Embedded-Software-Engineer--Onsite_01856031",
+      "title": "Principal Embedded Software Engineer, Onsite",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://motorolasolutions.wd5.myworkdayjobs.com/Careers/job/Winchester-Virginia-VA42/Field-Service-Technician---Winchester--VA_R66638",
+      "title": "Field Service Technician - Winchester, VA",
+      "truth": 1,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/4444977514",
+      "title": "General Maintenance Technician II",
+      "truth": 2,
+      "score_17b": 9,
+      "score_8b": 5
+    },
+    {
+      "url": "https://motorolasolutions.wd5.myworkdayjobs.com/Careers/job/NSW-Offsite-Australia/Silvus-International-Field-Service-Representative---Australia_R63457",
+      "title": "Silvus International Field Service Representative \u2013 Australia",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://boeing.wd1.myworkdayjobs.com/EXTERNAL_CAREERS/job/USA---Oklahoma-City-OK/Maintenance-and-Pre-Planning-Engineer--Mid---Level-_JR2026513858-1",
+      "title": "Maintenance and Pre-Planning Engineer (Mid - Level)",
+      "truth": 1,
+      "score_17b": 3,
+      "score_8b": 3
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/4460405271",
+      "title": "Field Service Supervisor",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://boards.greenhouse.io/andurilindustries/jobs/5186084007?gh_jid=5186084007",
+      "title": "Senior Firmware Engineer, Space Embedded Systems",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://motorolasolutions.wd5.myworkdayjobs.com/Careers/job/Manchester-NH-NH05/Technical-Support---Installation-Representative_R63799",
+      "title": "Field Services Technician",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://boards.greenhouse.io/andurilindustries/jobs/5163553007?gh_jid=5163553007",
+      "title": "Senior Embedded Linux Engineer",
+      "truth": 1,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://motorolasolutions.wd5.myworkdayjobs.com/Careers/job/Liverpool-NY---Warehouse-NY53/Field-Service-Technician--Syracuse--NY--2026-Co-Op-Program_R60248",
+      "title": "Field Service Technician (Syracuse, NY) 2026 Co-Op Program",
+      "truth": 1,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://jobs.ashbyhq.com/deepgram/0b7494b3-a91e-4540-9439-5b10a1e5b391",
+      "title": "Embedded AI Engineer, On-Device Models",
+      "truth": 1,
+      "score_17b": 1,
+      "score_8b": 1
+    },
+    {
+      "url": "https://boards.greenhouse.io/andurilindustries/jobs/5130692007?gh_jid=5130692007",
+      "title": "Senior Global Sourcing Manager, Composites",
+      "truth": 1,
+      "score_17b": 2,
+      "score_8b": 2
+    },
+    {
+      "url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-TX-MCKINNEY-513WD--2501-W-University-Dr--WING-D-BLDG/Software-Engineer-II---Embedded-Software_01870006",
+      "title": "Software Engineer II - Embedded Software",
+      "truth": 2,
+      "score_17b": 2,
+      "score_8b": 2
+    }
+  ],
+  "non_ambiguous": [
+    {
+      "url": "https://databricks.com/company/careers/open-positions/job?gh_jid=8445817002",
+      "title": "Manager, Forward Deployed Engineering",
+      "truth": 2,
+      "score_17b": 2
+    },
+    {
+      "url": "https://job-boards.greenhouse.io/axon/jobs/7820312003",
+      "title": "Business Solutions Architect: Accounting Systems",
+      "truth": 2,
+      "score_17b": 2
+    },
+    {
+      "url": "https://boards.greenhouse.io/andurilindustries/jobs/5185207007?gh_jid=5185207007",
+      "title": "Contracts Manager",
+      "truth": 1,
+      "score_17b": 2
+    },
+    {
+      "url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-CT-WINDSOR-LOCKS-B2--1-Hamilton-Rd--BLDG-2/Defense-Maritime-Principal-Project-Engineer--Onsite-_01858461-1",
+      "title": "Defense Maritime Principal Project Engineer (Onsite)",
+      "truth": 2,
+      "score_17b": 2
+    },
+    {
+      "url": "https://boards.greenhouse.io/andurilindustries/jobs/4653705007?gh_jid=4653705007",
+      "title": "Systems Engineer, Mission Autonomy, Active Clearance",
+      "truth": 2,
+      "score_17b": 2
+    },
+    {
+      "url": "https://databricks.com/company/careers/open-positions/job?gh_jid=6328361002",
+      "title": "Solutions Architect - Emerging Enterprise",
+      "truth": 4,
+      "score_17b": 2
+    },
+    {
+      "url": "https://zillow.wd5.myworkdayjobs.com/Zillow_Group_External/job/Remote-Germany/Machine-Learning-Engineer_P750556-1",
+      "title": "Machine Learning Engineer",
+      "truth": 2,
+      "score_17b": 3
+    },
+    {
+      "url": "https://stripe.com/jobs/search?gh_jid=7393169",
+      "title": "Account Executive, Product Sales, Billing",
+      "truth": 2,
+      "score_17b": 9
+    },
+    {
+      "url": "https://startup.jobs/backend-developer-intern-eulerity-9838792",
+      "title": "Backend Developer Intern",
+      "truth": 2,
+      "score_17b": 2
+    },
+    {
+      "url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Ewing-225-Phillips-Blvd-MS/Epic-Wisdom-Lead---6364302_14499563",
+      "title": "Epic Wisdom Lead - 6364302",
+      "truth": 2,
+      "score_17b": 2
+    },
+    {
+      "url": "https://jobs.ashbyhq.com/ashby/9304472c-7233-4091-be2e-ac98b7fd3131",
+      "title": "Manager, Employee Events",
+      "truth": 2,
+      "score_17b": 2
+    },
+    {
+      "url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Pune/Custom-Software-Engineer_ATCI-5731611-S2066137-1",
+      "title": "Custom Software Engineer",
+      "truth": 1,
+      "score_17b": 1
+    },
+    {
+      "url": "https://boards.greenhouse.io/andurilindustries/jobs/5101387007?gh_jid=5101387007",
+      "title": "Senior Electrical Engineer, Intelligence Systems",
+      "truth": 1,
+      "score_17b": 2
+    },
+    {
+      "url": "https://amazon.jobs/en/jobs/10529065/software-development-engineer-dash",
+      "title": "Software Development Engineer, DASH",
+      "truth": 1,
+      "score_17b": 5
+    },
+    {
+      "url": "https://tasklet.ai/careers",
+      "title": "Head of Design Engineering",
+      "truth": 2,
+      "score_17b": 2
+    },
+    {
+      "url": "https://builtin.com/job/senior-software-engineer-file-system/9690777",
+      "title": "Senior Software Engineer &#x2014; File System",
+      "truth": 2,
+      "score_17b": 2
+    },
+    {
+      "url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-CA-REMOTE/Supplier-Quality-Engineer--Principal--Remote-_01858436",
+      "title": "Supplier Quality Engineer, Principal (Remote)",
+      "truth": 2,
+      "score_17b": 2
+    },
+    {
+      "url": "https://job-boards.greenhouse.io/bandwidth/jobs/8097277",
+      "title": "Lead Toddler Guide",
+      "truth": 1,
+      "score_17b": 2
+    },
+    {
+      "url": "https://job-boards.greenhouse.io/axon/jobs/7824572003",
+      "title": "Mission Engineer - Albany",
+      "truth": 4,
+      "score_17b": 2
+    },
+    {
+      "url": "https://databricks.com/company/careers/open-positions/job?gh_jid=8645429002",
+      "title": "Sr. Counsel, Privacy Compliance",
+      "truth": 1,
+      "score_17b": 2
+    },
+    {
+      "url": "https://builtin.com/job/software-engineer/9787294",
+      "title": "Senior Software Engineer - Blockchain Network",
+      "truth": 2,
+      "score_17b": 2
+    },
+    {
+      "url": "https://www.pinterestcareers.com/jobs/?gh_jid=8026862",
+      "title": "Lead Client Partner, Brand Sales (tvScientific) ",
+      "truth": 1,
+      "score_17b": 2
+    },
+    {
+      "url": "https://boeing.wd1.myworkdayjobs.com/EXTERNAL_CAREERS/job/USA---North-Charleston-SC/JR2026514236-Mid-Level-Structural-Analysis-Engineer---Wing---Empennage_JR2026514236-1",
+      "title": "Mid-Level Structural Analysis Engineer \u2013 Wing & Empennage",
+      "truth": 1,
+      "score_17b": 7
+    },
+    {
+      "url": "https://builtin.com/job/senior-software-engineer/10495014",
+      "title": "Senior  Software Engineer",
+      "truth": 2,
+      "score_17b": 2
+    },
+    {
+      "url": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/job/Bengaluru/Technology-Support-Engineer_ATCI-5687582-S2059755-1",
+      "title": "Application Support Engineer",
+      "truth": 2,
+      "score_17b": 1
+    },
+    {
+      "url": "https://www.linkedin.com/jobs/view/4451936457",
+      "title": "Deskside Technician",
+      "truth": 2,
+      "score_17b": 3
+    },
+    {
+      "url": "https://globalhr.wd5.myworkdayjobs.com/REC_RTX_Ext_Gateway/job/US-CO-BUCKLEY-SFB-CUST--18500-E-6th-Ave--BUCKLEY-SFB-External-Site/Senior-Systems-Engineer---Signals-Analyst--Onsite-_01863411",
+      "title": "Senior Systems Engineer - Signals Analyst (Onsite)",
+      "truth": 2,
+      "score_17b": 2
+    },
+    {
+      "url": "https://cisco.wd5.myworkdayjobs.com/Cisco_Careers/job/Miami-Florida-US/Solutions-Engineer_2021682-1",
+      "title": "Solutions Engineer",
+      "truth": 2,
+      "score_17b": 5
+    },
+    {
+      "url": "https://boards.greenhouse.io/andurilindustries/jobs/5199325007?gh_jid=5199325007",
+      "title": "International Deployment Manager, Middle East",
+      "truth": 3,
+      "score_17b": 2
+    },
+    {
+      "url": "https://job-boards.greenhouse.io/relativity/jobs/8633353002",
+      "title": "Software Engineer",
+      "truth": 2,
+      "score_17b": 3
+    }
+  ]
+}

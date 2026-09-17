@@ -1,0 +1,120 @@
+local/qwen3:8b (native) timeout, retry in 1s
+local/qwen3:8b (native) timeout, retry in 2s
+local/qwen3:1.7b (native) timeout, retry in 1s
+local/qwen3:8b (native) timeout, retry in 1s
+local/qwen3:8b (native) timeout, retry in 1s
+local/qwen3:8b (native) timeout, retry in 1s
+local/qwen3:1.7b (native) timeout, retry in 1s
+local/qwen3:1.7b (native) timeout, retry in 2s
+local/qwen3:8b (native) timeout, retry in 1s
+local/qwen3:8b (native) timeout, retry in 2s
+local/qwen3:1.7b (native) timeout, retry in 1s
+local/qwen3:8b (native) timeout, retry in 1s
+local/qwen3:8b (native) timeout, retry in 2s
+local/qwen3:8b (native) timeout, retry in 1s
+local/qwen3:8b (native) timeout, retry in 2s
+Eligible ground-truth pool (fresh, held-out): 12846
+  ambiguous-titled: 241  non-ambiguous: 12605
+Sampling 50 ambiguous + 30 non-ambiguous jobs.
+
+[1/80] AMBIGUOUS 'Field Service Representative (FSR) CLNC' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[2/80] AMBIGUOUS 'Mechanical Assembler I' truth=5 1.7b=7 (12s) 8b=3 (370s)
+[3/80] AMBIGUOUS 'Field Service Engineer Training Program - Medium & Low Voltage Products' truth=5 1.7b=9 (144s) 8b=3 (107s)
+[4/80] AMBIGUOUS 'Senior Embedded Engineer' truth=1 1.7b=2 (0s) 8b=2 (0s)
+[5/80] AMBIGUOUS 'Maintenance/Construction Technician II' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[6/80] AMBIGUOUS 'Maintenance Engineer II (Onsite)' truth=2 1.7b=7 (39s) 8b=1 (151s)
+[7/80] AMBIGUOUS 'Manufacturing Maintenance Technician' truth=3 1.7b=7 (37s) 8b=1 (103s)
+[8/80] AMBIGUOUS 'Associate Missions Systems Software Engineer - Embedded' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[9/80] AMBIGUOUS 'Missions Systems Software Engineer - Embedded (Associate, Experienced, Senior)' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[10/80] AMBIGUOUS 'Maintenance Technician III' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[11/80] AMBIGUOUS 'Electrical Maintenance Technician' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[12/80] AMBIGUOUS 'Mechanical Assembler II 3rd Shift (Onsite - Puerto Rico)' truth=5 1.7b=1 (43s) 8b=1 (122s)
+[13/80] AMBIGUOUS 'Field Service Engineer (Onsite)' truth=1 1.7b=7 (114s) 8b=1 (194s)
+[14/80] AMBIGUOUS 'Embedded Systems Security Engineer (Onsite - Largo, FL)' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[15/80] AMBIGUOUS 'Equipment Maintenance Technician Night Shift' truth=1 1.7b=9 (35s) 8b=3 (97s)
+[16/80] AMBIGUOUS 'Senior Firmware Engineer, Embedded Systems' truth=1 1.7b=2 (0s) 8b=2 (0s)
+[17/80] AMBIGUOUS 'Heavy Maintenance Center Planner/Scheduler' truth=1 1.7b=1 (34s) 8b=1 (141s)
+[18/80] AMBIGUOUS 'Sr. Embedded Software Engineer, DevSecOps Specialist - Active Secret (Onsite)' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[19/80] AMBIGUOUS 'General Building Maintenance Technician' truth=2 1.7b=2 (1s) 8b=2 (1s)
+[20/80] AMBIGUOUS 'Senior Maintenance Technician ' truth=1 1.7b=2 (0s) 8b=2 (0s)
+[21/80] AMBIGUOUS 'Embedded Software Engineer, Intelligence Systems' truth=2 1.7b=2 (1s) 8b=2 (1s)
+[22/80] AMBIGUOUS 'Firmware Engineer, Embedded Systems' truth=1 1.7b=2 (0s) 8b=2 (0s)
+[23/80] AMBIGUOUS 'Senior Embedded NixOS Engineer' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[24/80] AMBIGUOUS 'Senior Global Sourcing Manager, Composites (Raw Materials)' truth=1 1.7b=2 (0s) 8b=2 (0s)
+[25/80] AMBIGUOUS 'Embedded Technical Account Manager - El Paso 911 District HQ' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[26/80] AMBIGUOUS 'Field Service Representative (FSR) I - III' truth=2 1.7b=2 (1s) 8b=2 (0s)
+[27/80] AMBIGUOUS 'Technical Lead Software Engineer (Embedded Linux)' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[28/80] AMBIGUOUS 'Director, Manufacturing Maintenance' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[29/80] AMBIGUOUS 'Senior Software Engineer, Embedded Platform Middleware — Automotive and Robotics' truth=4 1.7b=2 (0s) 8b=2 (0s)
+[30/80] AMBIGUOUS 'Maintenance Tech 3 - Day Shift' truth=2 1.7b=5 (299s) 8b=5 (373s)
+[31/80] AMBIGUOUS 'Embedded Senior Software Engineer, Project Leo Customer Terminals' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[32/80] AMBIGUOUS 'Principal Field Service Engineer (Onsite)' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[33/80] AMBIGUOUS 'Electrical Assembler I - 3rd Shift (Onsite)' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[34/80] AMBIGUOUS 'Maintenance Technician' truth=4 1.7b=3 (131s) 8b=3 (370s)
+[35/80] AMBIGUOUS 'Senior Manufacturing Engineer - Composites' truth=1 1.7b=2 (0s) 8b=2 (0s)
+[36/80] AMBIGUOUS 'Sr. Embedded Software Engineer, Leo Payload Radio' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[37/80] AMBIGUOUS 'Senior Embedded Software Engineer' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[38/80] AMBIGUOUS 'Principal Embedded Software Engineer, Onsite' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[39/80] AMBIGUOUS 'Field Service Technician - Winchester, VA' truth=1 1.7b=2 (0s) 8b=2 (0s)
+[40/80] AMBIGUOUS 'General Maintenance Technician II' truth=2 1.7b=9 (110s) 8b=5 (370s)
+[41/80] AMBIGUOUS 'Silvus International Field Service Representative – Australia' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[42/80] AMBIGUOUS 'Maintenance and Pre-Planning Engineer (Mid - Level)' truth=1 1.7b=3 (80s) 8b=3 (92s)
+[43/80] AMBIGUOUS 'Field Service Supervisor' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[44/80] AMBIGUOUS 'Senior Firmware Engineer, Space Embedded Systems' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[45/80] AMBIGUOUS 'Field Services Technician' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[46/80] AMBIGUOUS 'Senior Embedded Linux Engineer' truth=1 1.7b=2 (0s) 8b=2 (0s)
+[47/80] AMBIGUOUS 'Field Service Technician (Syracuse, NY) 2026 Co-Op Program' truth=1 1.7b=2 (0s) 8b=2 (0s)
+[48/80] AMBIGUOUS 'Embedded AI Engineer, On-Device Models' truth=1 1.7b=1 (39s) 8b=1 (107s)
+[49/80] AMBIGUOUS 'Senior Global Sourcing Manager, Composites' truth=1 1.7b=2 (0s) 8b=2 (0s)
+[50/80] AMBIGUOUS 'Software Engineer II - Embedded Software' truth=2 1.7b=2 (0s) 8b=2 (0s)
+[51/80] non-ambig 'Manager, Forward Deployed Engineering' truth=2 1.7b=2 (0s)
+[52/80] non-ambig 'Business Solutions Architect: Accounting Systems' truth=2 1.7b=2 (0s)
+[53/80] non-ambig 'Contracts Manager' truth=1 1.7b=2 (0s)
+[54/80] non-ambig 'Defense Maritime Principal Project Engineer (Onsite)' truth=2 1.7b=2 (0s)
+[55/80] non-ambig 'Systems Engineer, Mission Autonomy, Active Clearance' truth=2 1.7b=2 (0s)
+[56/80] non-ambig 'Solutions Architect - Emerging Enterprise' truth=4 1.7b=2 (0s)
+[57/80] non-ambig 'Machine Learning Engineer' truth=2 1.7b=3 (28s)
+[58/80] non-ambig 'Account Executive, Product Sales, Billing' truth=2 1.7b=9 (21s)
+[59/80] non-ambig 'Backend Developer Intern' truth=2 1.7b=2 (0s)
+[60/80] non-ambig 'Epic Wisdom Lead - 6364302' truth=2 1.7b=2 (0s)
+[61/80] non-ambig 'Manager, Employee Events' truth=2 1.7b=2 (0s)
+[62/80] non-ambig 'Custom Software Engineer' truth=1 1.7b=1 (19s)
+[63/80] non-ambig 'Senior Electrical Engineer, Intelligence Systems' truth=1 1.7b=2 (0s)
+[64/80] non-ambig 'Software Development Engineer, DASH' truth=1 1.7b=5 (25s)
+[65/80] non-ambig 'Head of Design Engineering' truth=2 1.7b=2 (0s)
+[66/80] non-ambig 'Senior Software Engineer &#x2014; File System' truth=2 1.7b=2 (0s)
+[67/80] non-ambig 'Supplier Quality Engineer, Principal (Remote)' truth=2 1.7b=2 (0s)
+[68/80] non-ambig 'Lead Toddler Guide' truth=1 1.7b=2 (0s)
+[69/80] non-ambig 'Mission Engineer - Albany' truth=4 1.7b=2 (0s)
+[70/80] non-ambig 'Sr. Counsel, Privacy Compliance' truth=1 1.7b=2 (0s)
+[71/80] non-ambig 'Senior Software Engineer - Blockchain Network' truth=2 1.7b=2 (0s)
+[72/80] non-ambig 'Lead Client Partner, Brand Sales (tvScientific) ' truth=1 1.7b=2 (0s)
+[73/80] non-ambig 'Mid-Level Structural Analysis Engineer – Wing & Empennage' truth=1 1.7b=7 (32s)
+[74/80] non-ambig 'Senior  Software Engineer' truth=2 1.7b=2 (0s)
+[75/80] non-ambig 'Application Support Engineer' truth=2 1.7b=1 (28s)
+[76/80] non-ambig 'Deskside Technician' truth=2 1.7b=3 (111s)
+[77/80] non-ambig 'Senior Systems Engineer - Signals Analyst (Onsite)' truth=2 1.7b=2 (0s)
+[78/80] non-ambig 'Solutions Engineer' truth=2 1.7b=5 (63s)
+[79/80] non-ambig 'International Deployment Manager, Middle East' truth=3 1.7b=2 (0s)
+[80/80] non-ambig 'Software Engineer' truth=2 1.7b=3 (9s)
+
+Total elapsed: 68.1 min
+
+=== Ambiguous-title slice (n=50) ===
+1.7b-alone gate agreement: 0.94
+8b-alone gate agreement:   1.0
+(hybrid == 8b-alone on this slice by construction)
+
+=== Non-ambiguous slice (n=30) ===
+1.7b-alone gate agreement: 0.9666666666666667
+(hybrid == 1.7b-alone on this slice by construction)
+
+=== Overall (blended, n=80) ===
+1.7b-alone overall gate agreement: 0.95
+hybrid overall gate agreement:     0.9875
+
+=== Bootstrap 95% CI, ambiguous-title slice only ===
+1.7b-alone: 0.940 CI=(0.86, 1.0)
+8b-alone (=hybrid on this slice): 1.000 CI=(1.0, 1.0)
+
+Full results written to C:\Users\phili\Projects\resume-agent\data\experiments\ambiguous_terms_20260915\revalidation_results.json
