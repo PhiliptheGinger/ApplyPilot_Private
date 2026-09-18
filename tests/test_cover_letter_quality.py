@@ -106,23 +106,32 @@ def test_good_letter_passes():
     assert result["passed"], result["errors"]
 
 
+# 2026-09-18: CL_BANNED_PATTERNS was emptied per explicit user instruction --
+# cliche/buzzword phrasing (as opposed to a factual claim about experience)
+# is acceptable to this user in a cover letter, and this list was also a
+# confirmed real cause of degraded-mode letters coming up short on word
+# count (the local editor kept reaching for "demonstrate", exhausting all 3
+# retries against this list every time -- decision #161's Field Sales
+# Representative batch). These phrases now correctly PASS -- this test used
+# to pin the opposite (ERROR-tier rejection); see validator.py's
+# CL_BANNED_PATTERNS comment for the full history if this ever needs to be
+# scoped back to fabrication-adjacent phrasing only.
 @pytest.mark.parametrize(
-    "phrase,label",
+    "phrase",
     [
-        ("This role aligns with my background in distributed systems work.", "align with"),
-        ("My background aligned with the posting requirements from day one.", "align with"),
-        ("These experiences demonstrate my ability to lead reliable teams.", "demonstrate"),
-        ("I demonstrated a forty percent uptime improvement last quarter alone.", "demonstrate"),
-        ("Happy to walk through the migration details on a call.", "happy to walk through"),
-        ("Happy to walk you through the on-call setup sometime soon.", "happy to walk through"),
-        ("The mission really resonates with the work I have done.", "resonate"),
+        "This role aligns with my background in distributed systems work.",
+        "My background aligned with the posting requirements from day one.",
+        "These experiences demonstrate my ability to lead reliable teams.",
+        "I demonstrated a forty percent uptime improvement last quarter alone.",
+        "Happy to walk through the migration details on a call.",
+        "Happy to walk you through the on-call setup sometime soon.",
+        "The mission really resonates with the work I have done.",
     ],
 )
-def test_banned_patterns_are_errors(phrase, label):
+def test_former_banned_patterns_no_longer_rejected(phrase):
     letter = GOOD.replace("Jordan", phrase + "\n\nJordan")
     result = validate_cover_letter(letter)
-    assert not result["passed"]
-    assert any(label in e for e in result["errors"]), result["errors"]
+    assert result["passed"], result["errors"]
 
 
 def test_plain_walkthrough_word_not_banned():

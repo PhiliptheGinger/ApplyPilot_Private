@@ -79,12 +79,23 @@ BANNED_WORDS: list[str] = [
 # variants ("aligns with", "These experiences demonstrate", "resonates") can't
 # slip past plain-substring matching the way they did in ~28% of generated
 # letters before this existed.
-CL_BANNED_PATTERNS: list[tuple[str, str]] = [
-    ("align with", r"\balign(s|ed|ing)?\s+with\b"),
-    ("demonstrate", r"\bdemonstrat\w*\b"),
-    ("happy to walk through", r"\bhappy to walk (you\s+)?through\b"),
-    ("resonate", r"\bresonat\w*\b"),
-]
+#
+# 2026-09-18: emptied per explicit user instruction -- cliche/buzzword
+# phrasing in a COVER LETTER (as opposed to a factual claim about the
+# candidate's experience) is acceptable to this user, full stop. This was
+# also a real, confirmed root cause of the "demonstrate" retry-exhaustion
+# failures found in the 2026-09-18 cover-letter batch (decision #161): the
+# local editor kept reaching for "demonstrate" when polishing sales-evidence
+# sentences, exhausted all 3 retries against this list every time, and fell
+# back to a shorter/unedited sentence -- contributing to several of those
+# letters landing under the 260-word floor. Left as a real (not deleted)
+# list, still wired through check_banned_patterns/select_and_edit_bank_
+# bullets/polish_filler_with_retry unchanged, so re-populating it later (or
+# scoping it back to fabrication-adjacent phrasing only) needs no plumbing
+# changes -- just entries. Does NOT touch BANNED_WORDS (resume clichés,
+# already warn-only, unaffected) or any fabrication/claim-tier check --
+# those are about factual accuracy, not style, and stay exactly as strict.
+CL_BANNED_PATTERNS: list[tuple[str, str]] = []
 
 LLM_LEAK_PHRASES: list[str] = [
     "i am sorry",

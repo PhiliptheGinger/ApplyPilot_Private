@@ -1907,6 +1907,11 @@ class TestOpinionFillerPoolsCarryNoFactualClaims(unittest.TestCase):
         return {
             "_FIT_ENTHUSIASM_VARIANTS": local_tailor._FIT_ENTHUSIASM_VARIANTS,
             "_CLOSE_VALUES_VARIANTS": local_tailor._CLOSE_VALUES_VARIANTS,
+            # 2026-09-18: the third opinion/attitude pool, used by
+            # _stretch_to_min_words when the first two aren't enough to
+            # clear the word-count floor -- same "never a factual claim"
+            # discipline, held to the same quality bar.
+            "_STRETCH_VARIANTS": local_tailor._STRETCH_VARIANTS,
         }
 
     def test_no_variant_contains_a_digit(self):

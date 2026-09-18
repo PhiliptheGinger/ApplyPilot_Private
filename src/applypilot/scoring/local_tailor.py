@@ -4045,6 +4045,81 @@ _CLOSE_VALUES_VARIANTS = [
 ]
 
 
+# Deliberately a plain local constant, not an import of validator.py's
+# private _CL_TARGET_MIN_WORDS -- stretching toward the actual 300-400 target
+# band (not just barely over the 260 floor) gives real margin, and keeping
+# this module's own default independent avoids a private cross-module
+# coupling for a value only loosely required to match.
+_STRETCH_TARGET_WORDS = 300
+
+# 2026-09-18 (explicit user request): _FIT_ENTHUSIASM_VARIANTS/_CLOSE_VALUES_
+# VARIANTS above are a FIXED, single-sentence addition per letter -- for a
+# job with genuinely thin real evidence (0-1 supported requirements), that
+# fixed amount isn't always enough to clear the 260-word floor (a real,
+# reproducible batch of 6 "Field Sales Representative" postings landed
+# 249-259 words despite it). The user's explicit instruction: it's fine to
+# add MORE opinion/preference content to close the gap, since none of this
+# is a factual claim about experience -- it can't be "fabricated" in the
+# sense the claim/agency/causal/metric checks care about, same reasoning as
+# the two pools above. This is a genuine escalation, not a bigger version of
+# the same thing: distinct wording so a stretched letter doesn't just repeat
+# itself, and bounded (see _stretch_to_min_words) so it adds real length
+# without runaway growth on jobs that need it and does nothing at all on
+# jobs that don't.
+_STRETCH_VARIANTS = [
+    "I also want to be direct about how I work day to day: I would rather ask a clarifying question "
+    "up front than guess and redo something later, and I keep track of what I commit to so nothing "
+    "quietly falls through the cracks.",
+    "One more thing worth saying plainly: I do not need everything spelled out before I start -- give "
+    "me the actual goal and I will work out the steps, checking in when something is genuinely "
+    "ambiguous rather than guessing blindly.",
+    "It is also worth saying that I take feedback as information, not as a verdict -- if something "
+    "I did needs to change, I would rather hear that early and adjust than find out much later that "
+    "it mattered.",
+    "I will also say that consistency matters more to me than a strong first impression -- I would "
+    "rather be the person who is still reliably showing up and delivering three months in than the "
+    "one who peaked in week one.",
+]
+
+
+def _stretch_to_min_words(
+    paragraphs: list[str],
+    job_url: str,
+    min_words: int = _STRETCH_TARGET_WORDS,
+    max_extra: int = 2,
+) -> list[str]:
+    """If the composed letter is short of `min_words`, append additional
+    genuine opinion/preference sentences (never a fact, never bank/evidence
+    content) to the CLOSE paragraph until it clears the floor or
+    `max_extra` sentences have been added, whichever comes first.
+
+    Bounded and deterministic per job (same seeding discipline as
+    _pick_variant) -- a job that already clears the floor gets zero
+    additions, a thin job gets only as many as it actually needs.
+    """
+    body_words = sum(len(p.split()) for p in paragraphs)
+    if body_words >= min_words:
+        return paragraphs
+
+    stretched = list(paragraphs)
+    used: set[int] = set()
+    for i in range(max_extra):
+        if sum(len(p.split()) for p in stretched) >= min_words:
+            break
+        seed = f"{job_url}:stretch:{i}"
+        idx = int(hashlib.sha256(seed.encode("utf-8")).hexdigest(), 16) % len(_STRETCH_VARIANTS)
+        # Avoid picking the same variant twice in the rare case two seeds
+        # hash to the same index -- walk forward to the next unused one.
+        original_idx = idx
+        while idx in used:
+            idx = (idx + 1) % len(_STRETCH_VARIANTS)
+            if idx == original_idx:
+                break
+        used.add(idx)
+        stretched[-1] = f"{stretched[-1]} {_STRETCH_VARIANTS[idx]}"
+    return stretched
+
+
 def _pick_variant(variants: list[str], seed: str) -> str:
     """Deterministic phrase-variety selection: the SAME (job, slot) pair
     always picks the SAME option (stable across retries/re-runs of the
@@ -4349,6 +4424,7 @@ def compose_degraded_cover_letter(
     evidence_sentences, evidence_used, fully_covered = _gather_evidence_sentences(client, job_schema, profile)
 
     paragraphs = _build_degraded_cover_paragraphs(job, job_schema, requirements, evidence_sentences, client=client)
+    paragraphs = _stretch_to_min_words(paragraphs, job.get("url", ""))
     body = "\n\n".join(paragraphs)
     letter = f"Dear Hiring Manager,\n\n{body}\n\n{sign_off_name}".strip()
 

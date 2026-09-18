@@ -305,12 +305,25 @@ def test_gather_evidence_sentences_passes_cl_banned_patterns_to_bank_selector(mo
     assert captured["banned_patterns"] == CL_BANNED_PATTERNS
 
 
-def test_gather_evidence_sentences_drops_a_bank_sentence_containing_a_banned_phrase(monkeypatch):
+# 2026-09-18: CL_BANNED_PATTERNS was emptied per explicit user instruction
+# (validator.py's own comment has the full history) -- style/cliche phrasing
+# like "demonstrate" is no longer rejected in a real run. The DROP MECHANISM
+# itself (a candidate sentence matching a configured pattern gets skipped,
+# not patched) is still real and still worth covering in case the list is
+# ever repopulated, so these two tests now monkeypatch a fake pattern list
+# in directly rather than relying on the real (now-empty) production list.
+
+
+def test_gather_evidence_sentences_drops_a_bank_sentence_matching_a_configured_pattern(monkeypatch):
     """Belt-and-suspenders: even if select_and_edit_bank_bullets somehow
-    returns a sentence containing a banned phrase (e.g. the editor's
-    fallback-to-original path doesn't itself re-check the original),
-    _gather_evidence_sentences must never ship it -- it should be dropped,
-    not patched, and a clean alternative used instead."""
+    returns a sentence matching a configured banned pattern (e.g. the
+    editor's fallback-to-original path doesn't itself re-check the
+    original), _gather_evidence_sentences must never ship it -- it should be
+    dropped, not patched, and a clean alternative used instead."""
+    monkeypatch.setattr(
+        "applypilot.scoring.validator.CL_BANNED_PATTERNS",
+        [("demonstrate", r"\bdemonstrat\w*\b")],
+    )
     monkeypatch.setattr(
         local_tailor,
         "select_and_edit_bank_bullets",
@@ -329,10 +342,14 @@ def test_gather_evidence_sentences_drops_a_bank_sentence_containing_a_banned_phr
     assert any("diagnosed and repaired" in s.lower() for s in sentences)
 
 
-def test_gather_evidence_sentences_drops_a_fallback_sentence_containing_a_banned_phrase(monkeypatch):
+def test_gather_evidence_sentences_drops_a_fallback_sentence_matching_a_configured_pattern(monkeypatch):
     """Same guarantee for the raw source_facts fallback path (no bank at
     all) -- a real profile responsibility line could in principle contain
     one of these words too."""
+    monkeypatch.setattr(
+        "applypilot.scoring.validator.CL_BANNED_PATTERNS",
+        [("demonstrate", r"\bdemonstrat\w*\b")],
+    )
     monkeypatch.setattr(local_tailor, "select_and_edit_bank_bullets", lambda client, job_schema, profile, **_kwargs: ({}, False))
     profile_with_banned_fact = {
         **PROFILE,
