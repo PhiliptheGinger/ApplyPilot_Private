@@ -178,3 +178,52 @@ class TestPromptDocFormat:
             if re.search(r"\bPDF\b", ln) and "path above" in ln.lower() or "cover letter pdf" in ln.lower()
         ]
         assert not hits, f"Hard-coded PDF instructions resurfaced: {hits}"
+
+
+class TestPromptDocFormatFallback:
+    """2026-09-17: a real apply run hard-failed on every one of 13 real
+    ready_to_apply jobs -- build_prompt requested the CLI-default format
+    (pdf, per decision #132) but the resume on disk only existed as .docx
+    (tailored under an earlier session's docx default), and there was no
+    fallback at all. Pins the fix: build_prompt now falls back to whatever
+    format actually exists rather than hard-failing."""
+
+    def test_requested_pdf_missing_falls_back_to_docx_on_disk(self, tmp_path, monkeypatch):
+        _setup_paths(tmp_path, monkeypatch)
+        resume_txt = _make_resume(tmp_path, "docx")
+        _mock_db_calls(monkeypatch)
+
+        from applypilot.apply.prompt import build_prompt
+
+        job = _build_job(resume_txt)
+        result = build_prompt(job, tailored_resume="Resume text", doc_format="pdf")
+
+        assert "browser_file_upload with the DOCX path above" in result
+        assert result.count(".docx") >= 1
+
+    def test_requested_docx_missing_falls_back_to_pdf_on_disk(self, tmp_path, monkeypatch):
+        _setup_paths(tmp_path, monkeypatch)
+        resume_txt = _make_resume(tmp_path, "pdf")
+        _mock_db_calls(monkeypatch)
+
+        from applypilot.apply.prompt import build_prompt
+
+        job = _build_job(resume_txt)
+        result = build_prompt(job, tailored_resume="Resume text", doc_format="docx")
+
+        assert "browser_file_upload with the PDF path above" in result
+
+    def test_neither_format_present_raises_clear_error(self, tmp_path, monkeypatch):
+        _setup_paths(tmp_path, monkeypatch)
+        resume_dir = tmp_path / "tailored"
+        resume_dir.mkdir()
+        txt = resume_dir / "acme_senior_engineer_missing.txt"
+        txt.write_text("Test User\n", encoding="utf-8")
+        _mock_db_calls(monkeypatch)
+
+        from applypilot.apply.prompt import build_prompt
+        import pytest
+
+        job = _build_job(txt)
+        with pytest.raises(ValueError, match="not found in any format"):
+            build_prompt(job, tailored_resume="Resume text", doc_format="pdf")

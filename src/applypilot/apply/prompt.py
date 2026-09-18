@@ -755,7 +755,18 @@ def build_prompt(
 
     src_doc = Path(resume_path).with_suffix(doc_ext).resolve()
     if not src_doc.exists():
-        raise ValueError(f"Resume {doc_format.upper()} not found: {src_doc}")
+        # Fall back to whatever format actually exists on disk -- a resume
+        # tailored under a different doc_format default (e.g. decision #132
+        # flipped the CLI default from docx to pdf; older resumes on disk
+        # were only ever generated as docx) shouldn't hard-fail apply when
+        # the content is right there under the other extension.
+        for alt_format in ("pdf", "docx"):
+            alt_doc = Path(resume_path).with_suffix(f".{alt_format}").resolve()
+            if alt_doc.exists():
+                src_doc, doc_format, doc_ext = alt_doc, alt_format, f".{alt_format}"
+                break
+        else:
+            raise ValueError(f"Resume not found in any format ({resume_path})")
 
     # Copy to a clean filename for upload (recruiters see the filename)
     full_name = personal["full_name"]

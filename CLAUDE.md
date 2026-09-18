@@ -309,6 +309,7 @@ verification, root cause, and fix detail.
 | 153 | A real, live tailor-batch run found and fixed a genuine staleness bug in the cloud-exhaustion-to-degraded-mode handoff |
 | 154 | Decision #153's fix verified live: a fresh, unbounded tailor batch hit zero provider_unavailable failures, tailored count rose 341->369 |
 | 155 | Live cover-letter batch found the judge correctly flagging self-defeating filler phrasing ('fake my way through it', 'not from the sidelines', 'I do not have one specific example') that shipped anyway since it wasn't tagged FABRICATION -- reworded to remove the self-deprecation while staying fact-free |
+| 156 | Live apply-stage testing found and fixed a real resume-format-fallback bug (all 13 jobs hard-failed pre-fix); 2 real applications submitted after the fix; expired-posting waste identified, not yet fixed |
 
 ---
 
@@ -399,6 +400,10 @@ Full detail in decisions #71-77. Quick-start checklist for next session, roughly
 ---
 
 30. **Workday deterministic-apply flow + screening-question reuse -- scoped 2026-09-17, not built.** User's idea after tonight's `engine_deterministic.py` review (Greenhouse-only, ~245 lines, intentionally conservative since screening questions need judgment a rule-based script can't safely fake): (a) extend the deterministic engine to Workday, but start narrow -- Workday is a multi-page wizard (often account-creation -> personal-info -> experience -> voluntary-disclosures -> review), not a single-page form like Greenhouse, so "add more selectors" undersells the real scope; the personal-info page is the most standardized part across employers and the natural first slice, not the whole wizard at once. (b) Wire the ALREADY-BUILT `qa_knowledge` DB table (`database.py`: `store_qa`/`lookup_qa`/`get_qa`/`get_all_qa`, keyed by normalized `question_key`, outcome-tracked accepted/unknown/rejected, already feeds the Claude engine's prompt) into the deterministic engine too, so a common factual screening question (work authorization, sponsorship, years of experience, referral source) gets answered from history instead of needing a fresh LLM/human decision every time -- currently only the Claude engine reads this table. (c) For open-ended/behavioral questions ("why do you want to work here," "describe a time you handled X"), reuse the cover-letter phrase-bank architecture (decisions #69-74, #137+ -- generate once, select+edit per job, all safety-checked against the real profile) rather than free-generating per job; a real per-job answer would then get saved via `store_qa` so it compounds over time the same way `qa_knowledge` already does for factual answers -- the user's own framing: "mad-lib them... repurpose them to keep speeding up this process as it goes along." **Deliberately not started tonight** -- explicit user instruction to scope and pin, not build, given the real size of a correct Workday flow. Next session should pick a single Workday employer's personal-info page as the first concrete slice rather than attempting the whole wizard.
+
+---
+
+31. **Pre-apply expired-posting check -- flagged 2026-09-17, not built.** Several real jobs expired between being queued and `apply` actually reaching them tonight, wasting real Claude Code Pro-plan usage ($2.82 for 3 dead postings in one run). Enrichment already has expired-posting detection (redirect-to-homepage/404 classification, decision #77) but it only runs once, days before apply gets to a job. Scoped fix for a future session: a fast HTTP pre-check (no LLM cost) immediately before spawning the Claude apply agent, reusing that same classification -- would need to be cheap enough not to itself become a bottleneck across a real batch.
 
 ---
 
