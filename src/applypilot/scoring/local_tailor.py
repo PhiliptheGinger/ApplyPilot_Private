@@ -598,10 +598,27 @@ _PARAGRAPH_MAX_LEN = 220
 def _looks_like_list_item(text: str) -> bool:
     """Conservative structural proxy for "this markerless line is plausibly
     one discrete requirement, not flowing prose or a section label" -- see
-    the extraction-fallback comment block above."""
+    the extraction-fallback comment block above.
+
+    2026-09-18: a line that already carries its own bullet/numeric marker
+    is _extract_marker_lines's territory, not this function's -- letting
+    it also count toward a paragraph streak let an unmarked section header
+    ("What You Bring") sitting directly above a short, complete, correctly-
+    marked 2-item list get pulled into the SAME streak as those marked
+    lines merely because they happen to be structurally adjacent, and then
+    merged into the result as if it were a third genuine requirement.
+    Found via test_full_description_invariant_audit.py's own state-3
+    regression pin, which failed after the sparse-marker merge (test B,
+    2026-09-16) started invoking this fallback whenever marker extraction
+    found fewer than _PARAGRAPH_FALLBACK_MIN_ITEMS lines -- including a
+    short but already-COMPLETE marked list, not just the sparse-decoy case
+    the merge was built for.
+    """
     if not (_PARAGRAPH_MIN_LEN <= len(text) <= _PARAGRAPH_MAX_LEN):
         return False
     if text.endswith(":"):
+        return False
+    if _REQUIREMENT_MARKER_RE.match(text):
         return False
     return not _SENTENCE_BOUNDARY_RE.search(text)
 
@@ -713,7 +730,30 @@ def _split_requirement_lines(
         return [], []
     lines, dropped = _extract_marker_lines(description, max_lines=max_lines)
     if not lines:
-        return _extract_paragraph_lines(description, max_lines=max_lines)
+        para_lines, para_dropped = _extract_paragraph_lines(description, max_lines=max_lines)
+        if not dropped:
+            return para_lines, para_dropped
+        # 2026-09-18: the marker pass found real dropped candidates (e.g.
+        # an all-benefits, all-marked posting) even though nothing
+        # qualified as a requirement -- that's real diagnostic signal
+        # (get_local_tailoring_plan's "_warnings" surfaces it as "N
+        # employer benefits/perks" rather than a bare "nothing to match").
+        # Discarding it just because the paragraph fallback (which now
+        # excludes already-marked lines from its own streak-building, see
+        # _looks_like_list_item) found nothing of its own to add would
+        # silently regress that message back to uninformative.
+        def _strip_marker_for_dropped(text: str) -> str:
+            m = _REQUIREMENT_MARKER_RE.match(text)
+            return m.group(1).strip() if m else text
+
+        dropped_seen = {_strip_marker_for_dropped(d).lower() for d in dropped}
+        merged_dropped = list(dropped)
+        for d in para_dropped:
+            key = _strip_marker_for_dropped(d).lower()
+            if key not in dropped_seen:
+                dropped_seen.add(key)
+                merged_dropped.append(d)
+        return para_lines, merged_dropped
     if len(lines) < _PARAGRAPH_FALLBACK_MIN_ITEMS:
         para_lines, para_dropped = _extract_paragraph_lines(description, max_lines=max_lines)
         if para_lines:

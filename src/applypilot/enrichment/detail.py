@@ -698,6 +698,47 @@ def _classify_detail_error(error: str, current_retry_count: int) -> tuple[str, s
     return "permanent", None
 
 
+def precheck_expired(url: str, timeout: float = 10.0) -> bool:
+    """Fast, LLM-free check for whether a job posting has expired.
+
+    Meant to run immediately before `apply` spawns a Claude Code agent for
+    a job (Future Work item 31, CLAUDE.md) — a plain HTTP request instead
+    of a full Playwright page load, so it's cheap enough not to become its
+    own bottleneck across a real apply batch. Reuses the same two signals
+    `scrape_detail_page` already relies on during enrichment: a permanent
+    HTTP status (404/410/451) and a same-site redirect all the way to the
+    root path (a live, expired WWR posting silently redirects to the site
+    homepage with no 404 anywhere in the chain — see the comment above the
+    redirect check in `scrape_detail_page`).
+
+    Only returns True when confident. A live job wrongly skipped costs a
+    real application; a dead job wrongly attempted costs Claude usage —
+    the latter is the smaller, reversible cost, so any ambiguous or
+    inconclusive outcome (timeout, connection error, non-permanent status)
+    returns False rather than blocking the apply attempt.
+    """
+    import httpx
+
+    try:
+        resp = httpx.get(
+            url,
+            timeout=timeout,
+            follow_redirects=True,
+            headers={"User-Agent": UA},
+        )
+    except (httpx.TimeoutException, httpx.RequestError):
+        return False
+
+    if resp.status_code in PERMANENT_FAILURES:
+        return True
+
+    parsed_req, parsed_final = urlparse(url), urlparse(str(resp.url))
+    if parsed_final.netloc == parsed_req.netloc and parsed_final.path in ("", "/"):
+        return True
+
+    return False
+
+
 def _mark_enrich_result(
     conn,
     url: str,

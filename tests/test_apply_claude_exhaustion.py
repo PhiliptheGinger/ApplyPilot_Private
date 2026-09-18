@@ -123,6 +123,12 @@ class TestOrchestratorSessionExhaustionDispatch:
 
     def _patch_common(self, monkeypatch, orch, launcher, *, run_job_result):
         monkeypatch.setattr(orch, "_probe_for_reconnect", lambda *a, **k: (None, None))
+        # Pre-apply expired-posting check does a real HTTP request -- stub
+        # it out so these dispatch tests stay hermetic (no network) and
+        # always proceed past it to exercise the actual thing under test.
+        import applypilot.enrichment.detail as _detail
+
+        monkeypatch.setattr(_detail, "precheck_expired", lambda *a, **k: False)
         monkeypatch.setattr(orch, "detect_ats", lambda *a, **k: None)
         monkeypatch.setattr(orch, "launch_chrome", lambda *a, **k: _DummyChrome())
         monkeypatch.setattr(orch, "cleanup_worker", lambda *a, **k: None)

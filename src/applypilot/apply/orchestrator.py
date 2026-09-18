@@ -259,6 +259,7 @@ def _worker_loop_body(
         release_lock,
         run_job,
     )
+    from applypilot.enrichment.detail import precheck_expired
 
     # ── Reconnect probe ───────────────────────────────────────────────────────
     # If a previous run was killed while Chrome was running, adopt the existing
@@ -327,6 +328,26 @@ def _worker_loop_body(
         _this_reconnect_pid = _reconnect_pid
         _this_had_interrupted_job = _effective_target is not None and _effective_target != target_url
         _reconnect_pid = None
+
+        # Pre-apply expired-posting check (CLAUDE.md Future Work item 31):
+        # a fast, LLM-free HTTP request instead of spawning Chrome + a
+        # Claude Code agent for a posting that's already gone. Skipped on
+        # reconnect -- Chrome already has that job's form open, which is
+        # itself evidence it wasn't dead, and re-checking risks a false
+        # positive against an in-flight session.
+        if not _this_had_interrupted_job:
+            precheck_url = job.get("application_url") or job.get("url", "")
+            if precheck_url and precheck_expired(precheck_url):
+                mark_result(job["url"], "failed", "expired", permanent=True, duration_ms=0)
+                _log_failed_attempt(job, "expired", worker_id, 0, True)
+                _record_job_history(worker_id, job, "expired", 0)
+                add_event(f"[W{worker_id}] Expired (pre-check, skipped): {(job.get('title') or '')[:30]}")
+                failed += 1
+                update_state(worker_id, jobs_failed=failed, jobs_done=applied + failed)
+                jobs_done += 1
+                if target_url:
+                    break
+                continue
 
         chrome_proc = None
         was_skipped = False

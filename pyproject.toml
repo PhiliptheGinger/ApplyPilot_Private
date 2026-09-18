@@ -75,6 +75,15 @@ packages = ["src/applypilot"]
 [tool.hatch.build]
 artifacts = ["src/applypilot/config/*.yaml", "src/applypilot/config/*.json"]
 
+[tool.pytest.ini_options]
+# Without this, a bare `pytest` from repo root recurses into
+# data/experiments/ too -- one-off exploration scripts (e.g. the reverted
+# Vast.ai/local-model-server work, CLAUDE.md decisions #52-53) that were
+# never meant to be part of the maintained suite and have their own
+# unpinned, often-uninstalled deps (peft, torch, ...). Scope collection to
+# the real test directory; run experiment scripts directly if needed.
+testpaths = ["tests"]
+
 [tool.ruff]
 target-version = "py311"
 line-length = 120

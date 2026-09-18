@@ -3004,6 +3004,18 @@ class TestFallbackChainProviderSeparation(unittest.TestCase):
         }
         with (
             patch.dict("os.environ", env, clear=False),
+            # cli_mod.test_local_cmd() -> _bootstrap() -> config.load_env()
+            # unconditionally re-loads the REAL ~/.applypilot/.env on
+            # whatever machine runs this test. On this one, that real file
+            # sets APPLYPILOT_LOCAL_OLLAMA_NATIVE=1 (decision #74), which
+            # silently reroutes LLMClient.chat() to _try_ollama_native
+            # instead of the _try_openai_compat this test mocks -- a real
+            # env leak of exactly the shape conftest.py's _isolate_environ
+            # fixture was built to guard against, except this happens
+            # DURING the test's own execution, not just afterward. No-op
+            # load_env so the `env` dict above is the only thing governing
+            # provider routing, regardless of what's in any real dotenv file.
+            patch("applypilot.config.load_env"),
             patch("applypilot.llm.local_available", return_value=True),
             patch("applypilot.llm.LLMClient._try_openai_compat", return_value='{"status":"ok"}') as mock_try,
         ):
@@ -3116,9 +3128,32 @@ class TestLocalProbeReasoningTokenBudget(unittest.TestCase):
                 return self._real_ollama_response("", reasoning, "length", requested)
             return self._real_ollama_response('{"status":"ok"}', reasoning, "stop", 135)
 
-        env = {"APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1", "APPLYPILOT_LOCAL_LLM_MODEL": "qwen3:1.7b"}
+        env = {
+            # A fake cloud key is required here even though this test only
+            # exercises the local path: LLMClient.__init__ eagerly calls
+            # _build_fallback_chain(quality=False) BEFORE test_local_cmd's
+            # own override (client._fallback_chain = [...local entry...])
+            # runs, and quality=False means include_local defaults to
+            # False too -- with no cloud key present, that constructor
+            # call raises "No LLM provider configured" on its own, before
+            # the local-only override ever takes effect. On a machine
+            # whose real ~/.applypilot/.env happens to have a real cloud
+            # key, this was masked by coincidence; explicit here so the
+            # test doesn't depend on that.
+            "GEMINI_API_KEY": "fake-gemini-key-for-chain-init",
+            "APPLYPILOT_LOCAL_LLM_URL": "http://localhost:11434/v1",
+            "APPLYPILOT_LOCAL_LLM_MODEL": "qwen3:1.7b",
+        }
         with (
             patch.dict("os.environ", env, clear=False),
+            # See the sibling test above (test_test_local_cmd_probe_only_
+            # hits_local_provider) for why this is needed: _bootstrap()'s
+            # unconditional load_env() re-reads the real ~/.applypilot/.env,
+            # and on a machine with APPLYPILOT_LOCAL_OLLAMA_NATIVE=1 set
+            # there, that reroutes chat() to _try_ollama_native -- a
+            # different request shape (payload["options"]["num_predict"],
+            # no "max_tokens" key) than fake_post below assumes.
+            patch("applypilot.config.load_env"),
             patch("applypilot.llm.local_available", return_value=True),
             patch("httpx.Client.post", side_effect=fake_post),
         ):
