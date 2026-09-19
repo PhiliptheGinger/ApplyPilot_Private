@@ -164,6 +164,7 @@ def worker_loop(
     fresh_sessions: bool = False,
     total_workers: int = 1,
     no_hitl: bool = False,
+    continuous: bool | None = None,
 ) -> tuple[int, int]:
     """Run jobs sequentially until limit is reached or queue is empty.
 
@@ -179,6 +180,22 @@ def worker_loop(
         dry_run: Don't click Submit.
         fresh_sessions: Refresh Chrome session cookies before launching.
         total_workers: Total concurrent workers (used for window tiling).
+        continuous: The CLI's actual --continuous flag. 2026-09-19: a real,
+            confirmed bug -- this used to always be re-derived as
+            `limit == 0`, which is only correct in true --continuous mode
+            (where main() deliberately gives every worker limit=0). In a
+            BOUNDED run whose --limit doesn't divide evenly across workers
+            (e.g. --limit 3 over 5 workers), main()'s own remainder split
+            gives some workers limit=0 as their fair share of "zero jobs
+            this batch" -- worker_loop misread that as "run forever,
+            polling every 60s" instead of "nothing to do, exit now." Since
+            ThreadPoolExecutor.shutdown(wait=True) waits on every future,
+            those permanently-polling workers blocked the ENTIRE pipeline
+            from ever finishing, for hours, with no visible output (the
+            "queue empty"/poll messages go to the in-memory dashboard via
+            add_event, not the captured console stream). Defaults to the
+            old `limit == 0` heuristic only when the caller doesn't pass it
+            explicitly, so any other caller of this function is unaffected.
 
     Returns:
         Tuple of (applied_count, failed_count).
@@ -192,7 +209,7 @@ def worker_loop(
 
     applied = 0
     failed = 0
-    continuous = limit == 0
+    continuous = (limit == 0) if continuous is None else continuous
     jobs_done = 0
     empty_polls = 0
     port = BASE_CDP_PORT + worker_id
@@ -943,8 +960,21 @@ def main(
         except Exception:
             logger.debug("keyboard watcher exited", exc_info=True)
 
-    kb_thread = threading.Thread(target=_watch_keyboard, daemon=True)
-    kb_thread.start()
+    # 2026-09-19: a real, confirmed hang -- a run launched with stdin not
+    # attached to a real console (e.g. driven by an external process
+    # manager rather than an interactive terminal) sat for 6 real hours
+    # with zero jobs acquired, zero Chrome launches, and near-zero CPU on
+    # the actual process. sys.stdin.isatty() is False in that situation;
+    # msvcrt.kbhit()/getwch() and the POSIX select()/read() path both
+    # assume a real console handle behind stdin and are not guaranteed to
+    # behave (block, raise, or spin) when it's actually a pipe or closed --
+    # this thread is a pure hotkey-convenience feature, not core apply
+    # logic, so skip it entirely rather than risk it being the hang.
+    if sys.stdin.isatty():
+        kb_thread = threading.Thread(target=_watch_keyboard, daemon=True)
+        kb_thread.start()
+    else:
+        logger.info("stdin is not a real console -- skipping the [S]/[Q] hotkey watcher for this run")
 
     try:
         with Live(render_full(), console=console, refresh_per_second=2) as live:
@@ -991,6 +1021,7 @@ def main(
                         fresh_sessions=fresh_sessions,
                         total_workers=workers,
                         no_hitl=no_hitl,
+                        continuous=continuous,
                     ): i
                     for i in range(workers)
                 }
