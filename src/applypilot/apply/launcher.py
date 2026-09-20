@@ -1788,6 +1788,55 @@ def _acquire_job_one_attempt(
             except Exception:
                 logger.debug("stale-lock transition failed for %s", stale_url[:60], exc_info=True)
 
+        # 2026-09-20 (decision #172): the bulk candidate SELECT below filters
+        # out NULL/empty application_url rows via its own WHERE clause, which
+        # means the per-candidate "mark manual_only" check further down
+        # (search for "acquire_job: missing application_url") can never
+        # actually fire for a row reached through the normal bulk path -- a
+        # no-URL job that lands on ready_to_apply (decision #147 deliberately
+        # lets this happen, since tailoring/cover no longer gate on
+        # application_url) just sits there forever: permanently excluded
+        # from every future acquire_job query, never reclassified, silently
+        # inflating the `status` ready_to_apply count. Confirmed live: 35 of
+        # 36 real ready_to_apply rows were stuck this way. Sweep them to
+        # manual_only here, the same way the stale-lock sweep above cleans up
+        # a different kind of drift, so the per-candidate check further down
+        # is genuinely defensive (mutation-after-select) rather than the only
+        # real enforcement.
+        no_url_urls = [
+            r[0]
+            for r in conn.execute("""
+                SELECT url FROM jobs
+                WHERE state = 'ready_to_apply'
+                  AND (application_url IS NULL OR application_url = '')
+            """).fetchall()
+        ]
+        if no_url_urls:
+            conn.execute("""
+                UPDATE jobs SET apply_status = 'manual', apply_error = 'no application_url',
+                                apply_category = 'manual_only'
+                WHERE state = 'ready_to_apply'
+                  AND (application_url IS NULL OR application_url = '')
+            """)
+            for no_url in no_url_urls:
+                try:
+                    transition_state(
+                        conn,
+                        no_url,
+                        "manual_only",
+                        reason="acquire_job: missing application_url (bulk sweep)",
+                        force=True,
+                    )
+                except Exception:
+                    logger.debug("manual_only sweep transition failed for %s", no_url[:60], exc_info=True)
+            # Must commit now, not rely on a later commit in this attempt --
+            # the "no candidate found" path below does conn.rollback(), which
+            # would otherwise silently undo this sweep every time the queue
+            # has no other acquireable candidate (i.e. exactly the case this
+            # sweep exists for).
+            commit_with_retry(conn)
+            logger.info("acquire_job: swept %d ready_to_apply job(s) with no application_url to manual_only", len(no_url_urls))
+
         if target_url:
             # Phase 3 state-machine hardening (2026-08-27): `apply --url` is
             # a manual trigger for "apply to a job that already passed the
@@ -2704,7 +2753,12 @@ def run_job(
     # config) is cheap -- a no-tools session finishes in ~40s -- and turns a
     # guaranteed-failed attempt into a real shot at applying if the race
     # doesn't repeat.
-    _MAX_MCP_CONNECT_ATTEMPTS = 2
+    # 2026-09-20 (decision #171): live testing found the single retry isn't
+    # always enough -- the race hit twice in a row on a real job. Bumped to
+    # 2 retries (3 total attempts); still cheap per attempt (~40s each on a
+    # no-tools session), speculative fix since the root cause is still not
+    # pinned down.
+    _MAX_MCP_CONNECT_ATTEMPTS = 3
     mcp_playwright_failed_this_attempt = False
 
     try:

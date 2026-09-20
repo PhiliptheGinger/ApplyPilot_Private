@@ -381,6 +381,13 @@ _ALL_COLUMNS: dict[str, str] = {
     "enrich_next_retry_at": "TEXT",
     "score_attempts": "INTEGER DEFAULT 0",
     "score_next_retry_at": "TEXT",
+    # 2026-09-20: deliberate apply-stage test cases (decision #175) -- jobs
+    # picked BECAUSE they score below the real funnel threshold (genuinely
+    # not wanted), used purely to exercise apply mechanics without risking
+    # a real application. Distinct from score_method='deterministic_fallback'
+    # (which flags HOW a job was scored, not WHY it's in the pipeline) --
+    # a job can be both, or a test case scored by a real cloud LLM.
+    "test_case": "INTEGER DEFAULT 0",
 }
 
 
@@ -1702,6 +1709,21 @@ def store_jobs(conn: sqlite3.Connection, jobs: list[dict], site: str, strategy: 
 def store_account(conn: sqlite3.Connection, account: dict, job_url: str | None = None) -> None:
     """Store a newly created account in the accounts table.
 
+    Upserts on (domain, email) rather than blindly inserting -- confirmed
+    live 2026-09-20: a single real Zillow account, re-reported by
+    ACCOUNT_CREATED on 3 separate days, had accumulated 6 identical rows
+    (same domain/email/password every time). Two independent causes, both
+    closed by keying on (domain, email) instead of fixing each separately:
+    (a) `_parse_account_created`'s per-line text scan calls this once per
+    matching line, and Claude Code's own "result" message duplicates
+    already-streamed assistant text, so a single real run's ACCOUNT_CREATED
+    line got parsed (and stored) twice, milliseconds apart; (b) genuinely
+    separate real attempts on different days each re-created the same
+    account and got their own row. An upsert makes both idempotent: the one
+    row per (domain, email) always reflects the latest known password/
+    job_url/notes, instead of leaving `get_accounts_for_prompt`'s "most
+    recent wins" tiebreak to sort through a growing pile of duplicates.
+
     Args:
         conn: Database connection.
         account: Dict with keys: site, domain, email, password,
@@ -1711,18 +1733,29 @@ def store_account(conn: sqlite3.Connection, account: dict, job_url: str | None =
     now = datetime.now(UTC).isoformat()
     # login_method is stored in notes so it shows up in the CLI and prompt
     notes = account.get("notes") or account.get("login_method")
-    conn.execute(
-        "INSERT INTO accounts (site, domain, email, password, created_at, job_url, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (
-            account.get("site", "unknown"),
-            account.get("domain", "unknown"),
-            account.get("email", ""),
-            account.get("password", ""),
-            now,
-            job_url,
-            notes,
-        ),
-    )
+    domain = account.get("domain", "unknown")
+    email = account.get("email", "")
+    existing = conn.execute(
+        "SELECT id FROM accounts WHERE domain = ? AND email = ?", (domain, email)
+    ).fetchone()
+    if existing:
+        conn.execute(
+            "UPDATE accounts SET site = ?, password = ?, created_at = ?, job_url = ?, notes = ? WHERE id = ?",
+            (account.get("site", "unknown"), account.get("password", ""), now, job_url, notes, existing["id"]),
+        )
+    else:
+        conn.execute(
+            "INSERT INTO accounts (site, domain, email, password, created_at, job_url, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                account.get("site", "unknown"),
+                domain,
+                email,
+                account.get("password", ""),
+                now,
+                job_url,
+                notes,
+            ),
+        )
     commit_with_retry(conn)
 
 

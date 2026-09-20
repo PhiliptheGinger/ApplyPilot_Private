@@ -180,6 +180,55 @@ def test_acquire_skips_jobs_with_null_application_url(tmp_db, seed_job, monkeypa
     assert acquire_job(min_score=10, max_age_days=0) is None
 
 
+def test_acquire_sweeps_null_application_url_rows_to_manual_only(tmp_db, seed_job, monkeypatch):
+    """2026-09-20 (decision #172): the bulk candidate SELECT already
+    excludes NULL/empty application_url rows via its own WHERE clause, so
+    the per-candidate 'mark manual_only' check further down in
+    acquire_job could never actually fire for a row reached through the
+    normal bulk path -- such a row just sat in ready_to_apply forever,
+    permanently excluded from every future query but never reclassified.
+    Confirmed live: 35 of 36 real ready_to_apply rows were stuck this way.
+    acquire_job must now sweep them to manual_only as a side effect of
+    being called, not just skip over them and leave state unchanged."""
+    _setup_apply_env(monkeypatch)
+    from applypilot.apply.launcher import acquire_job
+    from applypilot.database import current_state
+
+    conn = tmp_db()
+    stuck_null = seed_job(
+        conn,
+        url_suffix="stuck-null",
+        url="https://www.linkedin.com/jobs/view/stuck-null",
+        state="ready_to_apply",
+        application_url=None,
+        apply_status=None,
+        fit_score=10,
+        company="acme",
+    )
+    stuck_empty = seed_job(
+        conn,
+        url_suffix="stuck-empty",
+        url="https://www.linkedin.com/jobs/view/stuck-empty",
+        state="ready_to_apply",
+        application_url="",
+        apply_status=None,
+        fit_score=10,
+        company="acme",
+    )
+
+    assert acquire_job(min_score=10, max_age_days=0) is None
+
+    assert current_state(conn, stuck_null["url"]) == "manual_only"
+    assert current_state(conn, stuck_empty["url"]) == "manual_only"
+
+    row = conn.execute(
+        "SELECT apply_status, apply_error, apply_category FROM jobs WHERE url = ?", (stuck_null["url"],)
+    ).fetchone()
+    assert row["apply_status"] == "manual"
+    assert row["apply_error"] == "no application_url"
+    assert row["apply_category"] == "manual_only"
+
+
 def test_acquire_picks_valid_when_others_are_null(tmp_db, seed_job, monkeypatch):
     """When multiple candidates exist and only one has a valid
     application_url, that's the one that fires. state="ready_to_apply" is

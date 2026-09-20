@@ -39,6 +39,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from applypilot import config
 from applypilot.apply.chrome import (
     HITL_LISTEN_BASE_PORT,
+    _wait_for_cdp_ready,
     bring_to_foreground,
     launch_chrome,
 )
@@ -727,6 +728,34 @@ def _run_hitl(
     last_dur = 0
     last_qs: list[dict] = []
     for _attempt in range(3):
+        # 2026-09-20 (decision #173): a real live run found this loop
+        # blindly relaunching run_job 3x against a Chrome instance that had
+        # already died (confirmed root cause: Windows' ScheduledDefrag task
+        # + RestartManager coordinating app closures during a disk
+        # optimization pass) -- each attempt failed in ~instantly, burning
+        # real cost for zero chance of success once Chrome was gone. The
+        # wait loop above already has its own chrome_proc.poll()-based crash
+        # recovery, but that only catches an outright process exit -- a
+        # frozen/unresponsive-but-still-running Chrome (plausible under I/O
+        # contention) slips through it. Check CDP reachability directly
+        # before every attempt here too; try one relaunch if it's down, and
+        # give up cleanly (not 3 blind attempts) if the relaunch itself
+        # doesn't come back.
+        if not _wait_for_cdp_ready(port, timeout=3.0):
+            if add_event:
+                add_event(f"[W{worker_id}] Chrome unreachable before retry; attempting relaunch...")
+            try:
+                chrome_proc = launch_chrome(
+                    worker_id, port=port, headless=headless, ats_slug=ats_slug, total_workers=total_workers
+                )
+            except Exception:
+                logger.debug("Chrome relaunch before HITL retry failed", exc_info=True)
+                chrome_proc = None
+            if chrome_proc is None or not _wait_for_cdp_ready(port, timeout=15.0):
+                if add_event:
+                    add_event(f"[W{worker_id}] Chrome did not come back; giving up after {_attempt} attempt(s)")
+                last_result = last_result or "failed:browser_unreachable"
+                break
         if add_event:
             add_event(f"[W{worker_id}] Human done, relaunching agent (attempt {_attempt + 1}/3)...")
         if update_state:

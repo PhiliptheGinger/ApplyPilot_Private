@@ -1,10 +1,13 @@
 """Regression test for the 2026-09-19 Playwright-MCP-connect retry (decisions
-#165-166): `run_job` used to treat a failed Playwright MCP handshake
-(reported in the session's own `system:init` event as
-`{"name": "playwright", "status": "failed"}`) as an ordinary job failure,
-burning a whole apply attempt on what live testing showed is often a
-transient race. `run_job` now retries the Claude subprocess spawn once
-(same already-running Chrome, same MCP config) before giving up.
+#165-167) and the 2026-09-20 retry-count bump (decision #171): `run_job` used
+to treat a failed Playwright MCP handshake (reported in the session's own
+`system:init` event as `{"name": "playwright", "status": "failed"}`) as an
+ordinary job failure, burning a whole apply attempt on what live testing
+showed is often a transient race. `run_job` now retries the Claude subprocess
+spawn up to twice more (same already-running Chrome, same MCP config, 3
+attempts total) before giving up -- bumped from 1 retry (2 attempts total)
+after live testing on 2026-09-20 found the single retry could still hit the
+same race twice in a row.
 """
 
 from __future__ import annotations
@@ -98,7 +101,25 @@ class TestMcpConnectRetry:
 
         status, _duration_ms, _screening = launcher.run_job(_job(), port=9222, worker_id=0)
 
-        assert len(popen_calls) == 2, "expected exactly one retry (two total Popen calls)"
+        assert len(popen_calls) == 2, "expected to stop retrying once the second attempt succeeds"
+        assert status == "applied"
+
+    def test_retries_twice_and_succeeds_on_third_attempt(self, _patched_run_job, monkeypatch):
+        attempt1 = _FakeProc([_init_line("failed"), _result_line("RESULT:FAILED:browser_tool_unavailable")])
+        attempt2 = _FakeProc([_init_line("failed"), _result_line("RESULT:FAILED:browser_tool_unavailable")])
+        attempt3 = _FakeProc([_init_line("connected"), _result_line("RESULT:APPLIED")])
+        procs = [attempt1, attempt2, attempt3]
+        popen_calls = []
+
+        def _fake_popen(cmd, **kwargs):
+            popen_calls.append(cmd)
+            return procs.pop(0)
+
+        monkeypatch.setattr(launcher.subprocess, "Popen", _fake_popen)
+
+        status, _duration_ms, _screening = launcher.run_job(_job(), port=9222, worker_id=0)
+
+        assert len(popen_calls) == 3, "expected two retries (three total Popen calls) before giving up"
         assert status == "applied"
 
     def test_no_retry_when_mcp_connects_on_first_attempt(self, _patched_run_job, monkeypatch):
@@ -120,7 +141,8 @@ class TestMcpConnectRetry:
     def test_gives_up_after_max_attempts_still_failing(self, _patched_run_job, monkeypatch):
         attempt1 = _FakeProc([_init_line("failed"), _result_line("RESULT:FAILED:browser_tool_unavailable")])
         attempt2 = _FakeProc([_init_line("failed"), _result_line("RESULT:FAILED:browser_tool_unavailable")])
-        procs = [attempt1, attempt2]
+        attempt3 = _FakeProc([_init_line("failed"), _result_line("RESULT:FAILED:browser_tool_unavailable")])
+        procs = [attempt1, attempt2, attempt3]
         popen_calls = []
 
         def _fake_popen(cmd, **kwargs):
@@ -131,5 +153,5 @@ class TestMcpConnectRetry:
 
         status, _duration_ms, _screening = launcher.run_job(_job(), port=9222, worker_id=0)
 
-        assert len(popen_calls) == 2, "must not retry more than once (bounded, not infinite)"
+        assert len(popen_calls) == 3, "must not retry more than twice (bounded, not infinite)"
         assert status == "failed:browser_tool_unavailable"

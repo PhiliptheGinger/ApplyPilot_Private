@@ -1079,26 +1079,43 @@ def main(
             _prev_focus_mode = prevent_focus_stealing() if (no_focus and not headless) else None
 
             with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="apply-worker") as executor:
-                futures = {
-                    executor.submit(
-                        worker_loop,
-                        worker_id=i,
-                        limit=limits[i],
-                        target_url=target_url,
-                        min_score=min_score,
-                        max_score=max_score,
-                        max_age_days=max_age_days,
-                        headless=headless,
-                        model=model,
-                        dry_run=dry_run,
-                        apply_engine=apply_engine,
-                        fresh_sessions=fresh_sessions,
-                        total_workers=workers,
-                        no_hitl=no_hitl,
-                        continuous=continuous,
-                    ): i
-                    for i in range(workers)
-                }
+                # 2026-09-20 (decision #176, part of the MCP-connect-race
+                # resilience stack): submitting all workers at once means
+                # every worker's first launch_chrome() call fires in the
+                # same instant, which is exactly the peak-contention window
+                # decision #167 measured individual launches taking
+                # 3.7s-10.6s under (vs. much faster in isolation) -- more
+                # simultaneous launches competing for CPU/disk/RAM plausibly
+                # widens the window the Playwright-MCP-connect race can fire
+                # in, even though #167's own controlled reproduction attempt
+                # didn't conclusively pin this as THE cause. A small stagger
+                # between submissions is cheap insurance regardless: workers
+                # already poll for work in their own loop, so a few seconds'
+                # difference in when each one starts costs nothing.
+                _WORKER_STARTUP_STAGGER_SECONDS = 2.0
+                futures = {}
+                for i in range(workers):
+                    if i > 0:
+                        time.sleep(_WORKER_STARTUP_STAGGER_SECONDS)
+                    futures[
+                        executor.submit(
+                            worker_loop,
+                            worker_id=i,
+                            limit=limits[i],
+                            target_url=target_url,
+                            min_score=min_score,
+                            max_score=max_score,
+                            max_age_days=max_age_days,
+                            headless=headless,
+                            model=model,
+                            dry_run=dry_run,
+                            apply_engine=apply_engine,
+                            fresh_sessions=fresh_sessions,
+                            total_workers=workers,
+                            no_hitl=no_hitl,
+                            continuous=continuous,
+                        )
+                    ] = i
 
                 # --- Main thread event loop: Q&A input + all-blocked detection ---
                 _all_blocked_prompted = False

@@ -1923,9 +1923,9 @@ def status() -> None:
             "applied": ("green", "Done"),
             "pending": ("white", "In queue"),
             "in_progress": ("cyan", "Running now"),
-            "needs_human": ("magenta", "applypilot human-review"),
+            "needs_human": ("magenta", "Handled live via HITL banner during apply run"),
             "blocked_auth": ("yellow", "Needs persistent sessions / HITL"),
-            "blocked_technical": ("yellow", "Retryable: applypilot reset-category blocked_technical"),
+            "blocked_technical": ("yellow", "Retryable: applypilot apply --reset-category blocked_technical"),
             "archived_ineligible": ("dim", "Location/salary/type mismatch"),
             "archived_expired": ("dim", "Job no longer available"),
             "archived_platform": ("red", "Unsupported platform"),
@@ -1995,7 +1995,7 @@ def status() -> None:
             if high_score_retryable > 0:
                 console.print(
                     f"[bold yellow]  ↳ {high_score_retryable} score 9-10 jobs in blocked_technical are retryable.[/bold yellow]"
-                    f" Run: [bold]applypilot reset-category blocked_technical[/bold]"
+                    f" Run: [bold]applypilot apply --reset-category blocked_technical[/bold]"
                 )
 
     # By site (group all HN: * sites under "HackerNews")

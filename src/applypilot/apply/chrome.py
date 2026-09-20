@@ -1553,23 +1553,69 @@ def launch_chrome(
 
 
 def _wait_for_cdp_ready(port: int, timeout: float = 15.0, poll_interval: float = 0.25) -> bool:
-    """Poll the CDP debug port until it responds or `timeout` elapses.
+    """Poll the CDP debug port until a real CDP session can be opened, or
+    `timeout` elapses.
 
-    Returns True if the port became reachable, False if it never did (the
-    caller still proceeds either way -- a launch that never becomes reachable
-    fails later at a more informative point, e.g. the orchestrator's own
-    health check or the MCP connection attempt).
+    2026-09-20 (decision #176, part of the MCP-connect-race resilience
+    stack): the original version of this check only confirmed the HTTP
+    `/json/version` discovery endpoint responds. That's necessary but not
+    sufficient -- Playwright MCP actually drives the browser over a
+    WebSocket CDP session (the same `webSocketDebuggerUrl` connection used
+    by `inject_dry_run_gate` above), and there's no guarantee that endpoint
+    is accepting connections the instant the HTTP discovery server answers.
+    A real, live MCP-connect failure (decisions #165-171) recurred even
+    after the HTTP-only version of this check shipped, which is consistent
+    with (not proof of) this exact gap. Now also opens the WS endpoint and
+    round-trips a real `Target.getTargets` CDP command -- the same
+    lightweight probe `inject_dry_run_gate` already trusts -- before
+    declaring the port ready.
+
+    Returns True if a real CDP session was established, False if it never
+    was (the caller still proceeds either way -- a launch that never
+    becomes reachable fails later at a more informative point, e.g. the
+    orchestrator's own health check or the MCP connection attempt itself).
     """
     import urllib.request
+
+    import websocket  # type: ignore
 
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
             with urllib.request.urlopen(f"http://127.0.0.1:{port}/json/version", timeout=1.0) as resp:
-                if resp.status == 200:
-                    return True
+                if resp.status != 200:
+                    time.sleep(poll_interval)
+                    continue
+                info = json.loads(resp.read())
         except Exception:  # noqa: BLE001 - not-ready-yet is expected, keep polling
+            time.sleep(poll_interval)
+            continue
+
+        browser_ws = info.get("webSocketDebuggerUrl")
+        if not browser_ws:
+            time.sleep(poll_interval)
+            continue
+
+        try:
+            ws = websocket.create_connection(browser_ws, timeout=1.0)
+        except Exception:  # noqa: BLE001 - WS not accepting connections yet, keep polling
+            time.sleep(poll_interval)
+            continue
+
+        try:
+            ws.send(json.dumps({"id": 1, "method": "Target.getTargets"}))
+            raw = ws.recv()
+            resp_json = json.loads(raw)
+            if resp_json.get("id") == 1 and "result" in resp_json:
+                return True
+        except Exception:  # noqa: BLE001 - handshake succeeded but round-trip failed, keep polling
             pass
+        finally:
+            try:
+                ws.close()
+            except Exception:  # noqa: BLE001 - best-effort cleanup, must not mask the real result
+                pass
+
         time.sleep(poll_interval)
     return False
 
