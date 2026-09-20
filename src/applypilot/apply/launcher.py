@@ -2701,6 +2701,19 @@ def run_job(
         "-",
     ]
 
+    # 2026-09-20 (decision #176, diagnostics layer of the MCP-connect-race
+    # resilience stack): every real MCP-connect failure so far has only
+    # ever shown us Claude Code's own client-side "status: failed" in the
+    # session's init event -- we've never captured Playwright MCP's actual
+    # underlying error (timeout? ECONNREFUSED? version mismatch?), which
+    # means every fix attempt so far has been informed guessing. Opt-in
+    # (off by default -- verbose and not needed for normal runs) via
+    # APPLYPILOT_APPLY_MCP_DEBUG=1. Non-JSON debug lines fall through the
+    # existing json.JSONDecodeError branch below and land in the worker
+    # log automatically, so no separate capture plumbing is needed.
+    if os.environ.get("APPLYPILOT_APPLY_MCP_DEBUG") == "1":
+        cmd.extend(["--debug", "mcp"])
+
     env = os.environ.copy()
     env.pop("CLAUDECODE", None)
     env.pop("CLAUDE_CODE_ENTRYPOINT", None)

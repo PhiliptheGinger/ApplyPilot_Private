@@ -155,3 +155,39 @@ class TestMcpConnectRetry:
 
         assert len(popen_calls) == 3, "must not retry more than twice (bounded, not infinite)"
         assert status == "failed:browser_tool_unavailable"
+
+
+class TestMcpDebugFlag:
+    """2026-09-20 (decision #176, diagnostics layer): opt-in verbose
+    Playwright-MCP-server logging via APPLYPILOT_APPLY_MCP_DEBUG=1, so the
+    next real MCP-connect failure captures the actual underlying error
+    instead of only Claude Code's own client-side "status: failed"."""
+
+    def test_debug_flag_absent_by_default(self, _patched_run_job, monkeypatch):
+        monkeypatch.delenv("APPLYPILOT_APPLY_MCP_DEBUG", raising=False)
+        proc = _FakeProc([_init_line("connected"), _result_line("RESULT:APPLIED")])
+        popen_calls = []
+
+        def _fake_popen(cmd, **kwargs):
+            popen_calls.append(cmd)
+            return proc
+
+        monkeypatch.setattr(launcher.subprocess, "Popen", _fake_popen)
+        launcher.run_job(_job(), port=9222, worker_id=0)
+
+        assert "--debug" not in popen_calls[0], "debug flag must be opt-in, not on by default"
+
+    def test_debug_flag_added_when_env_var_set(self, _patched_run_job, monkeypatch):
+        monkeypatch.setenv("APPLYPILOT_APPLY_MCP_DEBUG", "1")
+        proc = _FakeProc([_init_line("connected"), _result_line("RESULT:APPLIED")])
+        popen_calls = []
+
+        def _fake_popen(cmd, **kwargs):
+            popen_calls.append(cmd)
+            return proc
+
+        monkeypatch.setattr(launcher.subprocess, "Popen", _fake_popen)
+        launcher.run_job(_job(), port=9222, worker_id=0)
+
+        cmd = popen_calls[0]
+        assert "--debug" in cmd and "mcp" in cmd[cmd.index("--debug") + 1]
