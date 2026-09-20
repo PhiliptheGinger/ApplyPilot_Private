@@ -888,11 +888,13 @@ def run_deterministic_fallback_scoring(
     profile = load_profile()
 
     if scope == "all_unscored":
-        rows = conn.execute("SELECT * FROM jobs WHERE state = 'enriched' AND fit_score IS NULL").fetchall()
+        rows = conn.execute(
+            "SELECT * FROM jobs WHERE state = 'enriched' AND fit_score IS NULL ORDER BY discovered_at DESC"
+        ).fetchall()
     elif scope == "quota_cooldown":
         rows = conn.execute(
             "SELECT * FROM jobs WHERE fit_score IS NULL AND score_error IS NOT NULL "
-            "AND score_error LIKE '%quota cooldown%'"
+            "AND score_error LIKE '%quota cooldown%' ORDER BY discovered_at DESC"
         ).fetchall()
     else:
         raise ValueError(f"Unknown scope {scope!r}: expected 'quota_cooldown' or 'all_unscored'")

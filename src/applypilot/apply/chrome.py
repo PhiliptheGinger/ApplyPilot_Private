@@ -1543,10 +1543,35 @@ def launch_chrome(
     with _chrome_lock:
         _chrome_procs[worker_id] = proc
 
-    # Give Chrome time to start and open the debug port
-    time.sleep(3)
+    # Wait for the debug port to actually respond instead of guessing a fixed
+    # delay -- under real multi-worker concurrency (5 Chrome instances
+    # starting at once) a single instance's startup time varied 3.7s-10.6s
+    # in live testing, so a blind sleep(3) can return before CDP is ready.
+    _wait_for_cdp_ready(port, timeout=15.0)
     logger.info("[worker-%d] Chrome started on port %d (pid %d)", worker_id, port, proc.pid)
     return proc
+
+
+def _wait_for_cdp_ready(port: int, timeout: float = 15.0, poll_interval: float = 0.25) -> bool:
+    """Poll the CDP debug port until it responds or `timeout` elapses.
+
+    Returns True if the port became reachable, False if it never did (the
+    caller still proceeds either way -- a launch that never becomes reachable
+    fails later at a more informative point, e.g. the orchestrator's own
+    health check or the MCP connection attempt).
+    """
+    import urllib.request
+
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}/json/version", timeout=1.0) as resp:
+                if resp.status == 200:
+                    return True
+        except Exception:  # noqa: BLE001 - not-ready-yet is expected, keep polling
+            pass
+        time.sleep(poll_interval)
+    return False
 
 
 def cleanup_worker(worker_id: int, process: subprocess.Popen | None) -> None:

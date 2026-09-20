@@ -2589,11 +2589,32 @@ def run_job(
     mcp_config_path = config.APP_DIR / f".mcp-apply-{worker_id}.json"
     mcp_config_path.write_text(json.dumps(_make_mcp_config(port, worker_id=worker_id)), encoding="utf-8")
 
+    # Speed escalation trigger (2026-09-19), mirroring the fast/slow pattern
+    # already proven for scoring (decisions #76-81): a fresh successful_paths
+    # memo for this job's ATS means the form's shape is already known --
+    # sonnet's extra reasoning budget buys little on a known-shape page, so
+    # fall back to haiku for real latency/cost savings. Only triggers when
+    # the caller left `model` at the CLI default ("sonnet") -- an explicit
+    # --model choice (haiku or opus) is never second-guessed here.
+    effective_model = model
+    if model == "sonnet":
+        _ats_for_escalation = detect_ats(job.get("application_url") or job.get("url", ""))
+        if _ats_for_escalation:
+            from applypilot.apply.successful_paths import load_path
+
+            if load_path(_ats_for_escalation):
+                effective_model = "haiku"
+                logger.info(
+                    "[W%d] Fresh successful-path memo for %s -- using haiku instead of sonnet",
+                    worker_id,
+                    _ats_for_escalation,
+                )
+
     # Build claude command
     cmd = [
         "claude",
         "--model",
-        model,
+        effective_model,
         "-p",
         "--mcp-config",
         str(mcp_config_path),
@@ -2673,157 +2694,182 @@ def run_job(
     # this call -- see the generic except handler below.
     apply_success_recorded = False
 
+    # 2026-09-19: a real, confirmed-live MCP connection failure (decisions
+    # #165-166) sometimes leaves Playwright's MCP server reporting
+    # "status":"failed" in the session's own init event -- the agent then has
+    # no browser tool at all and self-reports RESULT:FAILED within seconds,
+    # burning a whole job attempt on what looks like a transient race (live
+    # testing could not pin down a deterministic trigger). One retry of just
+    # the Claude subprocess spawn (same already-running Chrome, same MCP
+    # config) is cheap -- a no-tools session finishes in ~40s -- and turns a
+    # guaranteed-failed attempt into a real shot at applying if the race
+    # doesn't repeat.
+    _MAX_MCP_CONNECT_ATTEMPTS = 2
+    mcp_playwright_failed_this_attempt = False
+
     try:
-        proc = subprocess.Popen(
-            cmd,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            env=env,
-            cwd=str(worker_dir),
-            start_new_session=True,
-        )
-        with _claude_lock:
-            _claude_procs[worker_id] = proc
+        for _mcp_attempt in range(1, _MAX_MCP_CONNECT_ATTEMPTS + 1):
+            mcp_playwright_failed_this_attempt = False
+            proc = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env=env,
+                cwd=str(worker_dir),
+                start_new_session=True,
+            )
+            with _claude_lock:
+                _claude_procs[worker_id] = proc
 
-        proc.stdin.write(agent_prompt)
-        proc.stdin.close()
+            proc.stdin.write(agent_prompt)
+            proc.stdin.close()
 
-        # Background thread: activate the agent's tab as soon as it navigates.
-        # Playwright MCP creates a new tab rather than reusing the existing blank tab,
-        # so without this the user's visible Chrome tab stays on about:blank.
-        threading.Thread(
-            target=_activate_agent_tab,
-            args=(port,),
-            daemon=True,
-            name=f"tab-activator-w{worker_id}",
-        ).start()
+            # Background thread: activate the agent's tab as soon as it navigates.
+            # Playwright MCP creates a new tab rather than reusing the existing blank tab,
+            # so without this the user's visible Chrome tab stays on about:blank.
+            threading.Thread(
+                target=_activate_agent_tab,
+                args=(port,),
+                daemon=True,
+                name=f"tab-activator-w{worker_id}",
+            ).start()
 
-        text_parts: list[str] = []
-        screening_qs: list[dict] = []
-        # Maps Claude Code tool_use_id → fully-qualified MCP tool name. Used
-        # below to label tool_result blocks (which only carry the id) so we
-        # can selectively log gmail results and any errors.
-        tool_use_names: dict[str, str] = {}
-        # Per-job ordered list of tool calls — captured for the per-ATS
-        # success-path memo (apply/successful_paths.py). Populated as
-        # tool_use blocks stream in; persisted on RESULT:APPLIED.
-        tool_calls: list[dict] = []
-        # buffering=1 → line-buffered. Without this Python defaults to
-        # 8KB block buffering for text-mode files, which means short
-        # tool-call entries (~30 bytes each) accumulate invisibly until
-        # 250+ have happened or run_job exits. Flushing per-line keeps
-        # `tail -f worker-0.log` actually live during long apply runs.
-        with open(worker_log, "a", encoding="utf-8", buffering=1) as lf:
-            lf.write(log_header)
+            text_parts: list[str] = []
+            screening_qs: list[dict] = []
+            # Maps Claude Code tool_use_id → fully-qualified MCP tool name. Used
+            # below to label tool_result blocks (which only carry the id) so we
+            # can selectively log gmail results and any errors.
+            tool_use_names: dict[str, str] = {}
+            # Per-job ordered list of tool calls — captured for the per-ATS
+            # success-path memo (apply/successful_paths.py). Populated as
+            # tool_use blocks stream in; persisted on RESULT:APPLIED.
+            tool_calls: list[dict] = []
+            # buffering=1 → line-buffered. Without this Python defaults to
+            # 8KB block buffering for text-mode files, which means short
+            # tool-call entries (~30 bytes each) accumulate invisibly until
+            # 250+ have happened or run_job exits. Flushing per-line keeps
+            # `tail -f worker-0.log` actually live during long apply runs.
+            with open(worker_log, "a", encoding="utf-8", buffering=1) as lf:
+                lf.write(log_header if _mcp_attempt == 1 else f"-- retry {_mcp_attempt} after Playwright MCP connect failure --\n")
 
-            for line in proc.stdout:
-                line = line.strip()
-                if not line:
-                    continue
-                # Check for user takeover between output lines
-                tev = _takeover_events.get(worker_id)
-                if tev and tev.is_set():
-                    break
-                try:
-                    msg = json.loads(line)
-                    msg_type = msg.get("type")
-                    if msg_type == "assistant":
-                        for block in msg.get("message", {}).get("content", []):
-                            bt = block.get("type")
-                            if bt == "text":
-                                text_parts.append(block["text"])
-                                lf.write(block["text"] + "\n")
-                                # Parse SCREENING_Q lines from text
-                                for tl in block["text"].split("\n"):
-                                    tl = tl.strip()
-                                    if tl.startswith("SCREENING_Q:"):
-                                        payload = tl[len("SCREENING_Q:") :].strip()
-                                        parts = payload.split("|")
-                                        if len(parts) >= 2:
-                                            screening_qs.append(
-                                                {
-                                                    "question": parts[0].strip(),
-                                                    "field_type": parts[1].strip(),
-                                                    "options": parts[2].strip() if len(parts) > 2 else "",
-                                                }
-                                            )
-                            elif bt == "tool_use":
-                                full_name = block.get("name", "")
-                                # Remember tool_use_id → name so we can label results below.
-                                tu_id = block.get("id")
-                                if tu_id:
-                                    tool_use_names[tu_id] = full_name
-                                name = full_name.replace("mcp__playwright__", "").replace("mcp__gmail__", "gmail:")
-                                inp = block.get("input", {})
-                                if "url" in inp:
-                                    desc = f"{name} {inp['url'][:60]}"
-                                elif "ref" in inp:
-                                    desc = f"{name} {inp.get('element', inp.get('text', ''))}"[:50]
-                                elif "fields" in inp:
-                                    desc = f"{name} ({len(inp['fields'])} fields)"
-                                elif "paths" in inp:
-                                    desc = f"{name} upload"
-                                else:
-                                    desc = name
+                for line in proc.stdout:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    # Check for user takeover between output lines
+                    tev = _takeover_events.get(worker_id)
+                    if tev and tev.is_set():
+                        break
+                    try:
+                        msg = json.loads(line)
+                        msg_type = msg.get("type")
+                        if msg_type == "assistant":
+                            for block in msg.get("message", {}).get("content", []):
+                                bt = block.get("type")
+                                if bt == "text":
+                                    text_parts.append(block["text"])
+                                    lf.write(block["text"] + "\n")
+                                    # Parse SCREENING_Q lines from text
+                                    for tl in block["text"].split("\n"):
+                                        tl = tl.strip()
+                                        if tl.startswith("SCREENING_Q:"):
+                                            payload = tl[len("SCREENING_Q:") :].strip()
+                                            parts = payload.split("|")
+                                            if len(parts) >= 2:
+                                                screening_qs.append(
+                                                    {
+                                                        "question": parts[0].strip(),
+                                                        "field_type": parts[1].strip(),
+                                                        "options": parts[2].strip() if len(parts) > 2 else "",
+                                                    }
+                                                )
+                                elif bt == "tool_use":
+                                    full_name = block.get("name", "")
+                                    # Remember tool_use_id → name so we can label results below.
+                                    tu_id = block.get("id")
+                                    if tu_id:
+                                        tool_use_names[tu_id] = full_name
+                                    name = full_name.replace("mcp__playwright__", "").replace("mcp__gmail__", "gmail:")
+                                    inp = block.get("input", {})
+                                    if "url" in inp:
+                                        desc = f"{name} {inp['url'][:60]}"
+                                    elif "ref" in inp:
+                                        desc = f"{name} {inp.get('element', inp.get('text', ''))}"[:50]
+                                    elif "fields" in inp:
+                                        desc = f"{name} ({len(inp['fields'])} fields)"
+                                    elif "paths" in inp:
+                                        desc = f"{name} upload"
+                                    else:
+                                        desc = name
 
-                                lf.write(f"  >> {desc}\n")
-                                tool_calls.append({"tool": name, "summary": desc})
-                                ws = get_state(worker_id)
-                                cur_actions = ws.actions if ws else 0
-                                update_state(worker_id, actions=cur_actions + 1, last_action=desc[:35])
-                    elif msg_type == "user":
-                        # Tool results return as user messages. We don't log
-                        # browser_snapshot etc. — the dumps would dwarf the log.
-                        # We DO log gmail results (so we know whether the agent
-                        # actually read an email) and any tool errors.
-                        for block in msg.get("message", {}).get("content", []):
-                            if block.get("type") != "tool_result":
-                                continue
-                            tu_id = block.get("tool_use_id", "")
-                            full_name = tool_use_names.get(tu_id, "")
-                            is_error = bool(block.get("is_error", False))
-                            log_this = is_error or "gmail" in full_name
-                            if not log_this:
-                                continue
-                            content = block.get("content", "")
-                            if isinstance(content, list):
-                                content = "\n".join(
-                                    (c.get("text", "") if isinstance(c, dict) else str(c)) for c in content
-                                )
-                            preview = str(content).replace("\n", " ")[:500]
-                            short_name = (
-                                full_name.replace("mcp__playwright__", "").replace("mcp__gmail__", "gmail:")
-                            ) or "?"
-                            marker = " [ERROR]" if is_error else ""
-                            lf.write(f"  << {short_name}{marker}: {preview}\n")
-                    elif msg_type == "result":
-                        stats = {
-                            "input_tokens": msg.get("usage", {}).get("input_tokens", 0),
-                            "output_tokens": msg.get("usage", {}).get("output_tokens", 0),
-                            "cache_read": msg.get("usage", {}).get("cache_read_input_tokens", 0),
-                            "cache_create": msg.get("usage", {}).get("cache_creation_input_tokens", 0),
-                            "cost_usd": msg.get("total_cost_usd", 0),
-                            "turns": msg.get("num_turns", 0),
-                        }
-                        text_parts.append(msg.get("result", ""))
-                    elif msg_type == "system":
-                        # Was previously silently dropped, which meant MCP
-                        # server connection failures were invisible -- the
-                        # agent would just report "no browser tools" with no
-                        # trace of *why* in our own logs. Dump the raw event
-                        # (init carries mcp_servers status + the tool list).
-                        lf.write(f"  [system:{msg.get('subtype', '?')}] {json.dumps(msg)[:4000]}\n")
-                except json.JSONDecodeError:
-                    text_parts.append(line)
-                    lf.write(line + "\n")
+                                    lf.write(f"  >> {desc}\n")
+                                    tool_calls.append({"tool": name, "summary": desc})
+                                    ws = get_state(worker_id)
+                                    cur_actions = ws.actions if ws else 0
+                                    update_state(worker_id, actions=cur_actions + 1, last_action=desc[:35])
+                        elif msg_type == "user":
+                            # Tool results return as user messages. We don't log
+                            # browser_snapshot etc. — the dumps would dwarf the log.
+                            # We DO log gmail results (so we know whether the agent
+                            # actually read an email) and any tool errors.
+                            for block in msg.get("message", {}).get("content", []):
+                                if block.get("type") != "tool_result":
+                                    continue
+                                tu_id = block.get("tool_use_id", "")
+                                full_name = tool_use_names.get(tu_id, "")
+                                is_error = bool(block.get("is_error", False))
+                                log_this = is_error or "gmail" in full_name
+                                if not log_this:
+                                    continue
+                                content = block.get("content", "")
+                                if isinstance(content, list):
+                                    content = "\n".join(
+                                        (c.get("text", "") if isinstance(c, dict) else str(c)) for c in content
+                                    )
+                                preview = str(content).replace("\n", " ")[:500]
+                                short_name = (
+                                    full_name.replace("mcp__playwright__", "").replace("mcp__gmail__", "gmail:")
+                                ) or "?"
+                                marker = " [ERROR]" if is_error else ""
+                                lf.write(f"  << {short_name}{marker}: {preview}\n")
+                        elif msg_type == "result":
+                            stats = {
+                                "input_tokens": msg.get("usage", {}).get("input_tokens", 0),
+                                "output_tokens": msg.get("usage", {}).get("output_tokens", 0),
+                                "cache_read": msg.get("usage", {}).get("cache_read_input_tokens", 0),
+                                "cache_create": msg.get("usage", {}).get("cache_creation_input_tokens", 0),
+                                "cost_usd": msg.get("total_cost_usd", 0),
+                                "turns": msg.get("num_turns", 0),
+                            }
+                            text_parts.append(msg.get("result", ""))
+                        elif msg_type == "system":
+                            # Was previously silently dropped, which meant MCP
+                            # server connection failures were invisible -- the
+                            # agent would just report "no browser tools" with no
+                            # trace of *why* in our own logs. Dump the raw event
+                            # (init carries mcp_servers status + the tool list).
+                            lf.write(f"  [system:{msg.get('subtype', '?')}] {json.dumps(msg)[:4000]}\n")
+                            if msg.get("subtype") == "init":
+                                for srv in msg.get("mcp_servers", []):
+                                    if srv.get("name") == "playwright" and srv.get("status") == "failed":
+                                        mcp_playwright_failed_this_attempt = True
+                    except json.JSONDecodeError:
+                        text_parts.append(line)
+                        lf.write(line + "\n")
 
-        proc.wait(timeout=300)
-        returncode = proc.returncode
-        proc = None
+            proc.wait(timeout=300)
+            returncode = proc.returncode
+            proc = None
+
+            if not mcp_playwright_failed_this_attempt or _mcp_attempt == _MAX_MCP_CONNECT_ATTEMPTS:
+                break
+            add_event(f"[W{worker_id}] Playwright MCP failed to connect — retrying")
+            logger.warning("[W%d] Playwright MCP failed to connect (attempt %d); retrying", worker_id, _mcp_attempt)
+            time.sleep(2)
 
         # Check if a user takeover killed the proc
         tev = _takeover_events.get(worker_id)

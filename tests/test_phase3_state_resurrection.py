@@ -266,6 +266,92 @@ def test_hitl_startup_requeue_still_recovers_needs_human_job(tmp_db, seed_job):
 
 
 # ---------------------------------------------------------------------------
+# 3b. Bounded transient apply-failure re-queue (decisions #165-167)
+# ---------------------------------------------------------------------------
+
+
+def test_transient_requeue_recovers_a_fresh_failure(tmp_db, seed_job):
+    """A job that failed once for a non-permanent reason (e.g. the MCP
+    connect race) is under the retry cap and gets a fresh shot."""
+    conn = tmp_db()
+    row = seed_job(
+        conn,
+        url_suffix="transient-fresh",
+        state="apply_failed",
+        apply_status="failed",
+        apply_error="browser_tool_unavailable",
+        apply_attempts=1,
+    )
+    url = row["url"]
+
+    from applypilot.apply.orchestrator import requeue_transient_apply_failures_from_previous_session
+
+    count = requeue_transient_apply_failures_from_previous_session(conn)
+
+    assert count == 1
+    assert current_state(conn, url) == "ready_to_apply"
+
+
+def test_transient_requeue_stops_past_the_retry_cap(tmp_db, seed_job):
+    """A job that has already failed `max_attempts` times is left alone --
+    real recurring problem, not bad luck, matching decision #166's lesson
+    about uncapped retries burning real usage for hours."""
+    conn = tmp_db()
+    row = seed_job(
+        conn,
+        url_suffix="transient-exhausted",
+        state="apply_failed",
+        apply_status="failed",
+        apply_error="browser_tool_unavailable",
+        apply_attempts=3,
+    )
+    url = row["url"]
+
+    from applypilot.apply.orchestrator import requeue_transient_apply_failures_from_previous_session
+
+    count = requeue_transient_apply_failures_from_previous_session(conn, max_attempts=3)
+
+    assert count == 0
+    assert current_state(conn, url) == "apply_failed"
+
+
+def test_transient_requeue_does_not_touch_permanent_failures(tmp_db, seed_job):
+    """A permanent failure (expired, ineligible location, ...) is marked
+    with the apply_attempts=99 sentinel by mark_result and must never be
+    resurrected by this bounded sweep."""
+    conn = tmp_db()
+    row = seed_job(
+        conn,
+        url_suffix="transient-permanent",
+        state="apply_failed",
+        apply_status="failed",
+        apply_error="expired",
+        apply_attempts=99,
+    )
+    url = row["url"]
+
+    from applypilot.apply.orchestrator import requeue_transient_apply_failures_from_previous_session
+
+    count = requeue_transient_apply_failures_from_previous_session(conn)
+
+    assert count == 0
+    assert current_state(conn, url) == "apply_failed"
+
+
+def test_transient_requeue_does_not_resurrect_archived_job(tmp_db, seed_job):
+    conn = tmp_db()
+    row = seed_job(conn, url_suffix="transient-archived", state="archived", apply_status="failed", apply_attempts=1)
+    url = row["url"]
+
+    from applypilot.apply.orchestrator import requeue_transient_apply_failures_from_previous_session
+
+    count = requeue_transient_apply_failures_from_previous_session(conn)
+
+    assert count == 0
+    assert current_state(conn, url) == "archived"
+
+
+# ---------------------------------------------------------------------------
 # 4. HTTP reset action
 # ---------------------------------------------------------------------------
 

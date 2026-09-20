@@ -289,12 +289,41 @@ def _build_timeline(row) -> str:
     return '<div class="timeline">' + "".join(steps) + "</div>"
 
 
+def _build_document_link(path: str | None, label: str) -> str:
+    """Build a direct file:// link to a generated document (resume/cover
+    letter), whatever format it was produced in (.pdf/.docx/.txt).
+
+    2026-09-19: manual_only jobs (no application_url -- LinkedIn's own
+    scraper gap, decision #147) still get real tailored materials
+    generated (decision from 2026-09-15 removing the early tailor skip),
+    specifically so a human can apply by hand -- but the dashboard had no
+    direct way to open that file; `_read_file_safe` only ever previewed
+    `.txt` paths, so under the current pdf/docx default doc-format this
+    link was the only way to actually reach the file. Distinct from the
+    text-preview `<details>` sections below, which stay `.txt`-only.
+    """
+    if not path:
+        return ""
+    p = Path(path)
+    if not p.exists():
+        return ""
+    return f'<a href="file:///{escape(str(p))}" class="doc-link" target="_blank">Open {escape(label)} ({escape(p.suffix.lstrip(".").upper())})</a>'
+
+
 def _build_artifacts_html(row) -> str:
     """Build expandable sections for tailored resume, cover letter, and apply log."""
     sections = []
 
+    resume_path = _safe_get(row, "tailored_resume_path")
+    cl_path = _safe_get(row, "cover_letter_path")
+    doc_links = "".join(
+        filter(None, [_build_document_link(resume_path, "Resume"), _build_document_link(cl_path, "Cover Letter")])
+    )
+    if doc_links:
+        sections.append(f'<div class="doc-links">{doc_links}</div>')
+
     # Tailored resume
-    resume_text = _read_file_safe(row["tailored_resume_path"])
+    resume_text = _read_file_safe(resume_path)
     if resume_text:
         sections.append(
             "<details class='artifact-details'>"
@@ -304,7 +333,7 @@ def _build_artifacts_html(row) -> str:
         )
 
     # Cover letter
-    cl_text = _read_file_safe(row["cover_letter_path"])
+    cl_text = _read_file_safe(cl_path)
     if cl_text:
         sections.append(
             "<details class='artifact-details'>"
@@ -780,6 +809,11 @@ def _build_html(
   .log-btn:hover {{ background: #f9731644; }}
   .artifact-content {{ font-size: 0.78rem; color: #cbd5e1; line-height: 1.6; margin-top: 0.5rem; padding: 0.75rem; background: #0f172a; border-radius: 8px; max-height: 500px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }}
   .artifact-content.agent-log {{ font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace; font-size: 0.72rem; color: #94a3b8; }}
+
+  /* Direct document links (open the real .pdf/.docx file) */
+  .doc-links {{ display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem; }}
+  .doc-link {{ font-size: 0.75rem; font-weight: 600; color: #facc15; background: #facc1522; padding: 0.3rem 0.7rem; border-radius: 5px; text-decoration: none; }}
+  .doc-link:hover {{ background: #facc1544; }}
 
   /* Apply summary */
   .apply-summary {{ display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-bottom: 0.5rem; }}

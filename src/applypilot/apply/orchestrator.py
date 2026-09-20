@@ -815,6 +815,66 @@ def requeue_needs_human_from_previous_session(conn) -> int:
     return len(nh_urls)
 
 
+# Real live testing (2026-09-19, decisions #165-167) found genuinely
+# non-reproducible failures -- a Playwright-MCP-connect race that burns a
+# whole apply attempt for a reason that has nothing to do with the job
+# itself. Unlike a permanent failure (expired posting, ineligible
+# location), the exact same job might succeed on a plain retry. Bounded
+# (unlike requeue_needs_human_from_previous_session, which re-queues
+# unconditionally) because a job that has already failed this many times
+# for a non-permanent reason is more likely a real recurring problem than
+# bad luck -- past the cap it's left in apply_failed rather than retried
+# forever, the exact failure mode decision #166 found live (an uncapped
+# retry loop burning real usage for hours).
+MAX_TRANSIENT_APPLY_RETRIES = 3
+
+
+def requeue_transient_apply_failures_from_previous_session(
+    conn, max_attempts: int = MAX_TRANSIENT_APPLY_RETRIES
+) -> int:
+    """Re-queue jobs that failed for a non-permanent reason, up to a bounded
+    number of attempts.
+
+    ``_is_permanent_failure`` (apply/result_handlers.py) already sets
+    ``apply_attempts=99`` as a sentinel for the permanent case
+    (``mark_result``), so ``apply_attempts < max_attempts`` alone is enough
+    to exclude permanently-failed jobs (expired, ineligible location,
+    etc.) -- no separate permanent/transient column or flag needed.
+
+    Returns:
+        Number of jobs re-queued.
+    """
+    urls = [
+        r[0]
+        for r in conn.execute(
+            "SELECT url FROM jobs WHERE state='apply_failed' AND apply_status='failed' "
+            "AND COALESCE(apply_attempts, 0) < ?",
+            (max_attempts,),
+        ).fetchall()
+    ]
+    if not urls:
+        return 0
+
+    conn.execute(
+        "UPDATE jobs SET apply_status=NULL, apply_category=NULL, apply_error=NULL "
+        "WHERE state='apply_failed' AND apply_status='failed' AND COALESCE(apply_attempts, 0) < ?",
+        (max_attempts,),
+    )
+    for url in urls:
+        try:
+            transition_state(
+                conn,
+                url,
+                "ready_to_apply",
+                reason="startup re-queue from apply_failed (non-permanent, under retry cap)",
+                force=True,
+            )
+        except Exception:
+            logger.debug("startup re-queue transition failed for %s", url[:60], exc_info=True)
+    commit_with_retry(conn)
+    return len(urls)
+
+
 # ---------------------------------------------------------------------------
 # Main entry point (called from cli.py)
 # ---------------------------------------------------------------------------
@@ -878,6 +938,20 @@ def main(
     if _nh_count > 0:
         console.print(f"[yellow]Re-queued {_nh_count} needs_human job(s) from previous session[/yellow]")
         logger.info("Startup: re-queued %d needs_human jobs from previous session", _nh_count)
+
+    # Re-queue non-permanent apply failures (e.g. a transient MCP-connect
+    # race, decisions #165-167) up to a bounded retry cap -- see
+    # requeue_transient_apply_failures_from_previous_session's docstring.
+    _transient_count = requeue_transient_apply_failures_from_previous_session(_boot_conn)
+    if _transient_count > 0:
+        console.print(
+            f"[yellow]Re-queued {_transient_count} apply_failed job(s) (non-permanent, under retry cap) "
+            f"from previous session[/yellow]"
+        )
+        logger.info(
+            "Startup: re-queued %d apply_failed jobs (non-permanent, under retry cap) from previous session",
+            _transient_count,
+        )
 
     if continuous:
         effective_limit = 0

@@ -2,9 +2,22 @@
 
 This engine uses direct Playwright actions instead of spawning a Claude
 subprocess. It is intentionally conservative:
-- Supports a minimal Greenhouse flow first.
+- Supports a minimal Greenhouse flow, and a personal-info-page-only
+  Workday flow (2026-09-19 -- see _run_workday's docstring for scope).
 - Escalates CAPTCHAs to human intervention immediately.
 - Uses profile/application_profile facts only (no hallucinated answers).
+
+2026-09-19 speed work: field selectors for each supported ATS live in
+`_FIELD_SELECTORS`, a per-ATS "semantic field -> candidate CSS selectors"
+map, rather than one-off calls scattered through each `_run_*` function.
+This is the concrete version of the "flexible map" idea discussed with
+the user: a new ATS mostly means adding one more entry to this dict, not
+writing a new fill routine. `_fill_known_fields` is the single generic
+consumer. Screening-question answering (`_answer_known_screening_
+questions`) is shared across every ATS for the same reason -- it reuses
+the existing `qa_knowledge` table (already fed by the Claude engine's own
+successful runs), so a question this candidate has answered before (on
+ANY ATS) gets filled here without ever invoking Claude for it.
 """
 
 from __future__ import annotations
@@ -18,8 +31,100 @@ from playwright.sync_api import sync_playwright
 
 from applypilot import config
 from applypilot.apply.chrome import detect_ats
+from applypilot.database import get_qa
 
 logger = logging.getLogger(__name__)
+
+# Per-ATS "semantic field -> candidate CSS selectors" map. Selectors are
+# tried in order; the first that matches AND accepts the fill wins (see
+# _fill_known_fields). Greenhouse's entries are the exact selectors the
+# original _run_greenhouse used, just relocated here so both ATSes share
+# one lookup mechanism. Workday's entries use its well-known, tenant-
+# consistent `data-automation-id` convention (Workday's own frontend
+# framework reuses these IDs across every employer's tenant) -- NOT yet
+# verified against a real, live Workday page in this session; the engine
+# is designed to fail safe (escalate to needs_human, never guess or
+# submit on a low fill-rate) if these turn out to need adjustment once
+# tried for real. See _run_workday's docstring for the current scope.
+_FIELD_SELECTORS: dict[str, dict[str, list[str]]] = {
+    "greenhouse": {
+        "first_name": [
+            "input[name='first_name']",
+            "input[name='job_application[first_name]']",
+            "#first_name",
+        ],
+        "last_name": [
+            "input[name='last_name']",
+            "input[name='job_application[last_name]']",
+            "#last_name",
+        ],
+        "email": [
+            "input[name='email']",
+            "input[name='job_application[email]']",
+            "#email",
+        ],
+        "phone": [
+            "input[name='phone']",
+            "input[name='job_application[phone]']",
+            "input[type='tel']",
+            "#phone",
+        ],
+        "city": [
+            "input[name='location']",
+            "input[name='job_application[location]']",
+            "#location",
+        ],
+        "linkedin": [
+            "input[name='linkedin']",
+            "input[name='job_application[linkedin]']",
+            "input[name*='linkedin']",
+        ],
+        "website": [
+            "input[name='website']",
+            "input[name='job_application[website]']",
+            "input[name*='portfolio']",
+            "input[name*='url']",
+        ],
+    },
+    "workday": {
+        "first_name": [
+            "input[data-automation-id='legalNameSection_firstName']",
+            "input[data-automation-id*='firstName']",
+        ],
+        "last_name": [
+            "input[data-automation-id='legalNameSection_lastName']",
+            "input[data-automation-id*='lastName']",
+        ],
+        "email": [
+            "input[data-automation-id='email']",
+            "input[type='email']",
+        ],
+        "phone": [
+            "input[data-automation-id='phone-number']",
+            "input[data-automation-id*='phoneNumber']",
+        ],
+        "city": [
+            "input[data-automation-id='addressSection_city']",
+            "input[data-automation-id*='city' i]",
+        ],
+        "linkedin": [
+            "input[data-automation-id*='linkedIn' i]",
+            "input[data-automation-id*='socialNetwork' i]",
+        ],
+        "website": [
+            "input[data-automation-id*='website' i]",
+        ],
+    },
+}
+
+# A submit is only attempted when at least this fraction of the
+# ATS's known fields were actually filled -- a low fill rate means the
+# page's selectors likely drifted from `_FIELD_SELECTORS` (or this isn't
+# really the page we think it is), and submitting a mostly-empty form is
+# worse than escalating to a human. Greenhouse's existing behavior (no
+# gate at all, shipped and used before this refactor) is left unchanged;
+# this only applies to the new Workday path -- see _run_workday.
+_MIN_FILL_RATE_TO_SUBMIT = 0.5
 
 
 def _get_profile_fields() -> dict[str, str]:
@@ -60,6 +165,92 @@ def _safe_fill(page, selectors: list[str], value: str) -> bool:
     return False
 
 
+def _fill_known_fields(page, ats_slug: str, fields: dict[str, str]) -> tuple[int, int]:
+    """Fill every field `_FIELD_SELECTORS[ats_slug]` knows a selector for.
+
+    Returns (filled_count, known_count) -- known_count is how many fields
+    this ATS has a candidate value AND a selector list for (an empty
+    profile value never counts against the fill rate, since there's
+    nothing this engine could have filled either way).
+    """
+    selector_map = _FIELD_SELECTORS.get(ats_slug, {})
+    filled = 0
+    known = 0
+    for field_name, selectors in selector_map.items():
+        value = fields.get(field_name, "")
+        if not value:
+            continue
+        known += 1
+        if _safe_fill(page, selectors, value):
+            filled += 1
+    return filled, known
+
+
+# Generic question-label selectors, ATS-agnostic on purpose: every ATS
+# renders a screening question as *some* label/legend followed by an
+# input/select/textarea, just with different exact markup. This looks at
+# the visible text, not the DOM shape, which is what qa_knowledge's own
+# question_key normalization already keys on.
+_QUESTION_LABEL_SELECTORS = "label, legend, [class*='question' i] > *:first-child"
+
+
+def _answer_known_screening_questions(page, doc_format: str | None = None) -> int:
+    """Fill any screening question this candidate has answered before,
+    on ANY ats (qa_knowledge is not ATS-scoped for lookup purposes),
+    without ever guessing an answer that wasn't already known.
+
+    Deliberately conservative: only text/textarea/select inputs are
+    touched (radio/checkbox groups need per-option matching this doesn't
+    attempt yet), and a question with no `qa_knowledge` row is left
+    completely alone for the human/Claude engine to handle.
+
+    Returns the number of questions answered.
+    """
+    answered = 0
+    try:
+        labels = page.locator(_QUESTION_LABEL_SELECTORS)
+        count = min(labels.count(), 60)  # bound: a runaway match set must not hang the apply attempt
+    except Exception:  # noqa: BLE001 - a selector-engine failure here must not abort the whole apply attempt
+        return 0
+
+    for i in range(count):
+        try:
+            label = labels.nth(i)
+            question_text = (label.inner_text(timeout=500) or "").strip()
+            if not question_text or len(question_text) < 4:
+                continue
+            answer = get_qa(question_text, doc_format=doc_format)
+            if not answer:
+                continue
+
+            # The input is usually the label's `for` target or the next
+            # form control in DOM order -- try both, cheaply.
+            control = None
+            input_id = label.get_attribute("for", timeout=300)
+            if input_id:
+                candidate = page.locator(f"#{input_id}")
+                if candidate.count() > 0:
+                    control = candidate.first
+            if control is None:
+                sibling = label.locator(
+                    "xpath=following::input[1] | xpath=following::textarea[1] | xpath=following::select[1]"
+                )
+                if sibling.count() > 0:
+                    control = sibling.first
+            if control is None:
+                continue
+
+            tag = (control.evaluate("el => el.tagName") or "").lower()
+            if tag == "select":
+                control.select_option(label=answer, timeout=1000)
+            else:
+                control.fill(answer, timeout=1000)
+            answered += 1
+        except Exception:  # noqa: BLE001, S112 - one question's markup being unexpected must not abort scanning the rest
+            continue
+    return answered
+
+
 def _has_captcha(page) -> bool:
     return bool(
         page.locator(
@@ -97,73 +288,9 @@ def _run_greenhouse(page, job: dict, dry_run: bool) -> tuple[str, int, list[dict
     started = time.time()
     fields = _get_profile_fields()
 
-    _safe_fill(
-        page,
-        [
-            "input[name='first_name']",
-            "input[name='job_application[first_name]']",
-            "#first_name",
-        ],
-        fields["first_name"],
-    )
-    _safe_fill(
-        page,
-        [
-            "input[name='last_name']",
-            "input[name='job_application[last_name]']",
-            "#last_name",
-        ],
-        fields["last_name"],
-    )
-    _safe_fill(
-        page,
-        [
-            "input[name='email']",
-            "input[name='job_application[email]']",
-            "#email",
-        ],
-        fields["email"],
-    )
-    _safe_fill(
-        page,
-        [
-            "input[name='phone']",
-            "input[name='job_application[phone]']",
-            "input[type='tel']",
-            "#phone",
-        ],
-        fields["phone"],
-    )
-    _safe_fill(
-        page,
-        [
-            "input[name='location']",
-            "input[name='job_application[location]']",
-            "#location",
-        ],
-        fields["city"],
-    )
-    _safe_fill(
-        page,
-        [
-            "input[name='linkedin']",
-            "input[name='job_application[linkedin]']",
-            "input[name*='linkedin']",
-        ],
-        fields["linkedin"],
-    )
-    _safe_fill(
-        page,
-        [
-            "input[name='website']",
-            "input[name='job_application[website]']",
-            "input[name*='portfolio']",
-            "input[name*='url']",
-        ],
-        fields["website"],
-    )
-
+    _fill_known_fields(page, "greenhouse", fields)
     _upload_resume_if_present(page, job)
+    _answer_known_screening_questions(page, doc_format=_doc_suffix(job))
 
     if _has_captcha(page):
         dur = int((time.time() - started) * 1000)
@@ -194,6 +321,72 @@ def _run_greenhouse(page, job: dict, dry_run: bool) -> tuple[str, int, list[dict
     return f"needs_human:review_required:{page.url}", dur, []
 
 
+def _doc_suffix(job: dict) -> str | None:
+    """Return 'pdf'/'docx' from the tailored resume's own extension, for
+    get_qa's stale-answer-format filtering (see database.get_qa)."""
+    resume_path = job.get("tailored_resume_path")
+    if not resume_path:
+        return None
+    suffix = Path(resume_path).suffix.lstrip(".")
+    return suffix or None
+
+
+def _run_workday(page, job: dict, dry_run: bool) -> tuple[str, int, list[dict]]:
+    """Fill Workday's personal-info page only, then stop.
+
+    2026-09-19 scope (deliberately narrow, per the same "start with one
+    slice, not the whole wizard" plan already outlined for Workday in
+    CLAUDE.md's Future Work): Workday's real apply flow is a multi-page
+    wizard (often account creation -> personal info -> experience ->
+    voluntary disclosures -> review), and this function only ever
+    understands the personal-info shape (name/email/phone/city/resume
+    upload, `_FIELD_SELECTORS["workday"]`) plus whatever screening
+    questions happen to appear on that same page. It intentionally never
+    attempts a page beyond that -- clicking "Next"/"Save and Continue" is
+    the last action this function takes; everything after that hands off
+    to a human via `needs_human`, exactly like an unhandled captcha.
+
+    Never submits a final application -- Workday's actual submit step is
+    on a later review page this function doesn't reach, so `dry_run` has
+    no effect here (there is no submit action to skip).
+    """
+    started = time.time()
+    fields = _get_profile_fields()
+
+    filled, known = _fill_known_fields(page, "workday", fields)
+    _upload_resume_if_present(page, job)
+    _answer_known_screening_questions(page, doc_format=_doc_suffix(job))
+
+    if _has_captcha(page):
+        dur = int((time.time() - started) * 1000)
+        return f"needs_human:captcha:{page.url}", dur, []
+
+    # A low fill rate means the real page's markup doesn't match
+    # _FIELD_SELECTORS["workday"] closely enough to trust -- escalate
+    # rather than click "Next" on a form that's still mostly blank.
+    if known > 0 and (filled / known) < _MIN_FILL_RATE_TO_SUBMIT:
+        dur = int((time.time() - started) * 1000)
+        return f"needs_human:workday_fields_unmatched:{page.url}", dur, []
+
+    next_buttons = [
+        "button[data-automation-id='bottom-navigation-next-button']",
+        "button:has-text('Save and Continue')",
+        "button:has-text('Next')",
+    ]
+    for sel in next_buttons:
+        btn = page.locator(sel)
+        if btn.count() > 0:
+            try:
+                btn.first.click(timeout=2500)
+                page.wait_for_timeout(1500)
+                break
+            except Exception:  # noqa: BLE001, S112 - try each candidate selector; a Playwright element-interaction failure means try the next one, not abort this attempt
+                continue
+
+    dur = int((time.time() - started) * 1000)
+    return f"needs_human:workday_wizard_incomplete:{page.url}", dur, []
+
+
 def run_job_deterministic(
     job: dict,
     port: int,
@@ -214,7 +407,7 @@ def run_job_deterministic(
         return "failed:no_application_url", 0, []
 
     ats = detect_ats(apply_url)
-    if ats != "greenhouse":
+    if ats not in ("greenhouse", "workday"):
         return f"needs_human:unsupported_ats:{apply_url}", 0, []
 
     try:
@@ -233,6 +426,8 @@ def run_job_deterministic(
                 dur = int((time.time() - started) * 1000)
                 return f"needs_human:captcha:{page.url}", dur, []
 
+            if ats == "workday":
+                return _run_workday(page, job, dry_run=dry_run)
             return _run_greenhouse(page, job, dry_run=dry_run)
 
     except PlaywrightTimeoutError:
