@@ -953,6 +953,55 @@ def _try_exhaustion_fallback(conn, url: str) -> dict | None:
         return None
 
 
+def _try_quota_cooldown_fallback(conn, url: str) -> dict | None:
+    """Immediate local scoring for a job that just failed purely because
+    every cloud provider is on quota cooldown (CLAUDE.md decision #177,
+    2026-09-20).
+
+    Decision #119's `_try_exhaustion_fallback` only fires after
+    MAX_SCORE_RETRIES (5) cloud failures -- with the real exponential
+    backoff schedule (5, 20, 80, ~300, ~1260 minutes), a job that starts
+    failing purely on quota cooldown wouldn't get ANY local rescue for
+    ~27+ hours, by which point it's cycled through nearly a full day of
+    scheduled retries that were never going to succeed (the quota
+    condition is account-wide, not per-job -- retrying a specific job
+    sooner doesn't help while the whole account is on cooldown). Per
+    explicit user direction ("waiting on the cloud model all day should
+    not be the default"), a job whose failure is SPECIFICALLY the quota-
+    cooldown condition (not some other transient/malformed-response error
+    that might genuinely resolve on a quick retry) now gets the hybrid
+    local escalation scorer immediately, on the very first such failure --
+    the escalation model is the default rescue, not a last resort.
+
+    Uses the hybrid qwen3:1.7b/qwen3:8b escalation setup explicitly
+    (decision #145's validated ambiguous-title escalation), matching what
+    `score-deterministic-fallback --model qwen3:1.7b --escalate-model
+    qwen3:8b` already does as a manual command -- this makes that behavior
+    the automatic default for quota-cooldown failures specifically,
+    without touching the manual CLI command itself.
+
+    Returns the score_job_deterministic() result dict on success, or None
+    if the local model itself is unavailable/erroring -- in which case the
+    caller falls through to the original retry-then-eventually-exhaustion-
+    fallback behavior unchanged.
+    """
+    try:
+        from applypilot.scoring.deterministic_fallback import score_job_deterministic
+
+        row = conn.execute("SELECT * FROM jobs WHERE url = ?", (url,)).fetchone()
+        if row is None:
+            return None
+        job = dict(row)
+        profile = load_profile()
+        result = score_job_deterministic(job, profile, conn=conn, model="qwen3:1.7b", escalate_model="qwen3:8b")
+        if result.get("score") is None:
+            return None
+        return result
+    except Exception:
+        log.exception("Quota-cooldown immediate local fallback failed for %s -- falling back to normal retry schedule", url[:80])
+        return None
+
+
 def _flush_score_batch(conn, batch: list[dict], now: str, score_method: str | None = None) -> None:
     """Write a batch of scoring results to the DB.
 
@@ -1051,13 +1100,41 @@ def _flush_score_batch(conn, batch: list[dict], now: str, score_method: str | No
             # LLM failure — keep fit_score NULL so it stays in pending_score
             row = conn.execute("SELECT COALESCE(score_attempts, 0) FROM jobs WHERE url = ?", (r["url"],)).fetchone()
             retry_count = row[0] if row else 0
+
+            # 2026-09-20 (decision #177): a quota-cooldown failure gets the
+            # hybrid local escalation scorer immediately, not after
+            # MAX_SCORE_RETRIES worth of exponential backoff -- see
+            # _try_quota_cooldown_fallback's docstring. Checked before the
+            # retry_count branch below so it applies on the very first such
+            # failure, regardless of how many prior attempts (of any kind)
+            # this job has already had.
+            _already_tried_local = False
+            if "quota cooldown" in (r.get("error") or "").lower():
+                _already_tried_local = True
+                fallback = _try_quota_cooldown_fallback(conn, r["url"])
+                if fallback is not None:
+                    log.info(
+                        "Cloud on quota cooldown for %s -- local escalation scorer scored it %s immediately",
+                        r["url"][:60],
+                        fallback.get("score"),
+                    )
+                    _flush_score_batch(conn, [{**fallback, "url": r["url"]}], now, score_method="deterministic_fallback")
+                    continue
+                log.warning(
+                    "Cloud on quota cooldown AND local escalation scorer unavailable for %s -- falling back to normal retry schedule",
+                    r["url"][:60],
+                )
+
             if retry_count >= MAX_SCORE_RETRIES:
                 # 2026-09-11 (decision #119): before giving up forever, try
                 # the local deterministic-fallback scorer as a genuine last
                 # resort -- see _try_exhaustion_fallback's docstring for why
                 # this is narrower than reversing decision #76's original
-                # manual-invocation-only caution.
-                fallback = _try_exhaustion_fallback(conn, r["url"])
+                # manual-invocation-only caution. Skipped if the
+                # quota-cooldown branch above already tried (and failed at)
+                # the same local model -- retrying it again here would just
+                # fail identically and waste a second local-model call.
+                fallback = None if _already_tried_local else _try_exhaustion_fallback(conn, r["url"])
                 if fallback is not None:
                     log.info(
                         "Cloud retries exhausted for %s -- local fallback scored it %s instead of giving up",
