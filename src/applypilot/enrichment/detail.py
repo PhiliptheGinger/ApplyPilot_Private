@@ -1128,10 +1128,23 @@ def _run_detail_scraper(
 
     Returns aggregate stats dict.
     """
+    # 2026-09-21 (decision #180): `detail_scraped_at IS NULL` alone used to
+    # be sufficient to select a row here, regardless of `detail_error_category`
+    # -- which silently defeated `create_stub_job`'s own deliberate
+    # `detail_error_category='permanent'` marking for tracker-created
+    # `manual://` stub jobs (they're never actually scraped, so
+    # `detail_scraped_at` stays NULL forever, and the old first-branch
+    # condition alone was enough to re-select them on every single poll).
+    # Confirmed live: a real overnight run repeatedly tried (and failed) to
+    # `Page.goto` fake `manual://domain/hash` URLs in a real browser.
+    # Requiring `detail_error_category IS NULL` too narrows this branch to
+    # genuinely never-attempted rows, matching its actual intent -- a
+    # 'permanent' row is now excluded from both OR branches, same as
+    # 'expired' already effectively was.
     skip_filter = " AND ".join(f"site != '{s}'" for s in SKIP_DETAIL_SITES)
     where = (
         f"WHERE ({skip_filter}) AND ("
-        "  detail_scraped_at IS NULL "
+        "  (detail_scraped_at IS NULL AND detail_error_category IS NULL) "
         "  OR (detail_error_category = 'retriable' "
         "      AND (enrich_next_retry_at IS NULL OR datetime(enrich_next_retry_at) <= datetime('now')))"
         ")"

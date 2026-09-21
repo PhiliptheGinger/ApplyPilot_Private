@@ -175,13 +175,50 @@ class TestScrapeSiteBatchSurvivesPerJobCrash:
 
         pending = conn.execute(
             "SELECT url FROM jobs WHERE url = ? AND ("
-            "  detail_scraped_at IS NULL "
+            "  (detail_scraped_at IS NULL AND detail_error_category IS NULL) "
             "  OR (detail_error_category = 'retriable' "
             "      AND (enrich_next_retry_at IS NULL OR datetime(enrich_next_retry_at) <= datetime('now')))"
             ")",
             (job["url"],),
         ).fetchall()
         assert pending == []
+
+    def test_stub_job_never_reselected_by_pending_query(self, tmp_db):
+        """CLAUDE.md decision #180 (2026-09-21): a tracker-created `manual://`
+        stub job (create_stub_job) is deliberately marked
+        detail_error_category='permanent' at creation time, with
+        detail_scraped_at left NULL (it's never actually scraped -- it isn't
+        a real web page). The pre-#180 query's first OR-branch
+        (`detail_scraped_at IS NULL` alone) still matched it every time,
+        completely ignoring that deliberate marking -- confirmed live: a
+        real overnight run repeatedly tried to Page.goto real manual://
+        URLs in a browser and failed. This must now be excluded."""
+        from applypilot.database import create_stub_job
+
+        conn = tmp_db()
+        email = {
+            "sender": "noreply@myworkday.com",
+            "subject": "Thank you for your application!",
+            "snippet": "",
+            "date": "2026-09-20T00:00:00+00:00",
+        }
+        stub_url = create_stub_job(email, "confirmation", conn)
+
+        row = conn.execute(
+            "SELECT detail_scraped_at, detail_error_category FROM jobs WHERE url = ?", (stub_url,)
+        ).fetchone()
+        assert row["detail_scraped_at"] is None
+        assert row["detail_error_category"] == "permanent"
+
+        pending = conn.execute(
+            "SELECT url FROM jobs WHERE url = ? AND ("
+            "  (detail_scraped_at IS NULL AND detail_error_category IS NULL) "
+            "  OR (detail_error_category = 'retriable' "
+            "      AND (enrich_next_retry_at IS NULL OR datetime(enrich_next_retry_at) <= datetime('now')))"
+            ")",
+            (stub_url,),
+        ).fetchall()
+        assert pending == [], "a permanently-marked manual:// stub must never be reselected for enrichment"
 
 
 class TestBoilerplateDescriptionRejected:

@@ -1956,15 +1956,31 @@ def run_tailoring(
     # instead of proceeding. This shrinks the race window from "the entire
     # LLM call duration" down to the gap between that SELECT and this
     # UPDATE.
-    claimed_jobs = []
-    for job in jobs:
-        if transition_state(conn, job["url"], "tailoring", reason="claimed for tailoring"):
-            claimed_jobs.append(job)
-        else:
-            log.info(
-                "Skipping tailor candidate no longer claimable (state changed since selection): %s",
-                job["url"][:80],
-            )
+    # 2026-09-21 (decision #179): this claim loop used to call
+    # transition_state() directly with no retry-on-locked handling, unlike
+    # every other write path in this module (see _flush_tailor_results'
+    # own write_with_retry usage below). Confirmed live during an
+    # overnight `run --stream` session: concurrent discover/enrich writes
+    # held the write lock often enough that EVERY tailor claim attempt for
+    # a long stretch (pass 3561-3615+ in the real log) crashed instantly
+    # with `sqlite3.OperationalError: database is locked`, blocking
+    # tailoring entirely for that whole window even though the underlying
+    # contention was exactly the kind write_with_retry already exists to
+    # absorb elsewhere in this same file.
+    claimed_jobs: list[dict] = []
+
+    def _claim_batch() -> None:
+        claimed_jobs.clear()  # write_with_retry re-runs this whole function from scratch on retry
+        for job in jobs:
+            if transition_state(conn, job["url"], "tailoring", reason="claimed for tailoring"):
+                claimed_jobs.append(job)
+            else:
+                log.info(
+                    "Skipping tailor candidate no longer claimable (state changed since selection): %s",
+                    job["url"][:80],
+                )
+
+    write_with_retry(conn, _claim_batch)
     jobs = claimed_jobs
 
     # Captured now (this is the final eligible-after-cap, after-claim
