@@ -48,6 +48,45 @@ def show_action_items() -> None:
     console.print(table)
 
 
+def _forward_test_case_notification(job: dict, email: dict, classification: str) -> None:
+    """Forward a test-case job's application-response email to the candidate's own
+    inbox with an explicit test-purposes note (decision #175's outstanding ask).
+
+    Always a brand-new `send_email` to the candidate's own address only -- no
+    reply, no cc, no threadId/inReplyTo tying it to the original message -- so
+    the original sender never sees any trace of this notification.
+    """
+    import asyncio
+
+    from applypilot.config import load_profile
+    from applypilot.tracking.gmail_client import send_email
+
+    profile = load_profile()
+    self_email = (profile.get("personal") or {}).get("email")
+    if not self_email:
+        log.warning("Cannot forward test-case notification: no personal.email in profile.json")
+        return
+
+    subject = f"[TEST CASE] {email.get('subject', '')}"
+    body = (
+        "This job was applied for test purposes only.\n\n"
+        f"Job: {job.get('title', 'Unknown')} at {job.get('company', 'Unknown')}\n"
+        f"Job URL: {job['url']}\n"
+        f"Classification: {classification}\n\n"
+        "---- Original message ----\n"
+        f"From: {email.get('sender', '')}\n"
+        f"Subject: {email.get('subject', '')}\n"
+        f"Date: {email.get('date', '')}\n\n"
+        f"{(email.get('body') or email.get('snippet') or '')[:3000]}"
+    )
+
+    ok, detail = asyncio.run(send_email([self_email], subject, body))
+    if ok:
+        log.info("Forwarded test-case notification for %s to self", job["url"][:60])
+    else:
+        log.warning("Failed to forward test-case notification for %s: %s", job["url"][:60], detail[:200])
+
+
 def _process_classified_email(
     email: dict,
     result: dict,
@@ -100,6 +139,11 @@ def _process_classified_email(
             f"  [dim]DRY RUN:[/dim] {email.get('subject', '')[:60]} -> [bold]{classification}[/bold] -> {job_url[:50]}"
         )
         return
+
+    if match:
+        matched_job = next((j for j in applied_jobs if j["url"] == job_url), None)
+        if matched_job and matched_job.get("test_case"):
+            _forward_test_case_notification(matched_job, email, classification)
 
     store_tracking_email(
         {

@@ -2283,7 +2283,7 @@ def get_applied_jobs(conn: sqlite3.Connection | None = None) -> list[dict]:
         conn = get_connection()
     rows = conn.execute(
         "SELECT url, title, company, application_url, applied_at, site, "
-        "       tracking_status, last_email_at "
+        "       tracking_status, last_email_at, test_case "
         "FROM jobs WHERE applied_at IS NOT NULL "
         "ORDER BY applied_at DESC"
     ).fetchall()
@@ -2291,6 +2291,63 @@ def get_applied_jobs(conn: sqlite3.Connection | None = None) -> list[dict]:
         columns = rows[0].keys()
         return [dict(zip(columns, row)) for row in rows]
     return []
+
+
+def mark_job_as_test_case(url: str, conn: sqlite3.Connection | None = None) -> dict:
+    """Mark a genuinely low-scoring job as a test case for apply-mechanics testing
+    (decision #175), reusable across future sessions instead of one-off DB surgery.
+
+    Reuses one real, already-approved resume+cover-letter pair (copied by path,
+    not regenerated) and walks the job through the legitimate
+    low_score -> tailoring -> tailored -> ready_to_apply override chain, so it
+    exercises the exact same acquire/launch/Chrome/MCP path a real job would,
+    with zero real-application risk -- the candidate genuinely wouldn't want
+    this job, since the pipeline's own scorer already said so.
+
+    Requires the target job to already be in `state='low_score'` (a real score
+    the pipeline itself assigned, not an artificially-demoted one) and to have
+    a real `application_url` -- refuses rather than inventing either, since a
+    fabricated-low-score or URL-less job wouldn't exercise real apply mechanics.
+
+    Raises ValueError with a clear reason if the job isn't eligible.
+    Returns the updated row as a dict.
+    """
+    if conn is None:
+        conn = get_connection()
+
+    row = conn.execute("SELECT * FROM jobs WHERE url = ?", (url,)).fetchone()
+    if row is None:
+        raise ValueError(f"No job found for url: {url}")
+    job = dict(zip(row.keys(), row))
+
+    if job["state"] != "low_score":
+        raise ValueError(
+            f"Job is in state '{job['state']}', not 'low_score' -- mark_job_as_test_case only "
+            "accepts jobs the pipeline itself already scored below the funnel threshold."
+        )
+    if not job.get("application_url"):
+        raise ValueError("Job has no application_url -- can't exercise real apply mechanics without one.")
+
+    donor = conn.execute(
+        "SELECT tailored_resume_path, cover_letter_path FROM jobs "
+        "WHERE apply_status = 'applied' AND tailored_resume_path IS NOT NULL "
+        "AND cover_letter_path IS NOT NULL AND test_case = 0 "
+        "ORDER BY applied_at DESC LIMIT 1"
+    ).fetchone()
+    if donor is None:
+        raise ValueError("No real applied job with an approved resume+cover-letter pair to reuse.")
+
+    conn.execute(
+        "UPDATE jobs SET test_case = 1, tailored_resume_path = ?, cover_letter_path = ? WHERE url = ?",
+        (donor["tailored_resume_path"], donor["cover_letter_path"], url),
+    )
+    transition_state(conn, url, "tailoring", reason="test_case: manual override")
+    transition_state(conn, url, "tailored", reason="test_case: reusing approved resume/cover pair")
+    transition_state(conn, url, "ready_to_apply", reason="test_case: ready for apply-mechanics testing")
+    commit_with_retry(conn)
+
+    updated = conn.execute("SELECT * FROM jobs WHERE url = ?", (url,)).fetchone()
+    return dict(zip(updated.keys(), updated))
 
 
 def get_in_flight_by_company(

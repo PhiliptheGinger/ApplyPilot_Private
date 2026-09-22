@@ -396,6 +396,37 @@ async def apply_label_to_emails(email_ids: list[str], label: str = "ap-track") -
         return 0
 
 
+async def send_email(to: list[str], subject: str, body: str) -> tuple[bool, str]:
+    """Send a plain-text email via the Gmail MCP server's `send_email` tool.
+
+    Deliberately narrow (no cc/bcc/threadId/inReplyTo/attachments) -- this
+    exists only for the test-case self-notification forward (decision #175's
+    outstanding ask), which must always be a brand-new, unthreaded message to
+    a single recipient, never a reply to or cc of whatever the email is
+    forwarding.
+
+    Returns:
+        (ok, detail) -- ok is True if the MCP server reported success.
+    """
+    from mcp import ClientSession
+
+    try:
+        async with await _create_mcp_client() as (read, write), ClientSession(read, write) as session:
+            await asyncio.wait_for(session.initialize(), timeout=30)
+            raw = await _call_tool_raw(
+                session,
+                "send_email",
+                {"to": to, "subject": subject, "body": body},
+            )
+            if raw.startswith("Error:"):
+                log.warning("Gmail send_email failed: %s", raw[:200])
+                return False, raw
+            return True, raw
+    except Exception as e:  # noqa: BLE001 - send is best-effort; caller logs and moves on rather than crashing the tracking pipeline over a notification
+        log.warning("Gmail send_email session failed: %s", e)
+        return False, str(e)
+
+
 async def fetch_application_emails(days: int = 14, limit: int = 100) -> list[dict]:
     """Fetch application-related emails from Gmail via MCP.
 

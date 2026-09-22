@@ -1502,6 +1502,35 @@ def stop(
             console.print("  [yellow]Could not send interrupt signal (PID missing or process already exited).[/yellow]")
 
 
+@app.command("mark-test-case")
+def mark_test_case(
+    url: str = typer.Argument(..., help="URL of a real, genuinely low-scoring (state=low_score) job to mark."),
+) -> None:
+    """Mark a real low-scoring job as a test case for apply-mechanics testing (decision #175).
+
+    Reuses an already-approved resume/cover-letter pair and walks the job through
+    the legitimate low_score -> tailoring -> tailored -> ready_to_apply override
+    chain, so `applypilot apply --url <url>` can exercise the full real
+    acquire/Chrome/MCP path with zero real-application risk. Only accepts jobs
+    already in state=low_score -- the pipeline's own scorer must have said no first.
+    """
+    _bootstrap()
+
+    from applypilot.database import mark_job_as_test_case
+
+    try:
+        job = mark_job_as_test_case(url)
+    except ValueError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(code=1) from e
+
+    console.print(f"[green]Marked as test case:[/green] {job['title']} ({job['url'][:80]})")
+    console.print(f"  fit_score: {job['fit_score']}  state: {job['state']}")
+    console.print(f"  Resume:  {job['tailored_resume_path']}")
+    console.print(f"  Cover:   {job['cover_letter_path']}")
+    console.print(f"\nRun: applypilot apply --url \"{job['url']}\" --limit 1")
+
+
 @app.command("reject-titles")
 def reject_titles(
     pattern: list[str] | None = typer.Option(
