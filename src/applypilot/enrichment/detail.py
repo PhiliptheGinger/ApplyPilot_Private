@@ -27,7 +27,7 @@ from bs4 import BeautifulSoup
 from patchright.sync_api import TimeoutError as PatchrightTimeoutError
 from patchright.sync_api import sync_playwright
 
-from applypilot.database import commit_with_retry, current_state, init_db, transition_state
+from applypilot.database import commit_with_retry, current_state, init_db, transition_state, write_with_retry
 from applypilot.llm import get_client
 
 log = logging.getLogger(__name__)
@@ -798,54 +798,75 @@ def _mark_enrich_result(
         status = "error"
         error = f"boilerplate_description_detected: {(full_description or '')[:80]!r}"
 
-    if status in ("ok", "partial"):
-        # Belt-and-suspenders: if any upstream caller still passes a relative
-        # application_url, resolve it against the page URL before storing.
-        # The deterministic and LLM extractors both already resolve, so this
-        # only fires for legacy paths or future regressions.
-        if application_url and not application_url.startswith(("http://", "https://")):
-            application_url = urljoin(url, application_url)
-        # Rewrite embedded-ATS URLs (?gh_jid=N etc.) to their canonical
-        # ATS form so the apply agent never has to navigate the iframe.
-        # canonicalize_application_url consults both the static slug map
-        # AND the runtime cache populated by scrape_detail_page when it
-        # finds a job-boards.greenhouse.io iframe on an unknown host.
-        from applypilot.discovery.url_normalize import canonicalize_application_url
+    # 2026-09-21/22 (decision #181, fixed): both write branches below used
+    # to call conn.execute(...)/transition_state(...) directly with no
+    # retry-on-locked handling -- the caller's own commit_with_retry(conn)
+    # (scrape_site_batch, after this returns) only protects the COMMIT
+    # step, not these UPDATE statements themselves, which is exactly where
+    # the real "database is locked" exception was actually raised. Confirmed
+    # live over a multi-day continuous run: 700+ site-batch crashes across
+    # dozens of companies, each discarding a real, already-fetched job
+    # description. Wrapping the whole write in write_with_retry (same
+    # pattern as decision #179's tailor-claim fix) retries the actual
+    # writes, not just the trailing commit -- the caller's commit_with_retry
+    # afterward is now a harmless no-op on an already-clean connection.
+    def _do_write() -> None:
+        if status in ("ok", "partial"):
+            # Belt-and-suspenders: if any upstream caller still passes a relative
+            # application_url, resolve it against the page URL before storing.
+            # The deterministic and LLM extractors both already resolve, so this
+            # only fires for legacy paths or future regressions.
+            if application_url and not application_url.startswith(("http://", "https://")):
+                resolved_application_url = urljoin(url, application_url)
+            else:
+                resolved_application_url = application_url
+            # Rewrite embedded-ATS URLs (?gh_jid=N etc.) to their canonical
+            # ATS form so the apply agent never has to navigate the iframe.
+            # canonicalize_application_url consults both the static slug map
+            # AND the runtime cache populated by scrape_detail_page when it
+            # finds a job-boards.greenhouse.io iframe on an unknown host.
+            from applypilot.discovery.url_normalize import canonicalize_application_url
 
-        canonical = canonicalize_application_url(application_url) if application_url else application_url
-        conn.execute(
-            "UPDATE jobs SET full_description = ?, application_url = ?, "
-            "detail_scraped_at = ?, detail_error = NULL, "
-            "detail_error_category = NULL, enrich_attempts = 0, "
-            "enrich_next_retry_at = NULL WHERE url = ?",
-            (full_description, canonical, now, url),
-        )
-        transition_state(
-            conn,
-            url,
-            "enriched",
-            reason="description fetched",
-            metadata={"chars": len(full_description or ""), "tier": tier},
-        )
-    else:
-        error_msg = error or "unknown"
-        if category is None or next_retry_at is None:
-            category, next_retry_at = _classify_detail_error(error_msg, retry_count)
-        conn.execute(
-            "UPDATE jobs SET detail_error = ?, detail_error_category = ?, "
-            "enrich_attempts = ?, enrich_next_retry_at = ?, "
-            "detail_scraped_at = ? WHERE url = ?",
-            (error_msg, category, retry_count + 1, next_retry_at, now, url),
-        )
-        if category != "retriable":
+            canonical = (
+                canonicalize_application_url(resolved_application_url) if resolved_application_url else resolved_application_url
+            )
+            conn.execute(
+                "UPDATE jobs SET full_description = ?, application_url = ?, "
+                "detail_scraped_at = ?, detail_error = NULL, "
+                "detail_error_category = NULL, enrich_attempts = 0, "
+                "enrich_next_retry_at = NULL WHERE url = ?",
+                (full_description, canonical, now, url),
+            )
             transition_state(
                 conn,
                 url,
-                "enrich_failed",
-                reason=category,
-                metadata={"error": error_msg},
+                "enriched",
+                reason="description fetched",
+                metadata={"chars": len(full_description or ""), "tier": tier},
             )
-        # retriable: no transition — job stays in 'discovered' for retry loop
+        else:
+            error_msg = error or "unknown"
+            if category is None or next_retry_at is None:
+                resolved_category, resolved_next_retry_at = _classify_detail_error(error_msg, retry_count)
+            else:
+                resolved_category, resolved_next_retry_at = category, next_retry_at
+            conn.execute(
+                "UPDATE jobs SET detail_error = ?, detail_error_category = ?, "
+                "enrich_attempts = ?, enrich_next_retry_at = ?, "
+                "detail_scraped_at = ? WHERE url = ?",
+                (error_msg, resolved_category, retry_count + 1, resolved_next_retry_at, now, url),
+            )
+            if resolved_category != "retriable":
+                transition_state(
+                    conn,
+                    url,
+                    "enrich_failed",
+                    reason=resolved_category,
+                    metadata={"error": error_msg},
+                )
+            # retriable: no transition — job stays in 'discovered' for retry loop
+
+    write_with_retry(conn, _do_write)
 
 
 def _learn_greenhouse_slug_from_iframe(page, parent_url: str) -> None:
