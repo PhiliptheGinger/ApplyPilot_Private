@@ -17,6 +17,7 @@ from __future__ import annotations
 import subprocess
 import sys
 import threading
+import time
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -646,3 +647,82 @@ class TestRunJobProbeRearm:
 
         avail = claude_status.check_claude_availability(cache_path=tmp_path / "no-cache.json", check_auth=False)
         assert avail.state == claude_status.AVAILABLE
+
+
+# ── _wait_for_session_limit_recovery: the 2026-09-23 fix ─────────────────
+#
+# Live-observed real incident: a plain (non `--continuous`, no
+# `run-continuous` scheduler) apply run spun for HOURS during a real
+# account-wide usage-limit outage -- 227 consecutive "You've hit your
+# session limit" hits logged across 4 workers -- because the durable
+# claude_status exhaustion signal was never consulted outside the
+# run-continuous scheduler path; the plain-apply dispatch branch just slept
+# a fixed 300s and retried unconditionally, forever. These tests pin the
+# fix directly against the real claude_status module (tiny real
+# cooldowns/timeouts, not mocked time), since the whole point is verifying
+# real wait/wake behavior, not a mocked stand-in for it.
+
+
+class TestWaitForSessionLimitRecovery:
+    def test_returns_immediately_when_not_exhausted(self, monkeypatch):
+        import applypilot.apply.orchestrator as orch
+        from applypilot.apply import launcher
+
+        monkeypatch.setattr(launcher, "_stop_event", threading.Event())
+        start = time.monotonic()
+        orch._wait_for_session_limit_recovery(0)
+        assert time.monotonic() - start < 0.5
+
+    def test_waits_out_the_cooldown_before_returning(self, monkeypatch):
+        import applypilot.apply.orchestrator as orch
+        from applypilot.apply import launcher
+
+        monkeypatch.setattr(launcher, "_stop_event", threading.Event())
+        monkeypatch.setattr(orch, "_SESSION_LIMIT_BACKOFF_SECONDS", 0.05)
+        claude_status.record_apply_exhaustion("session_limit", cooldown_seconds=0.2)
+
+        start = time.monotonic()
+        orch._wait_for_session_limit_recovery(0)
+        elapsed = time.monotonic() - start
+
+        assert elapsed >= 0.15, "must not return before the probe cooldown actually elapses"
+        assert claude_status.probe_due() or not claude_status.is_exhausted()[0]
+
+    def test_stop_event_short_circuits_a_long_cooldown(self, monkeypatch):
+        import applypilot.apply.orchestrator as orch
+        from applypilot.apply import launcher
+
+        ev = threading.Event()
+        ev.set()
+        monkeypatch.setattr(launcher, "_stop_event", ev)
+        monkeypatch.setattr(orch, "_SESSION_LIMIT_BACKOFF_SECONDS", 100)
+        claude_status.record_apply_exhaustion("session_limit", cooldown_seconds=9999)
+
+        start = time.monotonic()
+        orch._wait_for_session_limit_recovery(0)
+        assert time.monotonic() - start < 0.5
+
+    def test_returns_promptly_once_a_concurrent_success_clears_exhaustion(self, monkeypatch):
+        import applypilot.apply.orchestrator as orch
+        from applypilot.apply import launcher
+
+        monkeypatch.setattr(launcher, "_stop_event", threading.Event())
+        monkeypatch.setattr(orch, "_SESSION_LIMIT_BACKOFF_SECONDS", 0.05)
+        # Long cooldown -- if the fix only waited for probe_due(), this
+        # would block for 9999s. It must instead notice the concurrent
+        # record_apply_success() on its next poll and return well before that.
+        claude_status.record_apply_exhaustion("session_limit", cooldown_seconds=9999)
+
+        def _clear_soon():
+            time.sleep(0.1)
+            claude_status.record_apply_success()
+
+        t = threading.Thread(target=_clear_soon)
+        t.start()
+        start = time.monotonic()
+        orch._wait_for_session_limit_recovery(0)
+        elapsed = time.monotonic() - start
+        t.join()
+
+        assert elapsed < 2.0
+        assert claude_status.is_exhausted()[0] is False

@@ -87,12 +87,49 @@ logger = logging.getLogger(__name__)
 # ``global POLL_INTERVAL = poll_interval``; read by ``_worker_loop_body``.
 POLL_INTERVAL = config.DEFAULTS["poll_interval"]
 
-# Fixed, conservative backoff after a temporary Claude session-limit hit
-# during apply, independent of the scheduler's own adaptive backoff (which
-# only exists when `applypilot run-continuous` is active). Prevents a
-# standalone `applypilot apply --continuous` worker from hammering an
-# already-exhausted Claude session in a tight loop.
+# Poll interval used while waiting out a real Claude session-limit
+# exhaustion (see _wait_for_session_limit_recovery below) -- how often to
+# cheaply re-check the durable claude_status signal, NOT how long a worker
+# actually waits before retrying (that's governed by the same
+# record_apply_exhaustion cooldown -- default 1800s -- the run-continuous
+# scheduler's ClaudeGate already relies on).
 _SESSION_LIMIT_BACKOFF_SECONDS = 300
+
+
+def _wait_for_session_limit_recovery(worker_id: int) -> None:
+    """Wait out a real Claude session-limit exhaustion using the SAME
+    durable signal/cooldown the run-continuous scheduler's ClaudeGate
+    already relies on (claude_status.record_apply_exhaustion/probe_due),
+    instead of a blind fixed-interval unconditional retry.
+
+    2026-09-23: previously this branch slept `_SESSION_LIMIT_BACKOFF_SECONDS`
+    (300s) exactly once and then retried unconditionally -- with no cap.
+    Confirmed live: a plain (non `--continuous`, no `run-continuous`
+    scheduler) apply run spun in this loop for HOURS during a real extended
+    account-wide usage-limit outage (227 consecutive "You've hit your
+    session limit" hits logged across 4 workers, spanning multiple
+    scheduled reset boundaries) -- a full real Claude Code subprocess was
+    spawned and failed roughly every 5 minutes per worker, forever, because
+    the durable exhaustion signal (`claude_status.record_apply_exhaustion`
+    / `record_apply_success`, already called either way by
+    launcher.py::run_job) was never actually CONSULTED outside the
+    `run-continuous` scheduler path. This closes that gap for plain `apply`
+    too: keeps polling the durable signal every
+    `_SESSION_LIMIT_BACKOFF_SECONDS`, but only actually returns (letting the
+    caller spawn a real `run_job` attempt again) once a concurrent worker's
+    success has cleared the exhaustion, or the cooldown window
+    (`probe_due()`, 1800s default) has genuinely elapsed -- cutting real
+    subprocess-spawn attempts from "every 5 min per worker forever" to "at
+    most once per ~30 min account-wide" while the outage persists.
+    """
+    from applypilot import claude_status
+    from applypilot.apply.launcher import _stop_event
+
+    while not _stop_event.is_set():
+        exhausted, _reason = claude_status.is_exhausted()
+        if not exhausted or claude_status.probe_due():
+            return
+        _stop_event.wait(timeout=_SESSION_LIMIT_BACKOFF_SECONDS)
 
 
 def _probe_for_reconnect(worker_id: int, port: int) -> tuple[int | None, str | None]:
@@ -456,16 +493,12 @@ def _worker_loop_body(
                     # back to the pool untouched -- no apply_attempts
                     # increment, no permanent failure, no counting toward
                     # this worker's --limit -- instead of burning a
-                    # candidate. Back off briefly so this worker doesn't
-                    # hammer Claude again immediately even without a
-                    # scheduler active (the scheduler's gate above handles
-                    # the same thing on its next planning cycle when one is
-                    # running).
+                    # candidate.
                     release_lock(job["url"])
                     add_event(f"[W{worker_id}] Claude session limit — job requeued, backing off")
                     update_state(worker_id, status="idle", last_action="claude session limit, backing off")
                     was_skipped = True
-                    _stop_event.wait(timeout=_SESSION_LIMIT_BACKOFF_SECONDS)
+                    _wait_for_session_limit_recovery(worker_id)
                     break
                 elif result == "applied":
                     mark_result(job["url"], "applied", duration_ms=duration_ms)

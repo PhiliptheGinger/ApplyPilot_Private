@@ -212,6 +212,15 @@ def _apply_signal() -> tuple[bool, str | None]:
         return _apply_exhausted, _apply_exhaustion_reason
 
 
+def is_exhausted() -> tuple[bool, str | None]:
+    """Public wrapper around the durable apply-side exhaustion signal --
+    (exhausted, reason). See record_apply_exhaustion/record_apply_success
+    for how this is set/cleared, and probe_due() for whether a real retry
+    is worth attempting yet.
+    """
+    return _apply_signal()
+
+
 def probe_due() -> bool:
     """True if Claude is currently believed exhausted AND enough time has
     passed that a real attempt is worth making.
