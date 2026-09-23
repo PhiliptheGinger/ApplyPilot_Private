@@ -202,6 +202,7 @@ def worker_loop(
     total_workers: int = 1,
     no_hitl: bool = False,
     continuous: bool | None = None,
+    human_first: bool = False,
 ) -> tuple[int, int]:
     """Run jobs sequentially until limit is reached or queue is empty.
 
@@ -217,6 +218,14 @@ def worker_loop(
         dry_run: Don't click Submit.
         fresh_sessions: Refresh Chrome session cookies before launching.
         total_workers: Total concurrent workers (used for window tiling).
+        human_first: LinkedIn human-first apply flow (CLAUDE.md Future Work
+            item 40) — acquire from the LinkedIn manual_only backlog instead
+            of the normal ready_to_apply queue, and let a human click Apply
+            before any automation runs. An explicit flag, not inferred from
+            other args, for the same reason `continuous` above is now
+            explicit (decision #164): implicit mode-switching from ordinary
+            parameters has already caused one real silent-hang incident in
+            this codebase.
         continuous: The CLI's actual --continuous flag. 2026-09-19: a real,
             confirmed bug -- this used to always be re-derived as
             `limit == 0`, which is only correct in true --continuous mode
@@ -274,6 +283,7 @@ def worker_loop(
             port,
             total_workers,
             no_hitl=no_hitl,
+            human_first=human_first,
         )
     finally:
         _stop_worker_listener(worker_id)
@@ -299,8 +309,10 @@ def _worker_loop_body(
     port: int,
     total_workers: int = 1,
     no_hitl: bool = False,
+    human_first: bool = False,
 ) -> tuple[int, int]:
     """Main per-worker processing loop."""
+    from applypilot.apply import hitl
     from applypilot.apply.launcher import (
         _handback_events,
         _qa_queue,
@@ -308,6 +320,7 @@ def _worker_loop_body(
         _takeover_events,
         _worker_state,
         _worker_state_lock,
+        acquire_human_first_linkedin_job,
         acquire_job,
         mark_result,
         release_lock,
@@ -355,13 +368,16 @@ def _worker_loop_body(
         _effective_target = _reconnect_url or target_url
         _reconnect_url = None  # clear after first use
 
-        job = acquire_job(
-            target_url=_effective_target,
-            min_score=min_score,
-            max_score=max_score,
-            max_age_days=max_age_days,
-            worker_id=worker_id,
-        )
+        if human_first:
+            job = acquire_human_first_linkedin_job(worker_id=worker_id)
+        else:
+            job = acquire_job(
+                target_url=_effective_target,
+                min_score=min_score,
+                max_score=max_score,
+                max_age_days=max_age_days,
+                worker_id=worker_id,
+            )
         if not job:
             if not continuous:
                 add_event(f"[W{worker_id}] Queue empty")
@@ -459,17 +475,62 @@ def _worker_loop_body(
                     "Do NOT navigate away from the current page unless it is completely blank."
                 )
 
-            result, duration_ms, screening_qs = run_job(
-                job,
-                port=port,
-                worker_id=worker_id,
-                model=model,
-                dry_run=dry_run,
-                apply_engine=apply_engine,
-                skip_tab_reset=_this_had_interrupted_job,
-                extra_context=_reconnect_ctx,
-                is_probe=_is_probe_attempt,
-            )
+            if human_first:
+                # Human clicks Apply on the real LinkedIn page first; no
+                # automation runs until (if ever) they hand off after being
+                # redirected to an external ATS. See CLAUDE.md Future Work
+                # item 40 and hitl.run_human_first's own docstring for the
+                # three possible outcomes.
+                hf_outcome, job = hitl.run_human_first(
+                    worker_id=worker_id,
+                    port=port,
+                    job=job,
+                    chrome_proc=chrome_proc,
+                    add_event=add_event,
+                    update_state=update_state,
+                    stop_event=_stop_event,
+                )
+                if hf_outcome == "stopped":
+                    break
+                if hf_outcome == "applied":
+                    # Feed the existing "applied" branch below exactly as if
+                    # a normal run_job() call had returned it — no separate
+                    # mark_result/history/counter logic to keep in sync.
+                    result, duration_ms, screening_qs = "applied", 0, []
+                elif hf_outcome == "released":
+                    # Same reasoning: feed the existing "skipped" branch,
+                    # which already does release_lock() + was_skipped=True.
+                    result, duration_ms, screening_qs = "skipped", 0, []
+                else:  # "handoff" — job now carries the real post-redirect application_url.
+                    _human_first_ctx = (
+                        "You are taking over after a human applied via LinkedIn and was "
+                        "redirected to this page. Take a browser_snapshot first to see the "
+                        "current page state, then continue filling and submitting the "
+                        "application. Do NOT navigate away unless the page is blank."
+                    )
+                    result, duration_ms, screening_qs = run_job(
+                        job,
+                        port=port,
+                        worker_id=worker_id,
+                        model=model,
+                        dry_run=dry_run,
+                        apply_engine=apply_engine,
+                        skip_tab_reset=True,
+                        extra_context=_human_first_ctx,
+                        is_probe=_is_probe_attempt,
+                    )
+            else:
+                result, duration_ms, screening_qs = run_job(
+                    job,
+                    port=port,
+                    worker_id=worker_id,
+                    model=model,
+                    dry_run=dry_run,
+                    apply_engine=apply_engine,
+                    skip_tab_reset=_this_had_interrupted_job,
+                    extra_context=_reconnect_ctx,
+                    is_probe=_is_probe_attempt,
+                )
 
             # --- Relaunch sub-loop: handles Q&A, HITL, and takeover without closing Chrome ---
             relaunch = True
@@ -929,6 +990,7 @@ def main(
     no_hitl: bool = False,
     no_focus: bool = False,
     apply_engine: str = "claude",
+    human_first: bool = False,
 ) -> None:
     """Launch the apply pipeline.
 
@@ -947,6 +1009,11 @@ def main(
         fresh_sessions: Refresh Chrome session cookies from user's real profile.
         no_hitl: Skip human-in-the-loop waits; park jobs as needs_human and move on.
         no_focus: Prevent Chrome windows from stealing keyboard focus (Linux/GNOME only).
+        human_first: LinkedIn human-first apply flow (CLAUDE.md Future Work
+            item 40) — see worker_loop's own docstring for the full
+            rationale. cli.py is responsible for defaulting `workers` to 1
+            when this is set (a real person has to sit and click through
+            each job), not this function.
     """
     from applypilot.apply.launcher import (
         _claude_lock,
@@ -1147,6 +1214,7 @@ def main(
                             total_workers=workers,
                             no_hitl=no_hitl,
                             continuous=continuous,
+                            human_first=human_first,
                         )
                     ] = i
 

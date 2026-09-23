@@ -1596,7 +1596,9 @@ def reject_titles(
 @app.command()
 def apply(
     limit: int | None = typer.Option(None, "--limit", "-l", help="Max applications to submit."),
-    workers: int = typer.Option(5, "--workers", "-w", help="Number of parallel browser workers."),
+    workers: int | None = typer.Option(
+        None, "--workers", "-w", help="Number of parallel browser workers (default: 5, or 1 with --human-first)."
+    ),
     min_score: int = typer.Option(
         config.DEFAULTS["min_score"],
         "--min-score",
@@ -1652,9 +1654,29 @@ def apply(
     clear_session: str | None = typer.Option(
         None, "--clear-session", help="Clear a saved ATS session (e.g., workday)."
     ),
+    human_first: bool = typer.Option(
+        False,
+        "--human-first",
+        help=(
+            "LinkedIn human-first apply flow: acquire from the LinkedIn "
+            "manual_only backlog (no application_url) and let you click "
+            "Apply on the real LinkedIn page first, since there's no way to "
+            "tell in advance whether a posting is Easy Apply or redirects "
+            "to an external ATS. Defaults --workers to 1 (a real person has "
+            "to sit and click through each job) unless --workers is given "
+            "explicitly."
+        ),
+    ),
 ) -> None:
     """Launch auto-apply to submit job applications."""
     _bootstrap()
+
+    if workers is None:
+        workers = 1 if human_first else 5
+
+    if human_first and headless:
+        console.print("[red]--human-first requires a visible browser window (a human has to click Apply) — cannot combine with --headless.[/red]")
+        raise typer.Exit(code=1)
 
     if apply_engine not in ("claude", "deterministic"):
         console.print("[red]Invalid --apply-engine:[/red] choose 'claude' or 'deterministic'.")
@@ -1800,6 +1822,8 @@ def apply(
     console.print(f"  Engine:   {apply_engine}")
     console.print(f"  Headless: {headless}")
     console.print(f"  Dry run:  {dry_run}")
+    if human_first:
+        console.print("  Mode:     [yellow]human-first (LinkedIn)[/yellow]")
     if fresh_sessions:
         console.print("  Sessions: [yellow]refreshing from real Chrome profile[/yellow]")
     if url:
@@ -1821,6 +1845,7 @@ def apply(
         no_hitl=no_hitl,
         no_focus=no_focus,
         apply_engine=apply_engine,
+        human_first=human_first,
     )
 
 

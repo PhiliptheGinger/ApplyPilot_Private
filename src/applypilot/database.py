@@ -572,7 +572,7 @@ VALID_TRANSITIONS: dict[str, frozenset[str]] = {
     "applying": frozenset({"applied", "apply_failed", "needs_human", "ready_to_apply"}),
     "apply_failed": frozenset({"applying", "manual_only", "archived"}),
     "needs_human": frozenset({"applying", "applied", "manual_only", "archived"}),
-    "manual_only": frozenset({"applied", "archived"}),
+    "manual_only": frozenset({"applied", "applying", "archived"}),  # "applying" = human-first LinkedIn flow acquire (manual override)
     "applied": frozenset({"responded", "ghosted", "rejected", "archived"}),
     "responded": frozenset({"interview", "rejected", "ghosted"}),
     "interview": frozenset({"offer", "rejected", "ghosted"}),

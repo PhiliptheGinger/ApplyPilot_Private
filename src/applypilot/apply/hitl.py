@@ -287,6 +287,40 @@ def _stop_hitl_listener(worker_id: int) -> None:
         server.shutdown()
 
 
+def _start_human_first_listener(worker_id: int, done_event: threading.Event, job_hash: str) -> int:
+    """Register a human-first done event with the always-on worker listener.
+
+    Mirrors `_start_hitl_listener`, using the human_first_event/
+    human_first_job_hash state keys instead of hitl_event/hitl_job_hash so
+    the two flows' wake-up signals can never cross-fire. Unlike
+    `_start_hitl_listener`, no legacy standalone-server fallback: this is a
+    new flow that only ever runs from `_worker_loop_body`, which always
+    starts the always-on listener first (`_start_worker_listener`).
+    """
+    from applypilot.apply import launcher
+
+    port = HITL_LISTEN_BASE_PORT + worker_id
+    with launcher._worker_state_lock:
+        state = launcher._worker_state.get(worker_id)
+    if state is not None:
+        state["human_first_event"] = done_event
+        state["human_first_job_hash"] = job_hash
+        state["human_first_result"] = None
+    return port
+
+
+def _stop_human_first_listener(worker_id: int) -> None:
+    """Clear human-first event from worker state. Mirrors `_stop_hitl_listener`."""
+    from applypilot.apply import launcher
+
+    with launcher._worker_state_lock:
+        state = launcher._worker_state.get(worker_id)
+    if state is not None:
+        state["human_first_event"] = None
+        state["human_first_job_hash"] = None
+        state["human_first_result"] = None
+
+
 # ---------------------------------------------------------------------------
 # Banner injection
 # ---------------------------------------------------------------------------
@@ -786,3 +820,181 @@ def _run_hitl(
                 add_event(f"[W{worker_id}] Transient ({_hitl_reason}), retrying in 30s...")
             time.sleep(30)
     return last_result, last_dur, last_qs
+
+
+# ---------------------------------------------------------------------------
+# Human-first LinkedIn apply flow (CLAUDE.md Future Work item 40)
+# ---------------------------------------------------------------------------
+
+_HUMAN_FIRST_TIMEOUT_SECONDS = 900.0  # 15 min unattended -> release the job
+
+
+def _persist_handoff_application_url(job_url: str, application_url: str) -> None:
+    """Write the post-redirect ATS URL back onto the job row.
+
+    A real, useful side effect independent of this job's own outcome: it
+    partially heals the missing-application_url data gap (CLAUDE.md Future
+    Work item 38) even if the automation attempt that follows ultimately
+    fails, since decision #172's sweep only re-parks a job in manual_only
+    when application_url is still empty.
+    """
+    from applypilot.database import write_with_retry
+
+    conn = get_connection()
+    write_with_retry(
+        conn,
+        lambda: conn.execute(
+            "UPDATE jobs SET application_url = ? WHERE url = ?",
+            (application_url, job_url),
+        ),
+    )
+
+
+def run_human_first(
+    worker_id: int,
+    port: int,
+    job: dict,
+    *,
+    chrome_proc=None,
+    add_event=None,
+    update_state=None,
+    stop_event: threading.Event | None = None,
+    timeout_seconds: float = _HUMAN_FIRST_TIMEOUT_SECONDS,
+    poll_interval: float = 5.0,
+) -> tuple[str, dict]:
+    """Human-first LinkedIn apply flow: navigate to the real LinkedIn job
+    page, let a human click Apply, and wait for one of two outcomes since
+    there's no way to know in advance whether a given posting is Easy Apply
+    (finishes on LinkedIn) or redirects to an external ATS.
+
+    Returns (outcome, job):
+      - ("applied", job)  — human finished the application on LinkedIn itself.
+        Caller should treat this exactly like a normal `run_job` "applied"
+        result (no automation was involved).
+      - ("handoff", job)  — human was redirected to an external ATS and
+        clicked "Hand Off"; `job["application_url"]` has been updated (both
+        in the returned dict and in the DB) to the real page the human
+        landed on. Caller should proceed with the normal `run_job(...,
+        skip_tab_reset=True, ...)` automation path from here.
+      - ("released", job) — no response within `timeout_seconds` (human
+        walked away). Caller should treat this like a normal "skipped"
+        result; the job is left in `applying` for the caller's own
+        release_lock() call to return to ready_to_apply (decision #172's
+        sweep will naturally re-park it in manual_only next acquire, since
+        application_url is still empty).
+      - ("stopped", job) — stop_event fired mid-wait; caller should break
+        out of its worker loop without further action.
+
+    Structurally cloned from `_run_hitl`'s pause/banner/wait pattern (chrome-
+    crash recovery, per-worker HTTP listener), just run before any Claude
+    session exists instead of after one gets stuck. Deliberately does NOT
+    build a stdin fallback (unlike `_run_hitl`) — two possible outcomes
+    don't collapse into a single "type done" gesture the way the agent-
+    stuck flow's does; the banner + CSP-fallback watcher are the only
+    signal paths for v1.
+    """
+    from applypilot.apply import launcher
+    from applypilot.apply.human_review import (
+        _inject_human_first_banner,
+        _job_hash,
+        _navigate_chrome,
+        _start_human_first_done_watcher,
+    )
+
+    job_url = job["url"]
+    job_hash = _job_hash(job_url)
+
+    _navigate_chrome(port, job_url)
+    time.sleep(1)
+
+    done_event = threading.Event()
+    hf_port = _start_human_first_listener(worker_id, done_event, job_hash)
+
+    # Real, live-observed failure (2026-09-23), TWO layers deep:
+    # (1) injecting into a REAL, heavy LinkedIn page (auth redirects, slow
+    #     JS) right after PUT /json/new?url can lose the race against the
+    #     page still navigating -- unlike a simple static test page, which
+    #     injects in ~1s every time.
+    # (2) even once injected, `ctx.addInitScript` re-firing on a FUTURE
+    #     navigation (e.g. LinkedIn's own post-login redirect to the home
+    #     feed) is not reliable enough to trust alone -- confirmed live: a
+    #     user who signed in and landed on linkedin.com's home feed saw NO
+    #     banner at all, only the (unrelated, pre-existing) extension
+    #     popup. This is the exact same CDP-injected-script-doesn't-
+    #     reliably-survive-navigation-on-CSP-heavy-sites lesson the
+    #     extension's own background.js already learned for stealth
+    #     scripts (decision #42) and deliberately worked around by
+    #     switching to `chrome.scripting.executeScript` on
+    #     `tabs.onUpdated` instead of relying on CDP-side persistence --
+    #     not yet worth porting the banner to that same extension-based
+    #     delivery for v1, so instead: re-inject on every poll cycle
+    #     (not just on failure). The banner JS's own `if
+    #     (window.__ap_hf_banner) return;` guard makes this idempotent on
+    #     an unchanged page (no visible flicker), and picks up both a
+    #     failed initial attempt AND a since-navigated-away page with one
+    #     mechanism, on the same 5s cadence used everywhere else in this
+    #     wait loop.
+    banner_injected = _inject_human_first_banner(port, job, server_port=hf_port)
+    if not banner_injected and add_event:
+        add_event(f"[W{worker_id}] Human-first banner injection failed; retrying every {poll_interval:.0f}s...")
+    watcher = _start_human_first_done_watcher(port, hf_port, job_hash)
+
+    if add_event:
+        add_event(f"[W{worker_id}] WAITING for human to apply on LinkedIn: {(job.get('title') or '')[:30]}")
+    if update_state:
+        update_state(worker_id, status="waiting_human_first", last_action="waiting for human (LinkedIn apply)")
+    _register_waiting(worker_id, "waiting_human_first")
+
+    deadline = time.monotonic() + timeout_seconds
+    outcome = "released"
+    try:
+        while stop_event is None or not stop_event.is_set():
+            if done_event.wait(timeout=poll_interval):
+                break
+            if time.monotonic() >= deadline:
+                if add_event:
+                    add_event(f"[W{worker_id}] Human-first: no response after {int(timeout_seconds / 60)}min, releasing")
+                break
+            if chrome_proc and chrome_proc.poll() is not None:
+                if add_event:
+                    add_event(f"[W{worker_id}] Chrome crashed during human-first wait; relaunching...")
+                try:
+                    chrome_proc = launch_chrome(worker_id, port=port)
+                    _navigate_chrome(port, job_url)
+                except Exception:
+                    logger.debug("Chrome relaunch during human-first wait failed", exc_info=True)
+            # Re-inject every poll cycle regardless of prior success -- see
+            # the long comment above the initial injection call for why a
+            # one-shot addInitScript can't be trusted alone on this site.
+            was_injected = banner_injected
+            banner_injected = _inject_human_first_banner(port, job, server_port=hf_port)
+            if was_injected and not banner_injected and add_event:
+                add_event(f"[W{worker_id}] Human-first banner re-injection failed; will keep retrying")
+
+        if stop_event is not None and stop_event.is_set():
+            outcome = "stopped"
+        elif done_event.is_set():
+            with launcher._worker_state_lock:
+                state = launcher._worker_state.get(worker_id)
+            result = (state or {}).get("human_first_result") or {}
+            signalled = (result.get("outcome") or "").strip()
+            if signalled == "applied":
+                outcome = "applied"
+            elif signalled == "handoff" and result.get("url"):
+                job = dict(job)
+                job["application_url"] = result["url"]
+                _persist_handoff_application_url(job_url, result["url"])
+                outcome = "handoff"
+            else:
+                logger.warning("run_human_first: unrecognized/incomplete signal %r; releasing job", result)
+                outcome = "released"
+    finally:
+        if watcher is not None and watcher.poll() is None:
+            try:
+                watcher.kill()
+            except Exception:  # noqa: BLE001, S110 - best-effort cleanup/probe, must not crash the caller
+                pass
+        _stop_human_first_listener(worker_id)
+        _unregister_waiting(worker_id)
+
+    return outcome, job

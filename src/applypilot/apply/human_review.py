@@ -423,6 +423,238 @@ const {{ chromium }} = require('@playwright/test');
         return None
 
 
+def _build_human_first_banner_js(hash_: str, title: str, company: str, server_port: int) -> str:
+    """Build the banner overlay for the human-first LinkedIn apply flow.
+
+    Unlike `_build_banner_js` (agent-stuck HITL, one "Done" outcome), this
+    banner has two distinct outcomes, since we can't tell in advance whether
+    a LinkedIn posting is Easy Apply (finishes on LinkedIn, no automation
+    needed) or redirects to an external ATS (hand off to automation once
+    there) — see CLAUDE.md Future Work item 40. Persists across navigations
+    via ctx.addInitScript (same mechanism as `_build_banner_js`), since the
+    human may click LinkedIn's Apply button and get redirected one or more
+    times before this banner's buttons are actually relevant.
+    """
+    return f"""
+(function() {{
+  if (window.__ap_hf_banner) return;
+  window.__ap_hf_banner = true;
+  var HASH = '{hash_}';
+  var PORT = {server_port};
+
+  function _signal(outcome) {{
+    var url = window.location.href;
+    window.__ap_hitl_done = HASH + '|' + outcome + '|' + encodeURIComponent(url);
+    fetch('http://localhost:' + PORT + '/api/human-first/' + HASH, {{
+      method: 'POST',
+      headers: {{'Content-Type': 'application/json'}},
+      body: JSON.stringify({{outcome: outcome, url: url}})
+    }}).catch(function() {{}});
+  }}
+
+  function _injectBanner() {{
+    if (document.getElementById('__ap_hf_banner_root')) return;
+
+    var root = document.createElement('div');
+    root.id = '__ap_hf_banner_root';
+    root.style.cssText = [
+      'position:fixed', 'top:0', 'left:0', 'right:0', 'z-index:2147483647',
+      'background:linear-gradient(90deg,#7c3aed,#4f46e5)',
+      'color:#fff', 'font-family:system-ui,sans-serif', 'font-size:14px',
+      'padding:10px 16px 8px', 'box-shadow:0 2px 8px rgba(0,0,0,0.4)',
+      'user-select:none', 'display:flex', 'align-items:center', 'gap:10px'
+    ].join(';');
+
+    var info = document.createElement('div');
+    info.style.cssText = 'flex:1;overflow:hidden;min-width:0';
+    info.innerHTML = '<strong>&#9872; ApplyPilot</strong> &mdash; <em>{title}</em> @ {company}'
+      + '<br><span style="font-size:11px;opacity:0.85">Click Apply on this page. '
+      + 'If you finish here, click "I Applied". If it takes you to a company\\'s '
+      + 'own site, click "Hand Off" once you\\'re there.</span>';
+
+    function _makeBtn(label, bg, fg, title) {{
+      var b = document.createElement('button');
+      b.innerHTML = label;
+      if (title) b.title = title;
+      b.style.cssText = [
+        'background:' + bg, 'color:' + fg,
+        'border:none', 'border-radius:6px',
+        'padding:6px 12px', 'font-size:12px', 'font-weight:700',
+        'cursor:pointer', 'white-space:nowrap', 'flex-shrink:0',
+        'line-height:1.2'
+      ].join(';');
+      return b;
+    }}
+
+    var btnApplied = _makeBtn('I Applied &#10003;', '#22c55e', '#000',
+      'I finished this application myself — mark it done, no automation needed');
+    var btnHandoff = _makeBtn('Hand Off &#9654;', '#fff', '#4f46e5',
+      'LinkedIn redirected me to the company\\'s own site — let automation take over from here');
+
+    function _disableAllBtns() {{
+      root.querySelectorAll('button').forEach(function(b) {{ b.disabled = true; }});
+    }}
+
+    btnApplied.onclick = function() {{
+      if (btnApplied.disabled) return;
+      _disableAllBtns();
+      btnApplied.innerHTML = 'Saving...';
+      _signal('applied');
+    }};
+
+    btnHandoff.onclick = function() {{
+      if (btnHandoff.disabled) return;
+      _disableAllBtns();
+      btnHandoff.innerHTML = 'Handing off...';
+      _signal('handoff');
+    }};
+
+    root.appendChild(info);
+    root.appendChild(btnApplied);
+    root.appendChild(btnHandoff);
+
+    function _tryInsert() {{
+      if (document.body) {{
+        document.body.style.paddingTop = '70px';
+        document.body.insertBefore(root, document.body.firstChild);
+      }} else {{
+        setTimeout(_tryInsert, 100);
+      }}
+    }}
+    _tryInsert();
+  }}
+
+  if (document.readyState === 'loading') {{
+    document.addEventListener('DOMContentLoaded', _injectBanner);
+  }} else {{
+    _injectBanner();
+  }}
+}})();
+"""
+
+
+def _inject_human_first_banner(port: int, job: dict, server_port: int) -> bool:
+    """Inject the human-first banner via CDP. Mirrors `_inject_banner`."""
+    h = _job_hash(job["url"])
+    title = (job.get("title") or "Unknown Position").replace("\\", "\\\\").replace("'", "\\'")
+    company = (job.get("site") or job.get("company") or "").replace("\\", "\\\\").replace("'", "\\'")
+
+    js = _build_human_first_banner_js(h, title, company, server_port)
+    js_escaped = js.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${")
+
+    node_script = f"""
+const {{ chromium }} = require('@playwright/test');
+(async () => {{
+  try {{
+    const b = await chromium.connectOverCDP('http://localhost:{port}');
+    const ctx = b.contexts()[0];
+    const bannerJs = `{js_escaped}`;
+    await ctx.addInitScript(bannerJs);
+    const pages = ctx.pages();
+    for (const p of pages) {{
+      try {{ await p.evaluate(bannerJs); }} catch(e) {{}}
+    }}
+    await b.close();
+    process.exit(0);
+  }} catch(e) {{
+    process.stderr.write(e.message + '\\n');
+    process.exit(1);
+  }}
+}})();
+"""
+    try:
+        result = subprocess.run(
+            ["node", "-e", node_script],
+            timeout=15,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            logger.warning("Human-first banner injection failed: %s", result.stderr[:200])
+            return False
+        return True
+    except Exception as e:  # noqa: BLE001 - Node/CDP subprocess for banner injection is inherently unreliable (browser may be closed, CDP unavailable); degrade to False, don't crash the human-first flow
+        logger.warning("Human-first banner injection error: %s", e)
+        return False
+
+
+def _start_human_first_done_watcher(cdp_port: int, server_port: int, hash_: str) -> subprocess.Popen | None:
+    """CSP-fallback watcher for the human-first banner (mirrors `_start_done_watcher`).
+
+    The banner's in-page fetch() is the primary signal path; this exists only
+    for sites whose CSP blocks that fetch. Polls for
+    `window.__ap_hitl_done == "{hash}|<outcome>|<encoded url>"` (set
+    regardless of whether the fetch succeeded) and, if seen, forwards the
+    parsed outcome/url to the server via Node's http module (not subject to
+    page CSP) — a real re-delivery, not just a "someone clicked" ping, since
+    `run_human_first` needs the outcome to decide what happens next.
+    """
+    watcher_script = f"""
+const {{ chromium }} = require('@playwright/test');
+(async () => {{
+  try {{
+    const b = await chromium.connectOverCDP('http://localhost:{cdp_port}');
+    const ctx = b.contexts()[0];
+    let done = false;
+    const prefix = '{hash_}|';
+
+    const watchdog = setTimeout(() => {{
+      if (!done) {{ done = true; process.exit(2); }}
+    }}, 1800000); // 30-minute safety exit
+
+    const check = setInterval(async () => {{
+      if (done) {{ clearInterval(check); return; }}
+      try {{
+        const pages = ctx.pages();
+        for (const page of pages) {{
+          const val = await page.evaluate(() => window.__ap_hitl_done || null).catch(() => null);
+          if (typeof val === 'string' && val.indexOf(prefix) === 0) {{
+            done = true;
+            clearInterval(check);
+            clearTimeout(watchdog);
+            const rest = val.slice(prefix.length);
+            const sep = rest.indexOf('|');
+            const outcome = sep === -1 ? rest : rest.slice(0, sep);
+            const url = sep === -1 ? '' : decodeURIComponent(rest.slice(sep + 1));
+            const http = require('http');
+            const payload = JSON.stringify({{outcome: outcome, url: url}});
+            await new Promise((res) => {{
+              const req = http.request(
+                {{ hostname: '127.0.0.1', port: {server_port},
+                   path: '/api/human-first/{hash_}', method: 'POST',
+                   headers: {{'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload)}} }},
+                res
+              );
+              req.on('error', res);
+              req.write(payload);
+              req.end();
+            }});
+            process.exit(0);
+            break;
+          }}
+        }}
+      }} catch(e) {{}}
+    }}, 500);
+  }} catch(e) {{
+    process.stderr.write(e.message + '\\n');
+    process.exit(1);
+  }}
+}})();
+"""
+    try:
+        proc = subprocess.Popen(
+            ["node", "-e", watcher_script],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        logger.debug("Human-first done watcher started (pid=%d) for hash=%s port=%d", proc.pid, hash_, server_port)
+        return proc
+    except Exception as e:  # noqa: BLE001 - spawning the Node done-watcher subprocess is best-effort; failure degrades to no watcher (banner buttons' direct fetch() still works)
+        logger.warning("Failed to start human-first done watcher: %s", e)
+        return None
+
+
 def _navigate_chrome(port: int, url: str) -> bool:
     """Navigate the first Chrome tab to a URL via CDP."""
     import urllib.request

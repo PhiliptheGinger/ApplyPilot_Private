@@ -365,6 +365,13 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
         "last_focused": 0,
         "history": [],  # list of completed job summaries for the homepage log
         "no_hitl": no_hitl,
+        # Human-first flow (hitl.run_human_first): mirrors hitl_event/
+        # hitl_job_hash above but carries an outcome ("applied" vs
+        # "handoff") + captured post-redirect URL, since a bare wake-up
+        # signal isn't enough to know which banner button was clicked.
+        "human_first_event": None,
+        "human_first_job_hash": None,
+        "human_first_result": None,
     }
 
     takeover_event = threading.Event()
@@ -424,6 +431,8 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self._handle_handback()
             elif self.path.startswith("/api/done"):
                 self._handle_done()
+            elif self.path.startswith("/api/human-first/"):
+                self._handle_human_first()
             elif self.path.startswith("/api/action-log/"):
                 self._handle_action_log()
             elif self.path == "/api/add-job":
@@ -751,6 +760,24 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 # before the worker loop picks it up and changes status to "applying".
                 state["status"] = "resuming"
                 hitl_evt.set()
+            self._text_ok()
+
+        def _handle_human_first(self):
+            """Human-first banner click: 'I Applied' or 'Hand Off to Automation'.
+
+            Body: {"outcome": "applied"|"handoff", "url": "<current page url>"}.
+            `url` is only meaningful for "handoff" (the post-redirect ATS page
+            the human landed on); `run_human_first` reads it back to backfill
+            the job's application_url before resuming automation.
+            """
+            body = self._read_body()
+            outcome = (body.get("outcome") or "").strip()
+            url = (body.get("url") or "").strip() or None
+            evt = state.get("human_first_event")
+            if evt:
+                state["human_first_result"] = {"outcome": outcome, "url": url}
+                state["status"] = "resuming"
+                evt.set()
             self._text_ok()
 
         def _handle_action_log(self):
@@ -2134,6 +2161,77 @@ def _acquire_job_one_attempt(
 
         commit_with_retry(conn)
 
+        return dict(row)
+    except Exception:
+        conn.rollback()
+        raise
+
+
+def acquire_human_first_linkedin_job(worker_id: int = 0) -> dict | None:
+    """Acquire the next LinkedIn ``manual_only`` job for the human-first apply
+    flow (a human clicks Apply on the real LinkedIn job page; automation only
+    takes over if/once LinkedIn redirects to an external ATS — see
+    ``hitl.run_human_first``).
+
+    LinkedIn jobs have no ``application_url`` (jobspy no longer exposes a
+    direct-apply link for LinkedIn postings at all, confirmed live
+    2026-09-22 — see CLAUDE.md Future Work item 38), so they dead-end in
+    ``manual_only`` via the normal acquire_job sweep (decision #172) and are
+    otherwise never re-selected. This is a deliberate, narrowly-scoped
+    override of that dead end: only rows whose ``url`` is a real
+    linkedin.com/jobs/view page, still lacking an ``application_url``, under
+    a bounded retry cap (mirrors decision #168's MAX_TRANSIENT_APPLY_RETRIES
+    pattern — a job that's already timed out on an unattended human a few
+    times shouldn't keep resurfacing forever).
+
+    Matches both ``manual_only`` and ``ready_to_apply`` rows: a job that
+    timed out waiting for a human (``hitl.run_human_first``'s "released"
+    outcome) goes back to ``ready_to_apply`` via the same release_lock path
+    every other released/skipped job uses, NOT straight back to
+    ``manual_only`` — without also matching ``ready_to_apply`` here, a
+    session running ``--human-first`` on its own (no normal acquire_job
+    calls to trigger decision #172's manual_only sweep) would silently
+    orphan that job forever: not selectable here (wrong state) and not
+    selectable by the normal apply queue either (still no application_url).
+    """
+    conn = get_connection()
+    try:
+        _begin_deadline = time.monotonic() + 300
+        _begin_delay = 2.0
+        while True:
+            try:
+                conn.execute("BEGIN IMMEDIATE")
+                break
+            except sqlite3.OperationalError as _be:
+                if "locked" not in str(_be).lower():
+                    raise
+                if time.monotonic() >= _begin_deadline:
+                    raise
+                logger.debug("acquire_human_first_linkedin_job: DB locked, retrying in %.0fs…", _begin_delay)
+                time.sleep(_begin_delay)
+                _begin_delay = min(_begin_delay * 1.5, 30.0)
+
+        row = conn.execute(
+            """
+            SELECT url, title, site, application_url, tailored_resume_path,
+                   fit_score, location, full_description, cover_letter_path, company
+            FROM jobs
+            WHERE state IN ('manual_only', 'ready_to_apply')
+              AND (application_url IS NULL OR application_url = '')
+              AND url LIKE '%linkedin.com/jobs/view%'
+              AND tailored_resume_path IS NOT NULL
+              AND (apply_attempts IS NULL OR apply_attempts < 3)
+            ORDER BY fit_score DESC, discovered_at DESC
+            LIMIT 1
+        """
+        ).fetchone()
+
+        if not row:
+            conn.rollback()
+            return None
+
+        _mark_job_actively_applying(conn, row["url"], worker_id, reason=f"worker-{worker_id} human-first acquire")
+        commit_with_retry(conn)
         return dict(row)
     except Exception:
         conn.rollback()
