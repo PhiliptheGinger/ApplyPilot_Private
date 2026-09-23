@@ -703,7 +703,25 @@ def _run_hitl(
 
         def _stdin_done_reader() -> None:
             try:
-                line = sys.stdin.readline().strip().lower()
+                raw = sys.stdin.readline()
+                # Real, live-caught bug (2026-09-23): a genuine interactive
+                # Enter keypress returns "\n" (which .strip() reduces to
+                # ""), but so does true EOF on a stdin that was never a live
+                # terminal to begin with -- e.g. `applypilot apply` launched
+                # under a background/non-interactive process. Checking only
+                # the STRIPPED value made the two indistinguishable, so the
+                # very first needs_human pause under a non-interactive stdin
+                # silently auto-fired hitl_event within seconds of the
+                # banner appearing -- no real human action, no error, no
+                # visible symptom beyond "the page just closed." Checking
+                # the RAW (pre-strip) value first: only a truly empty read
+                # (zero bytes, real EOF) is treated as "nothing to act on"
+                # and skipped; a real Enter keypress ("\n") still falls
+                # through to the normal done-matching logic below exactly
+                # as before.
+                if raw == "":
+                    return
+                line = raw.strip().lower()
                 if line in ("done", "d", "") and not hitl_event.is_set():
                     if add_event:
                         add_event(f"[W{worker_id}] stdin fallback: 'done' received")
