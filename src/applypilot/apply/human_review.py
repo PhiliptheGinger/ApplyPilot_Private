@@ -423,6 +423,38 @@ const {{ chromium }} = require('@playwright/test');
         return None
 
 
+def _human_first_blocked_domains() -> list[str]:
+    """Domains Hand Off must never fire on -- real interaction with any of
+    these risks the same bot-detection exposure decision #168 already
+    avoids for LinkedIn specifically. Best-effort, not exhaustive: this is
+    "known job aggregators with confirmed anti-bot measures," not a
+    general theory of which sites might have one. linkedin.com is always
+    included (the site this whole flow exists to navigate). indeed.com/
+    ziprecruiter.com/glassdoor.com are included because JobSpy's own
+    discovery scraper hit real HTTP 403s from all three the same day this
+    guard was added (2026-09-23) -- confirmed live, not a guess. Also
+    folds in `sites.yaml`'s existing `blocked.sites` list (config.py's
+    `load_blocked_sites`), the same source acquire_job's own discovery
+    filter already trusts for "too problematic to automate against."
+    """
+    domains = ["linkedin.com", "indeed.com", "ziprecruiter.com", "glassdoor.com"]
+    try:
+        from applypilot.config import load_blocked_sites
+
+        blocked_names, _patterns = load_blocked_sites()
+        domains.extend(str(n).lower() for n in blocked_names)
+    except Exception:  # noqa: BLE001 - the hardcoded list above is the real safety net; a config-load failure must not silently disable the guard
+        logger.debug("Failed to load blocked_sites for human-first hand-off guard", exc_info=True)
+    # Dedup while preserving order (first occurrence wins).
+    seen: set[str] = set()
+    out = []
+    for d in domains:
+        if d and d not in seen:
+            seen.add(d)
+            out.append(d)
+    return out
+
+
 def _build_human_first_banner_js(hash_: str, title: str, company: str, server_port: int) -> str:
     """Build the banner overlay for the human-first LinkedIn apply flow.
 
@@ -435,12 +467,26 @@ def _build_human_first_banner_js(hash_: str, title: str, company: str, server_po
     human may click LinkedIn's Apply button and get redirected one or more
     times before this banner's buttons are actually relevant.
     """
+    import json
+
+    blocked_domains_json = json.dumps(_human_first_blocked_domains())
     return f"""
 (function() {{
   if (window.__ap_hf_banner) return;
   window.__ap_hf_banner = true;
   var HASH = '{hash_}';
   var PORT = {server_port};
+  var BLOCKED_DOMAINS = {blocked_domains_json};
+
+  function _onBlockedDomain() {{
+    var host = window.location.hostname.toLowerCase();
+    for (var i = 0; i < BLOCKED_DOMAINS.length; i++) {{
+      if (host === BLOCKED_DOMAINS[i] || host.endsWith('.' + BLOCKED_DOMAINS[i]) || host.indexOf(BLOCKED_DOMAINS[i]) !== -1) {{
+        return BLOCKED_DOMAINS[i];
+      }}
+    }}
+    return null;
+  }}
 
   function _signal(outcome) {{
     var url = window.location.href;
@@ -504,6 +550,28 @@ def _build_human_first_banner_js(hash_: str, title: str, company: str, server_po
 
     btnHandoff.onclick = function() {{
       if (btnHandoff.disabled) return;
+      // Hand Off is only ever meant to fire AFTER you've been redirected
+      // to the company's own ATS -- clicking it on a known job-aggregator
+      // domain (BLOCKED_DOMAINS) would hand automation THAT site's URL as
+      // the "application_url", meaning scripted interaction with a site
+      // that already has confirmed anti-bot measures (see CLAUDE.md
+      // decision #168 for linkedin.com specifically; #190 for the general
+      // guard). Block outright on a known match, don't just warn, since
+      // there's never a legitimate reason to hand off there. This list is
+      // necessarily best-effort, not exhaustive -- any OTHER site still
+      // only gets a confirmation prompt, not a block.
+      var blockedMatch = _onBlockedDomain();
+      if (blockedMatch) {{
+        alert('Hand Off is blocked on ' + blockedMatch + ' -- wait until ' +
+              'you have been redirected to the company\\'s own application ' +
+              'site, then click Hand Off there.');
+        return;
+      }}
+      if (!confirm('Hand off automation on this page?\\n\\n' + window.location.href +
+                    '\\n\\nOnly click this if you have already been redirected to the ' +
+                    'company\\'s own application site.')) {{
+        return;
+      }}
       _disableAllBtns();
       btnHandoff.innerHTML = 'Handing off...';
       _signal('handoff');
