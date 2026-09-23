@@ -581,7 +581,21 @@ def extract_with_llm(page, url: str) -> dict:
         return {"full_description": desc, "application_url": apply_url}
     except Exception as e:  # noqa: BLE001 - LLM errors should be logged and investigated
         log.error("LLM ERROR: %s", e)
-        return {"full_description": None, "application_url": None}
+        # Real, live-caught bug (2026-09-23): the exception reason used to
+        # be discarded here entirely -- the caller only ever saw a generic
+        # "no description extracted" (`scrape_detail_page` below), which
+        # doesn't match ANY pattern in `_RETRIABLE_PATTERNS`/
+        # `_PERMANENT_PATTERNS`/`_EXPIRED_PATTERNS`, so `_classify_detail_
+        # error` fell through to its "Unknown error -- treat as permanent"
+        # default. A transient, hours-long Gemini/OpenAI quota cooldown
+        # (RuntimeError, no "LLM error" substring of its own) was silently
+        # marking every affected job PERMANENTLY unenrichable instead of
+        # retriable -- confirmed live across ~50+ RemoteOK jobs in a single
+        # batch. The "LLM error: " prefix here is deliberate, not
+        # decorative: it's what makes the propagated message match the
+        # EXISTING `"LLM error"` entry in `_RETRIABLE_PATTERNS`, which this
+        # exact failure class was already meant to hit.
+        return {"full_description": None, "application_url": None, "error": f"LLM error: {e}"}
 
 
 # -- Description cleaning ---------------------------------------------------
@@ -994,7 +1008,13 @@ def scrape_detail_page(page, url: str) -> dict:
         result["status"] = "ok" if result.get("application_url") else "partial"
     else:
         result["status"] = "error"
-        result["error"] = "no description extracted"
+        # Propagate the real reason when the LLM call itself failed (e.g.
+        # quota cooldown) so _classify_detail_error can correctly mark it
+        # retriable instead of permanent -- see extract_with_llm's own
+        # comment for the live incident this fixes. Falls back to the
+        # generic message for the genuinely-different case: the LLM call
+        # succeeded but returned no usable content.
+        result["error"] = llm_result.get("error") or "no description extracted"
 
     result["elapsed"] = time.time() - t0
     return result

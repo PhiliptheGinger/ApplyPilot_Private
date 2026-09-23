@@ -26,6 +26,7 @@ from applypilot.enrichment.detail import (
     _classify_detail_error,
     _mark_enrich_result,
     _run_detail_scraper,
+    extract_with_llm,
     scrape_site_batch,
 )
 
@@ -381,3 +382,77 @@ class TestClassifyDetailErrorCaseInsensitive:
         category, next_retry = _classify_detail_error("timeout", current_retry_count=5)
         assert category == "permanent"
         assert next_retry is None
+
+
+class TestExtractWithLlmPropagatesFailureReason:
+    """Real, live-caught bug (2026-09-23): extract_with_llm used to log the
+    exception and then discard it, returning only {"full_description": None,
+    "application_url": None} -- scrape_detail_page then wrote the generic
+    "no description extracted" as the job's error, which matches none of
+    _classify_detail_error's pattern lists, so it fell through to "Unknown
+    error -- treat as permanent". A transient, hours-long LLM quota cooldown
+    was silently marking every affected job permanently unenrichable instead
+    of retriable -- confirmed live across dozens of real RemoteOK jobs in a
+    single batch."""
+
+    def test_llm_exception_is_propagated_with_classifiable_prefix(self, monkeypatch):
+        import applypilot.enrichment.detail as detail_mod
+
+        monkeypatch.setattr(detail_mod, "extract_main_content", lambda page: "some real page content")
+
+        def _raise(*a, **k):
+            raise RuntimeError("All LLM providers are on quota cooldown (min wait: 8.6h).")
+
+        fake_client = MagicMock()
+        fake_client.ask.side_effect = _raise
+        monkeypatch.setattr(detail_mod, "get_client", lambda: fake_client)
+
+        page = MagicMock()
+        page.title.return_value = "Some Job"
+
+        result = extract_with_llm(page, "https://example.com/job/1")
+
+        assert result["full_description"] is None
+        assert "error" in result
+        # The "LLM error: " prefix is load-bearing, not decorative -- it's
+        # what makes this match the existing "LLM error" entry in
+        # _RETRIABLE_PATTERNS.
+        assert result["error"].startswith("LLM error: ")
+        assert "quota cooldown" in result["error"]
+
+    def test_propagated_llm_failure_classifies_as_retriable_not_permanent(self):
+        """End-to-end proof the fix actually closes the gap: feed the exact
+        propagated message into the real classifier, not just check the
+        string shape."""
+        category, next_retry = _classify_detail_error(
+            "LLM error: All LLM providers are on quota cooldown (min wait: 8.6h).",
+            current_retry_count=0,
+        )
+        assert category == "retriable"
+        assert next_retry is not None
+
+    def test_success_path_has_no_error_key(self, monkeypatch):
+        """Control case: a genuinely successful LLM call must not gain a
+        spurious 'error' key that could confuse a caller checking for one."""
+        import applypilot.enrichment.detail as detail_mod
+
+        monkeypatch.setattr(detail_mod, "extract_main_content", lambda page: "some real page content")
+        import applypilot.discovery.smartextract as smartextract_mod
+
+        monkeypatch.setattr(
+            smartextract_mod,
+            "extract_json",
+            lambda raw: {"full_description": "A real job description.", "application_url": None},
+        )
+
+        fake_client = MagicMock()
+        fake_client.ask.return_value = '{"full_description": "A real job description.", "application_url": null}'
+        monkeypatch.setattr(detail_mod, "get_client", lambda: fake_client)
+
+        page = MagicMock()
+        page.title.return_value = "Some Job"
+
+        result = extract_with_llm(page, "https://example.com/job/1")
+
+        assert result["full_description"] == "A real job description."
+        assert "error" not in result
