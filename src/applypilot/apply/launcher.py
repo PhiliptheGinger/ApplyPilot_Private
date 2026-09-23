@@ -2671,6 +2671,63 @@ def run_job(
         "--permission-mode",
         "bypassPermissions",
         "--no-session-persistence",
+        "--allowedTools",
+        # 2026-09-22 (real, live incident): a worker whose Playwright MCP
+        # connection failed to connect did NOT report RESULT:FAILED like
+        # its 4 sibling workers -- it used its Bash/PowerShell/Write tool
+        # access (part of Claude Code's full default toolset, never
+        # restricted before now) to write and iteratively run its OWN
+        # separate `playwright.async_api` Python script, attempting real
+        # account creation and form submission on Motorola's live Workday
+        # site, entirely outside `inject_dry_run_gate()` -- that gate is
+        # injected into the SANCTIONED Chrome-for-Testing/CDP session only;
+        # an independently-launched `p.chromium.launch()` has no gate at
+        # all. Caught live before it reached a real Submit click (verified
+        # via the actual screenshot + a DB check for a new account row --
+        # neither showed any effect), but the gap was real: this session
+        # had every tool it needed lying around to freelance an entirely
+        # different, ungated approach the moment its sanctioned path
+        # failed. Fixed by switching from a `--disallowedTools` blacklist
+        # (which never restricted Bash/PowerShell/Write/Edit/WebFetch/
+        # WebSearch/Task/Skill at all) to an explicit `--allowedTools`
+        # whitelist -- the apply-agent now has access to ONLY the
+        # `mcp__playwright__browser_*` tools it actually uses (per
+        # prompt.py's own documented flow) and the 3 Gmail read/send tools
+        # it needs for verification-code retrieval and email-only-apply
+        # fallback. No Bash, PowerShell, Write, Edit, Read, WebFetch, or
+        # WebSearch means there is no way to write or run an alternate
+        # automation script at all, regardless of what the model decides
+        # to try when its sanctioned tools fail.
+        ",".join(
+            [
+                "mcp__playwright__browser_click",
+                "mcp__playwright__browser_close",
+                "mcp__playwright__browser_console_messages",
+                "mcp__playwright__browser_drag",
+                "mcp__playwright__browser_drop",
+                "mcp__playwright__browser_evaluate",
+                "mcp__playwright__browser_file_upload",
+                "mcp__playwright__browser_fill_form",
+                "mcp__playwright__browser_handle_dialog",
+                "mcp__playwright__browser_hover",
+                "mcp__playwright__browser_navigate",
+                "mcp__playwright__browser_navigate_back",
+                "mcp__playwright__browser_network_request",
+                "mcp__playwright__browser_network_requests",
+                "mcp__playwright__browser_press_key",
+                "mcp__playwright__browser_resize",
+                "mcp__playwright__browser_run_code_unsafe",
+                "mcp__playwright__browser_select_option",
+                "mcp__playwright__browser_snapshot",
+                "mcp__playwright__browser_tabs",
+                "mcp__playwright__browser_take_screenshot",
+                "mcp__playwright__browser_type",
+                "mcp__playwright__browser_wait_for",
+                "mcp__gmail__search_emails",
+                "mcp__gmail__read_email",
+                "mcp__gmail__send_email",
+            ]
+        ),
         "--disallowedTools",
         ",".join(  # noqa: FLY002 -- a 16-entry policy list with per-item
             # comments; an f-string would destroy both, not simplify it.
