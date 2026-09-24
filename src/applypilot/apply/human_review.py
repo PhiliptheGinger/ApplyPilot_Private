@@ -149,7 +149,7 @@ def _build_banner_js(
       pill = document.createElement('div');
       pill.id = '__ap_pill';
       pill.title = 'ApplyPilot HITL — click to expand';
-      pill.innerHTML = '&#9872; AP';
+      pill.innerHTML = 'AP';
       pill.style.cssText = [
         'position:fixed', 'top:8px', 'left:8px', 'z-index:2147483647',
         'background:#7c3aed', 'color:#fff',
@@ -197,7 +197,7 @@ def _build_banner_js(
 
     var info = document.createElement('div');
     info.style.cssText = 'flex:1;overflow:hidden;min-width:0';
-    info.innerHTML = '<strong>&#9872; ApplyPilot HITL</strong>'
+    info.innerHTML = '<strong>ApplyPilot HITL</strong>'
       + ' &mdash; <em>{title}</em> @ {company} (score:{score}/10)'
       + '<br><span style="font-size:11px;opacity:0.85">{instructions_summary_js}</span>';
 
