@@ -720,23 +720,39 @@ def recover_stale_claims(
         (from_state, f"-{stale_after_minutes} minutes"),
     ).fetchall()
 
+    # 2026-09-24: the write loop below used to call transition_state()/
+    # conn.execute() directly with no lock-retry handling -- the exact same
+    # gap decisions #179/#182 already fixed for the tailor-claim and
+    # enrich-result write paths, just never applied here. Confirmed live:
+    # a real overnight run crashed `run_tailoring` outright via an uncaught
+    # `sqlite3.OperationalError: database is locked` raised from inside
+    # this function under real sustained --stream contention. Wrapping in
+    # write_with_retry (same pattern as #179/#182) fixes it; `recovered` is
+    # reset at the top of the closure since a lock-triggered retry re-runs
+    # the whole batch from scratch, matching write_with_retry's own
+    # documented semantics.
     recovered: list[str] = []
-    for row in rows:
-        url = row["url"] if isinstance(row, sqlite3.Row) else row[0]
-        if transition_state(
-            conn,
-            url,
-            to_state,
-            reason=reason,
-            metadata={"stale_after_minutes": stale_after_minutes},
-        ):
-            # attempts_column is one of two internal constants passed by
-            # this module's own callers (never external input).
-            conn.execute(
-                f"UPDATE jobs SET {attempts_column} = COALESCE({attempts_column}, 0) + 1 WHERE url = ?",
-                (url,),
-            )
-            recovered.append(url)
+
+    def _do_recover() -> None:
+        recovered.clear()
+        for row in rows:
+            url = row["url"] if isinstance(row, sqlite3.Row) else row[0]
+            if transition_state(
+                conn,
+                url,
+                to_state,
+                reason=reason,
+                metadata={"stale_after_minutes": stale_after_minutes},
+            ):
+                # attempts_column is one of two internal constants passed by
+                # this module's own callers (never external input).
+                conn.execute(
+                    f"UPDATE jobs SET {attempts_column} = COALESCE({attempts_column}, 0) + 1 WHERE url = ?",
+                    (url,),
+                )
+                recovered.append(url)
+
+    write_with_retry(conn, _do_recover)
     return recovered
 
 

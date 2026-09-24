@@ -237,3 +237,73 @@ def test_run_cover_letters_recovers_stale_claim_before_selecting(tmp_db, seed_jo
     run_cover_letters(min_score=8, max_age_days=0)
 
     assert current_state(conn, url) == "cover_failed"
+
+
+# ---------------------------------------------------------------------------
+# Lock-retry resilience (2026-09-24 overnight finding)
+# ---------------------------------------------------------------------------
+
+
+def test_transient_lock_during_recovery_is_retried_not_fatal(tmp_db, seed_job, monkeypatch):
+    """Real, live-caught bug: recover_stale_claims() used to call
+    transition_state()/conn.execute() directly with no lock-retry handling
+    -- the same gap decisions #179/#182 already fixed for the tailor-claim
+    and enrich-result write paths, just never applied here. A real
+    overnight `run --stream` session crashed run_tailoring() outright via
+    an uncaught `sqlite3.OperationalError: database is locked` raised from
+    inside this function under real sustained contention.
+
+    Fixed by wrapping the write loop in write_with_retry (same pattern as
+    #179/#182). This test confirms a transient lock error during recovery
+    is retried, not fatal, and the job still gets recovered."""
+    import sqlite3
+
+    import applypilot.database as db_mod
+
+    conn = tmp_db()
+    row = seed_job(conn, url_suffix="lock-retry-recovery", state="tailoring")
+    url = row["url"]
+    _insert_transition(conn, url, "scored", "tailoring", minutes_ago=40)
+
+    real_transition_state = db_mod.transition_state
+    calls = {"n": 0}
+
+    def _flaky_transition_state(conn, url, to_state, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise sqlite3.OperationalError("database is locked")
+        return real_transition_state(conn, url, to_state, **kwargs)
+
+    monkeypatch.setattr(db_mod, "transition_state", _flaky_transition_state)
+    monkeypatch.setattr(db_mod.time, "sleep", lambda *a, **k: None)
+
+    recovered = db_mod.recover_stale_claims(conn, "tailoring", "tailor_failed", "tailor_attempts")
+
+    assert recovered == [url], "the job must still be recovered after the retry succeeds"
+    assert calls["n"] >= 2, "must have actually retried after the simulated lock error"
+    assert db_mod.current_state(conn, url) == "tailor_failed"
+
+
+def test_persistent_lock_during_recovery_propagates_cleanly(tmp_db, seed_job, monkeypatch):
+    """If the lock never clears, write_with_retry's own bounded-retry
+    behavior applies -- recover_stale_claims must propagate a clean,
+    catchable error rather than a bare crash mid-loop (matching the real
+    live traceback, which crashed run_tailoring's whole pass)."""
+    import sqlite3
+
+    import applypilot.database as db_mod
+    import pytest
+
+    conn = tmp_db()
+    row = seed_job(conn, url_suffix="lock-persistent-recovery", state="tailoring")
+    url = row["url"]
+    _insert_transition(conn, url, "scored", "tailoring", minutes_ago=40)
+
+    def _always_locked(conn, url, to_state, **kwargs):
+        raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setattr(db_mod, "transition_state", _always_locked)
+    monkeypatch.setattr(db_mod.time, "sleep", lambda *a, **k: None)
+
+    with pytest.raises(sqlite3.OperationalError, match="database is locked"):
+        db_mod.recover_stale_claims(conn, "tailoring", "tailor_failed", "tailor_attempts")
