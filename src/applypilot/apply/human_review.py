@@ -508,15 +508,68 @@ def _build_human_first_banner_js(hash_: str, title: str, company: str, server_po
       'background:linear-gradient(90deg,#7c3aed,#4f46e5)',
       'color:#fff', 'font-family:system-ui,sans-serif', 'font-size:14px',
       'padding:10px 16px 8px', 'box-shadow:0 2px 8px rgba(0,0,0,0.4)',
-      'user-select:none', 'display:flex', 'align-items:center', 'gap:10px'
+      'display:flex', 'align-items:center', 'gap:10px', 'flex-wrap:wrap'
     ].join(';');
+    // Deliberately no user-select:none here -- a real user asked to be
+    // able to select/copy the banner's own text (e.g. to report a bug),
+    // and there's no real cost to allowing it.
+
+    var mainRow = document.createElement('div');
+    mainRow.style.cssText = 'display:flex;align-items:center;gap:10px;width:100%';
 
     var info = document.createElement('div');
-    info.style.cssText = 'flex:1;overflow:hidden;min-width:0';
-    info.innerHTML = '<strong>&#9872; ApplyPilot</strong> &mdash; <em>{title}</em> @ {company}'
-      + '<br><span style="font-size:11px;opacity:0.85">Click Apply on this page. '
-      + 'If you finish here, click "I Applied". If it takes you to a company\\'s '
-      + 'own site, click "Hand Off" once you\\'re there.</span>';
+    info.style.cssText = 'flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+    info.innerHTML = '<strong>ApplyPilot</strong> &mdash; <em>{title}</em> @ {company}';
+
+    var subline = document.createElement('div');
+    subline.style.cssText = 'width:100%;font-size:11px;opacity:0.85';
+    subline.textContent = 'Click Apply on this page. If you finish here, click "I Applied". '
+      + 'If it takes you to a company\\'s own site, click "Hand Off" once you\\'re there.';
+
+    // ── In-page confirm/blocked panels (NOT window.confirm/alert) ─────────────
+    // Real, live-caught bug: this Chrome instance is CDP-controlled the
+    // whole time (Playwright/the done-watcher poll it), and native JS
+    // dialogs are commonly auto-dismissed or otherwise unreliable under
+    // CDP automation -- confirmed live: a real Hand Off click never
+    // progressed past "Handing off..." because the confirm() dialog never
+    // got a real answer. In-page DOM elements (matching the existing
+    // agent-stuck banner's own "Other instructions" panel pattern in
+    // _build_banner_js) are not subject to this at all.
+    var confirmPanel = document.createElement('div');
+    confirmPanel.style.cssText = 'display:none;width:100%;align-items:center;gap:8px;' +
+      'background:rgba(0,0,0,0.25);border-radius:6px;padding:8px 10px;margin-top:2px';
+    var confirmText = document.createElement('div');
+    confirmText.style.cssText = 'flex:1;min-width:0;font-size:12px;word-break:break-all';
+    var btnConfirmYes = null;
+    var btnConfirmNo = null;
+
+    function _showConfirmPanel(message, onYes) {{
+      confirmText.textContent = message;
+      confirmPanel.innerHTML = '';
+      confirmPanel.appendChild(confirmText);
+      btnConfirmYes = _makeBtn('Yes, Hand Off', '#22c55e', '#000', '');
+      btnConfirmNo = _makeBtn('Cancel', 'rgba(255,255,255,0.15)', '#fff', '');
+      btnConfirmYes.onclick = function() {{
+        confirmPanel.style.display = 'none';
+        onYes();
+      }};
+      btnConfirmNo.onclick = function() {{
+        confirmPanel.style.display = 'none';
+      }};
+      confirmPanel.appendChild(btnConfirmYes);
+      confirmPanel.appendChild(btnConfirmNo);
+      confirmPanel.style.display = 'flex';
+    }}
+
+    var blockedPanel = document.createElement('div');
+    blockedPanel.style.cssText = 'display:none;width:100%;align-items:center;gap:8px;' +
+      'background:rgba(220,38,38,0.35);border-radius:6px;padding:8px 10px;margin-top:2px;font-size:12px';
+
+    function _showBlockedPanel(domain) {{
+      blockedPanel.textContent = 'Hand Off is blocked on ' + domain + ' -- wait until you have ' +
+        'been redirected to the company\\'s own application site, then click Hand Off there.';
+      blockedPanel.style.display = 'flex';
+    }}
 
     function _makeBtn(label, bg, fg, title) {{
       var b = document.createElement('button');
@@ -534,8 +587,13 @@ def _build_human_first_banner_js(hash_: str, title: str, company: str, server_po
 
     var btnApplied = _makeBtn('I Applied &#10003;', '#22c55e', '#000',
       'I finished this application myself — mark it done, no automation needed');
-    var btnHandoff = _makeBtn('Hand Off &#9654;', '#fff', '#4f46e5',
-      'LinkedIn redirected me to the company\\'s own site — let automation take over from here');
+    // U+25B6 (BLACK RIGHT-POINTING TRIANGLE) followed by U+FE0E (the text-
+    // presentation variation selector) -- without it, some Windows font
+    // configurations render this as a colorful "play button" emoji
+    // instead of a plain triangle glyph, which a real user found ugly and
+    // distracting. FE0E explicitly requests the plain-text glyph variant.
+    var btnHandoff = _makeBtn('Hand Off &#9654;&#65038;', '#fff', '#4f46e5',
+      'You were redirected to the company\\'s own site — let automation take over from here');
 
     function _disableAllBtns() {{
       root.querySelectorAll('button').forEach(function(b) {{ b.disabled = true; }});
@@ -562,28 +620,31 @@ def _build_human_first_banner_js(hash_: str, title: str, company: str, server_po
       // only gets a confirmation prompt, not a block.
       var blockedMatch = _onBlockedDomain();
       if (blockedMatch) {{
-        alert('Hand Off is blocked on ' + blockedMatch + ' -- wait until ' +
-              'you have been redirected to the company\\'s own application ' +
-              'site, then click Hand Off there.');
+        _showBlockedPanel(blockedMatch);
         return;
       }}
-      if (!confirm('Hand off automation on this page?\\n\\n' + window.location.href +
-                    '\\n\\nOnly click this if you have already been redirected to the ' +
-                    'company\\'s own application site.')) {{
-        return;
-      }}
-      _disableAllBtns();
-      btnHandoff.innerHTML = 'Handing off...';
-      _signal('handoff');
+      _showConfirmPanel(
+        'Hand off automation on this page? ' + window.location.href +
+        ' -- only confirm if you have already been redirected to the company\\'s own application site.',
+        function() {{
+          _disableAllBtns();
+          btnHandoff.innerHTML = 'Handing off...';
+          _signal('handoff');
+        }}
+      );
     }};
 
-    root.appendChild(info);
-    root.appendChild(btnApplied);
-    root.appendChild(btnHandoff);
+    mainRow.appendChild(info);
+    mainRow.appendChild(btnApplied);
+    mainRow.appendChild(btnHandoff);
+    root.appendChild(mainRow);
+    root.appendChild(subline);
+    root.appendChild(confirmPanel);
+    root.appendChild(blockedPanel);
 
     function _tryInsert() {{
       if (document.body) {{
-        document.body.style.paddingTop = '70px';
+        document.body.style.paddingTop = '90px';
         document.body.insertBefore(root, document.body.firstChild);
       }} else {{
         setTimeout(_tryInsert, 100);
