@@ -2200,6 +2200,34 @@ def track(
 
 
 @app.command()
+def sms(
+    setup: bool = typer.Option(False, "--setup", help="Verify Twilio SMS relay connectivity."),
+) -> None:
+    """SMS relay for verification codes (decision #197). Relay-only -- does not
+    fill in phone numbers or submit codes on any login/verification page."""
+    _bootstrap()
+
+    from applypilot.tracking.sms_client import check_sms_setup, verify_connection
+
+    ok, msg = check_sms_setup()
+    if not ok:
+        console.print(f"[red]{msg}[/red]")
+        raise typer.Exit(code=1)
+
+    if not setup:
+        console.print(msg)
+        return
+
+    console.print("[dim]Testing Twilio connection...[/dim]")
+    if verify_connection():
+        console.print("[green]Twilio SMS relay connected successfully.[/green]")
+    else:
+        console.print("[red]Twilio connection failed.[/red]")
+        console.print("[dim]Check TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN in ~/.applypilot/.env.[/dim]")
+        raise typer.Exit(code=1)
+
+
+@app.command()
 def dashboard() -> None:
     """Generate and open the HTML dashboard in your browser."""
     _bootstrap()
