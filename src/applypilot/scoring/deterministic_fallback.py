@@ -61,6 +61,7 @@ from datetime import UTC, datetime
 
 from applypilot.llm import LLMClient, ModelEntry, local_openai_base_url
 from applypilot.scoring.compensation import classify_compensation, compensation_score_adjustment
+from applypilot.scoring.labor_signals import detect_labor_signals, labor_signal_score_adjustment
 from applypilot.scoring.scorer import _check_ineligible, _classify_ineligibility, _flush_score_batch
 
 SCORE_METHOD = "deterministic_fallback"
@@ -796,6 +797,14 @@ def score_job_deterministic(
         result["score"] = max(1, result["score"] + adjustment)
     if note:
         result["reasoning"] = f"{result['reasoning']} {note}".strip()
+
+    labor_signals = detect_labor_signals(job)
+    result["labor_signals"] = labor_signals
+    labor_adjustment, labor_note = labor_signal_score_adjustment(labor_signals)
+    if labor_adjustment:
+        result["score"] = min(10, result["score"] + labor_adjustment)
+    if labor_note:
+        result["reasoning"] = f"{result['reasoning']} {labor_note}".strip()
 
     # 2026-09-15: a CAP (mirroring the LLM prompt's own prose LOCATION
     # rule), not an additive adjustment -- an onsite, out-of-area location

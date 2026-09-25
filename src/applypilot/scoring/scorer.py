@@ -889,6 +889,7 @@ def score_job(resume_text: str, job: dict, profile: dict | None = None, conn=Non
             # here, after this module has already finished defining
             # _COMMISSION_ONLY_PATTERN, is not.
             from applypilot.scoring.compensation import classify_compensation, compensation_score_adjustment
+            from applypilot.scoring.labor_signals import detect_labor_signals, labor_signal_score_adjustment
 
             comp = classify_compensation(job, conn=conn)
             result["compensation"] = comp
@@ -897,6 +898,14 @@ def score_job(resume_text: str, job: dict, profile: dict | None = None, conn=Non
                 result["score"] = max(1, result["score"] + adjustment)
             if note:
                 result["reasoning"] = f"{result['reasoning']} {note}".strip()
+
+            labor_signals = detect_labor_signals(job)
+            result["labor_signals"] = labor_signals
+            labor_adjustment, labor_note = labor_signal_score_adjustment(labor_signals)
+            if labor_adjustment:
+                result["score"] = min(10, result["score"] + labor_adjustment)
+            if labor_note:
+                result["reasoning"] = f"{result['reasoning']} {labor_note}".strip()
         return result
     except Exception as exc:
         log.exception("LLM error scoring job '%s'", (job or {}).get("title") or "?")
