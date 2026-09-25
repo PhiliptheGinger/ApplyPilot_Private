@@ -2226,7 +2226,7 @@ def sms(
         console.print("\n[dim]Run [bold]applypilot sms --setup[/bold] to configure/verify one interactively.[/dim]")
         return
 
-    from rich.prompt import Prompt
+    from rich.prompt import Confirm, Prompt
 
     choice = Prompt.ask("Which relay method?", choices=["google-voice", "adb", "twilio"], default="google-voice")
 
