@@ -171,7 +171,57 @@ def _setup_profile() -> dict:
     # Save
     PROFILE_PATH.write_text(json.dumps(profile, indent=2, ensure_ascii=False), encoding="utf-8")
     console.print(f"\n[green]Profile saved to {PROFILE_PATH}[/green]")
+
+    _verify_email(profile)
+
     return profile
+
+
+def _verify_email(profile: dict) -> None:
+    """Best-effort: send a real test email to prove the collected address is reachable.
+
+    2026-09-24 (CLAUDE.md decision #197 follow-up, Future Work item 57):
+    catches typos in the candidate's email before anything downstream
+    (tracking, HITL notifications) silently relies on a bad address.
+    Requires Gmail MCP to already be set up (decision #173) -- if it
+    isn't, this skips gracefully rather than forcing that setup here.
+    """
+    email = profile.get("personal", {}).get("email", "").strip()
+    if not email:
+        return
+
+    from applypilot.tracking.gmail_client import check_gmail_setup
+
+    ok, _msg = check_gmail_setup()
+    if not ok:
+        console.print(
+            "[dim]Gmail integration isn't set up yet, so email can't be verified right now. "
+            "Set it up later (see scripts/gmail_oauth.py) and re-run [bold]applypilot init[/bold] to verify.[/dim]"
+        )
+        return
+
+    if not Confirm.ask(f"Send a test email to {email} to confirm it's correct?", default=True):
+        return
+
+    import asyncio
+
+    from applypilot.tracking.gmail_client import send_email
+
+    sent_ok, detail = asyncio.run(
+        send_email(
+            to=[email],
+            subject="ApplyPilot setup — email verification",
+            body="This confirms ApplyPilot can send to this address. No action needed.",
+        )
+    )
+    if not sent_ok:
+        console.print(f"[yellow]Could not send test email: {detail}[/yellow]")
+        return
+
+    if Confirm.ask("Check your inbox — did it arrive?", default=True):
+        console.print("[green]Email confirmed.[/green]")
+    else:
+        console.print(f"[yellow]Double-check the address in {PROFILE_PATH} and re-run [bold]applypilot init[/bold].[/yellow]")
 
 
 # ---------------------------------------------------------------------------
@@ -320,6 +370,88 @@ def _setup_auto_apply() -> None:
 
 
 # ---------------------------------------------------------------------------
+# SMS relay (optional)
+# ---------------------------------------------------------------------------
+
+
+def _setup_sms_relay(profile: dict) -> None:
+    """Configure the Twilio SMS relay for verification codes (decision #197).
+
+    Relay-only, matching sms_client.py's own scope: this collects and
+    verifies a way to READ a code once one arrives, but does not wire
+    anything into automatic login/2FA submission -- that stays gated on
+    the bot-detection-risk research in CLAUDE.md Future Work item 43.
+
+    Credentials go in ~/.applypilot/.env only (never profile.json, never
+    the git repo), same as every other API key in this wizard.
+    """
+    console.print(
+        Panel(
+            "[bold]Step 6: SMS Relay (optional)[/bold]\n"
+            "Some job applications require SMS/phone verification the agent can't complete on "
+            "its own -- it will always pause and hand these to you. This step lets it also *read* "
+            "a code once one arrives, so you can enter it without leaving your workflow.\n\n"
+            "[dim]Your regular phone number can't be read by a program -- carriers don't expose "
+            "that. This uses a small, separate number from Twilio (twilio.com) instead.[/dim]"
+        )
+    )
+
+    if not Confirm.ask("Configure the SMS relay now?", default=False):
+        console.print("[dim]Skipped. Run [bold]applypilot sms --setup[/bold] later to configure it.[/dim]")
+        return
+
+    sid = Prompt.ask("Twilio Account SID (from the Console dashboard)").strip()
+    token = Prompt.ask("Twilio Auth Token", password=True).strip()
+    relay_number = Prompt.ask("Twilio phone number (e.g. +15551234567)").strip()
+
+    if not (sid and token and relay_number):
+        console.print("[yellow]Incomplete — skipping SMS relay setup.[/yellow]")
+        return
+
+    env_block = f"\nTWILIO_ACCOUNT_SID={sid}\nTWILIO_AUTH_TOKEN={token}\nTWILIO_PHONE_NUMBER={relay_number}\n"
+    if ENV_PATH.exists():
+        existing = ENV_PATH.read_text(encoding="utf-8")
+        if "TWILIO_ACCOUNT_SID" not in existing:
+            ENV_PATH.write_text(existing.rstrip() + "\n" + env_block, encoding="utf-8")
+    else:
+        ENV_PATH.write_text("# ApplyPilot configuration\n" + env_block, encoding="utf-8")
+    console.print(f"[green]Twilio credentials saved to {ENV_PATH}[/green]")
+
+    # Re-load so the freshly-written keys are visible to sms_client this run.
+    import os
+
+    os.environ["TWILIO_ACCOUNT_SID"] = sid
+    os.environ["TWILIO_AUTH_TOKEN"] = token
+    os.environ["TWILIO_PHONE_NUMBER"] = relay_number
+
+    from applypilot.tracking.sms_client import send_test_message, verify_connection
+
+    console.print("[dim]Testing Twilio connection...[/dim]")
+    if not verify_connection():
+        console.print("[red]Connection failed — check the Account SID / Auth Token and try again.[/red]")
+        return
+    console.print("[green]Connected.[/green]")
+
+    personal_phone = profile.get("personal", {}).get("phone", "").strip()
+    if not personal_phone:
+        console.print("[dim]No personal phone number on file to send a test message to — skipping that check.[/dim]")
+        return
+
+    if not Confirm.ask(f"Send a real test text to {personal_phone} to confirm the relay works end-to-end?", default=True):
+        return
+
+    sent_ok, detail = send_test_message(personal_phone)
+    if not sent_ok:
+        console.print(f"[yellow]Could not send test message: {detail}[/yellow]")
+        return
+
+    if Confirm.ask("Check your phone — did it arrive?", default=True):
+        console.print("[green]SMS relay confirmed working end-to-end.[/green]")
+    else:
+        console.print("[yellow]Double-check the phone number and Twilio number's SMS capability, then re-run [bold]applypilot sms --setup[/bold].[/yellow]")
+
+
+# ---------------------------------------------------------------------------
 # Optional documents
 # ---------------------------------------------------------------------------
 
@@ -334,7 +466,7 @@ def _setup_optional_files(profile: dict) -> None:
     """Optionally copy documents into ~/.applypilot/files/ and record paths in profile."""
     console.print(
         Panel(
-            "[bold]Step 6: Optional Documents (skip if not needed)[/bold]\n"
+            "[bold]Step 7: Optional Documents (skip if not needed)[/bold]\n"
             "Profile photo, ID, passport, certificates — some applications ask for these.\n"
             "Files are copied to [cyan]~/.applypilot/files/[/cyan] for use by the apply agent."
         )
@@ -405,7 +537,7 @@ def _setup_github_import(profile: dict) -> None:
     """
     console.print(
         Panel(
-            "[bold]Step 7: Import GitHub Projects (optional)[/bold]\n"
+            "[bold]Step 8: Import GitHub Projects (optional)[/bold]\n"
             "Pull your public GitHub repos as candidate project evidence. Each repo is "
             "screened for reputational concerns (vulgar language, anti-corporate/political "
             "content, automation tools that could look ToS-violating, etc.) and shown to you "
@@ -480,11 +612,15 @@ def run_wizard() -> None:
     _setup_auto_apply()
     console.print()
 
-    # Step 6: Optional documents (profile photo, ID, certs)
+    # Step 6: SMS relay (optional)
+    _setup_sms_relay(profile)
+    console.print()
+
+    # Step 7: Optional documents (profile photo, ID, certs)
     _setup_optional_files(profile)
     console.print()
 
-    # Step 7: GitHub project import (optional)
+    # Step 8: GitHub project import (optional)
     _setup_github_import(profile)
     console.print()
 

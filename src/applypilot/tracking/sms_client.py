@@ -153,3 +153,37 @@ def get_latest_verification_code(since_minutes: int = 5) -> str | None:
         if match:
             return match.group(1)
     return None
+
+
+def send_test_message(to_number: str, body: str = "ApplyPilot SMS relay test — if you received this, it works.") -> tuple[bool, str]:
+    """Send a one-off SMS from the relay number to `to_number`.
+
+    Used by the setup wizard (decision #197 follow-up) to prove the relay
+    number can actually send/receive real messages, not just that the
+    Twilio credentials authenticate -- sent to the candidate's own
+    already-collected personal phone number so they can confirm receipt.
+
+    Returns:
+        (ok, detail) -- ok is True if Twilio accepted the message for delivery
+        (does not guarantee the recipient's carrier delivered it).
+    """
+    creds = _credentials()
+    if creds is None:
+        return False, "Twilio relay is not configured."
+    sid, token, from_number = creds
+
+    try:
+        resp = httpx.post(
+            f"{TWILIO_API_BASE}/Accounts/{sid}/Messages.json",
+            auth=(sid, token),
+            data={"To": to_number, "From": from_number, "Body": body},
+            timeout=15,
+        )
+    except httpx.HTTPError as e:
+        log.error("Twilio send failed: %s", e)
+        return False, str(e)
+
+    if resp.status_code in (200, 201):
+        return True, "Sent."
+    log.error("Twilio send failed: HTTP %d %s", resp.status_code, resp.text[:200])
+    return False, f"HTTP {resp.status_code}: {resp.text[:200]}"

@@ -123,3 +123,28 @@ class TestGetLatestVerificationCode:
     def test_returns_none_when_no_messages(self):
         with patch("applypilot.tracking.sms_client.list_recent_messages", return_value=[]):
             assert sms_client.get_latest_verification_code() is None
+
+
+class TestSendTestMessage:
+    def test_ok_on_201(self):
+        with patch("httpx.post", return_value=_fake_response(201, json_data={"sid": "SM1"})):
+            ok, detail = sms_client.send_test_message("+15555550199")
+        assert ok is True
+        assert detail == "Sent."
+
+    def test_fails_with_detail_on_error_status(self):
+        with patch("httpx.post", return_value=_fake_response(400, text="Invalid 'To' Phone Number")):
+            ok, detail = sms_client.send_test_message("+1invalid")
+        assert ok is False
+        assert "400" in detail
+
+    def test_fails_on_network_error(self):
+        with patch("httpx.post", side_effect=httpx.ConnectError("connection refused")):
+            ok, detail = sms_client.send_test_message("+15555550199")
+        assert ok is False
+
+    def test_fails_when_not_configured(self, monkeypatch):
+        monkeypatch.delenv("TWILIO_ACCOUNT_SID", raising=False)
+        ok, detail = sms_client.send_test_message("+15555550199")
+        assert ok is False
+        assert "not configured" in detail
