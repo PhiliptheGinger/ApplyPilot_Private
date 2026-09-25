@@ -434,11 +434,33 @@ def _setup_adb_relay(profile: dict) -> None:
         "  3. Connect the phone via USB and accept the \"Allow USB debugging?\" prompt on the phone\n"
     )
 
-    from applypilot.tracking.adb_sms_client import check_adb_setup, get_latest_verification_code
+    from applypilot.tracking.adb_sms_client import (
+        _find_adb,
+        check_adb_setup,
+        get_latest_verification_code,
+        search_common_install_locations,
+    )
 
     if not Confirm.ask("Is the phone connected now with USB debugging enabled?", default=False):
         console.print("[dim]Come back to this later — re-run [bold]applypilot init[/bold] or [bold]applypilot sms --setup[/bold] once it's connected.[/dim]")
         return
+
+    # adb genuinely installed but not on PATH is a real, common case (2026-09-24
+    # live incident) -- offer to save a found copy rather than just saying "not found".
+    if _find_adb() is None:
+        found = search_common_install_locations()
+        if found and Confirm.ask(f"adb isn't on your PATH, but found a copy at {found} — save this so ApplyPilot can use it?", default=True):
+            env_block = f"\nAPPLYPILOT_ADB_PATH={found}\n"
+            if ENV_PATH.exists():
+                existing = ENV_PATH.read_text(encoding="utf-8")
+                if "APPLYPILOT_ADB_PATH" not in existing:
+                    ENV_PATH.write_text(existing.rstrip() + "\n" + env_block, encoding="utf-8")
+            else:
+                ENV_PATH.write_text("# ApplyPilot configuration\n" + env_block, encoding="utf-8")
+            import os
+
+            os.environ["APPLYPILOT_ADB_PATH"] = found
+            console.print(f"[green]Saved to {ENV_PATH}[/green]")
 
     ok, msg = check_adb_setup()
     if not ok:

@@ -31,6 +31,21 @@ class TestFindAdb:
         with patch("shutil.which", return_value="/usr/bin/adb"):
             assert adb_sms_client._find_adb() == "/usr/bin/adb"
 
+
+class TestSearchCommonInstallLocations:
+    def test_finds_a_candidate_that_exists(self, monkeypatch, tmp_path):
+        fake_home = tmp_path / "home"
+        (fake_home / "Downloads" / "platform-tools").mkdir(parents=True)
+        fake_adb = fake_home / "Downloads" / "platform-tools" / "adb.exe"
+        fake_adb.write_text("")
+        monkeypatch.setattr("os.path.expanduser", lambda p: str(fake_home) if p == "~" else p)
+        assert adb_sms_client.search_common_install_locations() == str(fake_adb)
+
+    def test_returns_none_when_nothing_found(self, monkeypatch, tmp_path):
+        monkeypatch.setattr("os.path.expanduser", lambda p: str(tmp_path / "nonexistent_home") if p == "~" else p)
+        monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "nonexistent_localappdata"))
+        assert adb_sms_client.search_common_install_locations() is None
+
     def test_ignores_override_pointing_at_nonexistent_file(self, monkeypatch):
         monkeypatch.setenv("APPLYPILOT_ADB_PATH", "C:/nonexistent/adb.exe")
         with patch("shutil.which", return_value=None):

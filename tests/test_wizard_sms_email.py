@@ -70,6 +70,7 @@ class TestSetupAdbRelay:
     def test_reports_failure_when_check_fails(self, capsys):
         with (
             patch("applypilot.wizard.init.Confirm.ask", return_value=True),
+            patch("applypilot.tracking.adb_sms_client._find_adb", return_value="C:/fake/adb.exe"),
             patch("applypilot.tracking.adb_sms_client.check_adb_setup", return_value=(False, "No device connected.")),
         ):
             wizard_init._setup_adb_relay({"personal": {}})
@@ -79,6 +80,7 @@ class TestSetupAdbRelay:
     def test_confirms_when_a_recent_code_is_found(self, capsys):
         with (
             patch("applypilot.wizard.init.Confirm.ask", side_effect=[True, True]),
+            patch("applypilot.tracking.adb_sms_client._find_adb", return_value="C:/fake/adb.exe"),
             patch("applypilot.tracking.adb_sms_client.check_adb_setup", return_value=(True, "1 device(s) ready.")),
             patch("applypilot.tracking.adb_sms_client.get_latest_verification_code", return_value="296312"),
         ):
@@ -90,12 +92,35 @@ class TestSetupAdbRelay:
     def test_reports_not_found_gracefully(self, capsys):
         with (
             patch("applypilot.wizard.init.Confirm.ask", side_effect=[True, True]),
+            patch("applypilot.tracking.adb_sms_client._find_adb", return_value="C:/fake/adb.exe"),
             patch("applypilot.tracking.adb_sms_client.check_adb_setup", return_value=(True, "1 device(s) ready.")),
             patch("applypilot.tracking.adb_sms_client.get_latest_verification_code", return_value=None),
         ):
             wizard_init._setup_adb_relay({"personal": {}})
         out = capsys.readouterr().out
         assert "Didn't find" in out
+
+    def test_offers_to_save_found_path_when_adb_not_on_path(self, capsys, _isolated_env_path):
+        with (
+            patch("applypilot.wizard.init.Confirm.ask", side_effect=[True, True, True]),
+            patch("applypilot.tracking.adb_sms_client._find_adb", return_value=None),
+            patch("applypilot.tracking.adb_sms_client.search_common_install_locations", return_value="C:/found/adb.exe"),
+            patch("applypilot.tracking.adb_sms_client.check_adb_setup", return_value=(True, "1 device(s) ready.")),
+            patch("applypilot.tracking.adb_sms_client.get_latest_verification_code", return_value="296312"),
+        ):
+            wizard_init._setup_adb_relay({"personal": {}})
+        content = _isolated_env_path.read_text()
+        assert "APPLYPILOT_ADB_PATH=C:/found/adb.exe" in content
+
+    def test_does_not_write_env_when_no_candidate_found(self, capsys, _isolated_env_path):
+        with (
+            patch("applypilot.wizard.init.Confirm.ask", side_effect=[True]),
+            patch("applypilot.tracking.adb_sms_client._find_adb", return_value=None),
+            patch("applypilot.tracking.adb_sms_client.search_common_install_locations", return_value=None),
+            patch("applypilot.tracking.adb_sms_client.check_adb_setup", return_value=(False, "adb not found")),
+        ):
+            wizard_init._setup_adb_relay({"personal": {}})
+        assert not _isolated_env_path.exists() or "APPLYPILOT_ADB_PATH" not in _isolated_env_path.read_text()
 
 
 class TestSetupTwilioRelay:

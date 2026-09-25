@@ -2256,6 +2256,22 @@ def sms(
         return
 
     if choice == "adb":
+        from applypilot.tracking.adb_sms_client import _find_adb, search_common_install_locations
+
+        if _find_adb() is None:
+            found = search_common_install_locations()
+            if found and Confirm.ask(f"adb isn't on your PATH, but found a copy at {found} — save this so ApplyPilot can use it?", default=True):
+                env_path = config.ENV_PATH
+                env_block = f"\nAPPLYPILOT_ADB_PATH={found}\n"
+                if env_path.exists():
+                    existing = env_path.read_text(encoding="utf-8")
+                    if "APPLYPILOT_ADB_PATH" not in existing:
+                        env_path.write_text(existing.rstrip() + "\n" + env_block, encoding="utf-8")
+                else:
+                    env_path.write_text("# ApplyPilot configuration\n" + env_block, encoding="utf-8")
+                os.environ["APPLYPILOT_ADB_PATH"] = found
+                console.print(f"[green]Saved to {env_path}[/green]")
+
         ok, msg = check_adb_setup()
         if not ok:
             console.print(f"[red]{msg}[/red]")

@@ -46,6 +46,33 @@ def _find_adb() -> str | None:
     return shutil.which("adb")
 
 
+def search_common_install_locations() -> str | None:
+    """Look for adb.exe in common Windows install spots when it's not on PATH.
+
+    Real, live example this was built for (2026-09-24): a user with adb
+    genuinely installed (at ~/Downloads/platform-tools/adb.exe, a common
+    real download location -- the Android SDK platform-tools zip extracts
+    there by default) but never added to PATH, so shutil.which found
+    nothing and the setup flow had no way to help beyond "add it to PATH
+    yourself." This lets the wizard/CLI offer to save a found path to
+    .env automatically instead of leaving the user to hunt for it.
+
+    Does NOT set APPLYPILOT_ADB_PATH itself -- callers decide whether to
+    persist it (with the user's confirmation).
+    """
+    home = os.path.expanduser("~")
+    candidates = [
+        os.path.join(home, "Downloads", "platform-tools", "adb.exe"),
+        os.path.join(os.environ.get("LOCALAPPDATA", ""), "Android", "Sdk", "platform-tools", "adb.exe"),
+        r"C:\platform-tools\adb.exe",
+        r"C:\Android\platform-tools\adb.exe",
+    ]
+    for path in candidates:
+        if path and os.path.exists(path):
+            return path
+    return None
+
+
 def check_adb_setup() -> tuple[bool, str]:
     """Verify adb is on PATH (or APPLYPILOT_ADB_PATH) and a device is connected.
 
