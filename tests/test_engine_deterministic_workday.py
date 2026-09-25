@@ -119,6 +119,48 @@ class TestFillKnownFields:
         assert known == 1
         assert filled == 0
 
+    def test_generic_autocomplete_fallback_catches_field_vendor_selectors_miss(self):
+        """Vendor selector list is present but doesn't match this page's real
+        DOM (e.g. drift) -- the generic autocomplete-based fallback should
+        still catch it, scoped 2026-09-25 per the apply-page-schema work."""
+        page = _FakePage({"input[autocomplete='email']": _FakeLocator(count=1)})
+        fields = {"email": "p@example.com"}
+
+        filled, known = ed._fill_known_fields(page, "workday", fields)
+
+        assert known == 1
+        assert filled == 1
+
+    def test_generic_fallback_works_for_an_ats_with_no_vendor_entry_at_all(self):
+        """A field with no vendor-specific selectors at all for this ats_slug
+        (or an unknown ats_slug) can still be filled via the generic map."""
+        page = _FakePage({"input[autocomplete='tel']": _FakeLocator(count=1)})
+        fields = {"phone": "555-0100"}
+
+        filled, known = ed._fill_known_fields(page, "some_unlisted_ats", fields)
+
+        assert known == 1
+        assert filled == 1
+
+    def test_vendor_selector_is_tried_before_generic_fallback(self):
+        """When BOTH the vendor selector and the generic fallback would match,
+        the vendor-specific one (more precise, hand-verified) should be used."""
+        vendor_locator = _FakeLocator(count=1)
+        page = _FakePage(
+            {
+                "input[data-automation-id='email']": vendor_locator,
+                "input[type='email']": vendor_locator,
+                "input[autocomplete='email']": _FakeLocator(count=1),
+            }
+        )
+        fields = {"email": "p@example.com"}
+
+        filled, known = ed._fill_known_fields(page, "workday", fields)
+
+        assert known == 1
+        assert filled == 1
+        assert vendor_locator.fill_calls == ["p@example.com"]
+
 
 class TestAnswerKnownScreeningQuestions:
     def test_fills_a_text_answer_found_in_qa_knowledge(self, monkeypatch):

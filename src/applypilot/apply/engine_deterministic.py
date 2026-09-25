@@ -117,6 +117,29 @@ _FIELD_SELECTORS: dict[str, dict[str, list[str]]] = {
     },
 }
 
+# Vendor-agnostic fallback, tried AFTER an ATS's own `_FIELD_SELECTORS`
+# entry for a field comes up empty. Built from the HTML `autocomplete`
+# attribute -- a real, standardized, cross-vendor signal (it's what
+# enables the browser's OWN autofill, so most ATS vendors populate it
+# correctly regardless of their internal `name`/`id`/`data-*` conventions)
+# -- plus `type=` as a second-tier fallback for fields with a reliable
+# input type. Scoped 2026-09-25 per the apply-page-schema discussion
+# (Future Work items 29/42/30): this is the safe, additive slice of that
+# idea -- it improves resilience for ATSes ALREADY in `_FIELD_SELECTORS`
+# (a vendor DOM change that breaks one hand-authored selector can still
+# be caught here) without touching which ATSes `run_job_deterministic`
+# will even attempt (see its own `ats in ("greenhouse", "workday")` gate)
+# -- that's a separate, bigger decision, not made here.
+_GENERIC_FIELD_SELECTORS: dict[str, list[str]] = {
+    "first_name": ["input[autocomplete='given-name']"],
+    "last_name": ["input[autocomplete='family-name']"],
+    "email": ["input[autocomplete='email']", "input[type='email']"],
+    "phone": ["input[autocomplete='tel']", "input[type='tel']"],
+    "city": ["input[autocomplete='address-level2']"],
+    "linkedin": ["input[autocomplete*='linkedin' i]"],
+    "website": ["input[autocomplete='url']"],
+}
+
 # A submit is only attempted when at least this fraction of the
 # ATS's known fields were actually filled -- a low fill rate means the
 # page's selectors likely drifted from `_FIELD_SELECTORS` (or this isn't
@@ -166,19 +189,29 @@ def _safe_fill(page, selectors: list[str], value: str) -> bool:
 
 
 def _fill_known_fields(page, ats_slug: str, fields: dict[str, str]) -> tuple[int, int]:
-    """Fill every field `_FIELD_SELECTORS[ats_slug]` knows a selector for.
+    """Fill every field this ATS (or the generic fallback) knows a selector for.
 
     Returns (filled_count, known_count) -- known_count is how many fields
-    this ATS has a candidate value AND a selector list for (an empty
-    profile value never counts against the fill rate, since there's
-    nothing this engine could have filled either way).
+    have a candidate value AND at least one candidate selector, vendor or
+    generic (an empty profile value never counts against the fill rate,
+    since there's nothing this engine could have filled either way).
+
+    Tries the vendor's own `_FIELD_SELECTORS[ats_slug]` entry for a field
+    first, then falls back to `_GENERIC_FIELD_SELECTORS` -- both for
+    fields the vendor map doesn't list at all, and as a second attempt
+    when the vendor's own selectors are present but don't match (e.g. a
+    DOM change since those were authored).
     """
-    selector_map = _FIELD_SELECTORS.get(ats_slug, {})
+    vendor_map = _FIELD_SELECTORS.get(ats_slug, {})
+    field_names = set(vendor_map) | set(_GENERIC_FIELD_SELECTORS)
     filled = 0
     known = 0
-    for field_name, selectors in selector_map.items():
+    for field_name in field_names:
         value = fields.get(field_name, "")
         if not value:
+            continue
+        selectors = vendor_map.get(field_name, []) + _GENERIC_FIELD_SELECTORS.get(field_name, [])
+        if not selectors:
             continue
         known += 1
         if _safe_fill(page, selectors, value):
