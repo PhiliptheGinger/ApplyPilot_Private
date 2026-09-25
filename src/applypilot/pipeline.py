@@ -664,7 +664,27 @@ def _count_pending(stage: str, min_score: int | None = None, max_age_days: int |
 
     canonical_stage = _CANONICAL_PENDING_STAGE.get(stage)
     if canonical_stage is not None:
-        return count_jobs_by_stage(get_connection(), canonical_stage, min_score=min_score, max_age_days=max_age_days)
+        conn = get_connection()
+        count = count_jobs_by_stage(conn, canonical_stage, min_score=min_score, max_age_days=max_age_days)
+        # 2026-09-25 real bug fix: a job stranded in a stale 'tailoring'/
+        # 'cover_writing' claim (worker died mid-call) is NOT counted by
+        # pending_tailor/pending_cover (both require state IN a genuinely-
+        # fresh set) -- so if every bit of real work is a stale claim, this
+        # pre-check reported 0, the --stream loop concluded the stage had
+        # nothing to do and its upstream was done, and exited WITHOUT ever
+        # calling the runner (the only place recover_stale_claims() actually
+        # runs). Confirmed live: two real consecutive --stream invocations
+        # each recovered nothing in ~10s; calling recover_stale_claims
+        # directly worked immediately. Counting stale claims here closes
+        # that gap without changing recover_stale_claims's own behavior at
+        # all -- it still only actually recovers inside the real runner.
+        from applypilot.database import count_stale_claims
+
+        if stage == "tailor":
+            count += count_stale_claims(conn, "tailoring")
+        elif stage == "cover":
+            count += count_stale_claims(conn, "cover_writing")
+        return count
 
     sql = _PENDING_SQL.get(stage)
     if sql is None:

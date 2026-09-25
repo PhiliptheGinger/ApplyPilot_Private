@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from applypilot.database import current_state, recover_stale_claims
+from applypilot.database import count_stale_claims, current_state, recover_stale_claims
 
 
 def _at(minutes_ago: int) -> str:
@@ -307,3 +307,60 @@ def test_persistent_lock_during_recovery_propagates_cleanly(tmp_db, seed_job, mo
 
     with pytest.raises(sqlite3.OperationalError, match="database is locked"):
         db_mod.recover_stale_claims(conn, "tailoring", "tailor_failed", "tailor_attempts")
+
+
+# ---------------------------------------------------------------------------
+# count_stale_claims (2026-09-25 real bug: --stream's pre-check pending count
+# didn't see stale claims as work, so it never called the runner that would
+# have invoked recover_stale_claims at all -- see test_pending_count_
+# reconciliation.py for the integration-level regression test)
+# ---------------------------------------------------------------------------
+
+
+def test_count_stale_claims_counts_a_stale_tailoring_claim(tmp_db, seed_job):
+    conn = tmp_db()
+    row = seed_job(conn, url_suffix="count-stale-tailoring", state="tailoring")
+    _insert_transition(conn, row["url"], "scored", "tailoring", minutes_ago=40)
+
+    assert count_stale_claims(conn, "tailoring") == 1
+
+
+def test_count_stale_claims_excludes_a_fresh_claim(tmp_db, seed_job):
+    conn = tmp_db()
+    row = seed_job(conn, url_suffix="count-fresh-tailoring", state="tailoring")
+    _insert_transition(conn, row["url"], "scored", "tailoring", minutes_ago=5)
+
+    assert count_stale_claims(conn, "tailoring") == 0
+
+
+def test_count_stale_claims_excludes_a_job_that_moved_on(tmp_db, seed_job):
+    conn = tmp_db()
+    row = seed_job(conn, url_suffix="count-moved-on", state="tailored", tailored_resume_path="/tmp/r.docx")
+    _insert_transition(conn, row["url"], "scored", "tailoring", minutes_ago=40)
+    _insert_transition(conn, row["url"], "tailoring", "tailored", minutes_ago=1)
+
+    assert count_stale_claims(conn, "tailoring") == 0
+
+
+def test_count_stale_claims_counts_multiple_stale_cover_writing_rows(tmp_db, seed_job):
+    conn = tmp_db()
+    row1 = seed_job(conn, url_suffix="count-stale-cover-1", state="cover_writing")
+    row2 = seed_job(conn, url_suffix="count-stale-cover-2", state="cover_writing")
+    _insert_transition(conn, row1["url"], "tailored", "cover_writing", minutes_ago=45)
+    _insert_transition(conn, row2["url"], "tailored", "cover_writing", minutes_ago=60)
+
+    assert count_stale_claims(conn, "cover_writing") == 2
+
+
+def test_count_stale_claims_matches_what_recover_stale_claims_would_recover(tmp_db, seed_job):
+    """The count and the real recovery set must always agree -- that's the
+    whole point of this function existing (a cheap preview of what
+    recover_stale_claims would do, used by the --stream pre-check)."""
+    conn = tmp_db()
+    row = seed_job(conn, url_suffix="count-matches-recovery", state="tailoring")
+    _insert_transition(conn, row["url"], "scored", "tailoring", minutes_ago=40)
+
+    before = count_stale_claims(conn, "tailoring")
+    recovered = recover_stale_claims(conn, "tailoring", "tailor_failed", "tailor_attempts")
+
+    assert before == len(recovered) == 1

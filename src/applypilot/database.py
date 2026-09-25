@@ -756,6 +756,42 @@ def recover_stale_claims(
     return recovered
 
 
+def count_stale_claims(conn: sqlite3.Connection, from_state: str, stale_after_minutes: int = 30) -> int:
+    """Count jobs recoverable by `recover_stale_claims(conn, from_state, ...)`,
+    without actually recovering them.
+
+    2026-09-25 real bug: `pipeline.py`'s `--stream` loop calls a cheap
+    `_count_pending` pre-check BEFORE ever calling the stage runner (which is
+    the only place `recover_stale_claims` actually gets invoked) -- so when
+    every job "pending" tailor/cover work is really just stranded in a stale
+    `tailoring`/`cover_writing` claim (none in the genuinely-fresh
+    `scored`/`tailor_failed` etc. states `pending_tailor`/`pending_cover`
+    select), the pre-check sees `pending == 0`, concludes the stage has no
+    work and its upstream is done, and exits the stream loop WITHOUT EVER
+    calling the runner -- so the very recovery mechanism meant to unstick
+    those jobs never gets a chance to run. Confirmed live: two consecutive
+    real `--stream` invocations each exited in ~10s having recovered nothing,
+    while calling `recover_stale_claims` directly worked immediately. This
+    function lets `_count_pending` include stale claims in its count so the
+    stream loop correctly sees real work and actually calls the runner.
+
+    Same query shape as `recover_stale_claims`'s own SELECT, as a COUNT.
+    """
+    row = conn.execute(
+        """
+        SELECT COUNT(*) FROM jobs j
+        WHERE j.state = ?
+          AND datetime((
+                SELECT t.at FROM job_state_transitions t
+                WHERE t.job_url = j.url
+                ORDER BY t.id DESC LIMIT 1
+              )) < datetime('now', ?)
+        """,
+        (from_state, f"-{stale_after_minutes} minutes"),
+    ).fetchone()
+    return row[0] if row else 0
+
+
 def redirect_jobs_missing_application_url(
     conn: sqlite3.Connection,
     jobs: list[dict],

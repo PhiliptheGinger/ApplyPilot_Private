@@ -34,7 +34,22 @@ unchanged `_PENDING_SQL` query.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
+
+
+def _at(minutes_ago: int) -> str:
+    return (datetime.now(UTC) - timedelta(minutes=minutes_ago)).isoformat()
+
+
+def _insert_transition(conn, url, from_state, to_state, minutes_ago, reason="test"):
+    conn.execute(
+        "INSERT INTO job_state_transitions (job_url, from_state, to_state, at, reason, metadata) "
+        "VALUES (?, ?, ?, ?, ?, NULL)",
+        (url, from_state, to_state, _at(minutes_ago), reason),
+    )
+    conn.commit()
 
 # (pipeline stage name, canonical get_jobs_by_stage/count_jobs_by_stage name)
 _CANONICAL_STAGES = [
@@ -484,3 +499,77 @@ def test_get_stats_untailored_eligible_matches_canonical_pending_tailor(tmp_db, 
         f"get_stats()['untailored_eligible']={stats['untailored_eligible']} vs canonical={canonical} -- "
         "these must never diverge again; expected exactly the 2 genuinely-pending rows"
     )
+
+
+# ── stale-claim visibility (2026-09-25 real bug) ────────────────────────────
+#
+# `_run_stage_streaming`'s poll loop calls `_count_pending(stage)` BEFORE ever
+# calling the stage runner (`_run_tailor`/`_run_cover`, the only place
+# `recover_stale_claims` actually runs). A job stranded in a stale
+# `tailoring`/`cover_writing` claim isn't in `pending_tailor`/`pending_cover`'s
+# own state set (both deliberately require a genuinely-fresh state), so if
+# EVERY bit of real work was a stale claim, `_count_pending` reported 0, the
+# loop concluded the stage had nothing to do and its upstream was done, and
+# exited WITHOUT EVER calling the runner -- so recover_stale_claims() never
+# got a chance to run. Confirmed live: two real consecutive `--stream`
+# invocations each exited in ~10s recovering nothing; calling
+# `recover_stale_claims` directly worked immediately. Fixed by having
+# `_count_pending` also count stale, recoverable claims via the new
+# `database.count_stale_claims`.
+
+
+def test_count_pending_tailor_sees_a_stale_claim_as_real_work(tmp_db, seed_job):
+    """The exact live bug: a job ONLY in a stale 'tailoring' claim (no
+    genuinely-fresh 'scored'/'tailor_failed' row exists) must still make
+    _count_pending("tailor") report > 0, or --stream would exit thinking
+    there's nothing to do and never call the runner that recovers it."""
+    from applypilot.pipeline import _count_pending
+
+    conn = tmp_db()
+    row = seed_job(conn, url_suffix="stale-claim-visible", state="tailoring", tailored_resume_path=None)
+    _insert_transition(conn, row["url"], "scored", "tailoring", minutes_ago=40)
+
+    assert _count_pending("tailor") == 1
+
+
+def test_count_pending_cover_sees_a_stale_claim_as_real_work(tmp_db, seed_job):
+    from applypilot.pipeline import _count_pending
+
+    conn = tmp_db()
+    row = seed_job(
+        conn,
+        url_suffix="stale-cover-claim-visible",
+        state="cover_writing",
+        tailored_resume_path="/tmp/resume.docx",
+        cover_letter_path=None,
+    )
+    _insert_transition(conn, row["url"], "tailored", "cover_writing", minutes_ago=45)
+
+    assert _count_pending("cover") == 1
+
+
+def test_count_pending_tailor_ignores_a_fresh_claim(tmp_db, seed_job):
+    """A claim within the 30-minute staleness window is genuinely still
+    in-flight (a real worker may finish it any second) -- it must NOT be
+    counted as pending, or --stream would call the runner needlessly while
+    a real attempt is still underway."""
+    from applypilot.pipeline import _count_pending
+
+    conn = tmp_db()
+    row = seed_job(conn, url_suffix="fresh-claim-not-pending", state="tailoring", tailored_resume_path=None)
+    _insert_transition(conn, row["url"], "scored", "tailoring", minutes_ago=5)
+
+    assert _count_pending("tailor") == 0
+
+
+def test_count_pending_tailor_adds_stale_claims_to_genuinely_pending_count(tmp_db, seed_job):
+    """Both a genuinely-pending job AND a stale claim must be counted --
+    the fix adds to the canonical count, it doesn't replace it."""
+    from applypilot.pipeline import _count_pending
+
+    conn = tmp_db()
+    _seed_baseline_selectable(conn, seed_job, "tailor")
+    stale = seed_job(conn, url_suffix="stale-plus-pending", state="tailoring", tailored_resume_path=None)
+    _insert_transition(conn, stale["url"], "scored", "tailoring", minutes_ago=40)
+
+    assert _count_pending("tailor") == 2
