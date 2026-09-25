@@ -18,6 +18,12 @@ No hardcoded personal paths: unlike the original Haywood script (which
 hardcoded one user's own adb.exe/output paths), this resolves adb via PATH
 or an explicit APPLYPILOT_ADB_PATH override, so it works for any candidate's
 machine/setup, not just this one.
+
+Gotcha (see CLAUDE.md's Known Technical Gotchas #9): any call here starts
+a persistent background `adb` server process if one isn't already
+running, and it stays running afterward -- it can hold the USB connection
+open and block Windows from safely ejecting the phone. `adb kill-server`
+releases it.
 """
 
 import logging
