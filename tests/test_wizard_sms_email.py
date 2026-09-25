@@ -47,6 +47,56 @@ class TestSetupSmsRelayDispatch:
         fake_tw.assert_called_once()
         fake_gv.assert_not_called()
 
+    def test_adb_choice_dispatches_correctly(self):
+        with (
+            patch("applypilot.wizard.init.Prompt.ask", return_value="adb"),
+            patch("applypilot.wizard.init._setup_adb_relay") as fake_adb,
+            patch("applypilot.wizard.init._setup_google_voice_relay") as fake_gv,
+            patch("applypilot.wizard.init._setup_twilio_relay") as fake_tw,
+        ):
+            wizard_init._setup_sms_relay({"personal": {}})
+        fake_adb.assert_called_once()
+        fake_gv.assert_not_called()
+        fake_tw.assert_not_called()
+
+
+class TestSetupAdbRelay:
+    def test_skips_when_phone_not_connected(self, capsys):
+        with patch("applypilot.wizard.init.Confirm.ask", return_value=False):
+            wizard_init._setup_adb_relay({"personal": {}})
+        out = capsys.readouterr().out
+        assert "Come back to this later" in out
+
+    def test_reports_failure_when_check_fails(self, capsys):
+        with (
+            patch("applypilot.wizard.init.Confirm.ask", return_value=True),
+            patch("applypilot.tracking.adb_sms_client.check_adb_setup", return_value=(False, "No device connected.")),
+        ):
+            wizard_init._setup_adb_relay({"personal": {}})
+        out = capsys.readouterr().out
+        assert "No device connected" in out
+
+    def test_confirms_when_a_recent_code_is_found(self, capsys):
+        with (
+            patch("applypilot.wizard.init.Confirm.ask", side_effect=[True, True]),
+            patch("applypilot.tracking.adb_sms_client.check_adb_setup", return_value=(True, "1 device(s) ready.")),
+            patch("applypilot.tracking.adb_sms_client.get_latest_verification_code", return_value="296312"),
+        ):
+            wizard_init._setup_adb_relay({"personal": {}})
+        out = capsys.readouterr().out
+        assert "confirmed working" in out
+        assert "296312" in out
+
+    def test_reports_not_found_gracefully(self, capsys):
+        with (
+            patch("applypilot.wizard.init.Confirm.ask", side_effect=[True, True]),
+            patch("applypilot.tracking.adb_sms_client.check_adb_setup", return_value=(True, "1 device(s) ready.")),
+            patch("applypilot.tracking.adb_sms_client.get_latest_verification_code", return_value=None),
+        ):
+            wizard_init._setup_adb_relay({"personal": {}})
+        out = capsys.readouterr().out
+        assert "Didn't find" in out
+
 
 class TestSetupTwilioRelay:
     def test_writes_env_and_verifies_connection(self, _isolated_env_path):

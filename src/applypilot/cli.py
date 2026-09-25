@@ -2201,22 +2201,85 @@ def track(
 
 @app.command()
 def sms(
-    setup: bool = typer.Option(False, "--setup", help="Verify Twilio SMS relay connectivity."),
+    setup: bool = typer.Option(False, "--setup", help="Interactively verify an SMS relay's connectivity."),
 ) -> None:
-    """SMS relay for verification codes (decision #197). Relay-only -- does not
-    fill in phone numbers or submit codes on any login/verification page."""
+    """SMS relay for verification codes (decisions #197/#199/#200): Google Voice
+    (free, via Gmail forwarding), ADB (free, direct from a connected Android
+    phone), or Twilio (paid). Relay-only -- does not fill in phone numbers or
+    submit codes on any login/verification page."""
     _bootstrap()
 
-    from applypilot.tracking.sms_client import check_sms_setup, verify_connection
+    from applypilot.tracking.adb_sms_client import check_adb_setup
+    from applypilot.tracking.gmail_client import check_gmail_setup
+    from applypilot.tracking.sms_client import check_sms_setup
+
+    if not setup:
+        gv_ok, _gv_msg = check_gmail_setup()
+        adb_ok, _adb_msg = check_adb_setup()
+        tw_ok, _tw_msg = check_sms_setup()
+        console.print("[bold]SMS relay status[/bold]")
+        console.print(
+            f"  Google Voice: {'[green]Gmail is set up[/green] (forwarding on the Google side not independently checkable)' if gv_ok else '[dim]Gmail not set up[/dim]'}"
+        )
+        console.print(f"  ADB:          {'[green]device connected[/green]' if adb_ok else '[dim]no device connected[/dim]'}")
+        console.print(f"  Twilio:       {'[green]credentials found[/green]' if tw_ok else '[dim]not configured[/dim]'}")
+        console.print("\n[dim]Run [bold]applypilot sms --setup[/bold] to configure/verify one interactively.[/dim]")
+        return
+
+    from rich.prompt import Prompt
+
+    choice = Prompt.ask("Which relay method?", choices=["google-voice", "adb", "twilio"], default="google-voice")
+
+    if choice == "google-voice":
+        ok, msg = check_gmail_setup()
+        if not ok:
+            console.print(f"[red]{msg}[/red]")
+            raise typer.Exit(code=1)
+        console.print(
+            "[dim]Reminder: at voice.google.com -> Settings -> Messages, "
+            '"Forward messages to email" must be turned on.[/dim]'
+        )
+        console.print("[dim]Text your Google Voice number now from another phone, then press Enter...[/dim]")
+        Prompt.ask("", default="", show_default=False)
+
+        import asyncio
+
+        from applypilot.tracking.google_voice_client import get_latest_verification_code
+
+        code = asyncio.run(get_latest_verification_code())
+        if code:
+            console.print(f"[green]Found a recent forwarded text (code {code}). Google Voice relay working.[/green]")
+        else:
+            console.print("[red]Didn't find a recent forwarded text.[/red]")
+            console.print("[dim]Forwarding can take a minute, or double-check the toggle above.[/dim]")
+            raise typer.Exit(code=1)
+        return
+
+    if choice == "adb":
+        ok, msg = check_adb_setup()
+        if not ok:
+            console.print(f"[red]{msg}[/red]")
+            raise typer.Exit(code=1)
+        console.print(f"[green]{msg}[/green]")
+        console.print("[dim]Text your phone now from another number, then press Enter...[/dim]")
+        Prompt.ask("", default="", show_default=False)
+
+        from applypilot.tracking.adb_sms_client import get_latest_verification_code as get_adb_code
+
+        code = get_adb_code()
+        if code:
+            console.print(f"[green]Found a recent text (code {code}). ADB relay working.[/green]")
+        else:
+            console.print("[red]Didn't find a recent matching text.[/red]")
+            raise typer.Exit(code=1)
+        return
+
+    from applypilot.tracking.sms_client import verify_connection
 
     ok, msg = check_sms_setup()
     if not ok:
         console.print(f"[red]{msg}[/red]")
         raise typer.Exit(code=1)
-
-    if not setup:
-        console.print(msg)
-        return
 
     console.print("[dim]Testing Twilio connection...[/dim]")
     if verify_connection():

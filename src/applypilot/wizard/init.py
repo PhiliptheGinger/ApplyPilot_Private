@@ -375,14 +375,14 @@ def _setup_auto_apply() -> None:
 
 
 def _setup_sms_relay(profile: dict) -> None:
-    """SMS relay for verification codes (decisions #197/#199) -- dispatches to
-    whichever provider the user picks.
+    """SMS relay for verification codes (decisions #197/#199/#200) -- dispatches
+    to whichever provider the user picks.
 
-    Relay-only in both cases, matching sms_client.py/google_voice_client.py's
-    own scope: this collects and verifies a way to READ a code once one
-    arrives, but does not wire anything into automatic login/2FA submission
-    -- that stays gated on the bot-detection-risk research in CLAUDE.md
-    Future Work item 43.
+    Relay-only in every case, matching sms_client.py/google_voice_client.py/
+    adb_sms_client.py's own scope: this collects and verifies a way to READ a
+    code once one arrives, but does not wire anything into automatic
+    login/2FA submission -- that stays gated on the bot-detection-risk
+    research in CLAUDE.md Future Work item 43.
 
     Any credentials collected go in ~/.applypilot/.env only (never
     profile.json, never the git repo), same as every other API key in this
@@ -394,25 +394,67 @@ def _setup_sms_relay(profile: dict) -> None:
             "Some job applications require SMS/phone verification the agent can't complete on "
             "its own -- it will always pause and hand these to you. This step lets it also *read* "
             "a code once one arrives, so you can enter it without leaving your workflow.\n\n"
-            "[dim]Your regular phone number can't be read by a program -- carriers don't expose "
-            "that. Two options: [bold]Google Voice[/bold] (free for US residents, forwards texts "
-            "into the Gmail integration you may already have set up) or [bold]Twilio[/bold] "
-            "(a paid, dedicated API number — a few dollars a month).[/dim]"
+            "[dim]Three options: [bold]Google Voice[/bold] (free for US residents, forwards texts "
+            "into the Gmail integration you may already have set up), [bold]ADB[/bold] (free, reads "
+            "SMS directly off an Android phone connected via USB -- only works while it's connected), "
+            "or [bold]Twilio[/bold] (a paid, dedicated API number — a few dollars a month).[/dim]"
         )
     )
 
     choice = Prompt.ask(
         "Which method?",
-        choices=["google-voice", "twilio", "skip"],
+        choices=["google-voice", "adb", "twilio", "skip"],
         default="google-voice",
     )
     if choice == "skip":
-        console.print("[dim]Skipped. Run [bold]applypilot sms --setup[/bold] later to configure Twilio, or come back to this step.[/dim]")
+        console.print("[dim]Skipped. Run [bold]applypilot sms --setup[/bold] later, or come back to this step.[/dim]")
         return
     if choice == "google-voice":
         _setup_google_voice_relay(profile)
         return
+    if choice == "adb":
+        _setup_adb_relay(profile)
+        return
     _setup_twilio_relay(profile)
+
+
+def _setup_adb_relay(profile: dict) -> None:
+    """Free SMS relay via ADB, reading SMS directly off a connected Android phone.
+
+    Generalized from a prior personal project (~/Projects/Haywood) that used
+    the same `content://sms` ADB query technique. No credentials, no service
+    account -- but only works while the phone is connected via USB (or
+    wireless ADB on the same network), unlike the always-on Google
+    Voice/Twilio relays.
+    """
+    console.print(
+        "\n[bold cyan]ADB setup[/bold cyan] (free, Android only, phone must be connected when reading):\n"
+        "  1. On your phone: Settings -> About phone -> tap 'Build number' 7 times to enable Developer options\n"
+        "  2. Settings -> Developer options -> turn on [bold]USB debugging[/bold]\n"
+        "  3. Connect the phone via USB and accept the \"Allow USB debugging?\" prompt on the phone\n"
+    )
+
+    from applypilot.tracking.adb_sms_client import check_adb_setup, get_latest_verification_code
+
+    if not Confirm.ask("Is the phone connected now with USB debugging enabled?", default=False):
+        console.print("[dim]Come back to this later — re-run [bold]applypilot init[/bold] or [bold]applypilot sms --setup[/bold] once it's connected.[/dim]")
+        return
+
+    ok, msg = check_adb_setup()
+    if not ok:
+        console.print(f"[red]{msg}[/red]")
+        return
+    console.print(f"[green]{msg}[/green]")
+
+    if not Confirm.ask("Text your phone now from another number, then press Enter here to check?", default=True):
+        return
+
+    console.print("[dim]Checking recent SMS on the connected phone...[/dim]")
+    code = get_latest_verification_code()
+    if code:
+        console.print(f"[green]Found it — read a recent code ({code}) directly from the phone. ADB relay confirmed working.[/green]")
+    else:
+        console.print("[yellow]Didn't find a recent matching text — try again, or double-check the connection.[/yellow]")
 
 
 def _setup_google_voice_relay(profile: dict) -> None:
