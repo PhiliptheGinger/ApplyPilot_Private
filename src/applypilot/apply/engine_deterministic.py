@@ -420,6 +420,55 @@ def _run_workday(page, job: dict, dry_run: bool) -> tuple[str, int, list[dict]]:
     return f"needs_human:workday_wizard_incomplete:{page.url}", dur, []
 
 
+def _run_generic(page, job: dict, dry_run: bool, ats_slug: str) -> tuple[str, int, list[dict]]:
+    """Conservative fill-only path for any ATS other than the two verified
+    ones (greenhouse: submits; workday: fills one page then escalates).
+
+    2026-09-25 (apply-page schema Stage 3, Future Work item 62): widens
+    `run_job_deterministic`'s dispatch from a hardcoded `ats in
+    ("greenhouse", "workday")` allowlist to attempting ANY detected (or
+    undetected) ATS -- using `_FIELD_SELECTORS[ats_slug]` if this session
+    has real, hand-verified selectors for it, falling back to
+    `_GENERIC_FIELD_SELECTORS`'s autocomplete-attribute map otherwise.
+
+    Deliberately never submits a final application, regardless of fill
+    rate -- unlike `_run_greenhouse` (a verified, trusted vendor) and
+    matching `_run_workday`'s own precedent (an unverified vendor that
+    only fills then hands off), no ATS reaching this function has been
+    confirmed live in this session. `dry_run` has no effect here for the
+    same reason `_run_workday` documents: there is no submit action to
+    skip. Always ends in `needs_human` so a real human reviews and
+    completes the actual submission -- this is strictly an assistive
+    fill, not a new auto-apply path, until a specific vendor is proven
+    out and promoted to its own verified `_run_*` function.
+    """
+    started = time.time()
+    fields = _get_profile_fields()
+
+    filled, known = _fill_known_fields(page, ats_slug, fields)
+    _upload_resume_if_present(page, job)
+    _answer_known_screening_questions(page, doc_format=_doc_suffix(job))
+
+    if _has_captcha(page):
+        dur = int((time.time() - started) * 1000)
+        return f"needs_human:captcha:{page.url}", dur, []
+
+    if known == 0:
+        # Nothing this engine could even attempt to fill (no candidate
+        # value AND selector for any field) -- distinct from a low fill
+        # rate below, so a human reviewing the log can tell "we tried and
+        # missed" from "we had nothing to try".
+        dur = int((time.time() - started) * 1000)
+        return f"needs_human:generic_ats_no_known_fields:{page.url}", dur, []
+
+    if (filled / known) < _MIN_FILL_RATE_TO_SUBMIT:
+        dur = int((time.time() - started) * 1000)
+        return f"needs_human:generic_ats_fields_unmatched:{page.url}", dur, []
+
+    dur = int((time.time() - started) * 1000)
+    return f"needs_human:generic_ats_review:{page.url}", dur, []
+
+
 def run_job_deterministic(
     job: dict,
     port: int,
@@ -440,8 +489,6 @@ def run_job_deterministic(
         return "failed:no_application_url", 0, []
 
     ats = detect_ats(apply_url)
-    if ats not in ("greenhouse", "workday"):
-        return f"needs_human:unsupported_ats:{apply_url}", 0, []
 
     try:
         with sync_playwright() as p:
@@ -461,7 +508,12 @@ def run_job_deterministic(
 
             if ats == "workday":
                 return _run_workday(page, job, dry_run=dry_run)
-            return _run_greenhouse(page, job, dry_run=dry_run)
+            if ats == "greenhouse":
+                return _run_greenhouse(page, job, dry_run=dry_run)
+            # Stage 3: any other detected-or-undetected ATS gets the
+            # conservative, never-submits generic path instead of an
+            # immediate needs_human:unsupported_ats bailout.
+            return _run_generic(page, job, dry_run=dry_run, ats_slug=ats or "unknown")
 
     except PlaywrightTimeoutError:
         dur = int((time.time() - started) * 1000)

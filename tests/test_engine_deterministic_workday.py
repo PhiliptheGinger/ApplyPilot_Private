@@ -298,16 +298,147 @@ class TestRunGreenhouseRegression:
         assert result == "applied"
 
 
-class TestRunJobDeterministicDispatch:
-    def test_unsupported_ats_returns_needs_human_without_touching_playwright(self, monkeypatch):
-        monkeypatch.setattr(ed, "detect_ats", lambda url: "ashby")
+class TestRunGeneric:
+    """2026-09-25 (apply-page schema Stage 3, Future Work item 62):
+    `_run_generic` is the conservative fill-only path for any ATS other
+    than the two verified ones. It must NEVER return "applied" -- no
+    vendor reaching this function has been confirmed live."""
 
-        result, dur, steps = ed.run_job_deterministic(
+    def _job(self):
+        return {"tailored_resume_path": None}
+
+    def test_never_returns_applied_on_a_good_fill_rate(self, monkeypatch):
+        monkeypatch.setattr(ed, "_fill_known_fields", lambda page, ats, fields: (5, 5))
+        monkeypatch.setattr(ed, "_upload_resume_if_present", lambda *a, **k: True)
+        monkeypatch.setattr(ed, "_answer_known_screening_questions", lambda *a, **k: 0)
+        monkeypatch.setattr(ed, "_has_captcha", lambda page: False)
+        page = _FakePage(url="https://jobs.ashbyhq.com/acme/1")
+
+        result, _dur, _steps = ed._run_generic(page, self._job(), dry_run=False, ats_slug="ashby")
+
+        assert result != "applied"
+        assert result.startswith("needs_human:generic_ats_review:")
+
+    def test_dry_run_has_no_effect_still_never_applies(self, monkeypatch):
+        """Mirrors _run_workday's own documented behavior: there's no submit
+        action to skip, so dry_run changes nothing here."""
+        monkeypatch.setattr(ed, "_fill_known_fields", lambda page, ats, fields: (5, 5))
+        monkeypatch.setattr(ed, "_upload_resume_if_present", lambda *a, **k: True)
+        monkeypatch.setattr(ed, "_answer_known_screening_questions", lambda *a, **k: 0)
+        monkeypatch.setattr(ed, "_has_captcha", lambda page: False)
+        page = _FakePage(url="https://jobs.ashbyhq.com/acme/1")
+
+        result, _dur, _steps = ed._run_generic(page, self._job(), dry_run=True, ats_slug="ashby")
+
+        assert result != "applied"
+
+    def test_escalates_on_low_fill_rate(self, monkeypatch):
+        monkeypatch.setattr(ed, "_fill_known_fields", lambda page, ats, fields: (1, 5))  # 20% fill rate
+        monkeypatch.setattr(ed, "_upload_resume_if_present", lambda *a, **k: False)
+        monkeypatch.setattr(ed, "_answer_known_screening_questions", lambda *a, **k: 0)
+        monkeypatch.setattr(ed, "_has_captcha", lambda page: False)
+        page = _FakePage(url="https://jobs.ashbyhq.com/acme/1")
+
+        result, _dur, _steps = ed._run_generic(page, self._job(), dry_run=False, ats_slug="ashby")
+
+        assert result.startswith("needs_human:generic_ats_fields_unmatched:")
+
+    def test_distinguishes_no_known_fields_from_low_fill_rate(self, monkeypatch):
+        """known=0 (nothing this engine could even attempt) is a genuinely
+        different, more informative outcome than a low fill rate -- must
+        not divide by zero either."""
+        monkeypatch.setattr(ed, "_fill_known_fields", lambda page, ats, fields: (0, 0))
+        monkeypatch.setattr(ed, "_upload_resume_if_present", lambda *a, **k: False)
+        monkeypatch.setattr(ed, "_answer_known_screening_questions", lambda *a, **k: 0)
+        monkeypatch.setattr(ed, "_has_captcha", lambda page: False)
+        page = _FakePage(url="https://careers.example.com/job/1")
+
+        result, _dur, _steps = ed._run_generic(page, self._job(), dry_run=False, ats_slug="unknown")
+
+        assert result.startswith("needs_human:generic_ats_no_known_fields:")
+
+    def test_escalates_immediately_on_captcha(self, monkeypatch):
+        monkeypatch.setattr(ed, "_fill_known_fields", lambda page, ats, fields: (5, 5))
+        monkeypatch.setattr(ed, "_upload_resume_if_present", lambda *a, **k: True)
+        monkeypatch.setattr(ed, "_answer_known_screening_questions", lambda *a, **k: 0)
+        monkeypatch.setattr(ed, "_has_captcha", lambda page: True)
+        page = _FakePage(url="https://jobs.ashbyhq.com/acme/1")
+
+        result, _dur, _steps = ed._run_generic(page, self._job(), dry_run=False, ats_slug="ashby")
+
+        assert result.startswith("needs_human:captcha:")
+
+    def test_passes_ats_slug_through_to_fill_known_fields(self, monkeypatch):
+        """The whole point of Stage 3: _run_generic must look up THIS ats's
+        own vendor selectors (if any exist) before falling back to generic,
+        not just always use the generic map."""
+        captured = {}
+
+        def _fake_fill(page, ats_slug, fields):
+            captured["ats_slug"] = ats_slug
+            return (5, 5)
+
+        monkeypatch.setattr(ed, "_fill_known_fields", _fake_fill)
+        monkeypatch.setattr(ed, "_upload_resume_if_present", lambda *a, **k: False)
+        monkeypatch.setattr(ed, "_answer_known_screening_questions", lambda *a, **k: 0)
+        monkeypatch.setattr(ed, "_has_captcha", lambda page: False)
+        page = _FakePage(url="https://jobs.ashbyhq.com/acme/1")
+
+        ed._run_generic(page, self._job(), dry_run=False, ats_slug="ashby")
+
+        assert captured["ats_slug"] == "ashby"
+
+
+class TestRunJobDeterministicDispatch:
+    def test_no_application_url_returns_needs_human_without_touching_playwright(self, monkeypatch):
+        result, dur, steps = ed.run_job_deterministic({"application_url": "", "url": ""}, port=9222)
+
+        assert result == "failed:no_application_url"
+        assert dur == 0
+
+    def test_detected_non_greenhouse_workday_ats_dispatches_to_run_generic(self, monkeypatch):
+        """2026-09-25 (Stage 3): a detected ATS other than greenhouse/workday
+        used to bail out immediately as needs_human:unsupported_ats without
+        ever touching Playwright -- it now gets a real, conservative attempt
+        via _run_generic instead."""
+        monkeypatch.setattr(ed, "detect_ats", lambda url: "ashby")
+        monkeypatch.setattr(ed, "_run_generic", lambda page, job, dry_run, ats_slug: (f"needs_human:generic_ats_review:x ({ats_slug})", 100, []))
+
+        fake_page = _FakePage()
+        fake_context = MagicMock(pages=[fake_page])
+        fake_browser = MagicMock(contexts=[fake_context])
+        fake_pw = MagicMock()
+        fake_pw.chromium.connect_over_cdp.return_value = fake_browser
+
+        monkeypatch.setattr(ed, "sync_playwright", lambda: MagicMock(__enter__=lambda s: fake_pw, __exit__=lambda *a: None))
+        monkeypatch.setattr(ed, "_has_captcha", lambda page: False)
+
+        result, _dur, _steps = ed.run_job_deterministic(
             {"application_url": "https://jobs.ashbyhq.com/acme/1"}, port=9222
         )
 
-        assert result.startswith("needs_human:unsupported_ats:")
-        assert dur == 0
+        assert result == "needs_human:generic_ats_review:x (ashby)"
+
+    def test_undetected_ats_also_dispatches_to_run_generic(self, monkeypatch):
+        """A URL detect_ats can't recognize at all still gets a real attempt
+        (generic-fallback-selectors-only), not an immediate bailout."""
+        monkeypatch.setattr(ed, "detect_ats", lambda url: None)
+        monkeypatch.setattr(ed, "_run_generic", lambda page, job, dry_run, ats_slug: (f"needs_human:generic_ats_review:x ({ats_slug})", 100, []))
+
+        fake_page = _FakePage()
+        fake_context = MagicMock(pages=[fake_page])
+        fake_browser = MagicMock(contexts=[fake_context])
+        fake_pw = MagicMock()
+        fake_pw.chromium.connect_over_cdp.return_value = fake_browser
+
+        monkeypatch.setattr(ed, "sync_playwright", lambda: MagicMock(__enter__=lambda s: fake_pw, __exit__=lambda *a: None))
+        monkeypatch.setattr(ed, "_has_captcha", lambda page: False)
+
+        result, _dur, _steps = ed.run_job_deterministic(
+            {"application_url": "https://careers.example.com/job/1"}, port=9222
+        )
+
+        assert result == "needs_human:generic_ats_review:x (unknown)"
 
     def test_workday_ats_dispatches_to_run_workday(self, monkeypatch):
         monkeypatch.setattr(ed, "detect_ats", lambda url: "workday")
