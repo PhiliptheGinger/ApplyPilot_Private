@@ -375,15 +375,18 @@ def _setup_auto_apply() -> None:
 
 
 def _setup_sms_relay(profile: dict) -> None:
-    """Configure the Twilio SMS relay for verification codes (decision #197).
+    """SMS relay for verification codes (decisions #197/#199) -- dispatches to
+    whichever provider the user picks.
 
-    Relay-only, matching sms_client.py's own scope: this collects and
-    verifies a way to READ a code once one arrives, but does not wire
-    anything into automatic login/2FA submission -- that stays gated on
-    the bot-detection-risk research in CLAUDE.md Future Work item 43.
+    Relay-only in both cases, matching sms_client.py/google_voice_client.py's
+    own scope: this collects and verifies a way to READ a code once one
+    arrives, but does not wire anything into automatic login/2FA submission
+    -- that stays gated on the bot-detection-risk research in CLAUDE.md
+    Future Work item 43.
 
-    Credentials go in ~/.applypilot/.env only (never profile.json, never
-    the git repo), same as every other API key in this wizard.
+    Any credentials collected go in ~/.applypilot/.env only (never
+    profile.json, never the git repo), same as every other API key in this
+    wizard.
     """
     console.print(
         Panel(
@@ -392,14 +395,75 @@ def _setup_sms_relay(profile: dict) -> None:
             "its own -- it will always pause and hand these to you. This step lets it also *read* "
             "a code once one arrives, so you can enter it without leaving your workflow.\n\n"
             "[dim]Your regular phone number can't be read by a program -- carriers don't expose "
-            "that. This uses a small, separate number from Twilio (twilio.com) instead.[/dim]"
+            "that. Two options: [bold]Google Voice[/bold] (free for US residents, forwards texts "
+            "into the Gmail integration you may already have set up) or [bold]Twilio[/bold] "
+            "(a paid, dedicated API number — a few dollars a month).[/dim]"
         )
     )
 
-    if not Confirm.ask("Configure the SMS relay now?", default=False):
-        console.print("[dim]Skipped. Run [bold]applypilot sms --setup[/bold] later to configure it.[/dim]")
+    choice = Prompt.ask(
+        "Which method?",
+        choices=["google-voice", "twilio", "skip"],
+        default="google-voice",
+    )
+    if choice == "skip":
+        console.print("[dim]Skipped. Run [bold]applypilot sms --setup[/bold] later to configure Twilio, or come back to this step.[/dim]")
+        return
+    if choice == "google-voice":
+        _setup_google_voice_relay(profile)
+        return
+    _setup_twilio_relay(profile)
+
+
+def _setup_google_voice_relay(profile: dict) -> None:
+    """Free SMS relay via a Google Voice number forwarding texts into Gmail.
+
+    No credentials to collect -- this just reads through the existing
+    Gmail integration (gmail_client.py), so setup is two manual steps on
+    Google's side plus a live confirmation, not an API key.
+    """
+    console.print(
+        "\n[bold cyan]Google Voice setup[/bold cyan] (free, no code required on your end):\n"
+        "  1. If you don't have one, get a free number at [bold]voice.google.com[/bold]\n"
+        "  2. Go to [bold]voice.google.com[/bold] -> Settings (gear icon) -> Messages -> "
+        "turn on [bold]\"Forward messages to email\"[/bold]\n"
+    )
+
+    from applypilot.tracking.gmail_client import check_gmail_setup
+
+    ok, msg = check_gmail_setup()
+    if not ok:
+        console.print(
+            f"[yellow]Gmail integration isn't set up yet, so Google Voice forwarding has nowhere to land: {msg}[/yellow]\n"
+            "[dim]Set up Gmail first (see scripts/gmail_oauth.py), then re-run [bold]applypilot init[/bold].[/dim]"
+        )
         return
 
+    if not Confirm.ask("Have you completed both steps above?", default=False):
+        console.print("[dim]Come back to this later — re-run [bold]applypilot init[/bold] once forwarding is on.[/dim]")
+        return
+
+    if not Confirm.ask("Text your Google Voice number now from another phone, then press Enter here to check?", default=True):
+        console.print("[dim]Skipped the live check — this should work once forwarding is on.[/dim]")
+        return
+
+    import asyncio
+
+    from applypilot.tracking.google_voice_client import get_latest_verification_code
+
+    console.print("[dim]Checking Gmail for a recent forwarded text...[/dim]")
+    code = asyncio.run(get_latest_verification_code())
+    if code:
+        console.print(f"[green]Found it — read a recent code ({code}) from a forwarded text. Google Voice relay confirmed working.[/green]")
+    else:
+        console.print(
+            "[yellow]Didn't find a recent forwarded text. This can take a minute to arrive — "
+            "try [bold]applypilot sms --setup[/bold] again shortly, or double-check the forwarding toggle.[/yellow]"
+        )
+
+
+def _setup_twilio_relay(profile: dict) -> None:
+    """Paid SMS relay via a dedicated Twilio number (decision #197)."""
     sid = Prompt.ask("Twilio Account SID (from the Console dashboard)").strip()
     token = Prompt.ask("Twilio Auth Token", password=True).strip()
     relay_number = Prompt.ask("Twilio phone number (e.g. +15551234567)").strip()
