@@ -110,10 +110,19 @@ def _process_classified_email(
         update_tracking_status,
     )
     from applypilot.tracking.matcher import match_email_to_job
+    from applypilot.tracking.scam_detection import detect_scam_signals
 
     classification = result["classification"]
     if classification == "noise":
         return
+
+    scam_signals = detect_scam_signals(email)
+    if scam_signals:
+        counters["scam_flagged"] = counters.get("scam_flagged", 0) + 1
+        console.print(
+            f"  [bold red]⚠ SCAM WARNING:[/bold red] {email.get('subject', '')[:60]} "
+            f"from {email.get('sender', '')[:40]} -- signals: {', '.join(scam_signals)}"
+        )
 
     match = match_email_to_job(email, applied_jobs)
 
@@ -163,6 +172,7 @@ def _process_classified_email(
                     "dates": result.get("dates", []),
                     "action_items": result.get("action_items", []),
                     "summary": result.get("summary", ""),
+                    "scam_signals": scam_signals,
                 }
             ),
             "classified_at": now,

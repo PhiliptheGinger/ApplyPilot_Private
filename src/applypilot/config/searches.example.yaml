@@ -207,6 +207,32 @@ exclude_description_keywords:
   - "law enforcement surveillance"
   - "predictive policing"
 
+  # Non-consensual data exploitation / surveillance-capitalism business
+  # models (2026-09-25, per user request grounded in Anil Dash's stated
+  # AI-ethics criteria -- consent for data collection, no
+  # surveillance-monetization business model). Verified against the full
+  # live 14,420-described-job corpus before shipping, same discipline as
+  # every other entry in this file: 0/14,420 hits for every term below --
+  # real job postings essentially never self-describe their own business
+  # model this bluntly, so these are currently inert, not false-positive
+  # risks. Kept narrow (an explicit business-model description, not bare
+  # "data"/"AI"/"SaaS", which are near-ubiquitous in tech postings and
+  # would gut the discovery pool if used as exclusion keywords -- see
+  # CLAUDE.md decision for the fuller false-positive data that ruled that
+  # out). Real coverage if/when a posting like this does appear.
+  - "data broker"
+  - "sell your data"
+  - "selling your data"
+  - "sell user data"
+  - "selling user data"
+  - "data monetization"
+  - "monetize user data"
+  - "monetizing user data"
+  - "resell your data"
+  - "reselling your data"
+  - "scrape personal data"
+  - "scraping personal data"
+
   # Policing / law enforcement
   - "law enforcement"
   - "police department"
