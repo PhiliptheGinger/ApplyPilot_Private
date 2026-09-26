@@ -120,23 +120,35 @@ def _check_chrome_health(worker_id: int) -> bool:
 def _health_check_loop() -> None:
     """Background thread: poll Chrome CDP ports and update chrome_ok."""
     while not _health_stop.wait(_HEALTH_CHECK_INTERVAL):
-        with _lock:
-            worker_ids = list(_worker_states.keys())
-        for wid in worker_ids:
-            ok = _check_chrome_health(wid)
+        try:
             with _lock:
-                state = _worker_states.get(wid)
-                if state is None:
-                    continue
-                prev = state.chrome_ok
-                state.chrome_ok = ok
-            # Log only on transitions
-            if prev is True and not ok:
-                logger.error("[worker-%d] Chrome CDP unreachable (port %d)", wid, _CDP_BASE_PORT + wid)
-            elif prev is False and ok:
-                logger.info("[worker-%d] Chrome CDP reconnected (port %d)", wid, _CDP_BASE_PORT + wid)
-            elif prev is None and not ok:
-                logger.warning("[worker-%d] Chrome CDP not reachable at startup (port %d)", wid, _CDP_BASE_PORT + wid)
+                worker_ids = list(_worker_states.keys())
+            for wid in worker_ids:
+                ok = _check_chrome_health(wid)
+                with _lock:
+                    state = _worker_states.get(wid)
+                    if state is None:
+                        continue
+                    prev = state.chrome_ok
+                    state.chrome_ok = ok
+                # Log only on transitions
+                if prev is True and not ok:
+                    logger.error("[worker-%d] Chrome CDP unreachable (port %d)", wid, _CDP_BASE_PORT + wid)
+                elif prev is False and ok:
+                    logger.info("[worker-%d] Chrome CDP reconnected (port %d)", wid, _CDP_BASE_PORT + wid)
+                elif prev is None and not ok:
+                    logger.warning("[worker-%d] Chrome CDP not reachable at startup (port %d)", wid, _CDP_BASE_PORT + wid)
+        except Exception:
+            # 2026-09-26 (decision #211's audit, Future Work item 70b): this
+            # loop had no guard at all -- a single raise from
+            # _check_chrome_health (or anything else in one poll iteration)
+            # would have silently killed the whole health-check thread for
+            # the rest of the run, same shape as the other gaps this audit
+            # found. Lower real-world severity than those (chrome_ok only
+            # feeds the dashboard display, nothing functional depends on
+            # it), but the fix is the same: log and keep polling rather
+            # than die silently.
+            logger.exception("Chrome health-check loop hit an error on this poll -- continuing")
 
 
 def start_health_checks() -> None:

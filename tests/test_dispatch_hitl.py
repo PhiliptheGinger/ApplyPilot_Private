@@ -174,3 +174,39 @@ def test_on_background_complete_exception_does_not_crash_the_thread(monkeypatch)
             break
         _real_sleep(0.01)
     assert session_pool.active_background_count() == 0, "a crashing callback must still release the pool slot"
+
+
+def test_run_hitl_crash_still_calls_callback_with_none_outcome(monkeypatch):
+    """CLAUDE.md decision #211's audit (2026-09-26): _run_hitl itself used
+    to be uncaught inside _background_worker -- a real crash mid-wait
+    propagated straight out of the daemon thread, SKIPPING
+    on_background_complete entirely (the ONLY place a backgrounded job's
+    fate gets resolved: mark_result, state transition, Chrome cleanup).
+    Fixed by treating a crash exactly like the already-supported
+    `outcome is None` case ("parked/stopped") -- confirms here that a
+    crash still reaches the callback (with None) and still releases the
+    pool slot, rather than orphaning the job silently."""
+    _patch_common(monkeypatch)
+    monkeypatch.setattr(hitl, "_run_hitl", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("chrome crashed")))
+
+    done = _RealEvent()
+    captured = {}
+
+    def on_complete(outcome):
+        captured["outcome"] = outcome
+        captured["called"] = True
+        done.set()
+
+    mode, outcome = _call_dispatch(non_blocking=True, on_background_complete=on_complete)
+
+    assert mode == "backgrounded"
+    assert outcome is None
+    assert done.wait(timeout=5.0), "on_background_complete must still be called after a crash"
+    assert captured["called"] is True
+    assert captured["outcome"] is None
+
+    for _ in range(50):
+        if session_pool.active_background_count() == 0:
+            break
+        _real_sleep(0.01)
+    assert session_pool.active_background_count() == 0, "a crash must still release the pool slot"

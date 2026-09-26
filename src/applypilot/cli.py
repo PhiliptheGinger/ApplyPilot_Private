@@ -8,6 +8,7 @@ import math
 import os
 import re
 import sys
+import threading
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -54,6 +55,37 @@ _console_handler = logging.getLogger().handlers[0]
 # (llm.py) already covers failures -- so keep them at WARNING.
 for _noisy_logger in ("httpx", "httpcore", "openai"):
     logging.getLogger(_noisy_logger).setLevel(logging.WARNING)
+
+
+# 2026-09-26 (decision #211/Future Work item 70a): a global defense-in-depth
+# backstop, installed once at CLI startup so it covers EVERY background
+# thread this process ever spawns -- not just the one call site decision
+# #211 already fixed directly. Python's default unhandled-thread-exception
+# behavior prints to stderr only, never through this module's own
+# `logging` setup, so a crashing daemon thread (a `--stream` stage loop, an
+# HITL wait thread, a session_pool background-dispatch thread, the
+# always-on per-worker HTTP listener, ...) can silently vanish with zero
+# trace in the persisted log file -- exactly what happened for ~9 real
+# hours overnight before decision #211's own investigation found it. This
+# hook doesn't fix any individual bug; it makes sure the NEXT one (in code
+# this session hasn't audited yet, or code written in the future) is loud
+# instead of silent.
+def _log_unhandled_thread_exception(args) -> None:
+    if args.exc_type is SystemExit:
+        # A deliberate thread-level exit, not a real crash -- preserve
+        # Python's own default handling rather than alarming on it.
+        threading.__excepthook__(args)
+        return
+    thread_name = args.thread.name if args.thread is not None else "<unknown thread>"
+    logging.getLogger("applypilot").error(
+        "Unhandled exception in background thread %r -- this thread has stopped running "
+        "(pre-decision-#211 code paths could let this happen completely silently; see CLAUDE.md)",
+        thread_name,
+        exc_info=(args.exc_type, args.exc_value, args.exc_traceback),
+    )
+
+
+threading.excepthook = _log_unhandled_thread_exception
 
 app = typer.Typer(
     name="applypilot",

@@ -884,10 +884,36 @@ def dispatch_hitl(
     session_pool.increment()
 
     def _background_worker() -> None:
+        # 2026-09-26 (decision #211's audit, Future Work item 70b): _run_hitl
+        # itself used to be uncaught here -- a real crash mid-wait (not just
+        # the already-cheap possibility that made session_pool.decrement()
+        # a `finally`) would propagate straight out of this daemon thread,
+        # SKIPPING on_background_complete entirely. That callback is the
+        # ONLY place a backgrounded job's fate gets resolved (mark_result,
+        # state transition, Chrome cleanup) -- silently never calling it
+        # would leave the job permanently stuck mid-flight with nothing
+        # ever revisiting it, worse than the already-fixed pipeline.py
+        # stream-stage case, since there's no separate poll loop here to
+        # retry. Fixed by treating a crash exactly like the already-
+        # supported `outcome is None` case ("parked/stopped, nothing
+        # further to do") -- the job's real DB state is left untouched
+        # (still `needs_human`, whatever _run_hitl last wrote before
+        # crashing), so the EXISTING, already-proven
+        # `requeue_needs_human_from_previous_session` recovery mechanism
+        # (decision #208) picks it up on the next run, same as any other
+        # needs_human job left over from a killed process -- not a new
+        # recovery path, reuse of one already tested live.
         try:
             outcome = _run_hitl(
                 worker_id, port, job, reason, instructions, navigate_url, duration_ms, **run_hitl_kwargs
             )
+        except Exception:
+            logger.exception(
+                "Background HITL wait crashed for %s -- job stays in its last real DB state "
+                "for the next run's needs_human requeue to pick up",
+                job.get("url"),
+            )
+            outcome = None
         finally:
             session_pool.decrement()
         if on_background_complete is not None:
