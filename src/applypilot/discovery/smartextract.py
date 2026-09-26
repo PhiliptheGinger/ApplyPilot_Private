@@ -782,11 +782,41 @@ def extract_json(text: str) -> dict:
         return json.loads(text)
     except json.JSONDecodeError:
         pass
+    pre_trim_text = text
     while text.endswith(("}", "]")):
         try:
             return json.loads(text)
         except json.JSONDecodeError:
             text = text[:-1].rstrip()
+
+    # 2026-09-26 (Future Work item 63, decision #203): the local model
+    # sometimes wraps a real JSON object in conversational prose ("It
+    # seems like the list of job postings is truncated... {...}. Let me
+    # know if you need more.") instead of returning ONLY the JSON --
+    # confirmed live during a full-day cloud outage, 16 PARSE_ERROR
+    # occurrences in one night, all this same shape. Last resort before
+    # giving up: pull out the outermost brace/bracket-delimited span
+    # anywhere in the text and try parsing THAT alone, rather than the
+    # whole (mostly-prose) blob. Deliberately simple (greedy regex, not a
+    # real brace-balance parser) -- this is a best-effort rescue for a
+    # failure mode that's already confirmed safe (0 jobs, no crash) even
+    # when it doesn't help, not a load-bearing parser.
+    #
+    # MUST search `pre_trim_text`, not the post-loop `text` above -- a
+    # real bug caught by this fix's own test before shipping: the
+    # trailing-truncation loop just above strips characters off the END
+    # one at a time and stops the INSTANT the string no longer ends in
+    # `}`/`]` (even after only one strip), which for a real
+    # "prose-then-JSON" response destructively eats the JSON's own
+    # closing brace on its very first iteration, leaving nothing for this
+    # regex to anchor its closing bracket on.
+    match = re.search(r"[\{\[].*[\}\]]", pre_trim_text, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group(0))
+        except json.JSONDecodeError:
+            pass
+
     raise json.JSONDecodeError("Could not parse JSON", text, 0)
 
 

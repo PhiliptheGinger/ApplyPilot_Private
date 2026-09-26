@@ -292,6 +292,10 @@ def init_db(db_path: Path | str | None = None) -> sqlite3.Connection:
     # Backfill `state` for any jobs still at the default (added 2026-04-24).
     backfill_states(conn)
 
+    # Backfill `company` for any job whose application_url arrived after
+    # insert time (decision closing Future Work item 55, 2026-09-26).
+    backfill_companies(conn)
+
     return conn
 
 
@@ -1116,18 +1120,32 @@ def backfill_categories(conn: sqlite3.Connection | None = None) -> int:
         "  AND (apply_status IS NOT NULL OR apply_error IS NOT NULL)"
     ).fetchall()
 
-    updated = 0
-    for row in rows:
-        category = categorize_apply_result(row["apply_status"], row["apply_error"])
-        conn.execute(
-            "UPDATE jobs SET apply_category = ? WHERE url = ?",
-            (category, row["url"]),
-        )
-        updated += 1
+    counts = {"updated": 0}
 
-    if updated:
-        commit_with_retry(conn)
-    return updated
+    # 2026-09-26 fix (decision #209's sibling): this loop's writes used to
+    # be bare `conn.execute(...)` calls with no lock-retry protection,
+    # called from init_db() -- the exact same spot, and exact same bug
+    # shape, as backfill_states's own missing-wrapper bug (decision #209),
+    # which crashed 9 real discovery scrapers in one night before it was
+    # found and fixed. Found while auditing the REST of init_db()'s own
+    # backfill chain for the same class of gap, per the user's own "look
+    # at the whole program for this sort of bug" request. Wrapped the
+    # whole loop in one write_with_retry-guarded closure -- a lock mid-
+    # batch now rolls back and retries the WHOLE batch from scratch, safe
+    # since nothing is committed until the closure returns successfully.
+    def _do_backfill() -> None:
+        counts["updated"] = 0
+        for row in rows:
+            category = categorize_apply_result(row["apply_status"], row["apply_error"])
+            conn.execute(
+                "UPDATE jobs SET apply_category = ? WHERE url = ?",
+                (category, row["url"]),
+            )
+            counts["updated"] += 1
+
+    if rows:
+        write_with_retry(conn, _do_backfill)
+    return counts["updated"]
 
 
 def get_jobs_by_category(category: str, conn: sqlite3.Connection | None = None, limit: int = 100) -> list[dict]:
@@ -1667,7 +1685,29 @@ def extract_company(application_url: str | None) -> str | None:
 
 
 def backfill_companies(conn: sqlite3.Connection | None = None) -> int:
-    """Populate the company column for all jobs that have an application_url but no company."""
+    """Populate the company column for all jobs that have an application_url but no company.
+
+    Idempotent — safe to call on every startup, same as backfill_states/
+    backfill_categories.
+
+    2026-09-26 (Future Work item 55, closed): this function existed and
+    was fully implemented but had NO caller anywhere in the codebase --
+    confirmed by grepping the whole src/ tree. Since `company` is
+    otherwise only ever set once, at insert time, any job whose
+    `application_url` was populated LATER (enrichment finding the real
+    apply link after initial discovery, or a human-first hand-off
+    persisting a captured URL, decision #187/#188) could never get its
+    company backfilled retroactively -- confirmed live: 14,634 real rows
+    in the live DB had a real application_url but NULL company at the
+    moment this was found, including 22 in the real applied/
+    ready_to_apply pool specifically (the exact discoverability gap
+    decision #196 first flagged, but scoped narrower than the real cause
+    -- decision #196 suspected the URL-PATTERN set was too narrow;
+    extract_company already handles Ashby/Greenhouse/Workday/etc. fine,
+    the real bug was simply that nothing ever called the backfill).
+    Wired into init_db() below, alongside backfill_states/
+    backfill_categories.
+    """
     if conn is None:
         conn = get_connection()
 
@@ -1675,16 +1715,23 @@ def backfill_companies(conn: sqlite3.Connection | None = None) -> int:
         "SELECT url, application_url FROM jobs WHERE company IS NULL AND application_url IS NOT NULL"
     ).fetchall()
 
-    updated = 0
-    for row in rows:
-        company = extract_company(row[1])
-        if company:
-            conn.execute("UPDATE jobs SET company = ? WHERE url = ?", (company, row[0]))
-            updated += 1
+    counts = {"updated": 0}
 
-    if updated:
-        commit_with_retry(conn)
-    return updated
+    # Same lock-retry fix as backfill_categories/backfill_states above --
+    # this function had the identical bare-conn.execute-in-a-loop gap,
+    # just never exercised in production at all before now since nothing
+    # called it.
+    def _do_backfill() -> None:
+        counts["updated"] = 0
+        for row in rows:
+            company = extract_company(row[1])
+            if company:
+                conn.execute("UPDATE jobs SET company = ? WHERE url = ?", (company, row[0]))
+                counts["updated"] += 1
+
+    if rows:
+        write_with_retry(conn, _do_backfill)
+    return counts["updated"]
 
 
 def _resolve_url(url: str, site: str) -> str | None:

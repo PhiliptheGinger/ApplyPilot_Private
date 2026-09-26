@@ -970,9 +970,34 @@ class TestRunDeterministicFallbackScoring:
 
     def test_no_escalate_model_processes_in_original_order(self, tmp_db, seed_job):
         """Without escalate_model, there's nothing to group -- jobs must
-        still process in the DB's own order, not silently reordered."""
+        still process in whatever order the SELECT itself returns (`ORDER
+        BY discovered_at DESC`, newest first -- see the function's own
+        `scope` docstring), not get silently reordered a second time.
+
+        2026-09-20 (CLAUDE.md Future Work item 37): this test used to seed
+        all 3 jobs with `seed_job`'s DEFAULT `discovered_at` (a fresh
+        `datetime.now(UTC)` computed separately per call, microseconds
+        apart) and then assert INSERTION order -- but the real query sorts
+        DESCENDING by that same column, so the only way insertion order
+        could ever match is if two-or-more of those near-simultaneous
+        timestamps happened to tie at whatever clock resolution this
+        machine/run has, leaving SQLite's tie-break (implementation-
+        defined for ties) to coincidentally preserve insertion order. That
+        made the test genuinely flaky -- confirmed by re-running the
+        unmodified test repeatedly and seeing it flip between pass/fail
+        with no code changes at all. Fixed by seeding explicit,
+        unambiguous `discovered_at` values minutes apart (no tie possible
+        regardless of clock resolution) and asserting the REAL contract:
+        newest-discovered-first, exactly matching the query's own ORDER
+        BY -- proving the absence of escalate_model doesn't introduce any
+        ADDITIONAL reordering on top of that.
+        """
+        from datetime import UTC, datetime, timedelta
+
         conn = tmp_db()
-        for i, title in enumerate(["Maintenance Technician", "Software Engineer", "Composites Technician"]):
+        base = datetime.now(UTC)
+        titles = ["Maintenance Technician", "Software Engineer", "Composites Technician"]
+        for i, title in enumerate(titles):
             seed_job(
                 conn,
                 url_suffix=f"job-{i}",
@@ -980,6 +1005,7 @@ class TestRunDeterministicFallbackScoring:
                 fit_score=None,
                 score_error="LLM error: All LLM providers are on quota cooldown (min wait: 1.0h).",
                 state="enriched",
+                discovered_at=(base + timedelta(minutes=i)).isoformat(),
             )
 
         scored_order: list[str] = []
@@ -1000,7 +1026,9 @@ class TestRunDeterministicFallbackScoring:
         ):
             run_deterministic_fallback_scoring(conn=conn, model="qwen3:1.7b", limit=0)
 
-        assert scored_order == [f"https://example.com/job/job-{i}" for i in range(3)]
+        # Newest discovered_at first (job-2, discovered 2 minutes after
+        # job-0) -- the query's own real ORDER BY, unreordered.
+        assert scored_order == [f"https://example.com/job/job-{i}" for i in (2, 1, 0)]
 
 
 class TestRevalidateDeterministicFallbackScores:
