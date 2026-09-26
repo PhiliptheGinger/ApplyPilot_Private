@@ -931,79 +931,87 @@ def backfill_states(conn: sqlite3.Connection | None = None) -> dict[str, int]:
     counts: dict[str, int] = {}
     now = datetime.now(UTC).isoformat()
 
-    for r in candidates:
-        url = r["url"] if isinstance(r, sqlite3.Row) else r[0]
-        has_desc = r["has_desc"] if isinstance(r, sqlite3.Row) else r[1]
-        fit_score = r["fit_score"] if isinstance(r, sqlite3.Row) else r[2]
-        score_error = r["score_error"] if isinstance(r, sqlite3.Row) else r[3]
-        tailored_path = r["tailored_resume_path"] if isinstance(r, sqlite3.Row) else r[4]
-        cover_path = r["cover_letter_path"] if isinstance(r, sqlite3.Row) else r[5]
-        app_url = r["application_url"] if isinstance(r, sqlite3.Row) else r[6]
-        apply_status = r["apply_status"] if isinstance(r, sqlite3.Row) else r[7]
-        apply_cat = r["apply_category"] if isinstance(r, sqlite3.Row) else r[8]
-        tracking = r["tracking_status"] if isinstance(r, sqlite3.Row) else r[9]
-        detail_err_cat = r["detail_error_category"] if isinstance(r, sqlite3.Row) else r[10]
-        needs_human_reason = r["needs_human_reason"] if isinstance(r, sqlite3.Row) else r[11]
-
-        # Precedence (top overrides bottom):
-        #   1. tracking-state terminal outcomes (interview/offer/rejected/ghosted)
-        #   2. apply-stage outcomes (applied/failed/manual/needs_human/applying)
-        #   3. apply_category-driven archive states
-        #   4. low_score — below threshold disqualifies regardless of artifacts
-        #   5. ready_to_apply / tailored (artifact presence)
-        #   6. scored / score_failed / enrich_failed / enriched / discovered
-        if tracking == "interview":
-            state = "interview"
-        elif tracking == "rejection":
-            state = "rejected"
-        elif tracking == "ghosted":
-            state = "ghosted"
-        elif tracking == "confirmation":
-            state = "responded"
-        elif apply_status == "applied":
-            state = "applied"
-        elif apply_status == "failed":
-            state = "apply_failed"
-        elif apply_status == "manual":
-            state = "manual_only"
-        elif apply_status == "needs_human" or needs_human_reason:
-            state = "needs_human"
-        elif apply_status == "in_progress":
-            state = "applying"
-        elif apply_cat == "archived_expired" or apply_cat == "archived_platform":
-            state = "archived"
-        # Low-score precedence is HIGHER than tailored/ready_to_apply because
-        # a job below threshold is not apply-eligible even if artifacts exist
-        # (this happens when the score threshold tightened 7 → 8 after tailoring).
-        elif fit_score is not None and fit_score < 8:
-            state = "low_score"
-        elif tailored_path and cover_path and app_url:
-            state = "ready_to_apply"
-        elif tailored_path:
-            state = "tailored"
-        elif fit_score is not None:
-            state = "scored"
-        elif score_error:
-            state = "score_failed"
-        elif detail_err_cat in ("expired", "permanent"):
-            state = "enrich_failed"
-        elif has_desc:
-            state = "enriched"
-        else:
-            state = "discovered"
-
-        counts[state] = counts.get(state, 0) + 1
-
-        conn.execute("UPDATE jobs SET state = ? WHERE url = ?", (state, url))
-        conn.execute(
-            "INSERT INTO job_state_transitions "
-            "(job_url, from_state, to_state, at, reason, metadata) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
-            (url, None, state, now, "migrated 2026-04-24", None),
-        )
+    def _do_backfill() -> None:
+        counts.clear()
+        for r in candidates:
+            _backfill_one_row(conn, r, now, counts)
 
     if candidates:
-        commit_with_retry(conn)
+        write_with_retry(conn, _do_backfill)
+
+    return counts
+
+
+def _backfill_one_row(conn: sqlite3.Connection, r, now: str, counts: dict[str, int]) -> None:
+    url = r["url"] if isinstance(r, sqlite3.Row) else r[0]
+    has_desc = r["has_desc"] if isinstance(r, sqlite3.Row) else r[1]
+    fit_score = r["fit_score"] if isinstance(r, sqlite3.Row) else r[2]
+    score_error = r["score_error"] if isinstance(r, sqlite3.Row) else r[3]
+    tailored_path = r["tailored_resume_path"] if isinstance(r, sqlite3.Row) else r[4]
+    cover_path = r["cover_letter_path"] if isinstance(r, sqlite3.Row) else r[5]
+    app_url = r["application_url"] if isinstance(r, sqlite3.Row) else r[6]
+    apply_status = r["apply_status"] if isinstance(r, sqlite3.Row) else r[7]
+    apply_cat = r["apply_category"] if isinstance(r, sqlite3.Row) else r[8]
+    tracking = r["tracking_status"] if isinstance(r, sqlite3.Row) else r[9]
+    detail_err_cat = r["detail_error_category"] if isinstance(r, sqlite3.Row) else r[10]
+    needs_human_reason = r["needs_human_reason"] if isinstance(r, sqlite3.Row) else r[11]
+
+    # Precedence (top overrides bottom):
+    #   1. tracking-state terminal outcomes (interview/offer/rejected/ghosted)
+    #   2. apply-stage outcomes (applied/failed/manual/needs_human/applying)
+    #   3. apply_category-driven archive states
+    #   4. low_score — below threshold disqualifies regardless of artifacts
+    #   5. ready_to_apply / tailored (artifact presence)
+    #   6. scored / score_failed / enrich_failed / enriched / discovered
+    if tracking == "interview":
+        state = "interview"
+    elif tracking == "rejection":
+        state = "rejected"
+    elif tracking == "ghosted":
+        state = "ghosted"
+    elif tracking == "confirmation":
+        state = "responded"
+    elif apply_status == "applied":
+        state = "applied"
+    elif apply_status == "failed":
+        state = "apply_failed"
+    elif apply_status == "manual":
+        state = "manual_only"
+    elif apply_status == "needs_human" or needs_human_reason:
+        state = "needs_human"
+    elif apply_status == "in_progress":
+        state = "applying"
+    elif apply_cat == "archived_expired" or apply_cat == "archived_platform":
+        state = "archived"
+    # Low-score precedence is HIGHER than tailored/ready_to_apply because
+    # a job below threshold is not apply-eligible even if artifacts exist
+    # (this happens when the score threshold tightened 7 → 8 after tailoring).
+    elif fit_score is not None and fit_score < 8:
+        state = "low_score"
+    elif tailored_path and cover_path and app_url:
+        state = "ready_to_apply"
+    elif tailored_path:
+        state = "tailored"
+    elif fit_score is not None:
+        state = "scored"
+    elif score_error:
+        state = "score_failed"
+    elif detail_err_cat in ("expired", "permanent"):
+        state = "enrich_failed"
+    elif has_desc:
+        state = "enriched"
+    else:
+        state = "discovered"
+
+    counts[state] = counts.get(state, 0) + 1
+
+    conn.execute("UPDATE jobs SET state = ? WHERE url = ?", (state, url))
+    conn.execute(
+        "INSERT INTO job_state_transitions "
+        "(job_url, from_state, to_state, at, reason, metadata) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (url, None, state, now, "migrated 2026-04-24", None),
+    )
 
     return counts
 
