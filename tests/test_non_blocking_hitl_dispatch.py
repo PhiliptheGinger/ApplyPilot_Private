@@ -181,3 +181,114 @@ class TestNonBlockingHitlDispatch:
         assert dispatch_calls == [], "dispatch_hitl must not be called at all when non_blocking_hitl is off"
         assert mark_result_calls and mark_result_calls[0][0][:2] == (job1["url"], "applied")
         assert applied == 1
+
+    def test_login_required_call_site_also_backgrounds(self, monkeypatch):
+        """The refactor onto a shared _dispatch_needs_human helper must
+        apply non_blocking_hitl to ALL three call sites, not just the
+        general one -- this pins login_required specifically."""
+        import applypilot.apply.orchestrator as orch
+        from applypilot.apply import launcher
+
+        job1, job2 = _job(1), _job(2)
+        remaining = iter([job1, job2, None])
+        monkeypatch.setattr(launcher, "acquire_job", lambda **k: next(remaining))
+
+        run_job_calls: list[str] = []
+
+        def _fake_run_job(job_arg, **kwargs):
+            run_job_calls.append(job_arg["url"])
+            if job_arg["url"] == job1["url"]:
+                return "failed:login_required", 100, []
+            return "applied", 200, []
+
+        _patch_common(monkeypatch, orch, launcher)
+        monkeypatch.setattr(launcher, "run_job", _fake_run_job)
+
+        dispatch_calls: list[dict] = []
+        monkeypatch.setattr(
+            orch, "dispatch_hitl", lambda **k: dispatch_calls.append(k) or ("backgrounded", None)
+        )
+
+        mark_result_calls: list[tuple] = []
+        monkeypatch.setattr(launcher, "mark_result", lambda *a, **k: mark_result_calls.append((a, k)))
+
+        applied, failed = _run_worker_loop_body(orch)
+
+        assert run_job_calls == [job1["url"], job2["url"]]
+        assert len(dispatch_calls) == 1
+        assert dispatch_calls[0]["reason"] == "login_required"
+        assert mark_result_calls and mark_result_calls[0][0][:2] == (job2["url"], "applied")
+        assert applied == 1
+
+    def test_hitl_auto_route_call_site_also_backgrounds(self, monkeypatch):
+        import applypilot.apply.orchestrator as orch
+        from applypilot.apply import launcher
+        from applypilot.apply.result_handlers import HITL_AUTO_ROUTE
+
+        auto_route_reason = next(iter(HITL_AUTO_ROUTE))
+        job1, job2 = _job(1), _job(2)
+        remaining = iter([job1, job2, None])
+        monkeypatch.setattr(launcher, "acquire_job", lambda **k: next(remaining))
+
+        run_job_calls: list[str] = []
+
+        def _fake_run_job(job_arg, **kwargs):
+            run_job_calls.append(job_arg["url"])
+            if job_arg["url"] == job1["url"]:
+                return f"failed:{auto_route_reason}", 100, []
+            return "applied", 200, []
+
+        _patch_common(monkeypatch, orch, launcher)
+        monkeypatch.setattr(launcher, "run_job", _fake_run_job)
+
+        dispatch_calls: list[dict] = []
+        monkeypatch.setattr(
+            orch, "dispatch_hitl", lambda **k: dispatch_calls.append(k) or ("backgrounded", None)
+        )
+
+        mark_result_calls: list[tuple] = []
+        monkeypatch.setattr(launcher, "mark_result", lambda *a, **k: mark_result_calls.append((a, k)))
+
+        applied, failed = _run_worker_loop_body(orch)
+
+        assert run_job_calls == [job1["url"], job2["url"]]
+        assert len(dispatch_calls) == 1
+        assert dispatch_calls[0]["reason"] == auto_route_reason
+        assert mark_result_calls and mark_result_calls[0][0][:2] == (job2["url"], "applied")
+        assert applied == 1
+
+    def test_backgrounded_credits_exhausted_stops_the_run(self, monkeypatch):
+        """credits_exhausted is safety-critical (a real, permanent, run-wide
+        condition) -- unlike the other rare background-completion outcomes,
+        it must be replicated (mark_result permanent + stop the run), not
+        just safely released, even when discovered on a background thread."""
+        import applypilot.apply.orchestrator as orch
+        from applypilot.apply import launcher
+
+        job1 = _job(1)
+        remaining = iter([job1, None])
+        monkeypatch.setattr(launcher, "acquire_job", lambda **k: next(remaining))
+
+        _patch_common(monkeypatch, orch, launcher)
+        monkeypatch.setattr(launcher, "run_job", lambda job_arg, **k: ("needs_human:captcha", 100, []))
+
+        captured_callback = {}
+
+        def _fake_dispatch_hitl(**kwargs):
+            captured_callback["cb"] = kwargs["on_background_complete"]
+            return "backgrounded", None
+
+        monkeypatch.setattr(orch, "dispatch_hitl", _fake_dispatch_hitl)
+
+        mark_result_calls: list[tuple] = []
+        monkeypatch.setattr(launcher, "mark_result", lambda *a, **k: mark_result_calls.append((a, k)))
+
+        applied, failed = _run_worker_loop_body(orch, limit=1)
+
+        # Simulate the background thread eventually resolving to
+        # credits_exhausted, well after _worker_loop_body itself returned.
+        captured_callback["cb"](("failed:credits_exhausted", 500, []))
+
+        assert mark_result_calls and mark_result_calls[0][0][:2] == (job1["url"], "failed")
+        assert mark_result_calls[0][1].get("permanent") is True
+        assert launcher._stop_event.is_set(), "credits_exhausted discovered in the background must still stop the run"

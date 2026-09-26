@@ -431,17 +431,31 @@ def _worker_loop_body(
                     if _mode == "blocking":
                         continue  # re-process the now-final hitl_outcome above
                     return False  # backgrounded again; a new detached thread owns finishing it
-                # Any other outcome (failed, credits_exhausted,
-                # claude_session_exhausted, takeover, screening_questions)
-                # is deliberately NOT replicated for a background-completed
-                # job in v1 -- those paths assume live interactive
-                # coordination (a stdin Q&A prompt, a takeover handback
-                # wait, a session-limit backoff tied to this run's own gate
-                # state) that doesn't make sense on a headless background
-                # thread. Safe fallback: release the job back to the pool
-                # untouched, same as an ordinary skip, rather than silently
-                # losing it or wrongly marking it permanently failed.
-                if "credits_exhausted" in result or "claude_session_exhausted" in result or result == "takeover":
+                # credits_exhausted IS replicated (unlike the other rarer
+                # outcomes below): it's a real, permanent, safety-critical
+                # condition in the foreground path too (mark_result
+                # permanent=True + _stop_event.set(), see the original
+                # inline handling above) -- silently releasing it back to
+                # the pool here would let other workers keep spending
+                # already-known-exhausted credits instead of stopping the
+                # whole run, the exact opposite of what this outcome means.
+                if "credits_exhausted" in result:
+                    mark_result(_job["url"], "failed", result, permanent=True, duration_ms=duration_ms)
+                    _log_failed_attempt(_job, result, _worker_id, duration_ms, True)
+                    failed += 1
+                    update_state(_worker_id, jobs_failed=failed, jobs_done=applied + failed)
+                    add_event(f"[W{_worker_id}] Backgrounded job hit credits_exhausted -- stopping the run")
+                    _stop_event.set()
+                # claude_session_exhausted/takeover/screening_questions are
+                # deliberately NOT replicated for a background-completed job
+                # in v1 -- those paths assume live interactive coordination
+                # (a session-limit backoff tied to this run's own gate
+                # state, a takeover handback wait, a stdin Q&A prompt) that
+                # doesn't make sense on a headless background thread. Safe
+                # fallback: release the job back to the pool untouched,
+                # same as an ordinary skip, rather than silently losing it
+                # or wrongly marking it permanently failed.
+                elif "claude_session_exhausted" in result or result == "takeover":
                     release_lock(_job["url"])
                     add_event(
                         f"[W{_worker_id}] Backgrounded job hit '{result[:40]}' -- "
@@ -458,6 +472,93 @@ def _worker_loop_body(
                 return True
 
         return _handle
+
+    def _dispatch_needs_human(reason: str, instructions: str, navigate_url: str) -> tuple[str, int, list] | None:
+        """Shared body for all THREE needs_human call sites below (general/
+        CAPTCHA, login_required, HITL_AUTO_ROUTE) -- previously three
+        near-identical inline blocks, now one, so `non_blocking_hitl`
+        applies consistently everywhere rather than only the first call
+        site v1 shipped with. Routes through `dispatch_hitl` (backgrounding
+        if `non_blocking_hitl` and pool capacity allow) or the classic
+        blocking `_run_hitl`, exactly mirroring what each of the three call
+        sites used to do inline.
+
+        Mutates `worker_id`/`port`/`chrome_proc`/`was_skipped`/
+        `_had_background_dispatch` in the enclosing loop, same as the
+        inline blocks always did. Returns the `(result, duration_ms,
+        screening_qs)` tuple to relaunch with, or None to signal "break out
+        of the relaunch loop" (no_hitl parked it, stop fired, or this job
+        was successfully backgrounded).
+        """
+        nonlocal worker_id, port, chrome_proc, was_skipped, _had_background_dispatch
+        if non_blocking_hitl:
+            mode, hitl_outcome = dispatch_hitl(
+                worker_id=worker_id,
+                port=port,
+                job=job,
+                reason=reason,
+                instructions=instructions,
+                navigate_url=navigate_url,
+                duration_ms=duration_ms,
+                headless=headless,
+                ats_slug=ats_slug,
+                total_workers=total_workers,
+                model=model,
+                dry_run=dry_run,
+                apply_engine=apply_engine,
+                no_hitl=no_hitl,
+                chrome_proc=chrome_proc,
+                add_event=add_event,
+                update_state=update_state,
+                stop_event=_stop_event,
+                non_blocking=True,
+                on_background_complete=_make_background_hitl_handler(worker_id, port, job, ats_slug),
+            )
+            if mode == "backgrounded":
+                add_event(f"[W{worker_id}] Backgrounded needs_human ({reason}); moving to next job")
+                was_skipped = True
+                _had_background_dispatch = True
+                # This identity's Chrome/profile/HITL-listener resources
+                # are now owned by the background thread until a human
+                # resolves it -- any further job this loop acquires needs a
+                # genuinely separate identity so it doesn't collide with
+                # them (same port, same on-disk profile dir -- see
+                # session_pool.py's own docstring for why an unused int is
+                # always safe to reuse this way).
+                worker_id = session_pool.allocate_synthetic_session_id()
+                port = BASE_CDP_PORT + worker_id
+                # Critical: the outer try/finally calls
+                # cleanup_worker(worker_id, chrome_proc) for whatever's
+                # still in this local the instant the try block exits --
+                # without clearing it here, that would kill the very Chrome
+                # session the background thread just started waiting on.
+                chrome_proc = None
+                return None
+            # mode == "blocking": the background cap was already full, so
+            # dispatch_hitl ran the exact same synchronous path _run_hitl
+            # would have -- fall through to the normal handling below.
+        else:
+            hitl_outcome = _run_hitl(
+                worker_id=worker_id,
+                port=port,
+                job=job,
+                reason=reason,
+                instructions=instructions,
+                navigate_url=navigate_url,
+                duration_ms=duration_ms,
+                headless=headless,
+                ats_slug=ats_slug,
+                total_workers=total_workers,
+                model=model,
+                dry_run=dry_run,
+                apply_engine=apply_engine,
+                no_hitl=no_hitl,
+                chrome_proc=chrome_proc,
+                add_event=add_event,
+                update_state=update_state,
+                stop_event=_stop_event,
+            )
+        return hitl_outcome
 
     # ── Reconnect probe ───────────────────────────────────────────────────────
     # If a previous run was killed while Chrome was running, adopt the existing
@@ -822,94 +923,10 @@ def _worker_loop_body(
                     if nh_detail:
                         nh_instructions = f"{nh_instructions}\n\nAgent detail: {nh_detail}"
 
-                    if non_blocking_hitl:
-                        # CLAUDE.md Future Work item 69's addendum, built
-                        # 2026-09-25: only THIS call site (the generic
-                        # needs_human catch-all -- CAPTCHA/stuck/etc., the
-                        # dominant real-world case) is wired to dispatch
-                        # non-blocking. The login_required and
-                        # HITL_AUTO_ROUTE call sites below deliberately
-                        # still always block -- widening this to all three
-                        # call sites at once was judged more risk than a v1
-                        # needed to prove the mechanism.
-                        mode, hitl_outcome = dispatch_hitl(
-                            worker_id=worker_id,
-                            port=port,
-                            job=job,
-                            reason=nh_reason,
-                            instructions=nh_instructions,
-                            navigate_url=nh_url,
-                            duration_ms=duration_ms,
-                            headless=headless,
-                            ats_slug=ats_slug,
-                            total_workers=total_workers,
-                            model=model,
-                            dry_run=dry_run,
-                            apply_engine=apply_engine,
-                            no_hitl=no_hitl,
-                            chrome_proc=chrome_proc,
-                            add_event=add_event,
-                            update_state=update_state,
-                            stop_event=_stop_event,
-                            non_blocking=True,
-                            on_background_complete=_make_background_hitl_handler(worker_id, port, job, ats_slug),
-                        )
-                        if mode == "backgrounded":
-                            add_event(f"[W{worker_id}] Backgrounded needs_human ({nh_reason}); moving to next job")
-                            was_skipped = True
-                            _had_background_dispatch = True
-                            # This identity's Chrome/profile/HITL-listener
-                            # resources are now owned by the background
-                            # thread until a human resolves it -- any
-                            # further job THIS loop acquires needs a
-                            # genuinely separate identity so it doesn't
-                            # collide with them (same port, same on-disk
-                            # profile dir -- see session_pool.py's own
-                            # docstring for why an unused int is always
-                            # safe to reuse this way).
-                            worker_id = session_pool.allocate_synthetic_session_id()
-                            port = BASE_CDP_PORT + worker_id
-                            # Critical: the outer try/finally below calls
-                            # cleanup_worker(worker_id, chrome_proc) for
-                            # whatever's still in the `chrome_proc` local the
-                            # instant this try block exits -- without this,
-                            # it would kill the very Chrome session the
-                            # background thread is now waiting on, the
-                            # moment we break out to go background it.
-                            # `hitl.dispatch_hitl` was already given the
-                            # real chrome_proc object for the background
-                            # thread's own crash-detection use; the outer
-                            # loop's copy of that reference must stop
-                            # existing here, not the process it points to.
-                            chrome_proc = None
-                            break
-                        # mode == "blocking": the background cap was already
-                        # full, so dispatch_hitl ran the exact same
-                        # synchronous path _run_hitl would have -- fall
-                        # through to the normal handling below unchanged.
-                    else:
-                        hitl_outcome = _run_hitl(
-                            worker_id=worker_id,
-                            port=port,
-                            job=job,
-                            reason=nh_reason,
-                            instructions=nh_instructions,
-                            navigate_url=nh_url,
-                            duration_ms=duration_ms,
-                            headless=headless,
-                            ats_slug=ats_slug,
-                            total_workers=total_workers,
-                            model=model,
-                            dry_run=dry_run,
-                            apply_engine=apply_engine,
-                            no_hitl=no_hitl,
-                            chrome_proc=chrome_proc,
-                            add_event=add_event,
-                            update_state=update_state,
-                            stop_event=_stop_event,
-                        )
+                    hitl_outcome = _dispatch_needs_human(nh_reason, nh_instructions, nh_url)
                     if hitl_outcome is None:
-                        # no_hitl mode parked the job, or stop was signaled.
+                        # no_hitl mode parked it, stop was signaled, or it
+                        # was successfully backgrounded (non_blocking_hitl).
                         break
                     result, duration_ms, screening_qs = hitl_outcome
                     relaunch = True
@@ -924,26 +941,7 @@ def _worker_loop_body(
                         nh_url = job.get("application_url") or job["url"]
                         nh_instructions = get_hitl_instruction("login_required")
 
-                        hitl_outcome = _run_hitl(
-                            worker_id=worker_id,
-                            port=port,
-                            job=job,
-                            reason="login_required",
-                            instructions=nh_instructions,
-                            navigate_url=nh_url,
-                            duration_ms=duration_ms,
-                            headless=headless,
-                            ats_slug=ats_slug,
-                            total_workers=total_workers,
-                            model=model,
-                            dry_run=dry_run,
-                            apply_engine=apply_engine,
-                            no_hitl=no_hitl,
-                            chrome_proc=chrome_proc,
-                            add_event=add_event,
-                            update_state=update_state,
-                            stop_event=_stop_event,
-                        )
+                        hitl_outcome = _dispatch_needs_human("login_required", nh_instructions, nh_url)
                         if hitl_outcome is None:
                             break
                         result, duration_ms, screening_qs = hitl_outcome
@@ -956,26 +954,7 @@ def _worker_loop_body(
                         nh_url = job.get("application_url") or job["url"]
                         nh_instructions = get_hitl_instruction(reason)
 
-                        hitl_outcome = _run_hitl(
-                            worker_id=worker_id,
-                            port=port,
-                            job=job,
-                            reason=reason,
-                            instructions=nh_instructions,
-                            navigate_url=nh_url,
-                            duration_ms=duration_ms,
-                            headless=headless,
-                            ats_slug=ats_slug,
-                            total_workers=total_workers,
-                            model=model,
-                            dry_run=dry_run,
-                            apply_engine=apply_engine,
-                            no_hitl=no_hitl,
-                            chrome_proc=chrome_proc,
-                            add_event=add_event,
-                            update_state=update_state,
-                            stop_event=_stop_event,
-                        )
+                        hitl_outcome = _dispatch_needs_human(reason, nh_instructions, nh_url)
                         if hitl_outcome is None:
                             break
                         result, duration_ms, screening_qs = hitl_outcome
