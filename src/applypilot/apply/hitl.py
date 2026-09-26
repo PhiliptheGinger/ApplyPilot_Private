@@ -841,6 +841,68 @@ def _run_hitl(
 
 
 # ---------------------------------------------------------------------------
+# Non-blocking HITL dispatch (CLAUDE.md Future Work item 69's addendum)
+# ---------------------------------------------------------------------------
+
+
+def dispatch_hitl(
+    worker_id: int,
+    port: int,
+    job: dict,
+    reason: str,
+    instructions: str,
+    navigate_url: str,
+    duration_ms: int,
+    *,
+    non_blocking: bool = False,
+    on_background_complete=None,
+    **run_hitl_kwargs,
+) -> tuple[str, tuple | None]:
+    """Route a needs_human escalation to either the existing blocking
+    ``_run_hitl`` (default, and the automatic fallback once the background
+    cap is hit) or a detached background thread that runs the exact same
+    ``_run_hitl`` logic independently.
+
+    Returns ``("blocking", hitl_outcome)`` in the blocking case -- identical
+    shape to calling ``_run_hitl`` directly, so any caller not opting into
+    ``non_blocking=True`` sees zero behavior change from before this
+    function existed.
+
+    Returns ``("backgrounded", None)`` when dispatched to a background
+    thread; ``on_background_complete(hitl_outcome)`` is invoked from that
+    thread once ``_run_hitl`` eventually returns (which may be minutes or
+    hours later, whenever a human resolves the banner). ``hitl_outcome``
+    has the exact same shape ``_run_hitl`` always returns: ``None`` (no_hitl
+    parked it, or stop_event fired) or ``(result, duration_ms, screening_qs)``.
+    """
+    from applypilot.apply import session_pool
+
+    if not non_blocking or not session_pool.can_spawn_background():
+        outcome = _run_hitl(worker_id, port, job, reason, instructions, navigate_url, duration_ms, **run_hitl_kwargs)
+        return "blocking", outcome
+
+    session_pool.increment()
+
+    def _background_worker() -> None:
+        try:
+            outcome = _run_hitl(
+                worker_id, port, job, reason, instructions, navigate_url, duration_ms, **run_hitl_kwargs
+            )
+        finally:
+            session_pool.decrement()
+        if on_background_complete is not None:
+            try:
+                on_background_complete(outcome)
+            except Exception:
+                logger.exception(
+                    "on_background_complete callback failed for backgrounded HITL job %s", job.get("url")
+                )
+
+    threading.Thread(target=_background_worker, daemon=True, name=f"hitl-bg-w{worker_id}").start()
+    return "backgrounded", None
+
+
+# ---------------------------------------------------------------------------
 # Human-first LinkedIn apply flow (CLAUDE.md Future Work item 40)
 # ---------------------------------------------------------------------------
 

@@ -1667,6 +1667,17 @@ def apply(
             "explicitly."
         ),
     ),
+    non_blocking_hitl: bool = typer.Option(
+        False,
+        "--non-blocking-hitl",
+        help=(
+            "CLAUDE.md Future Work item 69's addendum. When a job hits a "
+            "needs_human pause (CAPTCHA/stuck/etc.), dispatch the wait onto "
+            "a detached background thread instead of blocking this worker, "
+            "and move on to the next job under a fresh session identity. "
+            "Off by default -- zero behavior change unless opted in."
+        ),
+    ),
 ) -> None:
     """Launch auto-apply to submit job applications."""
     _bootstrap()
@@ -1824,6 +1835,8 @@ def apply(
     console.print(f"  Dry run:  {dry_run}")
     if human_first:
         console.print("  Mode:     [yellow]human-first (LinkedIn)[/yellow]")
+    if non_blocking_hitl:
+        console.print("  HITL:     [yellow]non-blocking (background pauses)[/yellow]")
     if fresh_sessions:
         console.print("  Sessions: [yellow]refreshing from real Chrome profile[/yellow]")
     if url:
@@ -1846,6 +1859,7 @@ def apply(
         no_focus=no_focus,
         apply_engine=apply_engine,
         human_first=human_first,
+        non_blocking_hitl=non_blocking_hitl,
     )
 
 
