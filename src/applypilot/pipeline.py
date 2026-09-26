@@ -796,7 +796,39 @@ def _run_stage_streaming(
         if _stop_requested(stop_event):
             break
 
-        pending = _count_pending(stage, min_score, max_age_days)
+        # 2026-09-26 fix (decision #211): this call used to be completely
+        # unguarded, directly inside a bare `threading.Thread(...,
+        # daemon=True)`'s loop with no wrapper anywhere above it. If it
+        # ever raised (most plausibly `sqlite3.OperationalError: database
+        # is locked` under the sustained real multi-stage write contention
+        # decision #183 already documents), the exception propagated
+        # straight out of this function -- the whole stage's thread died
+        # silently (Python's default unhandled-thread-exception hook goes
+        # to stderr, never through this module's own `log`), `mark_done`
+        # was never reached, and nothing ever polled/ran this stage again
+        # for the rest of the process's life. The one visible trace was
+        # `_run_streaming`'s own watcher loop printing "Completed: <stage>"
+        # to console once `t.is_alive()` went False -- worded identically
+        # to a genuine finish, with no way to tell the two apart after the
+        # fact. Confirmed live: the real overnight score-stage stall (~9
+        # hours, only enrichment kept running) matches this shape exactly
+        # -- no crash line anywhere in the persisted log, no further
+        # "Scoring N jobs"/idle-poll lines ever again after the last
+        # successful pass. Fixed the same way as every other transient-
+        # DB-error path in this codebase: catch, log, back off, keep
+        # looping -- never let a single bad poll kill the stage for good.
+        try:
+            pending = _count_pending(stage, min_score, max_age_days)
+        except Exception:
+            log.exception(
+                "Stage '%s' pending-count check failed (pass %d) -- backing off %ds, not giving up",
+                stage,
+                passes,
+                _STREAM_POLL_INTERVAL,
+            )
+            if _wait_or_stop(stop_event, _STREAM_POLL_INTERVAL):
+                break
+            continue
 
         if pending > 0:
             try:
