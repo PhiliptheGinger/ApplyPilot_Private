@@ -62,10 +62,39 @@ def test_score_failed_job_is_returned_within_its_retry_budget(tmp_db, seed_job):
     assert [r["url"] for r in rows] == [job["url"]]
 
 
-def test_score_failed_job_excluded_once_attempts_exhausted(tmp_db, seed_job):
-    """The existing score_attempts < 5 (MAX_SCORE_RETRIES) cap is unchanged
-    by this fix -- exhausted retries stop being selected regardless of
-    state."""
+def test_score_failed_job_at_exactly_max_retries_is_selected_for_final_attempt(tmp_db, seed_job):
+    """2026-09-26 fix (decision #210): a job at exactly score_attempts=5
+    (MAX_SCORE_RETRIES) must still be selected ONE more time -- this is the
+    attempt where scorer.py's own `if retry_count >= MAX_SCORE_RETRIES`
+    exhaustion-fallback branch is supposed to fire (decisions #119/#177).
+    The old `< 5` cutoff made that branch permanently unreachable: a job
+    could never be re-selected once it hit exactly 5, so the "give it one
+    more local-model try" logic never got a chance to run. Confirmed live:
+    4,402 real jobs were stuck this way for as long as 5 days before the
+    fix."""
+    from applypilot.database import get_jobs_by_stage
+
+    conn = tmp_db()
+    job = seed_job(
+        conn,
+        fit_score=None,
+        full_description="x",
+        state="score_failed",
+        score_error="LLM error: boom",
+        score_attempts=5,
+    )
+
+    rows = get_jobs_by_stage(conn, stage="pending_score")
+    assert [r["url"] for r in rows] == [job["url"]]
+
+
+def test_score_failed_job_past_max_retries_excluded(tmp_db, seed_job):
+    """Once a job has actually received its final attempt and STILL failed,
+    scorer.py writes score_attempts = retry_count + 1 = 6 with
+    score_next_retry_at = NULL (its permanent give-up write) -- that job
+    must never be selected again. This is the real terminal state the fix
+    must still correctly exclude, distinct from the score_attempts=5 case
+    above."""
     from applypilot.database import get_jobs_by_stage
 
     conn = tmp_db()
@@ -75,7 +104,7 @@ def test_score_failed_job_excluded_once_attempts_exhausted(tmp_db, seed_job):
         full_description="x",
         state="score_failed",
         score_error="LLM error: boom",
-        score_attempts=5,
+        score_attempts=6,
     )
 
     rows = get_jobs_by_stage(conn, stage="pending_score")
@@ -270,8 +299,10 @@ def test_retry_not_yet_due_is_still_excluded_entirely(tmp_db, seed_job):
 
 
 def test_exhausted_retry_budget_still_excluded(tmp_db, seed_job):
-    """Unaffected by the ordering change: a job at/above the retry-attempt
-    ceiling stays excluded, priority tier or not."""
+    """A job genuinely PAST its retry ceiling (score_attempts=6, the real
+    post-final-attempt give-up value scorer.py writes -- see decision #210)
+    stays excluded regardless of priority tier or how overdue its stale
+    score_next_retry_at looks."""
     from datetime import UTC, datetime, timedelta
 
     from applypilot.database import get_jobs_by_stage
@@ -284,7 +315,7 @@ def test_exhausted_retry_budget_still_excluded(tmp_db, seed_job):
         full_description="x",
         state="enriched",
         score_error="LLM error: quota",
-        score_attempts=5,
+        score_attempts=6,
         score_next_retry_at=(datetime.now(UTC) - timedelta(days=1)).isoformat(),
     )
 

@@ -243,6 +243,12 @@ def test_count_pending_cover_excludes_exhausted_cover_failed(tmp_db, seed_job):
 
 
 def test_count_pending_score_excludes_exhausted_score_failed(tmp_db, seed_job):
+    """2026-09-26 (decision #210): score_attempts=6 is the real terminal
+    value (scorer.py's give-up write is retry_count + 1 = 6 once a job
+    fails its final, score_attempts==5 attempt) -- 5 itself must now be
+    INCLUDED (see test_pending_score_state_selection.py's dedicated test),
+    so this exhaustion-exclusion test uses 6 to keep testing the genuinely
+    exhausted case."""
     from applypilot.pipeline import _count_pending
 
     conn = tmp_db()
@@ -252,7 +258,7 @@ def test_count_pending_score_excludes_exhausted_score_failed(tmp_db, seed_job):
         full_description="x",
         state="score_failed",
         score_error="LLM error: boom",
-        score_attempts=5,
+        score_attempts=6,
     )
 
     assert _count_pending("score") == 0
@@ -409,7 +415,9 @@ def test_get_stats_unscored_matches_canonical_pending_score(tmp_db, seed_job):
         score_error="LLM error: boom",
         score_attempts=1,
     )
-    # score_failed exhausted. Must NOT be counted.
+    # score_failed exhausted (score_attempts=6, the real post-final-attempt
+    # give-up value -- decision #210, 5 itself is now correctly INCLUDED).
+    # Must NOT be counted.
     seed_job(
         conn,
         url_suffix="stats-exhausted",
@@ -417,7 +425,7 @@ def test_get_stats_unscored_matches_canonical_pending_score(tmp_db, seed_job):
         full_description="x",
         state="score_failed",
         score_error="LLM error: boom",
-        score_attempts=5,
+        score_attempts=6,
     )
     # Already scored. Must NOT be counted.
     seed_job(conn, url_suffix="stats-scored", fit_score=9, full_description="x", state="scored")

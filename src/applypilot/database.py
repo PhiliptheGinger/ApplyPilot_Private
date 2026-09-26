@@ -2079,10 +2079,25 @@ _STAGE_CONDITIONS: dict[str, str] = {
     # empirically zero current rows have fit_score IS NULL with a NULL
     # state, so no legacy-NULL carve-out is needed (same precedent as
     # "pending_tailor").
+    # 2026-09-26 fix (decision #210): the retry branch used to require
+    # `score_attempts < 5`, which permanently excludes a job the instant
+    # its 5th failure lands -- but scorer.py's own exhaustion-fallback
+    # logic (`if retry_count >= MAX_SCORE_RETRIES: ...`, decisions
+    # #119/#177) is specifically meant to give a job with score_attempts
+    # already at 5 (i.e. `retry_count == MAX_SCORE_RETRIES`) ONE more
+    # selection to try the local-model last resort before giving up for
+    # real. `< 5` made that reachable-in-theory branch permanently
+    # unreachable in practice: the job could never be re-selected to
+    # reach it. `<= 5` fixes the off-by-one; a job that fails on THAT
+    # attempt gets score_attempts=6 with score_next_retry_at=NULL
+    # (scorer.py's own give-up write), which still correctly excludes it
+    # from ever being selected again. Confirmed live: 4,402 real jobs had
+    # been stuck at exactly score_attempts=5 for as long as 5 days before
+    # this fix, invisible to `applypilot status`'s "Pending scoring" line.
     "pending_score": (
         "full_description IS NOT NULL AND COALESCE(state, '') IN ('enriched', 'score_failed') AND ("
         "  (fit_score IS NULL AND score_error IS NULL) "
-        "  OR (score_error IS NOT NULL AND score_attempts < 5 "
+        "  OR (score_error IS NOT NULL AND score_attempts <= 5 "
         "      AND (score_next_retry_at IS NULL OR datetime(score_next_retry_at) <= datetime('now')))"
         ")"
     ),
