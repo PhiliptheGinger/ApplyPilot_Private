@@ -9,29 +9,29 @@ Columns:
 - **Where**: `cloud-ok` can be built and tested in a cloud session; `needs live machine` needs your DB, Chrome, phone or logs; `build in cloud, verify live` is both.
 - **Depends on**: items that must land first.
 
-Regenerate this file when items change; keep full write-ups in `docs/future_work.md`.
+Regenerate this file when items change; keep full write-ups in `docs/future_work.md`. Staged plans and open decisions for the larger items are in `docs/scoping/`.
 
 ## Suggested order
 
-**Stage 0 — this week, small, unblocks everything:** E3, FW24, FW23, FW49, FW51
+**Stage 0 — this week, small, unblocks everything:** E3, FW24, FW23
 
-**Stage 1 — keep the machine and budget healthy:** FW32, FW13, E1, FW17, FW55
+**Stage 1 — keep the machine and budget healthy:** FW32, FW13
 
 **Track A — reach LinkedIn jobs without automating LinkedIn:** FW64 → FW38
 
 **Track H — locality data:** FW71
 
-**Track B — cheaper, faster applies:** FW65 → FW62 → FW30
+**Track B — cheaper, faster applies:** FW62 → FW65 → FW30
 
-**Track C — session/worker architecture:** FW36 → FW69 → FW46 → FW41
+**Track C — session/worker architecture:** FW69 → FW46 → FW41
 
 **Track D — login & 2FA (research-gated):** FW43 → FW44 → FW66
 
 **Track E — scoring accuracy:** FW28 → FW15
 
-**Track F — profile richness:** FW26 → FW9 → FW21
+**Track F — profile richness:** FW9 → FW21
 
-**Track G — code health (runs alongside anything):** E4, E5, E6
+**Track G — code health (runs alongside anything):** E4
 
 ## Q1 — Do now (urgent + important)
 
@@ -48,32 +48,24 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 | FW32 | Machine-health watchdog: keep llama-server at BelowNormal, avoid ScheduledDefrag collisions, memory-pressure guard | Reliability & operations | M | needs live machine | — | llama-server priority drift has recurred 5+ times. A watchdog.py already exists to extend. |
 | FW13 | Smarter Claude budget policy than 'always reserve everything for apply' (Pro plan) | Reliability & operations | M | cloud-ok | — | Shared Pro pool is the dominant apply bottleneck (decisions #166/#185/#195). |
 | FW64 | Cross-source duplicate detection + find a LinkedIn job's real ATS posting by title/company | Apply throughput & cost | L | build in cloud, verify live | — | Prevents double-applying and gives FW38 a path that never touches linkedin.com automation. |
-| FW62 | Apply-page schema layer: Stage 2 verified vendor selectors (needs real DOM captures), Stages 4-5 | Apply throughput & cost | L | build in cloud, verify live | FW65 | Stage 1 and 3 shipped. Stage 2 needs live page captures to avoid fabricated selectors. |
-| FW65 | Deterministic layer feeds Claude (known fields, Q&A, path hints) instead of replacing it; human-like pacing | Apply throughput & cost | M | cloud-ok | — | Cuts cost/latency without the bot-like uniform timing of a pure script. |
-| FW30 | Workday personal-info page + qa_knowledge reuse for screening questions | Apply throughput & cost | M | needs live machine | FW65 | Workday/ADP dominate real runs; selectors written in #169 are still unverified live. |
-| FW36 | Research: does @playwright/mcp support a persistent HTTP/SSE server mode? | Session / worker architecture | S | cloud-ok | — | Gating question for the whole session/worker redesign. Cheap to answer. |
-| FW69 | Decouple browser sessions from worker threads (general version of non-blocking HITL) | Session / worker architecture | L | needs live machine | FW36 | Same root gap behind FW36, FW46 and FW69: worker id == Chrome profile == CDP port. |
+| FW62 | Apply-page schema layer: Stage 2 verified vendor selectors (needs real DOM captures), Stages 4-5 | Apply throughput & cost | L | build in cloud, verify live | — | Stage 1 and 3 shipped. Stage 2 needs live page captures to avoid fabricated selectors; first step is a capture hook (docs/scoping/smaller_items.md). |
+| FW65 | Remaining: verified per-ATS field hints in the Claude prompt (pacing and known-facts feeding are done, #231) | Apply throughput & cost | S | cloud-ok | FW62 | Fewer exploration steps per application; only for selectors verified by FW62 Stage 2. |
+| FW30 | Workday personal-info page + qa_knowledge reuse for screening questions | Apply throughput & cost | M | needs live machine | FW62 | Workday/ADP dominate real runs; selectors written in #169 are still unverified live. |
+| FW69 | Decouple browser sessions from worker threads (general version of non-blocking HITL) | Session / worker architecture | L | needs live machine | — | Same root gap behind FW36, FW46 and FW69: worker id == Chrome profile == CDP port. |
 | FW43 | Research bot-detection risk of automated login/2FA (gate for FW44) | Login, 2FA & SMS | M | cloud-ok | — | Explicit user gate: no login/2FA automation until researched. |
 | FW44 | Wire the SMS relay into the apply agent's verification step | Login, 2FA & SMS | M | needs live machine | FW43 | Relay clients exist (Twilio, Google Voice, ADB) but are unused by apply. |
 | FW28 | Requirement-framing classifier ('seeking N years', 'commercial experience', founding titles) instead of growing regex lists | Scoring accuracy | L | build in cloud, verify live | — | Covers FW14 and FW15(b)(d). Needs real-corpus false-positive checks. |
 | FW15 | Remaining rubric gaps: implicit-seniority postings, defense/law-enforcement contractor backstop | Scoring accuracy | M | build in cloud, verify live | FW28 | Scoring false positives cost real apply budget. |
-| FW26 | Ask follow-up questions when an entry is too thin to bank (in expand-bank first) | Profile & tailoring quality | M | cloud-ok | — | Real fix for 'no survivors' without fabricating. |
-| FW9 | Build experience/project inventory from resume + GitHub in the wizard (then expand banks) | Profile & tailoring quality | L | cloud-ok | FW26 | Wizard never builds the inventory phrase banks need; every entry is hand-authored today. |
+| FW9 | Build experience/project inventory from resume + GitHub in the wizard (then expand banks) | Profile & tailoring quality | L | cloud-ok | — | Wizard never builds the inventory phrase banks need; every entry is hand-authored today. |
 | FW23 | Line-by-line review of resume degraded-mode output (grammar/pronoun bugs like #137 found in cover letters) | Profile & tailoring quality | S | needs live machine | — | Never reviewed at the same rigor as cover letters. |
 | FW71 | Locality data pack: nearby places (auto-fill the location filter) and local employers + their ATS, delivered by the wizard | Discovery coverage | L | cloud-ok | — | Turns E9's hand-edited accept list into an automatic one and generalizes the NC/Seattle employer lists to any locality. |
-| E1 | Move off the python-jobspy pin that forces numpy==1.24.2 (unlocks Python 3.12+) | Engineering health | M | build in cloud, verify live | — | Install fails on 3.12/3.13; the pin exists for a markdownify conflict. |
 | E4 | Split database.py, then local_tailor.py / launcher.py, one cohesive group per PR with patch targets updated | Engineering health | L | cloud-ok | — | 4.4k/3.3k/3k-line files; must not silently break module-path patches in tests. |
 
 ## Q3 — Quick wins (lower impact, cheap)
 
 | ID | Item | Track | Size | Where | Depends on | Why |
 |---|---|---|---|---|---|---|
-| E8 | Enrichment double-processing: stale-completion guard firing on ~100% of a site batch (decisions #189/#203) | Reliability & operations | M | build in cloud, verify live | — | Safe but wasteful HTTP/LLM spend; likely the --stream enrich loop re-selecting in-flight jobs. |
-| FW51 | Auto-reject cookie banners via the extension's content-script hook | Apply throughput & cost | S | build in cloud, verify live | — | Saves an agent tool-call (and confusion) on many pages; low risk. |
-| FW17 | Bare Canadian province names in location (needs Ontario, CA disambiguation) | Scoring accuracy | S | build in cloud, verify live | — | Only 3-4 live rows; recurs occasionally. |
 | FW24 | Verify the cover-letter word-count shortfall is closed (decisions #162/#163 suggest yes) | Profile & tailoring quality | S | needs live machine | — | Probably done; confirm and close. |
-| FW55 | Company name for non-pattern ATSes (CareerPlug, Eightfold) + transcript fallback | Discovery coverage | S | cloud-ok | — | #214 wired the backfill; unknown ATS domains still get NULL company. |
-| FW49 | 'Handing off...' button shows live progress instead of looking frozen | HITL & wizard UX | M | build in cloud, verify live | — | Needs a small status channel back from run_job. |
 
 ## Q4 — Later / maybe
 
@@ -89,14 +81,9 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 | FW66 | Minimal SMS-gateway Android app forked from open-source prior art | Login, 2FA & SMS | L | needs live machine | FW44 | Replaces the USB-tethered ADB relay; security model must be designed first. |
 | FW21 | Retest whether stand-up's hardcoded title regex is still needed | Scoring accuracy | M | build in cloud, verify live | FW9 | Needs qualifications wired into evidence matching first. |
 | FW67 | Company-reputation research to ground the ethical filter | Scoring accuracy | L | build in cloud, verify live | — | Real cost and bias risks; needs its own scoping pass. |
-| FW27 | GitHub-import review shows the flagged text, not just the category | Profile & tailoring quality | S | cloud-ok | — | Show the evidence, not just the verdict. |
 | D1 | Custom-ATS Playwright scrapers (Microsoft, Google, Apple, Meta) and Workday tenant registry | Discovery coverage | L | needs live machine | — | Seattle-specific lists are a fork leftover; generalize per locality first. |
-| FW60 | Wizard wording/tone pass ('bedside manner') | HITL & wizard UX | S | cloud-ok | — | Polish. |
-| FW33 | Wizard walkthroughs for external setup (Gmail OAuth, etc.) with known-failure decision tree | HITL & wizard UX | M | cloud-ok | FW60 | Gmail OAuth setup had real snags. |
-| FW45 | First-run onboarding for the HITL banner | HITL & wizard UX | S | cloud-ok | — | Discoverability. |
+| FW33 | Wizard walkthroughs for external setup (Gmail OAuth, etc.) with known-failure decision tree | HITL & wizard UX | M | cloud-ok | — | Gmail OAuth setup had real snags. |
 | FW47 | Bug-report icon (logs -> GitHub issue) and 'flag this job' icon in the banner | HITL & wizard UX | M | build in cloud, verify live | — | Feedback loop from real use. |
-| E5 | Remove identical helper copies (_strip_html, _get_ua, _fetch_page, _fetch_json) | Engineering health | S | cloud-ok | — | Cheap; prevents the next drift. |
-| E6 | Lint tests/ and widen ruff rules one family at a time (B, UP, SIM) | Engineering health | S | cloud-ok | — | 56 findings in tests/ today. |
 | FW58 | Companion mobile app / remote monitoring (Obtainium-distributed) | Long-horizon ideas | L | needs live machine | — | FW53 email alerts (done) now cover most of the need. |
 | FW68 | Filter keyword store, preference questionnaire, wizard scope, multi-user accounts | Long-horizon ideas | L | cloud-ok | — | Each needs its own scoping conversation. |
 | FW59 | Research ideas (RSI search, DreamCoder, embodied-cognition sim) | Long-horizon ideas | L | cloud-ok | — | Thought experiments; possibly a side project. |
@@ -105,6 +92,19 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 
 | ID | Item | Status |
 |---|---|---|
+| FW17 | Bare Canadian provinces | built #224; check live corpus for false positives |
+| FW26 | Follow-up questions for thin entries | built #229 |
+| FW27 | GitHub import shows flagged text | built #225 |
+| FW36 | Persistent Playwright MCP research | answered by experiment #221 |
+| FW45 | HITL banner guidance | built #226 |
+| FW49 | Hand Off progress | built #226 |
+| FW51 | Cookie-banner auto-decline | built #227 |
+| FW55 | Company names for multi-tenant ATS | built #223 |
+| FW60 | Wizard choice prompts | concrete fix built #228 |
+| E1 | numpy pin / Python 3.12+ | investigated #232: blocked upstream by a security pin; stay on 3.11 |
+| E5 | Duplicate helpers | no change needed #222 |
+| E6 | Lint tests/ | built #222 |
+| E8 | Enrichment double-processing | root-caused and fixed #230 |
 | FW48 | Readable hand-off confirmation | built 2026-10-07 (#220) |
 | FW53 | Email alerts for needs_human / Claude limits | built 2026-10-07 (#219); verify a real send |
 | E7 | Make CI run | it already runs on PRs/pushes to main; first runs after PR #16 exposed 2 real failures, fixed 2026-10-07 |

@@ -390,6 +390,19 @@ notes and stray files are never deleted. A closed Future Work item stays in
 | 218 | One shared LLM-JSON parser (llm_json.parse_llm_json); phrase-bank generation no longer loses rounds to fenced/prose/<think> replies |
 | 219 | FW53: opt-in email alerts (APPLYPILOT_NOTIFY_EMAIL) for needs_human pauses and Claude exhaustion/recovery; `applypilot notify --test` |
 | 220 | FW48: Hand Off confirmation leads with the site name in large text; full URL folded under 'Show full link' |
+| 221 | FW36 answered by experiment: pinned playwright-mcp 0.0.75 `--port` serves sequential MCP sessions on one Chrome; design in docs/scoping/session_architecture.md |
+| 222 | E6: ruff now lints tests/ in CI; dead test code fixed and one test strengthened. E5 needed no change (copies are one-line delegates) |
+| 223 | FW55: extract_company returns the tenant for multi-tenant ATS hosts and None for opaque ones (was the vendor name); backfill corrects old rows |
+| 224 | FW17: bare Canadian province locations rejected, skipping US namesakes (Ontario CA/OR/NY, New Brunswick NJ, Alberta VA, Ontario County); corpus check pending |
+| 225 | FW27: GitHub-import review shows the text that triggered each flag; model quotes shown as quotes only if found verbatim |
+| 226 | FW49/FW45: Hand Off button counts up with live worker status; pause banner always says 'Do the step, then click Done' |
+| 227 | FW51: extension content script declines cookie banners (known CMPs, or reject-only labels inside 'cookie' containers); never clicks accept/EEO buttons |
+| 228 | FW60: wizard choice prompts name the default once via wizard.init.ask_choice |
+| 229 | FW26: expand-bank asks four factual follow-up questions when an entry yields no phrase-bank survivors; saves to profile.json only after confirmation |
+| 230 | E8 root cause: smartextract inserted 'enriched' jobs with no full_description (never scoreable, re-scraped and discarded every pass); fixed + init_db repair |
+| 231 | FW65: deterministic engine pauses 0.6-1.8s between fields (APPLYPILOT_DETERMINISTIC_PACING=0 disables); prompt already feeds known facts to Claude |
+| 232 | E1 investigated: markdownify>=0.14.1 is a security pin (GHSA-7mpr-5m44-h73r) and every newer jobspy caps markdownify<0.14 -- stay on Python 3.11 |
+| 233 | docs/scoping/ added: staged plans + decisions needed for session architecture, login/2FA, budget/escalation, scoring, LinkedIn/locality, engineering |
 
 ---
 
@@ -416,3 +429,4 @@ notes and stray files are never deleted. A closed Future Work item stays in
 | Prioritized backlog (Eisenhower quadrant, dependencies, stage, cloud-ok vs needs-live-machine) | `docs/backlog.md` |
 | Pattern audit findings and checklists | `docs/audit_2026-10.md` |
 | Archived files and the archive policy | `docs/archive/README.md` |
+| Scoping docs for large or gated backlog items | `docs/scoping/README.md` |
