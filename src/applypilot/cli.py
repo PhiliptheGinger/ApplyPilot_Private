@@ -1005,6 +1005,36 @@ def revalidate_seniority(
             console.print(f"[dim]...and {len(result['sample']) - 20} more.[/dim]")
 
 
+def _ask_for_more_facts(item: dict) -> dict | None:
+    """FW26: collect real facts for a too-thin entry; save only after confirmation."""
+    from rich.prompt import Confirm, Prompt
+
+    from applypilot import config
+    from applypilot.scoring.thin_entry import add_facts_to_profile, collect_followup_facts
+
+    name = item["name"]
+    console.print(
+        f"[bold]{name!r} has too little detail to rephrase safely.[/bold] A few questions will help "
+        "(only true facts -- nothing is invented). Press Enter to skip any."
+    )
+    facts = collect_followup_facts(name, lambda q: Prompt.ask(q, default="", show_default=False))
+    if not facts:
+        console.print("[dim]  Nothing added.[/dim]")
+        return None
+    console.print("These would be added to profile.json:")
+    for fact in facts:
+        console.print(f"  - {fact}")
+    if not Confirm.ask("Save them?", default=True):
+        return None
+    try:
+        updated = add_facts_to_profile(config.PROFILE_PATH, name, facts)
+    except KeyError:
+        console.print(f"[red]  Couldn't find {name!r} in {config.PROFILE_PATH}; nothing saved.[/red]")
+        return None
+    console.print(f"[green]  Saved to {config.PROFILE_PATH}.[/green]")
+    return updated
+
+
 @app.command("expand-bank")
 def expand_bank(
     entry: str = typer.Option(
@@ -1016,6 +1046,11 @@ def expand_bank(
         False,
         "--force",
         help="Regenerate even if an up-to-date bank (matching content hash) already exists.",
+    ),
+    ask: bool = typer.Option(
+        None,
+        "--ask/--no-ask",
+        help="When an entry is too thin to bank, ask follow-up questions and retry. Default: ask when run in a terminal.",
     ),
 ) -> None:
     """Generate (or refresh) the persisted phrase bank for resume entries --
@@ -1068,7 +1103,19 @@ def expand_bank(
             console.print(
                 f"[yellow]  no survivors for {name!r} (no source facts, or every candidate failed a check).[/yellow]"
             )
-            continue
+            if ask is None:
+                ask = sys.stdin.isatty()
+            if not ask:
+                continue
+            item = _ask_for_more_facts(item)
+            if item is None:
+                continue
+            h = phrase_bank.content_hash(item)
+            console.print(f"[cyan]Retrying {name!r} with the new facts...[/cyan]")
+            bank = local_tailor.build_phrase_bank(item, client, profile)
+            if not bank:
+                console.print(f"[yellow]  still no survivors for {name!r}; the facts you added were kept.[/yellow]")
+                continue
         phrase_bank.save_bank(name, bank, h)
         n_bullets = len(bank)
         n_variants = sum(len(v) for v in bank.values())
