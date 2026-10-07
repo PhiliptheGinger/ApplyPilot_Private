@@ -6,5 +6,6 @@ root only holds project files. Nothing in `src/` or `tests/` imports them;
 a few code comments still mention `arbitration_test.py` and
 `semantic_retrieval_experiment.py` by name -- this is where they are.
 
-`lint_remaining.txt` (stale ruff output) and an empty file named `=` were
-deleted rather than moved; both are recoverable from git history.
+`lint_remaining.txt` (stale ruff output) is archived at
+`docs/archive/lint_remaining_2026-09-22.txt`. An empty file named `=` had
+no content and was removed.

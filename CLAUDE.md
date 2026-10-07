@@ -172,6 +172,11 @@ in `docs/future_work.md` (full text, keep item numbering) and get a row in
 `docs/backlog.md` (priority, dependencies, where it can run). Never paste
 a full write-up into this file.
 
+**Archive, never delete (rule, 2026-10-07).** Decisions, Future Work items,
+notes and stray files are never deleted. A closed Future Work item stays in
+`docs/future_work.md` struck through; a superseded file moves to
+`docs/archive/` (see its README). Only provably empty files may be removed.
+
 | # | Decision |
 |---|----------|
 | 0 | Never paste API keys in chat |
@@ -403,3 +408,4 @@ a full write-up into this file.
 | Future Work items (full text, numbered) | `docs/future_work.md` |
 | Prioritized backlog (Eisenhower quadrant, dependencies, stage, cloud-ok vs needs-live-machine) | `docs/backlog.md` |
 | Pattern audit findings and checklists | `docs/audit_2026-10.md` |
+| Archived files and the archive policy | `docs/archive/README.md` |
