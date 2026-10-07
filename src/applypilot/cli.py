@@ -2308,7 +2308,9 @@ def sms(
 
     from rich.prompt import Confirm, Prompt
 
-    choice = Prompt.ask("Which relay method?", choices=["google-voice", "adb", "twilio"], default="google-voice")
+    from applypilot.wizard.init import ask_choice
+
+    choice = ask_choice("Which SMS relay?", ["google-voice", "adb", "twilio"], "google-voice")
 
     if choice == "google-voice":
         ok, msg = check_gmail_setup()

@@ -86,3 +86,19 @@ def test_values_with_quotes_round_trip(tmp_path):
     path = _run_setup_searches(tmp_path, ["Remote", "0", "Help Desk", 'Remote, "Quoted" Town', ""])
     cfg = yaml.safe_load(path.read_text(encoding="utf-8"))
     assert cfg["location"]["accept_patterns"] == ["Remote", '"Quoted" Town']
+
+
+def test_ask_choice_names_the_default_once():
+    """FW60 (2026-10-07): Rich printed the default twice."""
+    from rich.prompt import Prompt
+
+    seen = {}
+
+    def fake_get_input(console, prompt, password, stream=None):
+        seen["prompt"] = prompt.plain
+        return ""
+
+    with patch.object(Prompt, "get_input", side_effect=fake_get_input):
+        result = wizard.ask_choice("Which SMS relay?", ["google-voice", "adb", "twilio"], "google-voice")
+    assert result == "google-voice"
+    assert seen["prompt"] == "Which SMS relay? (Enter for google-voice) [google-voice/adb/twilio]: "

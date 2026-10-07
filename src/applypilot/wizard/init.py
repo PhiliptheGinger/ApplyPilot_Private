@@ -230,6 +230,15 @@ def _verify_email(profile: dict) -> None:
 # ---------------------------------------------------------------------------
 
 
+def ask_choice(question: str, choices: list[str], default: str) -> str:
+    """Prompt for one of `choices`, naming the default once.
+
+    FW60 (2026-10-07): Rich prints both the choice list and the default, so
+    the default appeared twice ("[google-voice/adb/twilio] (google-voice)").
+    """
+    return Prompt.ask(f"{question} (Enter for {default})", choices=choices, default=default, show_default=False)
+
+
 def _split_list(raw: str) -> list[str]:
     return [p.strip() for p in (raw or "").split(",") if p.strip()]
 
@@ -333,11 +342,7 @@ def _setup_ai_features() -> None:
         return
 
     console.print("Supported providers: [bold]Gemini[/bold] (recommended, free tier), OpenAI, local (Ollama/llama.cpp)")
-    provider = Prompt.ask(
-        "Provider",
-        choices=["gemini", "openai", "local"],
-        default="gemini",
-    )
+    provider = ask_choice("Which AI provider?", ["gemini", "openai", "local"], "gemini")
 
     env_lines = ["# ApplyPilot configuration", ""]
 
@@ -442,11 +447,7 @@ def _setup_sms_relay(profile: dict) -> None:
         )
     )
 
-    choice = Prompt.ask(
-        "Which method?",
-        choices=["google-voice", "adb", "twilio", "skip"],
-        default="google-voice",
-    )
+    choice = ask_choice("Which SMS relay?", ["google-voice", "adb", "twilio", "skip"], "google-voice")
     if choice == "skip":
         console.print("[dim]Skipped. Run [bold]applypilot sms --setup[/bold] later, or come back to this step.[/dim]")
         return
