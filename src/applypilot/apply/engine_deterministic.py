@@ -23,6 +23,8 @@ ANY ATS) gets filled here without ever invoking Claude for it.
 from __future__ import annotations
 
 import logging
+import os
+import random
 import time
 from pathlib import Path
 
@@ -174,6 +176,19 @@ def _get_profile_fields() -> dict[str, str]:
     }
 
 
+# FW65 (2026-10-07): a script firing a dozen fills back-to-back at machine
+# speed is a classic bot signature; a person takes a moment between fields.
+# Each successful fill is followed by a short randomized pause. Set
+# APPLYPILOT_DETERMINISTIC_PACING=0 to turn it off (tests do).
+_PAUSE_RANGE_SECONDS = (0.6, 1.8)
+
+
+def _human_pause() -> None:
+    if os.environ.get("APPLYPILOT_DETERMINISTIC_PACING", "1") == "0":
+        return
+    time.sleep(random.uniform(*_PAUSE_RANGE_SECONDS))
+
+
 def _safe_fill(page, selectors: list[str], value: str) -> bool:
     if not value:
         return False
@@ -182,6 +197,7 @@ def _safe_fill(page, selectors: list[str], value: str) -> bool:
         if locator.count() > 0:
             try:
                 locator.first.fill(value, timeout=1200)
+                _human_pause()
                 return True
             except Exception:  # noqa: BLE001, S112 - try each candidate selector; a Playwright element-interaction failure means try the next one, not abort the whole fill/upload attempt
                 continue
@@ -279,6 +295,7 @@ def _answer_known_screening_questions(page, doc_format: str | None = None) -> in
             else:
                 control.fill(answer, timeout=1000)
             answered += 1
+            _human_pause()
         except Exception:  # noqa: BLE001, S112 - one question's markup being unexpected must not abort scanning the rest
             continue
     return answered

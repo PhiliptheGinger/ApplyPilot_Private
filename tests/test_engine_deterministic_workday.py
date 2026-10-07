@@ -458,3 +458,30 @@ class TestRunJobDeterministicDispatch:
         )
 
         assert result == "needs_human:workday_wizard_incomplete:x"
+
+
+class TestHumanPacing:
+    """FW65 (2026-10-07): fills are spaced out like a person's, not machine-fast."""
+
+    def test_pause_is_skipped_when_disabled(self, monkeypatch):
+        from applypilot.apply import engine_deterministic as eng
+
+        slept = []
+        monkeypatch.setattr(eng.time, "sleep", lambda s: slept.append(s))
+        monkeypatch.setenv("APPLYPILOT_DETERMINISTIC_PACING", "0")
+        eng._human_pause()
+        assert slept == []
+
+    def test_pause_is_randomized_within_range_when_enabled(self, monkeypatch):
+        import time as real_time
+
+        from applypilot.apply import engine_deterministic as eng
+
+        slept = []
+        monkeypatch.setattr(eng, "time", type("T", (), {"sleep": staticmethod(slept.append), "time": real_time.time}))
+        monkeypatch.setenv("APPLYPILOT_DETERMINISTIC_PACING", "1")
+        for _ in range(20):
+            eng._human_pause()
+        lo, hi = eng._PAUSE_RANGE_SECONDS
+        assert len(slept) == 20 and all(lo <= s <= hi for s in slept)
+        assert len(set(slept)) > 1

@@ -112,6 +112,13 @@ def _never_send_real_notifications(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _no_deterministic_pacing(monkeypatch):
+    """The deterministic apply engine pauses 0.6-1.8s between fields (FW65);
+    tests don't need to wait."""
+    monkeypatch.setenv("APPLYPILOT_DETERMINISTIC_PACING", "0")
+
+
+@pytest.fixture(autouse=True)
 def _never_touch_real_db(tmp_path_factory, monkeypatch):
     """Point the default database path at a throwaway file for every test.
 
