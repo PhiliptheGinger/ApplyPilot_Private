@@ -79,6 +79,8 @@ with a shared loader, so new categories don't each invent a format.
   against LinkedIn's terms. FW64's ATS-matching route gets the same jobs
   without it. Recommendation: do FW64 instead.
 
+Security itself is now its own item, FW72 (threat model + fixes).
+
 ## FW58, FW59, FW66, D1
 
 Long horizon, unchanged: companion app (FW53 email alerts now cover the

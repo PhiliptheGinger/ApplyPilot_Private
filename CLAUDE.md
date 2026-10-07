@@ -403,6 +403,7 @@ notes and stray files are never deleted. A closed Future Work item stays in
 | 231 | FW65: deterministic engine pauses 0.6-1.8s between fields (APPLYPILOT_DETERMINISTIC_PACING=0 disables); prompt already feeds known facts to Claude |
 | 232 | E1 investigated: markdownify>=0.14.1 is a security pin (GHSA-7mpr-5m44-h73r) and every newer jobspy caps markdownify<0.14 -- stay on Python 3.11 |
 | 233 | docs/scoping/ added: staged plans + decisions needed for session architecture, login/2FA, budget/escalation, scoring, LinkedIn/locality, engineering |
+| 234 | User decisions: no login/2FA automation (FW43/44 declined); Claude stays reserved for apply (FW13); locality data US-first, GitHub-hosted (FW71); FW72 security review added |
 
 ---
 

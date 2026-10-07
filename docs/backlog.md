@@ -15,7 +15,7 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 
 **Stage 0 — this week, small, unblocks everything:** E3, FW24, FW23
 
-**Stage 1 — keep the machine and budget healthy:** FW32, FW13
+**Stage 1 — keep the machine healthy:** FW32
 
 **Track A — reach LinkedIn jobs without automating LinkedIn:** FW64 → FW38
 
@@ -25,13 +25,11 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 
 **Track C — session/worker architecture:** FW69 → FW46 → FW41
 
-**Track D — login & 2FA (research-gated):** FW43 → FW44 → FW66
-
 **Track E — scoring accuracy:** FW28 → FW15
 
 **Track F — profile richness:** FW9 → FW21
 
-**Track G — code health (runs alongside anything):** E4
+**Track G — code health and security (runs alongside anything):** E4, FW72
 
 ## Q1 — Do now (urgent + important)
 
@@ -45,20 +43,18 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 
 | ID | Item | Track | Size | Where | Depends on | Why |
 |---|---|---|---|---|---|---|
+| FW72 | Security hardening review: secrets, local listener, prompt injection, untrusted input, data at rest | Code health | M | build in cloud, verify live | — | User wants program security; replaces the proxy idea from FW39 as the actual security work. |
 | FW32 | Machine-health watchdog: keep llama-server at BelowNormal, avoid ScheduledDefrag collisions, memory-pressure guard | Reliability & operations | M | needs live machine | — | llama-server priority drift has recurred 5+ times. A watchdog.py already exists to extend. |
-| FW13 | Smarter Claude budget policy than 'always reserve everything for apply' (Pro plan) | Reliability & operations | M | cloud-ok | — | Shared Pro pool is the dominant apply bottleneck (decisions #166/#185/#195). |
 | FW64 | Cross-source duplicate detection + find a LinkedIn job's real ATS posting by title/company | Apply throughput & cost | L | build in cloud, verify live | — | Prevents double-applying and gives FW38 a path that never touches linkedin.com automation. |
 | FW62 | Apply-page schema layer: Stage 2 verified vendor selectors (needs real DOM captures), Stages 4-5 | Apply throughput & cost | L | build in cloud, verify live | — | Stage 1 and 3 shipped. Stage 2 needs live page captures to avoid fabricated selectors; first step is a capture hook (docs/scoping/smaller_items.md). |
 | FW65 | Remaining: verified per-ATS field hints in the Claude prompt (pacing and known-facts feeding are done, #231) | Apply throughput & cost | S | cloud-ok | FW62 | Fewer exploration steps per application; only for selectors verified by FW62 Stage 2. |
 | FW30 | Workday personal-info page + qa_knowledge reuse for screening questions | Apply throughput & cost | M | needs live machine | FW62 | Workday/ADP dominate real runs; selectors written in #169 are still unverified live. |
 | FW69 | Decouple browser sessions from worker threads (general version of non-blocking HITL) | Session / worker architecture | L | needs live machine | — | Same root gap behind FW36, FW46 and FW69: worker id == Chrome profile == CDP port. |
-| FW43 | Research bot-detection risk of automated login/2FA (gate for FW44) | Login, 2FA & SMS | M | cloud-ok | — | Explicit user gate: no login/2FA automation until researched. |
-| FW44 | Wire the SMS relay into the apply agent's verification step | Login, 2FA & SMS | M | needs live machine | FW43 | Relay clients exist (Twilio, Google Voice, ADB) but are unused by apply. |
 | FW28 | Requirement-framing classifier ('seeking N years', 'commercial experience', founding titles) instead of growing regex lists | Scoring accuracy | L | build in cloud, verify live | — | Covers FW14 and FW15(b)(d). Needs real-corpus false-positive checks. |
 | FW15 | Remaining rubric gaps: implicit-seniority postings, defense/law-enforcement contractor backstop | Scoring accuracy | M | build in cloud, verify live | FW28 | Scoring false positives cost real apply budget. |
 | FW9 | Build experience/project inventory from resume + GitHub in the wizard (then expand banks) | Profile & tailoring quality | L | cloud-ok | — | Wizard never builds the inventory phrase banks need; every entry is hand-authored today. |
 | FW23 | Line-by-line review of resume degraded-mode output (grammar/pronoun bugs like #137 found in cover letters) | Profile & tailoring quality | S | needs live machine | — | Never reviewed at the same rigor as cover letters. |
-| FW71 | Locality data pack: nearby places (auto-fill the location filter) and local employers + their ATS, delivered by the wizard | Discovery coverage | L | cloud-ok | — | Turns E9's hand-edited accept list into an automatic one and generalizes the NC/Seattle employer lists to any locality. |
+| FW71 | Locality data pack: nearby places (auto-fill the location filter) and local employers + their ATS, delivered by the wizard | Discovery coverage | L | cloud-ok | — | US first, worldwide later; hosted on GitHub, wizard downloads only the user's region (decision #234). |
 | E4 | Split database.py, then local_tailor.py / launcher.py, one cohesive group per PR with patch targets updated | Engineering health | L | cloud-ok | — | 4.4k/3.3k/3k-line files; must not silently break module-path patches in tests. |
 
 ## Q3 — Quick wins (lower impact, cheap)
@@ -78,7 +74,6 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 | FW39 | Proxy/fingerprint hardening for LinkedIn scraping | Apply throughput & cost | L | needs live machine | — | Needs a defined scope ('spoofing' is undefined) and an ethics conversation first. |
 | FW46 | Separate human-interaction coordinator from the automation worker pool | Session / worker architecture | L | needs live machine | FW69 | Falls out of FW69. Avoid the name 'server'. |
 | FW41 | Live queue UI for human-first manual tasks | Session / worker architecture | M | build in cloud, verify live | FW69 | v1 already auto-advances; this adds visibility from a second window. |
-| FW66 | Minimal SMS-gateway Android app forked from open-source prior art | Login, 2FA & SMS | L | needs live machine | FW44 | Replaces the USB-tethered ADB relay; security model must be designed first. |
 | FW21 | Retest whether stand-up's hardcoded title regex is still needed | Scoring accuracy | M | build in cloud, verify live | FW9 | Needs qualifications wired into evidence matching first. |
 | FW67 | Company-reputation research to ground the ethical filter | Scoring accuracy | L | build in cloud, verify live | — | Real cost and bias risks; needs its own scoping pass. |
 | D1 | Custom-ATS Playwright scrapers (Microsoft, Google, Apple, Meta) and Workday tenant registry | Discovery coverage | L | needs live machine | — | Seattle-specific lists are a fork leftover; generalize per locality first. |
@@ -126,3 +121,7 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 | FW42 | Repurposable apply-page schemas | scoped as FW62 |
 | FW54 | Apply cost pointer | umbrella for FW30/FW35/FW36/FW65 |
 | Local-1..6 | Seattle employer lists, Lever/Ashby scrapers | Lever/Ashby built; rest folded into D1 |
+| FW13 | Claude budget policy | closed #234: keep reserve-for-apply |
+| FW43 | Login/2FA research gate | declined #234: botting-detection risk; gate stays closed |
+| FW44 | SMS relay wired into apply | declined #234 with FW43; relay stays a standalone tool |
+| FW66 | SMS-gateway Android app | parked with FW44 (#234) |

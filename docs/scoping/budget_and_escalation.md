@@ -41,7 +41,11 @@ for the rest of the window.
 falls back to `claude_cli` and stops at the cap; the same run with an
 apply process running never touches it. All cloud-testable with fakes.
 
-### Decision needed
+### Decision (2026-10-07, #234)
+
+Keep the current policy: Claude stays reserved for apply. The modes below are kept for reference if testing or distillation resumes.
+
+### Original decision needed
 
 - Default `idle` with a 20-call / 50%-of-window cap, or keep `never` as
   the default and make `idle` opt-in?

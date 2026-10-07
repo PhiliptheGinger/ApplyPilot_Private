@@ -67,7 +67,13 @@ Two separate datasets:
    location builds the dataset as a by-product of discovery. Seed it from
    the existing YAML lists.
 
-### Decisions needed
+### Decided 2026-10-07 (#234)
+
+- US first: Census place files (public domain). GeoNames for worldwide later.
+- Hosted on GitHub (a data branch or release asset), never shipped in the package. The wizard downloads only the user's state (or country, later) and caches it in `~/.applypilot/geo/`.
+- Employer index: built from discovery runs and seed lists, published on GitHub the same way; nothing large stored locally.
+
+### Original decisions needed
 
 - Places source: Census (public domain, US-only) or GeoNames (CC-BY,
   worldwide, requires attribution)?

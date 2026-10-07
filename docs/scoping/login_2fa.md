@@ -1,6 +1,8 @@
 # Login and 2FA automation (FW43 research → FW44 → FW66)
 
-Scoped 2026-10-07. FW43 is an explicit research gate the user set before any
+Scoped 2026-10-07. **Decided 2026-10-07 (decision #234): not building. The user judged login/2FA automation too risky for bot detection; the gate stays closed. This file is kept as research.**
+
+ FW43 is an explicit research gate the user set before any
 login/2FA automation is built: "this should be scouted out before we really
 try it."
 
