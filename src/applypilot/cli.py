@@ -2246,6 +2246,40 @@ def track(
 
 
 @app.command()
+def notify(
+    test: bool = typer.Option(False, "--test", help="Send a test email now."),
+) -> None:
+    """Email alerts when a job needs you or Claude usage runs out (FW53).
+
+    Turn on with APPLYPILOT_NOTIFY_EMAIL in ~/.applypilot/.env -- either
+    'self' (uses personal.email from profile.json) or an address. Uses the
+    Gmail setup from `applypilot track --setup`.
+    """
+    _bootstrap()
+
+    from applypilot import notify as notify_mod
+    from applypilot.tracking.gmail_client import check_gmail_setup
+
+    recipient = notify_mod.resolve_recipient()
+    gmail_ok, gmail_msg = check_gmail_setup()
+    console.print(f"Recipient: {recipient or '[yellow]off[/yellow] (set APPLYPILOT_NOTIFY_EMAIL)'}")
+    console.print(f"Gmail:     {'ready' if gmail_ok else '[yellow]not set up[/yellow] -- ' + gmail_msg}")
+    if not test:
+        return
+    if not recipient or not gmail_ok:
+        console.print("[red]Can't send a test until both are set up.[/red]")
+        raise typer.Exit(1)
+    notify_mod.notify(
+        "test",
+        "Test notification",
+        "If you can read this, ApplyPilot can reach you when a job needs attention.",
+        min_interval_seconds=0,
+        wait=True,
+    )
+    console.print(f"Sent a test email to {recipient}. Check that inbox (and spam).")
+
+
+@app.command()
 def sms(
     setup: bool = typer.Option(False, "--setup", help="Interactively verify an SMS relay's connectivity."),
 ) -> None:

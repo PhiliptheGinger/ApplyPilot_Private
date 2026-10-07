@@ -182,10 +182,13 @@ def record_apply_exhaustion(reason: str, cooldown_seconds: float = 1800) -> None
     """
     global _apply_exhausted, _apply_exhaustion_reason, _apply_probe_after
     with _apply_signal_lock:
+        was_exhausted = _apply_exhausted
         _apply_exhausted = True
         _apply_exhaustion_reason = reason
         _apply_probe_after = time.time() + cooldown_seconds
     log.info("Apply-side Claude signal: exhausted (reason=%s, next probe eligible in %ss)", reason, cooldown_seconds)
+    if not was_exhausted:
+        _notify("exhausted", reason)
 
 
 def record_apply_success() -> None:
@@ -202,6 +205,20 @@ def record_apply_success() -> None:
         _apply_probe_after = None
     if was_exhausted:
         log.info("Apply-side Claude signal: cleared (usable again -- confirmed by a successful call)")
+        _notify("recovered", None)
+
+
+def _notify(event: str, reason: str | None) -> None:
+    """Email on the transition into / out of exhaustion only (FW53)."""
+    try:
+        from applypilot import notify
+
+        if event == "exhausted":
+            notify.notify_claude_exhausted(reason or "unknown")
+        else:
+            notify.notify_claude_recovered()
+    except Exception:  # noqa: BLE001 - notifications must never affect the apply gate
+        log.debug("exhaustion notification failed", exc_info=True)
 
 
 def _apply_signal() -> tuple[bool, str | None]:

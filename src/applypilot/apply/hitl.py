@@ -500,7 +500,7 @@ def notify_human_needed(job: dict, reason: str, stuck_url: str) -> None:
         f"  Reason: {reason}\n"
         f"  URL:    {stuck_url}\n"
         f"  Action: {instructions}\n"
-        f"  Review: applypilot human-review\n"
+        f"  Then:   click Done in the ApplyPilot banner in that Chrome window\n"
         f"\a",
         file=sys.stderr,
         flush=True,
@@ -510,6 +510,11 @@ def notify_human_needed(job: dict, reason: str, stuck_url: str) -> None:
         "ApplyPilot: Human Review Needed",
         f"{title} @ {company} — {reason}",
     )
+
+    # FW53: email, if APPLYPILOT_NOTIFY_EMAIL is set (never raises, never blocks).
+    from applypilot.notify import notify_needs_human
+
+    notify_needs_human(job, reason, stuck_url, instructions)
 
 
 # ---------------------------------------------------------------------------

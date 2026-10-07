@@ -136,6 +136,7 @@ applypilot apply --dry-run --url URL           # Test one job (no submit)
 applypilot apply                               # Auto-apply to cover_ready jobs
 applypilot apply --human-first                 # LinkedIn human-first flow (decision #187) -- click Apply yourself, automation takes over on hand-off
 applypilot sms --setup                         # Verify Twilio SMS relay connectivity (decision #197, relay only -- not wired into apply flow)
+applypilot notify --test                       # Email alerts for needs_human pauses / Claude usage limits (FW53; set APPLYPILOT_NOTIFY_EMAIL=self in .env)
 ```
 
 ---

@@ -99,6 +99,19 @@ def _isolate_llm_exhaustion_state(tmp_path, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _never_send_real_notifications(monkeypatch):
+    """Tests must never email anyone (FW53 notifications, 2026-10-07).
+
+    A CLI test's _bootstrap() can load the real ~/.applypilot/.env, which may
+    set APPLYPILOT_NOTIFY_EMAIL. test_notify.py replaces _send itself.
+    """
+    import applypilot.notify as notify
+
+    monkeypatch.delenv("APPLYPILOT_NOTIFY_EMAIL", raising=False)
+    monkeypatch.setattr(notify, "_send", lambda *a, **k: None)
+
+
+@pytest.fixture(autouse=True)
 def _never_touch_real_db(tmp_path_factory, monkeypatch):
     """Point the default database path at a throwaway file for every test.
 
