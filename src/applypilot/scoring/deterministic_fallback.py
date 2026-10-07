@@ -568,20 +568,21 @@ def classify_location_signal(job: dict) -> str:
     loc_lower = location.lower()
     if _LOCATION_REMOTE_RE.search(loc_lower):
         return "remote"
+    # 2026-10-07: same filter discovery uses (both searches.yaml key shapes,
+    # whole-word matching). Accept was a plain substring test here, so an
+    # "NC" pattern classified "San Francisco, CA" as accepted.
+    from applypilot.discovery.location_filter import load_location_filter, pattern_in_location
+
     try:
         from applypilot.config import load_search_config
 
-        location_cfg = (load_search_config() or {}).get("location", {}) or {}
+        accept, reject = load_location_filter(load_search_config() or {})
     except Exception:  # noqa: BLE001 -- a config-load failure must degrade, never crash scoring
         return "unknown"
-    accept = location_cfg.get("accept_patterns", []) or []
-    reject = location_cfg.get("reject_patterns", []) or []
-    for r in reject:
-        if re.search(rf"\b{re.escape(r.lower())}\b", loc_lower):
-            return "away"
-    for a in accept:
-        if a.lower() in loc_lower:
-            return "accepted"
+    if any(pattern_in_location(r, loc_lower) for r in reject):
+        return "away"
+    if any(pattern_in_location(a, loc_lower) for a in accept):
+        return "accepted"
     return "away" if accept else "unknown"
 
 

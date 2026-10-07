@@ -83,3 +83,34 @@ def test_ats_crawl_passes_reject_list(monkeypatch, tmp_path):
 
     ats_common.run_ats_crawl("Test", "test", "test_api", {"acme": {"name": "Acme"}}, fake_scrape)
     assert seen == {"accept": ["NC"], "reject": ["India"]}
+
+
+class TestWholeWordAccept:
+    """2026-10-07: accept patterns were a substring test."""
+
+    def test_short_codes_do_not_match_inside_words(self):
+        assert location_ok("San Francisco, CA", ["NC"], []) is False
+        assert location_ok("Austin, TX", ["US"], []) is False
+        assert location_ok("Chicago, IL", ["CA"], []) is False
+
+    def test_short_codes_still_match_as_words(self):
+        assert location_ok("Greensboro, NC", ["NC"], []) is True
+        assert location_ok("Denver, CO, US", ["US"], []) is True
+
+    def test_punctuated_pattern(self):
+        assert location_ok("Washington, D.C.", ["Washington, D.C."], []) is True
+
+
+def test_scorer_location_signal_uses_whole_words(monkeypatch):
+    from applypilot import config
+    from applypilot.scoring.deterministic_fallback import classify_location_signal
+
+    monkeypatch.setattr(
+        config,
+        "load_search_config",
+        lambda: {"location": {"accept_patterns": ["Greensboro", "NC"], "reject_patterns": ["India"]}},
+    )
+    assert classify_location_signal({"location": "Greensboro, NC"}) == "accepted"
+    assert classify_location_signal({"location": "San Francisco, CA"}) == "away"
+    assert classify_location_signal({"location": "Mumbai, India"}) == "away"
+    assert classify_location_signal({"location": "Remote"}) == "remote"
