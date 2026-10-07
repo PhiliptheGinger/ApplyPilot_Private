@@ -54,8 +54,11 @@ class _FakeProc:
 
 
 @pytest.fixture
-def _patched_run_job(monkeypatch, tmp_path):
+def _patched_run_job(monkeypatch, tmp_path, tmp_db):
     from applypilot import config
+
+    # A real schema: the success path records Q&A outcomes (qa_knowledge).
+    tmp_db()
 
     monkeypatch.setattr(config, "APP_DIR", tmp_path)
     monkeypatch.setattr(config, "LOG_DIR", tmp_path)

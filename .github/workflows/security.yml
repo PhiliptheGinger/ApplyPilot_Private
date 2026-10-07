@@ -31,10 +31,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.11"  # numpy==1.24.2 (python-jobspy pin) cannot install on 3.12+; see ci.yml
 
       - name: Install pip-audit
-        run: pip install pip-audit
+        # Upgrade the packaging tools first so the audit reports on the
+        # project's dependencies, not on an outdated runner-bundled pip.
+        run: pip install --upgrade pip setuptools pip-audit
 
       - name: Install project dependencies
         run: pip install -e ".[dev]"

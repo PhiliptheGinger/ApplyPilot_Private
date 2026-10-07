@@ -99,6 +99,25 @@ def _isolate_llm_exhaustion_state(tmp_path, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _never_touch_real_db(tmp_path_factory, monkeypatch):
+    """Point the default database path at a throwaway file for every test.
+
+    2026-10-07: test_apply_mcp_connect_retry's success path reached code that
+    opens the default DB (config.DB_PATH, bound by name into database.py at
+    import). On a dev machine that is the candidate's REAL
+    ~/.applypilot/applypilot.db; in CI the directory doesn't exist and the
+    test failed with "unable to open database file". Tests that need a real
+    schema use the tmp_db fixture, which overrides this again.
+    """
+    import applypilot.config as config
+    import applypilot.database as database
+
+    db_file = tmp_path_factory.mktemp("default_db") / "applypilot.db"
+    monkeypatch.setattr(config, "DB_PATH", db_file)
+    monkeypatch.setattr(database, "DB_PATH", db_file)
+
+
+@pytest.fixture(autouse=True)
 def _fallback_profile_and_resume(tmp_path_factory, monkeypatch):
     """Give the suite a synthetic profile/resume when the real ones are absent.
 
