@@ -404,6 +404,9 @@ notes and stray files are never deleted. A closed Future Work item stays in
 | 232 | E1 investigated: markdownify>=0.14.1 is a security pin (GHSA-7mpr-5m44-h73r) and every newer jobspy caps markdownify<0.14 -- stay on Python 3.11 |
 | 233 | docs/scoping/ added: staged plans + decisions needed for session architecture, login/2FA, budget/escalation, scoring, LinkedIn/locality, engineering |
 | 234 | User decisions: no login/2FA automation (FW43/44 declined); Claude stays reserved for apply (FW13); locality data US-first, GitHub-hosted (FW71); FW72 security review added |
+| 235 | Persistent Playwright MCP HTTP server per apply worker is the default; failed connect restarts it once, then falls back to per-job stdio |
+| 236 | FW28 requirement-framing classifier in the local scorer: additive, shadow mode until scripts/validate_requirement_framing.py passes live |
+| 237 | FW39 and FW52 declined by the user; E3 lock-error baseline recorded (~2-3 give-ups/hour, only in full discover+4more runs) |
 
 ---
 

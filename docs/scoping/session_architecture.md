@@ -50,7 +50,7 @@ Session = {id, chrome_proc, cdp_port, profile_dir, listener_port, mcp_proc, mcp_
 state: idle -> leased(worker) -> paused(needs_human) -> ready(after human) -> leased(...) -> retired
 ```
 
-1. **Stage A — persistent MCP per session (fixes the connect race).**
+1. **Stage A — BUILT 2026-10-07 (decision #235), the default.** `apply/mcp_server.py`; verified here that the server survives Chrome relaunches and that Claude Code 2.1.293 accepts the HTTP entry under `--strict-mcp-config`. Original plan: **Stage A — persistent MCP per session (fixes the connect race).**
    When a session's Chrome starts, also start `playwright-mcp --port P
    --cdp-endpoint http://127.0.0.1:{cdp}` and wait for `/mcp` to answer.
    `_make_mcp_config` emits the HTTP entry. Jobs reuse the server; restart
@@ -90,7 +90,10 @@ state: idle -> leased(worker) -> paused(needs_human) -> ready(after human) -> le
 Stage A can be built and unit-tested in a cloud session; every stage needs
 a supervised dry-run batch on the real machine to sign off.
 
-## Decision needed
+## Decision (2026-10-07)
+
+The user chose per-worker persistent MCP as the default, no flag. Original question:
+
 
 - OK to change the default from per-job Chrome/MCP to per-worker
   (behind a flag first, e.g. `--persistent-sessions`)?

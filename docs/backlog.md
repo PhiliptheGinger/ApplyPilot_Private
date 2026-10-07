@@ -23,9 +23,9 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 
 **Track B — cheaper, faster applies:** FW62 → FW65 → FW30
 
-**Track C — session/worker architecture:** FW69 → FW46 → FW41
+**Track C — session/worker architecture:** Stage A done (#235) → FW69 → FW46 → FW41
 
-**Track E — scoring accuracy:** FW28 → FW15
+**Track E — scoring accuracy:** FW28 live validation → FW15(c)
 
 **Track F — profile richness:** FW9 → FW21
 
@@ -35,7 +35,7 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 
 | ID | Item | Track | Size | Where | Depends on | Why |
 |---|---|---|---|---|---|---|
-| E3 | Confirm the transaction-leak fix on the live machine, then close or redesign decision #183's DB-lock question | Reliability & operations | S | needs live machine | — | If leaked write transactions were the real cause, the 'capacity ceiling' work disappears. A one-night log comparison answers it. |
+| E3 | Confirm the transaction-leak fix on the live machine, then close or redesign decision #183's DB-lock question | Reliability & operations | S | needs live machine | — | Baseline recorded 2026-10-07: ~2-3 give-ups/hour, only in full discover+4more runs. One overnight run on the fix answers it. |
 | FW38 | LinkedIn jobs have no application_url (6,108 jobs, 100% of manual_only) | Apply throughput & cost | L | needs live machine | FW64 | Biggest single source of unreachable jobs. Safest route is FW64's title+company lookup, not scraping LinkedIn. |
 | FW18 | Keep tailor -> cover -> apply moving (operational, ongoing) | Profile & tailoring quality | S | needs live machine | — | Standing bottleneck; this is running the pipeline, not new code. |
 
@@ -50,8 +50,7 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 | FW65 | Remaining: verified per-ATS field hints in the Claude prompt (pacing and known-facts feeding are done, #231) | Apply throughput & cost | S | cloud-ok | FW62 | Fewer exploration steps per application; only for selectors verified by FW62 Stage 2. |
 | FW30 | Workday personal-info page + qa_knowledge reuse for screening questions | Apply throughput & cost | M | needs live machine | FW62 | Workday/ADP dominate real runs; selectors written in #169 are still unverified live. |
 | FW69 | Decouple browser sessions from worker threads (general version of non-blocking HITL) | Session / worker architecture | L | needs live machine | — | Same root gap behind FW36, FW46 and FW69: worker id == Chrome profile == CDP port. |
-| FW28 | Requirement-framing classifier ('seeking N years', 'commercial experience', founding titles) instead of growing regex lists | Scoring accuracy | L | build in cloud, verify live | — | Covers FW14 and FW15(b)(d). Needs real-corpus false-positive checks. |
-| FW15 | Remaining rubric gaps: implicit-seniority postings, defense/law-enforcement contractor backstop | Scoring accuracy | M | build in cloud, verify live | FW28 | Scoring false positives cost real apply budget. |
+| FW15 | Remaining rubric gap: defense/law-enforcement contractor backstop (implicit seniority shipped in FW28) | Scoring accuracy | M | build in cloud, verify live | FW28 | Scoring false positives cost real apply budget. |
 | FW9 | Build experience/project inventory from resume + GitHub in the wizard (then expand banks) | Profile & tailoring quality | L | cloud-ok | — | Wizard never builds the inventory phrase banks need; every entry is hand-authored today. |
 | FW23 | Line-by-line review of resume degraded-mode output (grammar/pronoun bugs like #137 found in cover letters) | Profile & tailoring quality | S | needs live machine | — | Never reviewed at the same rigor as cover letters. |
 | FW71 | Locality data pack: nearby places (auto-fill the location filter) and local employers + their ATS, delivered by the wizard | Discovery coverage | L | cloud-ok | — | US first, worldwide later; hosted on GitHub, wizard downloads only the user's region (decision #234). |
@@ -70,8 +69,6 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 | FW35 | One parameterized escalation primitive (cost/latency/capability ordering) to replace hand-rolled cascades | Reliability & operations | L | cloud-ok | — | Makes later escalation ideas (haiku fast path, editor 1.7b->8b) cheap to add. |
 | FW50 | Per-job download of application documents + dedup of recurring notices | Apply throughput & cost | M | build in cloud, verify live | — | Nice-to-have record keeping. |
 | FW56 | Why the Lumen phone-2FA wall later disappeared | Apply throughput & cost | S | needs live machine | — | One data point; investigate if it recurs. |
-| FW52 | Deliberately imperfect answers on subjective assessments | Apply throughput & cost | S | cloud-ok | — | Needs an explicit ethics/detection discussion before any code. Recommendation: don't build. |
-| FW39 | Proxy/fingerprint hardening for LinkedIn scraping | Apply throughput & cost | L | needs live machine | — | Needs a defined scope ('spoofing' is undefined) and an ethics conversation first. |
 | FW46 | Separate human-interaction coordinator from the automation worker pool | Session / worker architecture | L | needs live machine | FW69 | Falls out of FW69. Avoid the name 'server'. |
 | FW41 | Live queue UI for human-first manual tasks | Session / worker architecture | M | build in cloud, verify live | FW69 | v1 already auto-advances; this adds visibility from a second window. |
 | FW21 | Retest whether stand-up's hardcoded title regex is still needed | Scoring accuracy | M | build in cloud, verify live | FW9 | Needs qualifications wired into evidence matching first. |
@@ -125,3 +122,7 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 | FW43 | Login/2FA research gate | declined #234: botting-detection risk; gate stays closed |
 | FW44 | SMS relay wired into apply | declined #234 with FW43; relay stays a standalone tool |
 | FW66 | SMS-gateway Android app | parked with FW44 (#234) |
+| FW28 | Requirement-framing classifier | built #236 (shadow); run scripts/validate_requirement_framing.py live, then turn on |
+| FW36/Stage A | Persistent Playwright MCP per worker | built #235, default; watch the first live apply run |
+| FW39 | Proxy/fingerprint hardening | declined #237; security work is FW72 |
+| FW52 | Imperfect assessment answers | declined #237 |

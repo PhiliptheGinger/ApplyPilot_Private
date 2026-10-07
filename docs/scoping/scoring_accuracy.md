@@ -14,6 +14,8 @@ tightly scoped "minimum N years" check, plus section-header handling
 "commercial experience", "Founding Engineer") has been a one-off regex
 addition with its own false-positive scare (#87, #90, #92).
 
+**Built 2026-10-07 (decision #236), shadow mode until the validation below passes.** See `scoring/requirement_framing.py` and `scripts/validate_requirement_framing.py`.
+
 ### Proposal: classify framing, don't enumerate it
 
 Reuse the two pieces the codebase already trusts:

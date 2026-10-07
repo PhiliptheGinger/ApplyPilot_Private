@@ -69,7 +69,7 @@ Four separate conversations. The cheapest real step: move the filter keyword
 lists (ethical exclusions, labor signals, scam signals) into one YAML file
 with a shared loader, so new categories don't each invent a format.
 
-## FW52 and FW39 — not recommended without an explicit decision
+## FW52 and FW39 — declined by the user 2026-10-07 (decision #237)
 
 - **FW52 (deliberately imperfect assessment answers):** shaping answers to
   look less machine-like on a hiring assessment is a misrepresentation
