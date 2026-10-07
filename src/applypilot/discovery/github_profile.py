@@ -169,34 +169,83 @@ non-trivial concern, not a stretch or a generic tech topic:
 
 {categories}
 
-First write ONE short sentence explaining your reasoning. Then, on its own final line, output \
+First write ONE short sentence explaining your reasoning. Then, on its own line, output \
 either "FLAGS: none" or "FLAGS: category_one, category_two" using ONLY the exact category names \
-listed above."""
+listed above. For each flagged category, add one more line of the form \
+EVIDENCE category_name: "a short exact quote from the text that triggered it".
+"""
 
 
 def _repo_text(repo: dict, readme: str) -> str:
     return f"NAME: {repo.get('name')}\nDESCRIPTION: {repo.get('description') or '(none)'}\n\nREADME:\n{readme[:3000]}"
 
 
-def classify_reputational_flags(client, repo_text: str) -> list[str]:
-    """One narrow LLM call per repo -- mirrors scoring/deterministic_fallback.py's
-    classify_family in shape and conservatism. Returns [] on any failure
-    (never blocks the review flow; an LLM-classification failure just means
-    the deterministic pre-filter is all that ran for this repo)."""
+_EVIDENCE_LINE = re.compile(r'^\s*EVIDENCE\s+([a-z_]+)\s*:\s*"?(.+?)"?\s*$', re.IGNORECASE | re.MULTILINE)
+
+
+def classify_reputational_flags_detailed(client, repo_text: str) -> dict[str, str | None]:
+    """One narrow LLM call per repo. Returns {category: quote-or-None}.
+
+    The quote is the model's claimed trigger text; callers check it against
+    the repo text before presenting it as a quote (see flag_repo_detailed).
+    Returns {} on any failure -- an LLM failure just means the deterministic
+    pre-filter is all that ran for this repo.
+    """
     categories = "\n".join(f"- {name}: {desc}" for name, desc in REPUTATIONAL_FLAG_CATEGORIES.items())
     messages = [
         {"role": "system", "content": _REPUTATIONAL_SYSTEM.format(categories=categories)},
         {"role": "user", "content": repo_text},
     ]
     try:
-        resp = client.chat(messages, max_tokens=400, temperature=0.2)
+        resp = client.chat(messages, max_tokens=500, temperature=0.2)
     except Exception:  # noqa: BLE001
-        return []
+        return {}
     m = re.search(r"FLAGS:\s*(.+)", resp or "", re.IGNORECASE)
     if not m or m.group(1).strip().lower().startswith("none"):
-        return []
-    found = [c.strip().lower() for c in m.group(1).split(",")]
-    return sorted({c for c in found if c in REPUTATIONAL_FLAG_CATEGORIES})
+        return {}
+    found = {c.strip().lower() for c in m.group(1).split(",")} & set(REPUTATIONAL_FLAG_CATEGORIES)
+    quotes = {cat.lower(): quote.strip() for cat, quote in _EVIDENCE_LINE.findall(resp or "")}
+    return {cat: quotes.get(cat) or None for cat in sorted(found)}
+
+
+def classify_reputational_flags(client, repo_text: str) -> list[str]:
+    """Category names only -- mirrors scoring/deterministic_fallback.py's
+    classify_family in shape and conservatism."""
+    return sorted(classify_reputational_flags_detailed(client, repo_text))
+
+
+def _context_snippet(text: str, start: int, end: int, width: int = 60) -> str:
+    left = max(0, start - width)
+    right = min(len(text), end + width)
+    snippet = " ".join(text[left:right].split())
+    return ("..." if left else "") + snippet + ("..." if right < len(text) else "")
+
+
+def flag_repo_detailed(client, repo: dict, readme: str) -> dict[str, str]:
+    """{category: evidence text to show the user} (FW27, 2026-10-07).
+
+    The review used to show only the category's generic description, so the
+    user had to trust the verdict without seeing what triggered it.
+    Deterministic matches quote the matched words with surrounding context.
+    A model-supplied quote is shown as a quote only if it actually appears in
+    the repo text; otherwise it is labelled as the model's description.
+    """
+    text = _repo_text(repo, readme)
+    evidence: dict[str, str] = {}
+    for cat, pattern in _OBVIOUS_FLAG_PATTERNS.items():
+        m = pattern.search(text)
+        if m:
+            evidence[cat] = f'"{_context_snippet(text, m.start(), m.end())}"'
+    for cat, quote in classify_reputational_flags_detailed(client, text).items():
+        if cat in evidence:
+            continue
+        if quote and " ".join(quote.lower().split()) in " ".join(text.lower().split()):
+            evidence[cat] = f'"{quote}"'
+        elif quote:
+            evidence[cat] = f"model's description (not found word-for-word in the repo): {quote}"
+        else:
+            evidence[cat] = "no specific passage given by the model"
+    return dict(sorted(evidence.items()))
 
 
 def flag_repo(client, repo: dict, readme: str) -> list[str]:
@@ -252,9 +301,11 @@ def gather_repo_review_items(username: str, client) -> list[dict]:
                 "readme": readme,
                 "languages": languages,
                 "sparse": is_sparse_repo(readme),
-                "flags": flag_repo(client, repo, readme),
             }
         )
+        evidence = flag_repo_detailed(client, repo, readme)
+        items[-1]["flags"] = sorted(evidence)
+        items[-1]["flag_evidence"] = evidence
     return items
 
 
@@ -265,6 +316,7 @@ def review_repos_interactively(items: list[dict]) -> list[dict]:
     explicit yes/no, just with a sensible default (per decision #84's
     review principle)."""
     from rich.console import Console
+    from rich.markup import escape
     from rich.prompt import Confirm
 
     console = Console()
@@ -274,8 +326,11 @@ def review_repos_interactively(items: list[dict]) -> list[dict]:
         console.print(f"\n[bold]{repo['name']}[/bold] — {repo.get('description') or '(no description)'}")
         if item["sparse"]:
             console.print("[yellow]  Looks unfinished (thin README) — excluded by default.[/yellow]")
+        evidence = item.get("flag_evidence") or {}
         for flag in item["flags"]:
             console.print(f"[red]  FLAGGED ({flag}):[/red] {REPUTATIONAL_FLAG_CATEGORIES[flag]}")
+            if evidence.get(flag):
+                console.print(f"    [dim]Triggered by:[/dim] {escape(evidence[flag])}")
         default_keep = not item["sparse"] and not item["flags"]
         if Confirm.ask(f"  Include {repo['name']} as resume/portfolio evidence?", default=default_keep):
             kept.append(item)

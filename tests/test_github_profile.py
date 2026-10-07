@@ -266,3 +266,61 @@ class TestImportGithubProjects:
         ):
             entries = import_github_projects("someuser", client=object())
         assert entries == []
+
+
+class TestFlagEvidence:
+    """FW27 (2026-10-07): the review shows what triggered each flag."""
+
+    class _Client:
+        def __init__(self, reply):
+            self.reply = reply
+
+        def chat(self, messages, **kwargs):
+            return self.reply
+
+    def test_deterministic_match_is_quoted_with_context(self):
+        from applypilot.discovery.github_profile import flag_repo_detailed
+
+        repo = {"name": "tool", "description": "x"}
+        ev = flag_repo_detailed(self._Client("ok\nFLAGS: none"), repo, "Ships with a keygen for the paid app.")
+        assert "keygen" in ev["illegal_or_circumvention"]
+        assert ev["illegal_or_circumvention"].startswith('"')
+
+    def test_model_quote_shown_only_if_it_is_really_in_the_text(self):
+        from applypilot.discovery.github_profile import flag_repo_detailed
+
+        repo = {"name": "jobbot", "description": "Auto-applies to jobs"}
+        reply = (
+            "Automates job applications.\n"
+            "FLAGS: automation_or_scraping_tool, political_or_controversial\n"
+            'EVIDENCE automation_or_scraping_tool: "Auto-applies to jobs"\n'
+            'EVIDENCE political_or_controversial: "something that is not in the readme"\n'
+        )
+        ev = flag_repo_detailed(self._Client(reply), repo, "A bot.")
+        assert ev["automation_or_scraping_tool"] == '"Auto-applies to jobs"'
+        assert ev["political_or_controversial"].startswith("model's description (not found word-for-word")
+
+    def test_missing_evidence_line_is_explicit(self):
+        from applypilot.discovery.github_profile import flag_repo_detailed
+
+        ev = flag_repo_detailed(self._Client("x\nFLAGS: privacy_invasive"), {"name": "r"}, "readme")
+        assert ev == {"privacy_invasive": "no specific passage given by the model"}
+
+    def test_review_prints_the_trigger_text(self):
+        items = [
+            {
+                "repo": {"name": "jobbot", "description": "d"},
+                "readme": "",
+                "languages": {},
+                "sparse": False,
+                "flags": ["automation_or_scraping_tool"],
+                "flag_evidence": {"automation_or_scraping_tool": '"Auto-applies to jobs [beta]"'},
+            }
+        ]
+        printed = []
+        with (
+            patch("rich.prompt.Confirm.ask", return_value=False),
+            patch("rich.console.Console.print", side_effect=lambda *a, **k: printed.append(" ".join(map(str, a)))),
+        ):
+            review_repos_interactively(items)
+        assert any("Triggered by:" in line and "Auto-applies to jobs \\[beta]" in line for line in printed)
