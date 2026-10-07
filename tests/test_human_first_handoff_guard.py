@@ -101,3 +101,38 @@ class TestReadableHandoffConfirmation:
         path.write_text(self._js(), encoding="utf-8")
         result = subprocess.run([node, "--check", str(path)], capture_output=True, text=True)
         assert result.returncode == 0, result.stderr
+
+
+class TestBannerProgressAndGuidance:
+    def test_handoff_starts_progress_display(self):
+        """FW49 (2026-10-07): verified once in headless Chromium -- button reads
+        'Automation working 0:22' and the subline shows the worker's status."""
+        from applypilot.apply.human_review import _build_human_first_banner_js
+
+        js = _build_human_first_banner_js("abc123", "Help Desk", "Acme", 8800)
+        assert "_startHandoffProgress();" in js
+        assert "'Automation working ' + clock" in js
+        assert "/api/status" in js
+
+    def test_pause_banner_says_what_to_do_next(self):
+        """FW45 (2026-10-07)."""
+        from applypilot.apply.human_review import _build_banner_js
+
+        js = _build_banner_js("abc123", "Help Desk", "Acme", 9, "Solve the CAPTCHA", 7373)
+        assert "Do the step in this tab, then click Done." in js
+
+    def test_pause_banner_js_parses(self, tmp_path):
+        import shutil
+        import subprocess
+
+        import pytest
+
+        from applypilot.apply.human_review import _build_banner_js
+
+        node = shutil.which("node")
+        if not node:
+            pytest.skip("node not installed")
+        path = tmp_path / "pause.js"
+        path.write_text(_build_banner_js("abc123", "Help Desk", "Acme", 9, "Solve it", 7373), encoding="utf-8")
+        result = subprocess.run([node, "--check", str(path)], capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr

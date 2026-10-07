@@ -199,7 +199,12 @@ def _build_banner_js(
     info.style.cssText = 'flex:1;overflow:hidden;min-width:0';
     info.innerHTML = '<strong>ApplyPilot HITL</strong>'
       + ' &mdash; <em>{title}</em> @ {company} (score:{score}/10)'
-      + '<br><span style="font-size:11px;opacity:0.85">{instructions_summary_js}</span>';
+      + '<br><span style="font-size:11px;opacity:0.85">{instructions_summary_js}</span>'
+      // FW45 (2026-10-07): a real user didn't realize a pause waits for Done.
+      // Always say what to do next; a one-time tour would reappear on every
+      // site anyway (localStorage is per-origin).
+      + '<br><span style="font-size:11px;font-weight:600">Do the step in this tab, then click Done. '
+      + 'Nothing for you to do? Click Continue.</span>';
 
     function _makeBtn(label, bg, fg, title) {{
       var b = document.createElement('button');
@@ -637,6 +642,41 @@ def _build_human_first_banner_js(hash_: str, title: str, company: str, server_po
     var btnHandoff = _makeBtn('Hand Off &#9654;&#65038;', '#fff', '#4f46e5',
       'You were redirected to the company\\'s own site — let automation take over from here');
 
+    // FW49 (2026-10-07): after Hand Off the button used to sit on a static
+    // "Handing off..." for the whole automation run (often 5-10 minutes),
+    // which read as frozen. Show elapsed time and plain-language progress,
+    // plus the worker's own status when its local listener is reachable.
+    // The timer runs even if the page blocks the status request.
+    var _handoffTimer = null;
+    function _startHandoffProgress() {{
+      if (_handoffTimer) return;
+      var started = Date.now();
+      var workerStatus = '';
+      function _tick() {{
+        var secs = Math.floor((Date.now() - started) / 1000);
+        var clock = Math.floor(secs / 60) + ':' + ('0' + (secs % 60)).slice(-2);
+        btnHandoff.textContent = 'Automation working ' + clock;
+        subline.textContent = (secs < 20
+          ? 'Handing this tab to automation. You can step away; it keeps going without you.'
+          : 'Automation is filling in this application. This usually takes a few minutes.')
+          + (workerStatus ? ' (worker: ' + workerStatus + ')' : '');
+      }}
+      function _poll() {{
+        try {{
+          fetch('http://localhost:' + PORT + '/api/status')
+            .then(function(r) {{ return r.json(); }})
+            .then(function(d) {{ if (d && d.status) {{ workerStatus = String(d.status).replace(/_/g, ' '); }} }})
+            .catch(function() {{}});
+        }} catch (e) {{}}
+      }}
+      _tick();
+      _poll();
+      _handoffTimer = setInterval(function() {{
+        _tick();
+        if (Math.floor((Date.now() - started) / 1000) % 10 === 0) _poll();
+      }}, 1000);
+    }}
+
     function _disableAllBtns() {{
       root.querySelectorAll('button').forEach(function(b) {{ b.disabled = true; }});
     }}
@@ -671,6 +711,7 @@ def _build_human_first_banner_js(hash_: str, title: str, company: str, server_po
           _disableAllBtns();
           btnHandoff.innerHTML = 'Handing off...';
           _signal('handoff');
+          _startHandoffProgress();
         }}
       );
     }};
