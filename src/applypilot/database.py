@@ -310,6 +310,7 @@ def init_db(db_path: Path | str | None = None) -> sqlite3.Connection:
     # Backfill `company` for any job whose application_url arrived after
     # insert time (decision closing Future Work item 55, 2026-09-26).
     backfill_companies(conn)
+    repair_enriched_without_description(conn)
 
     return conn
 
@@ -1748,6 +1749,47 @@ def extract_company(application_url: str | None) -> str | None:
         return None
     except Exception:  # noqa: BLE001 - company-name-from-URL heuristic; an unexpected URL shape degrades to None, doesn't crash job storage
         return None
+
+
+def repair_enriched_without_description(conn: sqlite3.Connection | None = None) -> int:
+    """Move jobs stuck as 'enriched' with no full_description back to 'discovered'.
+
+    2026-10-07 (E8, decisions #189/#203): smartextract inserted a job as
+    'enriched' whenever its listing snippet was over 200 characters, without
+    storing a full_description or setting detail_scraped_at. Such a job can
+    never be scored (pending_score requires full_description), and every
+    enrichment pass re-scraped it and then threw the result away, because
+    _mark_enrich_result only completes jobs in 'discovered'/'enrich_failed'
+    -- the "Skipping stale enrichment completion" warnings that fired on
+    ~100% of RemoteOK/talent.com batches. Moving them back to 'discovered'
+    lets the next enrichment pass complete them normally. Idempotent;
+    runs in init_db.
+    """
+    if conn is None:
+        conn = get_connection()
+    urls = [
+        r[0]
+        for r in conn.execute(
+            "SELECT url FROM jobs WHERE state = 'enriched' AND full_description IS NULL "
+            "AND detail_scraped_at IS NULL"
+        ).fetchall()
+    ]
+    if not urls:
+        return 0
+
+    def _do_repair() -> None:
+        for url in urls:
+            transition_state(
+                conn,
+                url,
+                "discovered",
+                reason="repair: 'enriched' with no full_description (E8)",
+                force=True,
+            )
+
+    write_with_retry(conn, _do_repair)
+    _log.info("Repaired %d job(s) stuck as 'enriched' without a description", len(urls))
+    return len(urls)
 
 
 def backfill_companies(conn: sqlite3.Connection | None = None) -> int:

@@ -1333,6 +1333,12 @@ def stream_detail(
 ) -> None:
     """Streaming detail scraper: polls DB for un-scraped jobs, scrapes sites sequentially.
 
+    Note (2026-10-07): nothing calls this today -- `run --stream` drives
+    enrichment through run_enrichment/_run_detail_scraper. Kept, not
+    deleted, per the archive policy; its selection query was brought in
+    line with _run_detail_scraper's (decision #180) so it can't re-select
+    permanently failed placeholder rows if it is ever wired back in.
+
     Args:
         upstream_done: Event set when discover+extract done. None = run once.
         my_done: Event to set when this stage completes.
@@ -1357,7 +1363,7 @@ def stream_detail(
             rows = conn.execute(
                 "SELECT url, title, site FROM jobs "
                 f"WHERE ({skip_filter}) AND ("
-                "  detail_scraped_at IS NULL "
+                "  (detail_scraped_at IS NULL AND detail_error_category IS NULL) "
                 "  OR (detail_error_category = 'retriable' "
                 "      AND (enrich_next_retry_at IS NULL OR datetime(enrich_next_retry_at) <= datetime('now')))"
                 ") "

@@ -107,7 +107,12 @@ def _store_jobs_filtered(
                 counts["filtered"] += 1
                 continue
             description = job.get("description")
-            initial_state = "enriched" if description and len(description) > 200 else "discovered"
+            # 2026-10-07 (E8): always 'discovered'. This used to be 'enriched'
+            # when the listing snippet was long, but no full_description was
+            # stored, so the job could never be scored and every enrichment
+            # pass discarded its own result (see
+            # database.repair_enriched_without_description).
+            initial_state = "discovered"
             try:
                 conn.execute(
                     "INSERT INTO jobs (url, title, salary, description, location, site, strategy, "

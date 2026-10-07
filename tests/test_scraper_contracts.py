@@ -244,7 +244,12 @@ def test_costco_captures_posted_date_when_available(tmp_db):
 
 
 def test_smartextract_insert_creates_initial_transition(tmp_db):
-    """SmartExtract jobs with description => state='enriched', one transition row."""
+    """SmartExtract jobs start 'discovered' even with a long listing snippet,
+    with one transition row.
+
+    2026-10-07 (E8): this test used to assert 'enriched'. But smartextract
+    never stores a full_description, so an 'enriched' job could never be
+    scored and every enrichment pass discarded its own result."""
     conn = tmp_db()
     from applypilot.discovery.smartextract import _store_jobs_filtered
 
@@ -269,12 +274,12 @@ def test_smartextract_insert_creates_initial_transition(tmp_db):
     assert new == 1
 
     url = "https://company.com/jobs/senior-engineer"
-    assert _state_of(conn, url) == "enriched"
+    assert _state_of(conn, url) == "discovered"
 
     transitions = _transitions_for(conn, url)
     assert len(transitions) == 1, f"Expected 1 transition, got {len(transitions)}"
     assert transitions[0]["from_state"] is None
-    assert transitions[0]["to_state"] == "enriched"
+    assert transitions[0]["to_state"] == "discovered"
 
 
 def test_smartextract_stores_posted_at_when_present(tmp_db):
