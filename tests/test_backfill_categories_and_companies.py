@@ -212,3 +212,65 @@ def test_init_db_calls_backfill_companies(tmp_db, seed_job, monkeypatch):
         "SELECT company FROM jobs WHERE url = 'https://example.com/job/co-initdb'"
     ).fetchone()
     assert row["company"] == "ramp"
+
+
+# -- FW55 (2026-10-07): multi-tenant and opaque ATS hosts ----------------------
+
+
+@pytest.mark.parametrize(
+    "url, expected",
+    [
+        ("https://midasleggett.careerplug.com/jobs/123", "midasleggett"),
+        ("https://lumen.eightfold.ai/careers?pid=1", "lumen"),
+        ("https://acme.bamboohr.com/careers/12", "acme"),
+        ("https://acme.applytojob.com/apply/xyz", "acme"),
+        ("https://acme.breezy.hr/p/123", "acme"),
+        # Employer isn't in the URL: None, never the vendor's own name.
+        ("https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=1", None),
+        ("https://recruiting.ultipro.com/ABC123/JobBoard/x", None),
+        ("https://ejhp.fa.us6.oraclecloud.com/hcmUI/CandidateExperience", None),
+        ("https://career4.successfactors.com/sfcareer/jobreqcareer?company=acmeP", None),
+        # Unchanged behavior for direct company domains.
+        ("https://jobs.twilio.com/careers/123", "twilio"),
+        ("https://careers.acme.com/job/1", "acme"),
+    ],
+)
+def test_extract_company_multi_tenant_and_opaque_ats(url, expected):
+    from applypilot.database import extract_company
+
+    assert extract_company(url) == expected
+
+
+def test_backfill_companies_corrects_vendor_name_left_by_old_fallback(tmp_db, seed_job):
+    from applypilot.database import backfill_companies
+
+    conn = tmp_db()
+    tenant = seed_job(
+        conn,
+        url_suffix="co-careerplug",
+        application_url="https://midasleggett.careerplug.com/jobs/1",
+        company="careerplug",
+    )
+    opaque = seed_job(
+        conn,
+        url_suffix="co-adp",
+        application_url="https://workforcenow.adp.com/x?cid=1",
+        company="adp",
+    )
+    real = seed_job(
+        conn,
+        url_suffix="co-real",
+        application_url="https://jobs.ashbyhq.com/ramp/x",
+        company="ramp",
+    )
+
+    assert backfill_companies(conn) == 2
+
+    def company(job):
+        return conn.execute("SELECT company FROM jobs WHERE url = ?", (job["url"],)).fetchone()["company"]
+
+    assert company(tenant) == "midasleggett"
+    assert company(opaque) is None
+    assert company(real) == "ramp"
+    # Idempotent: nothing left to change on the next startup.
+    assert backfill_companies(conn) == 0

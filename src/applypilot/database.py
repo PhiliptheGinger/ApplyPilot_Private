@@ -1564,6 +1564,50 @@ def get_stats(conn: sqlite3.Connection | None = None) -> dict:
     return stats
 
 
+# 2026-10-07 (FW55): multi-tenant ATS hosts. Before this, any host not
+# matched above fell through to "second-to-last domain label", so every
+# CareerPlug job got company "careerplug", every ADP job "adp", and so on --
+# which made acquire_job's per-company cap treat unrelated employers as one.
+# {tenant}.{root} -> tenant
+_TENANT_SUBDOMAIN_ATS = (
+    "careerplug.com",
+    "eightfold.ai",
+    "bamboohr.com",
+    "applytojob.com",  # JazzHR
+    "breezy.hr",
+    "teamtailor.com",
+    "pinpointhq.com",
+    "taleo.net",
+    "applicantpro.com",
+    "zohorecruit.com",
+    "freshteam.com",
+)
+_TENANT_SUBDOMAIN_SKIP = {"www", "app", "jobs", "careers", "career", "apply", "secure", "recruiting", "hire"}
+# Hosts where the employer is not in the URL at all; guessing would return
+# the vendor's own name.
+_OPAQUE_ATS = (
+    "adp.com",
+    "ultipro.com",
+    "ukg.com",
+    "successfactors.com",
+    "successfactors.eu",
+    "dayforcehcm.com",
+    "paylocity.com",
+    "paycomonline.net",
+    "brassring.com",
+    "oraclecloud.com",
+)
+# Names the old fallback produced for those hosts; backfill_companies
+# re-derives rows that carry one of these.
+ATS_VENDOR_NAMES = frozenset(
+    {root.split(".")[0] for root in _TENANT_SUBDOMAIN_ATS} | {root.split(".")[0] for root in _OPAQUE_ATS}
+)
+
+
+def _host_matches(host: str, root: str) -> bool:
+    return host == root or host.endswith("." + root)
+
+
 def extract_company(application_url: str | None) -> str | None:
     """Extract a company name from an application URL domain.
 
@@ -1653,8 +1697,15 @@ def extract_company(application_url: str | None) -> str | None:
             if parts:
                 return parts[0].lower()
 
-        # Oracle Cloud ATS: skip (company not in URL)
-        if "oraclecloud.com" in host:
+        # Multi-tenant ATS: midasleggett.careerplug.com -> midasleggett
+        for root in _TENANT_SUBDOMAIN_ATS:
+            if _host_matches(host, root):
+                tenant = host[: -len(root)].rstrip(".").split(".")
+                tenant = [t for t in tenant if t and t not in _TENANT_SUBDOMAIN_SKIP]
+                return tenant[-1].lower() if tenant else None
+
+        # ATS hosts with no employer in the URL (Oracle Cloud, ADP, UKG, ...)
+        if any(_host_matches(host, root) for root in _OPAQUE_ATS):
             return None
 
         # Greenhouse short URLs: grnh.se → skip
@@ -1726,8 +1777,14 @@ def backfill_companies(conn: sqlite3.Connection | None = None) -> int:
     if conn is None:
         conn = get_connection()
 
+    # Also re-derive rows stamped with an ATS vendor's name by the old
+    # fallback (FW55, 2026-10-07); extract_company may now return the real
+    # tenant or None for them.
+    vendor_placeholders = ",".join("?" * len(ATS_VENDOR_NAMES))
     rows = conn.execute(
-        "SELECT url, application_url FROM jobs WHERE company IS NULL AND application_url IS NOT NULL"
+        "SELECT url, application_url, company FROM jobs WHERE application_url IS NOT NULL "
+        f"AND (company IS NULL OR company IN ({vendor_placeholders}))",
+        tuple(sorted(ATS_VENDOR_NAMES)),
     ).fetchall()
 
     counts = {"updated": 0}
@@ -1740,7 +1797,7 @@ def backfill_companies(conn: sqlite3.Connection | None = None) -> int:
         counts["updated"] = 0
         for row in rows:
             company = extract_company(row[1])
-            if company:
+            if company != row[2] and (company or row[2] is not None):
                 conn.execute("UPDATE jobs SET company = ? WHERE url = ?", (company, row[0]))
                 counts["updated"] += 1
 
