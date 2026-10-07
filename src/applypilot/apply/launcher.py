@@ -276,6 +276,19 @@ def _run_mini_task(worker_id: int, cdp_port: int, instructions: str) -> subproce
     return proc
 
 
+
+def _rollback_thread_conn() -> None:
+    """Roll back this thread's cached DB connection after a failed handler.
+
+    2026-10-07 audit: the HTTP handlers write through the per-thread cached
+    connection and commit at the end. If one raised between its first write
+    and the commit, the open transaction kept SQLite's write lock for the
+    life of the listener thread, so every other writer timed out.
+    """
+    from applypilot.database import get_connection, rollback_quietly
+
+    rollback_quietly(get_connection())
+
 # ---------------------------------------------------------------------------
 # Always-on per-worker HTTP listener
 # ---------------------------------------------------------------------------
@@ -864,6 +877,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self._json_ok({"status": "queued"})
             except Exception as e:  # noqa: BLE001 - HTTP control-panel handler must not crash the server thread on unexpected input
                 logger.debug("add_job error: %s", e)
+                _rollback_thread_conn()
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
@@ -930,6 +944,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self._json_ok({"status": "ok", "action": action})
             except Exception as e:
                 logger.exception("HTTP _handle_jobs_mark failed for %s", url)
+                _rollback_thread_conn()
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
@@ -1004,6 +1019,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self.wfile.write(b"action must be 'update' or 'delete'")
             except Exception as e:  # noqa: BLE001 - HTTP control-panel handler must not crash the server thread on unexpected input
                 logger.debug("account_mutate error: %s", e)
+                _rollback_thread_conn()
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
@@ -1208,6 +1224,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self._json_ok({"status": "created", "id": row_id})
             except Exception as e:  # noqa: BLE001 - HTTP control-panel handler must not crash the server thread on unexpected input
                 logger.debug("qa_create error: %s", e)
+                _rollback_thread_conn()
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
@@ -1278,6 +1295,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self.wfile.write(b"action must be 'update' or 'delete'")
             except Exception as e:  # noqa: BLE001 - HTTP control-panel handler must not crash the server thread on unexpected input
                 logger.debug("qa_mutate error: %s", e)
+                _rollback_thread_conn()
                 self.send_response(500)
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()

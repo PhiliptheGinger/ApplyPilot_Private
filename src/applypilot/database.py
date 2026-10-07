@@ -25,6 +25,16 @@ _log = logging.getLogger(__name__)
 _local = threading.local()
 
 
+def rollback_quietly(conn: sqlite3.Connection) -> None:
+    """Roll back an open transaction without letting a rollback failure mask
+    the error that caused it."""
+    try:
+        if conn.in_transaction:
+            conn.rollback()
+    except Exception:  # noqa: BLE001
+        _log.debug("rollback failed", exc_info=True)
+
+
 def write_with_retry(
     conn: sqlite3.Connection,
     fn,
@@ -44,8 +54,13 @@ def write_with_retry(
             fn(*args, **kwargs)
             conn.commit()
             return
-        except sqlite3.OperationalError as e:
-            if "database is locked" not in str(e):
+        except Exception as e:
+            if not (isinstance(e, sqlite3.OperationalError) and "database is locked" in str(e)):
+                # 2026-10-07: roll back before re-raising. Connections are
+                # cached per thread, so a transaction left open here keeps
+                # SQLite's write lock and every other writer times out with
+                # "database is locked" (see tests/test_write_with_retry_rollback.py).
+                rollback_quietly(conn)
                 raise
             try:
                 conn.rollback()
@@ -2862,6 +2877,7 @@ def store_qa(
         ).fetchone()
         return row[0] if row else None
     except Exception:  # noqa: BLE001 - best-effort Q&A-knowledge cache write; a failure here must not crash the apply flow over a cache write
+        rollback_quietly(conn)  # don't leave the write lock held on this thread's cached connection
         return None
 
 

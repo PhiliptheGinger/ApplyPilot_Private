@@ -1,10 +1,13 @@
 import re
 
+import pytest
+
 from applypilot import config
 from applypilot.apply import prompt as apply_prompt
 from applypilot.scoring.tailor import assemble_resume_text
 
 
+@pytest.mark.real_profile
 def test_application_profile_loaded():
     profile = config.load_profile()
     assert "application_profile" in profile
@@ -32,6 +35,7 @@ def test_application_profile_not_leaked_into_resume():
         assert f not in txt
 
 
+@pytest.mark.real_profile
 def test_autofill_prompt_uses_application_profile():
     """2026-08-28 tightened: this test previously only checked that the
     "Work Auth:"/"Sponsorship Needed:" LABELS were present -- it would have

@@ -13,6 +13,8 @@ evidence trail.
 
 from __future__ import annotations
 
+import pytest
+
 import applypilot.scoring.scorer as scorer_mod
 
 
@@ -55,6 +57,7 @@ def test_run_scoring_resume_text_is_profile_derived_not_fabricated(tmp_db, seed_
     assert captured["profile"] is fake_profile
 
 
+@pytest.mark.real_profile
 def test_run_scoring_uses_real_canonical_profile_truthfully(tmp_db, seed_job, monkeypatch):
     """End-to-end (still no LLM call) against the real, checked-in
     data/profile.json: the rendered resume reference must reflect the

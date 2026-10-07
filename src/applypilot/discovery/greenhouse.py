@@ -18,9 +18,9 @@ import urllib.request
 
 import yaml
 
-from applypilot import config
 from applypilot.config import CONFIG_DIR
 from applypilot.discovery.ats_common import strip_html_to_text
+from applypilot.discovery.location_filter import location_ok
 
 log = logging.getLogger(__name__)
 
@@ -62,29 +62,8 @@ def _strip_html(html: str) -> str:
 # ── Location filter ───────────────────────────────────────────────────
 
 
-def _load_location_filter(search_cfg: dict | None = None):
-    if search_cfg is None:
-        search_cfg = config.load_search_config()
-    loc = search_cfg.get("location", {}) or {}
-    accept = loc.get("accept_patterns", []) or []
-    return accept
-
-
-def _location_ok(location: str | None, accept: list[str]) -> bool:
-    """Return True if location passes the user's filter.
-
-    Remote is always accepted. Otherwise location must contain one of the
-    accept patterns (case-insensitive).
-    """
-    if not location:
-        # Empty location — let it through (some Greenhouse jobs omit location).
-        return True
-    loc = location.lower()
-    if any(r in loc for r in ("remote", "anywhere", "work from home", "wfh")):
-        return True
-    if not accept:
-        return True
-    return any(a.lower() in loc for a in accept)
+# Kept as a module-level name for existing callers/tests; see location_filter.py.
+_location_ok = location_ok
 
 
 # ── HTTP fetch ────────────────────────────────────────────────────────
@@ -103,6 +82,7 @@ def scrape_one_employer(
     slug: str,
     emp: dict,
     accept_locs: list[str],
+    reject_locs: list[str] | None = None,
     max_retries: int = 2,
 ) -> tuple[list[dict], str | None]:
     """Fetch all jobs from one Greenhouse board.
@@ -122,7 +102,7 @@ def scrape_one_employer(
     out = []
     for job in jobs_raw:
         location_name = (job.get("location") or {}).get("name") or ""
-        if not _location_ok(location_name, accept_locs):
+        if not _location_ok(location_name, accept_locs, reject_locs or ()):
             continue
 
         abs_url = job.get("absolute_url")

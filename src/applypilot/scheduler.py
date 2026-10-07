@@ -210,6 +210,20 @@ def _pid_alive(pid: int) -> bool:
     if pid <= 0:
         return False
 
+    if os.name != "nt":
+        # 2026-10-07: the Windows-only check below always raised (no
+        # ctypes.windll) and fell through to False on Linux/macOS, so the
+        # single-instance lock never blocked a second scheduler there.
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            return True  # exists, owned by another user
+        except OSError:
+            return False
+        return True
+
     try:
         import ctypes
 

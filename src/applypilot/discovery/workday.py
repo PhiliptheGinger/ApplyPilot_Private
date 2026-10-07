@@ -9,7 +9,6 @@ hardcoded. Supports sequential search + detail fetching with proxy.
 
 import json
 import logging
-import re
 import sqlite3
 import time
 import urllib.error
@@ -23,6 +22,7 @@ from applypilot import config
 from applypilot.config import CONFIG_DIR
 from applypilot.database import get_connection, init_db, write_with_retry
 from applypilot.discovery.ats_common import strip_html_to_text
+from applypilot.discovery.location_filter import load_location_filter, location_ok
 
 log = logging.getLogger(__name__)
 
@@ -45,37 +45,12 @@ def load_employers() -> dict:
 
 
 def _load_location_filter(search_cfg: dict | None = None):
-    """Load location accept/reject lists from search config."""
-    if search_cfg is None:
-        search_cfg = config.load_search_config()
-
-    accept = search_cfg.get("location_accept", [])
-    reject = search_cfg.get("location_reject_non_remote", [])
-    return accept, reject
+    """Accept/reject location lists from search config (see location_filter.py)."""
+    return load_location_filter(search_cfg)
 
 
-def _location_ok(location: str | None, accept: list[str], reject: list[str]) -> bool:
-    """Check if a job location passes the user's location filter."""
-    if not location:
-        return True
-
-    loc = location.lower()
-
-    if any(r in loc for r in ("remote", "anywhere", "work from home", "wfh", "distributed")):
-        return True
-
-    # Word-boundary match, not plain substring -- a bare "in" check let
-    # reject pattern "India" match "Indianapolis, IN", wrongly discarding
-    # a legitimate US posting before it ever reached scoring.
-    for r in reject:
-        if re.search(rf"\b{re.escape(r.lower())}\b", loc):
-            return False
-
-    for a in accept:
-        if a.lower() in loc:
-            return True
-
-    return False
+# Kept as a module-level name for existing callers/tests; see location_filter.py.
+_location_ok = location_ok
 
 
 # 2026-08-30 fix: `locationsText` is blank for some Workday tenants on

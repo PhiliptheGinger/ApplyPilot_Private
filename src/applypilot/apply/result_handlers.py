@@ -41,6 +41,9 @@ def _parse_account_created(output: str, job_url: str | None = None) -> None:
             logger.info("Saved new account: %s @ %s", account.get("email"), account.get("domain"))
         except Exception as e:  # noqa: BLE001 - processing independent output lines; one malformed ACCOUNT_CREATED line must not abort parsing the rest (also: Exception already subsumes the JSONDecodeError/IndexError this used to list separately)
             logger.warning("Failed to parse ACCOUNT_CREATED line: %s", e)
+            from applypilot.database import rollback_quietly
+
+            rollback_quietly(get_connection())
 
 
 def _parse_qa_lines(output: str, job_url: str | None = None, ats_slug: str | None = None) -> int:

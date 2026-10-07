@@ -15,6 +15,27 @@ from datetime import UTC
 
 import pytest
 
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        "real_profile: asserts facts from the candidate's real profile.json; skipped when none is present",
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    from pathlib import Path
+
+    import applypilot.config as app_config
+
+    if Path(app_config.PROFILE_PATH).exists():
+        return
+    skip = pytest.mark.skip(reason="needs the candidate's real profile.json (not present in this checkout)")
+    for item in items:
+        if "real_profile" in item.keywords:
+            item.add_marker(skip)
+
+
 # Module-level counter so repeated seed_job calls get unique URLs by default.
 _seed_counter = [0]
 
@@ -75,6 +96,46 @@ def _isolate_llm_exhaustion_state(tmp_path, monkeypatch):
     import applypilot.llm as llm_mod
 
     monkeypatch.setattr(llm_mod, "_EXHAUSTION_STATE_PATH", tmp_path / "llm_exhaustion_state.json")
+
+
+@pytest.fixture(autouse=True)
+def _fallback_profile_and_resume(tmp_path_factory, monkeypatch):
+    """Give the suite a synthetic profile/resume when the real ones are absent.
+
+    2026-10-07: 35+ tests called config.load_profile() or read
+    resume.txt and only passed on a machine that has a real
+    ~/.applypilot/profile.json (or data/profile.json) and resume.txt. In a
+    clean checkout -- CI, a cloud session, a new contributor -- they failed
+    with FileNotFoundError. When the real files exist this fixture does
+    nothing, so tests that intentionally exercise the real profile behave
+    exactly as before.
+    """
+    import json
+    from pathlib import Path
+
+    import applypilot.config as config
+    import applypilot.scoring.resume_router as resume_router
+
+    root = tmp_path_factory.getbasetemp() / "fallback_profile"
+    root.mkdir(exist_ok=True)
+
+    if not Path(config.PROFILE_PATH).exists():
+        example = Path(__file__).resolve().parent.parent / "profile.example.json"
+        profile_path = root / "profile.json"
+        if not profile_path.exists():
+            profile_path.write_text(json.dumps(json.loads(example.read_text(encoding="utf-8"))), encoding="utf-8")
+        monkeypatch.setattr(config, "PROFILE_PATH", profile_path)
+
+    if not Path(config.RESUME_PATH).exists():
+        resume_path = root / "resume.txt"
+        if not resume_path.exists():
+            resume_path.write_text(
+                "Alex Example\nalex@example.com\n\nEXPERIENCE\nIT Support Technician, Example Co\n"
+                "- Resolved hardware and software tickets for 200 users\n\nSKILLS\nPython, SQL, Windows\n",
+                encoding="utf-8",
+            )
+        monkeypatch.setattr(config, "RESUME_PATH", resume_path)
+        monkeypatch.setattr(resume_router, "RESUME_PATH", resume_path)
 
 
 @pytest.fixture

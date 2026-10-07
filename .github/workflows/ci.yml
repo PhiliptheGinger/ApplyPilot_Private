@@ -12,7 +12,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        # 3.11 only: python-jobspy 1.1.45-1.1.46 (pinned in pyproject.toml for
+        # its hours_old/markdownify compatibility) hard-pins numpy==1.24.2,
+        # which has no wheels and does not build on 3.12+. Widen this once
+        # the jobspy pin moves (see docs/backlog.md).
+        python-version: ["3.11"]
 
     steps:
       - name: Checkout

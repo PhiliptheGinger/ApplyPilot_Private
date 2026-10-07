@@ -30,7 +30,10 @@ from pathlib import Path
 import psutil
 
 
-PROJECT_DIR = Path(r"C:\Users\phili\Projects\resume-agent")
+# 2026-10-07: was a hardcoded personal Windows path, which crashed this
+# script (and its tests) on any other machine. The repo root is the same
+# directory on the original machine, so behavior there is unchanged.
+PROJECT_DIR = Path(os.environ.get("APPLYPILOT_WATCHDOG_DIR", Path(__file__).resolve().parent))
 LOG_DIR = PROJECT_DIR / "watchdog_logs"
 
 SAMPLE_SECONDS = 2

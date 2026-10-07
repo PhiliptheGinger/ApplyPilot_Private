@@ -8,7 +8,6 @@ search configuration YAML (searches.yaml) rather than being hardcoded.
 """
 
 import logging
-import re
 import sqlite3
 import time
 from datetime import UTC, datetime
@@ -55,6 +54,7 @@ except Exception:
 
 from applypilot import config
 from applypilot.database import get_connection, init_db, write_with_retry
+from applypilot.discovery.location_filter import load_location_filter, location_ok
 
 log = logging.getLogger(__name__)
 
@@ -116,45 +116,12 @@ def _scrape_with_retry(kwargs: dict, max_retries: int = 2, backoff: float = 5.0)
 
 
 def _load_location_config(search_cfg: dict) -> tuple[list[str], list[str]]:
-    """Extract accept/reject location lists from search config.
-
-    Falls back to sensible defaults if not defined in the YAML.
-    """
-    accept = search_cfg.get("location_accept", [])
-    reject = search_cfg.get("location_reject_non_remote", [])
-    return accept, reject
+    """Accept/reject location lists from search config (see location_filter.py)."""
+    return load_location_filter(search_cfg)
 
 
-def _location_ok(location: str | None, accept: list[str], reject: list[str]) -> bool:
-    """Check if a job location passes the user's location filter.
-
-    Remote jobs are always accepted. Non-remote jobs must match an accept
-    pattern and not match a reject pattern.
-    """
-    if not location:
-        return True  # unknown location -- keep it, let scorer decide
-
-    loc = location.lower()
-
-    # Remote jobs always OK
-    if any(r in loc for r in ("remote", "anywhere", "work from home", "wfh", "distributed")):
-        return True
-
-    # Reject non-remote matches. Word-boundary match, not plain substring --
-    # a bare "in" check let reject pattern "India" match "Indianapolis, IN"
-    # (and "NC" match "France"), wrongly discarding legitimate US postings
-    # before they ever reached scoring.
-    for r in reject:
-        if re.search(rf"\b{re.escape(r.lower())}\b", loc):
-            return False
-
-    # Accept matches
-    for a in accept:
-        if a.lower() in loc:
-            return True
-
-    # No match -- reject unknown
-    return False
+# Kept as a module-level name for existing callers/tests; see location_filter.py.
+_location_ok = location_ok
 
 
 # -- DB storage (JobSpy DataFrame -> SQLite) ---------------------------------

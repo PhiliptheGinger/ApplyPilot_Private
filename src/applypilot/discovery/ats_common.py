@@ -248,7 +248,7 @@ def insert_normalized_jobs(
     return counts["new"], counts["existing"]
 
 
-# Type signature: (slug, employer_meta, accept_locs) → (jobs, error)
+# Type signature: (slug, employer_meta, accept_locs, reject_locs=...) → (jobs, error)
 ScrapeOneFn = Callable[[str, dict, list[str]], tuple[list[dict], str | None]]
 
 
@@ -282,8 +282,9 @@ def run_ats_crawl(
     # Lazy import to avoid a config-bootstrap cycle when the scraper modules
     # are imported at test-collection time.
     from applypilot import config as _cfg
+    from applypilot.discovery.location_filter import load_location_filter
 
-    accept_locs = (_cfg.load_search_config().get("location", {}) or {}).get("accept_patterns", []) or []
+    accept_locs, reject_locs = load_location_filter(_cfg.load_search_config())
 
     conn = get_connection()
     init_db()
@@ -297,7 +298,7 @@ def run_ats_crawl(
     for slug, emp in employers.items():
         name = emp.get("name", slug)
         try:
-            jobs, err = scrape_one(slug, emp, accept_locs)
+            jobs, err = scrape_one(slug, emp, accept_locs, reject_locs=reject_locs)
             if err:
                 log.warning("  [%s] %s", slug, err)
                 errors.append(f"{slug}: {err}")
