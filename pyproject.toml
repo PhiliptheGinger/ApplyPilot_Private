@@ -4,7 +4,7 @@ version = "0.2.0"
 description = "AI-powered end-to-end job application pipeline"
 readme = "README.md"
 license = "AGPL-3.0-only"
-requires-python = ">=3.11"
+requires-python = ">=3.11"  # in practice 3.11: python-jobspy pins numpy==1.24.2 (no 3.12+ wheels); see ci.yml
 authors = [{name = "Pickle-Pixel"}]
 keywords = ["job-search", "automation", "ai", "resume", "apply", "job-application"]
 classifiers = [
@@ -12,8 +12,6 @@ classifiers = [
     "Environment :: Console",
     "License :: OSI Approved :: GNU Affero General Public License v3",
     "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
     "Topic :: Office/Business",
 ]
 
@@ -45,7 +43,7 @@ dependencies = [
     ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0", "ruff>=0.1"]
+dev = ["pytest>=7.0", "ruff>=0.1", "psutil>=5.9"]  # psutil: root-level watchdog.py + its tests
 # 2026-09-04 sentence-diversity bake-off (data/experiments/
 # deterministic_slotfiller_20260902/): cross-encoder/quora-distilroberta-
 # base beat cosine similarity, per-batch embedding centering, and LLM-as-
@@ -87,6 +85,21 @@ testpaths = ["tests"]
 [tool.ruff]
 target-version = "py311"
 line-length = 120
+
+[tool.ruff.lint]
+# 2026-10-07: pinned explicitly. With no `select`, ruff's default rule set
+# grew between versions and CI (unpinned `ruff>=0.1`) started failing on
+# 60+ style rules nobody had opted into. These are ruff's long-standing
+# defaults (pyflakes + the E4/E7/E9 error subset) plus import sorting.
+# Add rule families deliberately, with their fixes, in their own commit.
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+# Deliberate late imports: launcher re-exports orchestrator at the bottom to
+# break a circular import; jobspy patches a third-party enum before importing
+# the modules that use it.
+"src/applypilot/apply/launcher.py" = ["E402"]
+"src/applypilot/discovery/jobspy.py" = ["E402"]
 
 [tool.ruff.lint.flake8-bugbear]
 # typer.Argument(...)/typer.Option(...) as parameter defaults is the required

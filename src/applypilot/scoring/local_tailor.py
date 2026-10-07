@@ -839,10 +839,10 @@ def _format_requirement_lines(
     if not lines:
         return ""
     rendered: list[str] = []
-    for i, l in enumerate(lines, start=1):
+    for i, req in enumerate(lines, start=1):
         if only_ids is not None and i not in only_ids:
             continue
-        line = f"R{i} [{l['importance']}] {l['text']}"
+        line = f"R{i} [{req['importance']}] {req['text']}"
         if candidates and candidates.get(i):
             line += " (candidates: " + ", ".join(f"E{c}" for c in candidates[i]) + ")"
         rendered.append(line)

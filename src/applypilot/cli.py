@@ -569,8 +569,8 @@ def debug_local_plan_cmd(
         t = Table(title="Auto-extracted requirement lines (deterministic)", show_header=True, header_style="bold cyan")
         t.add_column("Importance")
         t.add_column("Text", overflow="fold")
-        for l in req_lines:
-            t.add_row(l["importance"], l["text"])
+        for req in req_lines:
+            t.add_row(req["importance"], req["text"])
         console.print(t)
     else:
         console.print("[dim]No bullet/numbered requirement lines detected in the description.[/dim]")

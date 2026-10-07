@@ -143,13 +143,13 @@ import threading
 from collections import Counter
 
 from applypilot.scoring.local_tailor import (
+    _NAME_TOKEN_STOPWORDS,
+    _TERM_WORD_RE,
     _auto_resolve_requirements,
     _is_generic_evidence_term,
-    _NAME_TOKEN_STOPWORDS,
     _split_requirement_lines,
     _synonym_hit,
     _term_in_text,
-    _TERM_WORD_RE,
     rank_profile_evidence,
 )
 

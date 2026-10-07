@@ -36,6 +36,7 @@ from rich.console import Console
 from rich.live import Live
 
 from applypilot import config
+from applypilot.apply import session_pool
 from applypilot.apply.chrome import (
     BASE_CDP_PORT,
     _AdoptedChromeProcess,
@@ -61,7 +62,6 @@ from applypilot.apply.dashboard import (
     stop_health_checks,
     update_state,
 )
-from applypilot.apply import session_pool
 from applypilot.apply.hitl import (
     _get_waiting_count,
     _register_waiting,

@@ -66,3 +66,8 @@ CLAUDE.md
 
 # Local agent instruction files
 .github/instructions/
+
+# Scratch output that kept landing at the repo root
+/job_scan_*.txt
+/lint_remaining.txt
+/workday_urls.csv
