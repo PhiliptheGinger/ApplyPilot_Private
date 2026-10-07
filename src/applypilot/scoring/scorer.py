@@ -191,6 +191,24 @@ _INELIGIBLE_LOCATION_PATTERNS = re.compile(
     # every other pattern here, so a real "...CAN - Remote;United States -
     # Remote" multi-location string still correctly passes.
     r"|\bCAN\b"
+    # Bare Canadian province names with no "Canada"/"CAN" in the string
+    # (FW17, 2026-10-07): live rows like "Ontario - Remote" and "Ontario
+    # Remote Work" slipped through (decisions #112/#115/#125). Several are
+    # also real US places -- Ontario, CA / OR / NY, New Brunswick, NJ,
+    # Alberta, VA -- so a match is skipped when a US state code or name
+    # follows, or when it is "Ontario County". Not yet checked against the
+    # live corpus; the _US_ALSO_LISTED_PATTERN guard still applies.
+    r"|\b(?:Ontario|Qu[eé]bec|Alberta|Manitoba|Saskatchewan|British\s+Columbia|Nova\s+Scotia"
+    r"|New\s+Brunswick|Newfoundland|Prince\s+Edward\s+Island)\b"
+    r"(?!\s+County)"
+    r"(?!,?\s*(?:AL|AK|AZ|AR|CA|CO|CT|DE|DC|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|"
+    r"NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b)"
+    r"(?!,?\s*(?:Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia"
+    r"|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan"
+    r"|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New\s+Hampshire|New\s+Jersey|New\s+Mexico"
+    r"|New\s+York|North\s+Carolina|North\s+Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode\s+Island"
+    r"|South\s+Carolina|South\s+Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West\s+Virginia"
+    r"|Wisconsin|Wyoming)\b)"
     # Europe
     r"|\bGermany\b|\bNetherlands\b|\bFrance\b|\bSpain\b|\bItaly\b"
     r"|\bPoland\b|\bUkraine\b|\bCzech\b|\bPortugal\b|\bIreland\b"
