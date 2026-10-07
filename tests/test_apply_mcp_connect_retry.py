@@ -193,3 +193,49 @@ class TestMcpDebugFlag:
 
         cmd = popen_calls[0]
         assert "--debug" in cmd and "mcp" in cmd[cmd.index("--debug") + 1]
+
+
+class TestPersistentMcpServerFallback:
+    """Decision #235: jobs connect to the worker's persistent Playwright MCP
+    server. When that connection fails, the retry restarts the server once,
+    then the last attempt falls back to the old per-job stdio server."""
+
+    def test_restart_then_stdio_fallback(self, _patched_run_job, monkeypatch):
+        from applypilot.apply import mcp_server
+
+        ensure_calls = []
+
+        def _fake_ensure(worker_id, cdp_port, restart=False):
+            ensure_calls.append(restart)
+            return "http://localhost:8931/mcp"
+
+        monkeypatch.setattr(mcp_server, "ensure_playwright_mcp", _fake_ensure)
+        config_urls = []
+        monkeypatch.setattr(
+            launcher, "_make_mcp_config", lambda port, worker_id=0, mcp_url=None: config_urls.append(mcp_url) or {}
+        )
+        procs = [
+            _FakeProc([_init_line("failed"), _result_line("RESULT:FAILED:browser_tool_unavailable")]),
+            _FakeProc([_init_line("failed"), _result_line("RESULT:FAILED:browser_tool_unavailable")]),
+            _FakeProc([_init_line("connected"), _result_line("RESULT:APPLIED")]),
+        ]
+        monkeypatch.setattr(launcher.subprocess, "Popen", lambda cmd, **k: procs.pop(0))
+
+        status, _d, _q = launcher.run_job(_job(), port=9222, worker_id=0)
+
+        assert status == "applied"
+        assert ensure_calls == [False, True], "start once, restart once after the first failure"
+        assert config_urls == ["http://localhost:8931/mcp", "http://localhost:8931/mcp", None]
+
+    def test_stdio_when_server_cannot_start(self, _patched_run_job, monkeypatch):
+        config_urls = []
+        monkeypatch.setattr(
+            launcher, "_make_mcp_config", lambda port, worker_id=0, mcp_url=None: config_urls.append(mcp_url) or {}
+        )
+        procs = [_FakeProc([_init_line("connected"), _result_line("RESULT:APPLIED")])]
+        monkeypatch.setattr(launcher.subprocess, "Popen", lambda cmd, **k: procs.pop(0))
+
+        status, _d, _q = launcher.run_job(_job(), port=9222, worker_id=0)
+
+        assert status == "applied"
+        assert config_urls == [None]

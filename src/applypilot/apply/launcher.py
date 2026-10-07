@@ -1517,8 +1517,13 @@ def _refresh_gmail_token() -> bool:
 # ---------------------------------------------------------------------------
 
 
-def _make_mcp_config(cdp_port: int, worker_id: int = 0) -> dict:
+def _make_mcp_config(cdp_port: int, worker_id: int = 0, mcp_url: str | None = None) -> dict:
     """Build MCP config dict for a specific CDP port.
+
+    With ``mcp_url`` (the worker's persistent server from
+    ``apply.mcp_server``), the playwright entry is an HTTP entry and the job
+    skips the per-job npx spawn + connect handshake. Without it, the entry is
+    the per-job stdio server, which is the fallback.
 
     Passes the real Chrome user-agent to Playwright MCP so it doesn't
     override our Chrome --user-agent flag with its default
@@ -1528,33 +1533,38 @@ def _make_mcp_config(cdp_port: int, worker_id: int = 0) -> dict:
     worker (see chrome._pick_viewport / get_worker_viewport).
     """
     from applypilot.apply.chrome import _get_real_user_agent, get_worker_viewport
+    from applypilot.apply.mcp_server import PLAYWRIGHT_MCP_PACKAGE
 
     vp = get_worker_viewport(worker_id)
+    if mcp_url:
+        playwright_entry: dict = {"type": "http", "url": mcp_url}
+    else:
+        playwright_entry = {
+            "command": "npx",
+            "args": [
+                # --prefer-offline: skip the npm-registry round-trip when
+                # this pinned version is already cached (it is, after the
+                # first run) -- Claude Code gives MCP servers a 30s connect
+                # budget, and registry latency alone can eat several
+                # seconds of that. Found via a live CONNECT_TIMEOUT: both
+                # this and the gmail server failed identically (30043ms),
+                # and unrelated Claude Code telemetry calls timed out in
+                # the same run, pointing at registry/network slowness
+                # rather than anything wrong with the MCP config itself.
+                "--prefer-offline",
+                # Pinned (was @latest — every apply run re-resolved the tag,
+                # so a compromised release would be picked up within hours).
+                # Bump deliberately after a release has soaked ~2 weeks;
+                # check `npm view @playwright/mcp@<v> dist.attestations.url`.
+                PLAYWRIGHT_MCP_PACKAGE,
+                f"--cdp-endpoint=http://localhost:{cdp_port}",
+                f"--viewport-size={vp[0]}x{vp[1]}",
+                f"--user-agent={_get_real_user_agent()}",
+            ],
+        }
     return {
         "mcpServers": {
-            "playwright": {
-                "command": "npx",
-                "args": [
-                    # --prefer-offline: skip the npm-registry round-trip when
-                    # this pinned version is already cached (it is, after the
-                    # first run) -- Claude Code gives MCP servers a 30s connect
-                    # budget, and registry latency alone can eat several
-                    # seconds of that. Found via a live CONNECT_TIMEOUT: both
-                    # this and the gmail server failed identically (30043ms),
-                    # and unrelated Claude Code telemetry calls timed out in
-                    # the same run, pointing at registry/network slowness
-                    # rather than anything wrong with the MCP config itself.
-                    "--prefer-offline",
-                    # Pinned (was @latest — every apply run re-resolved the tag,
-                    # so a compromised release would be picked up within hours).
-                    # Bump deliberately after a release has soaked ~2 weeks;
-                    # check `npm view @playwright/mcp@<v> dist.attestations.url`.
-                    "@playwright/mcp@0.0.75",
-                    f"--cdp-endpoint=http://localhost:{cdp_port}",
-                    f"--viewport-size={vp[0]}x{vp[1]}",
-                    f"--user-agent={_get_real_user_agent()}",
-                ],
-            },
+            "playwright": playwright_entry,
             "gmail": {
                 "command": "npx",
                 # Pinned: this package holds the Gmail OAuth tokens. 1.1.11
@@ -2750,9 +2760,17 @@ def run_job(
     # Refresh Gmail token before writing MCP config (the MCP server doesn't auto-refresh)
     _refresh_gmail_token()
 
-    # Write per-worker MCP config
+    # Write per-worker MCP config. The playwright entry points at the worker's
+    # persistent HTTP server (session architecture Stage A, decision #235),
+    # started once and reused by every job; it falls back to the per-job
+    # stdio server if the persistent one can't be started.
+    from applypilot.apply.mcp_server import ensure_playwright_mcp
+
+    playwright_mcp_url = ensure_playwright_mcp(worker_id, port)
     mcp_config_path = config.APP_DIR / f".mcp-apply-{worker_id}.json"
-    mcp_config_path.write_text(json.dumps(_make_mcp_config(port, worker_id=worker_id)), encoding="utf-8")
+    mcp_config_path.write_text(
+        json.dumps(_make_mcp_config(port, worker_id=worker_id, mcp_url=playwright_mcp_url)), encoding="utf-8"
+    )
 
     # Speed escalation trigger (2026-09-19), mirroring the fast/slow pattern
     # already proven for scoring (decisions #76-81): a fresh successful_paths
@@ -3109,6 +3127,17 @@ def run_job(
                 break
             add_event(f"[W{worker_id}] Playwright MCP failed to connect — retrying")
             logger.warning("[W%d] Playwright MCP failed to connect (attempt %d); retrying", worker_id, _mcp_attempt)
+            if playwright_mcp_url:
+                # Persistent server failed: restart it once, then fall back
+                # to the per-job stdio server for the last attempt.
+                if _mcp_attempt == 1:
+                    playwright_mcp_url = ensure_playwright_mcp(worker_id, port, restart=True)
+                else:
+                    playwright_mcp_url = None
+                mcp_config_path.write_text(
+                    json.dumps(_make_mcp_config(port, worker_id=worker_id, mcp_url=playwright_mcp_url)),
+                    encoding="utf-8",
+                )
             time.sleep(2)
 
         # Check if a user takeover killed the proc

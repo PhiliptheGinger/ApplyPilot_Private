@@ -119,6 +119,16 @@ def _no_deterministic_pacing(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _no_persistent_mcp_server(monkeypatch):
+    """run_job starts a persistent Playwright MCP server per worker (decision
+    #235). Tests must never spawn npx; with no server, run_job falls back to
+    the per-job stdio entry exactly as before."""
+    from applypilot.apply import mcp_server
+
+    monkeypatch.setattr(mcp_server, "_start", lambda *a, **k: None)
+
+
+@pytest.fixture(autouse=True)
 def _never_touch_real_db(tmp_path_factory, monkeypatch):
     """Point the default database path at a throwaway file for every test.
 

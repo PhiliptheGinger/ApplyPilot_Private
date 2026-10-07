@@ -454,7 +454,7 @@ class TestRunJobProbeRearm:
         monkeypatch.setattr(launcher, "reset_worker_dir", lambda worker_id: None)
         monkeypatch.setattr(launcher, "_reset_browser_tabs", lambda port: None)
         monkeypatch.setattr(launcher, "_refresh_gmail_token", lambda: True)
-        monkeypatch.setattr(launcher, "_make_mcp_config", lambda port, worker_id=0: {})
+        monkeypatch.setattr(launcher, "_make_mcp_config", lambda port, worker_id=0, mcp_url=None: {})
         monkeypatch.setattr(launcher, "_activate_agent_tab", lambda *a, **k: None)
         monkeypatch.setattr(launcher.prompt_mod, "build_prompt", lambda **k: "prompt text")
 
@@ -537,7 +537,7 @@ class TestRunJobProbeRearm:
         monkeypatch.setattr(launcher_mod, "reset_worker_dir", lambda worker_id: None)
         monkeypatch.setattr(launcher_mod, "_reset_browser_tabs", lambda port: None)
         monkeypatch.setattr(launcher_mod, "_refresh_gmail_token", lambda: True)
-        monkeypatch.setattr(launcher_mod, "_make_mcp_config", lambda port, worker_id=0: {})
+        monkeypatch.setattr(launcher_mod, "_make_mcp_config", lambda port, worker_id=0, mcp_url=None: {})
         monkeypatch.setattr(launcher_mod.prompt_mod, "build_prompt", lambda **k: "prompt text")
         monkeypatch.setattr(launcher_mod.subprocess, "Popen", _fake_popen)
 
@@ -590,7 +590,7 @@ class TestRunJobProbeRearm:
         monkeypatch.setattr(launcher_mod, "reset_worker_dir", lambda worker_id: None)
         monkeypatch.setattr(launcher_mod, "_reset_browser_tabs", lambda port: None)
         monkeypatch.setattr(launcher_mod, "_refresh_gmail_token", lambda: True)
-        monkeypatch.setattr(launcher_mod, "_make_mcp_config", lambda port, worker_id=0: {})
+        monkeypatch.setattr(launcher_mod, "_make_mcp_config", lambda port, worker_id=0, mcp_url=None: {})
         monkeypatch.setattr(launcher_mod, "_activate_agent_tab", lambda *a, **k: None)
         monkeypatch.setattr(launcher_mod.prompt_mod, "build_prompt", lambda **k: "prompt text")
 
