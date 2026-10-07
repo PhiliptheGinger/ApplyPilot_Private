@@ -62,6 +62,7 @@ from datetime import UTC, datetime
 from applypilot.llm import LLMClient, ModelEntry, local_openai_base_url
 from applypilot.scoring.compensation import classify_compensation, compensation_score_adjustment
 from applypilot.scoring.labor_signals import detect_labor_signals, labor_signal_score_adjustment
+from applypilot.scoring.requirement_framing import framed_years_required, implicit_seniority
 from applypilot.scoring.scorer import _check_ineligible, _classify_ineligibility, _flush_score_batch
 
 SCORE_METHOD = "deterministic_fallback"
@@ -733,6 +734,48 @@ _AMBIGUOUS_TITLE_RE = re.compile(
 )
 
 
+def framing_mode() -> str:
+    """FW28 requirement-framing classifier (decision #236): "shadow" (default)
+    notes what it would change in the reasoning without changing the score;
+    "on" applies it; "off" skips it. Stays shadow until
+    scripts/validate_requirement_framing.py passes on the real
+    Claude-direct audit set."""
+    mode = os.environ.get("APPLYPILOT_FRAMING_CLASSIFIER", "shadow").strip().lower()
+    return mode if mode in ("shadow", "on", "off") else "shadow"
+
+
+def apply_requirement_framing(
+    description: str, family: str | None, years: int | None, score: int
+) -> tuple[int | None, int, str]:
+    """Additive FW28 pass: fill a missed years requirement, or cap a software
+    posting whose wording implies seniority. Never lowers a years figure the
+    regex extractor found and never raises a score.
+
+    Returns (years, score, note); with mode "shadow" years/score come back
+    unchanged and the note says what would have changed.
+    """
+    mode = framing_mode()
+    if mode == "off" or years is not None:
+        return years, score, ""
+    framed = framed_years_required(description)
+    new_years, new_score, note = years, score, ""
+    if framed is not None:
+        new_years = framed
+        new_score = min(score, deterministic_combine(family, framed, False))
+        note = f"framing: years_required={framed}"
+    elif family == "software_engineering":
+        senior = implicit_seniority(description)
+        if len(senior) >= 2:
+            new_score = min(score, 3)
+            note = f"framing: implied seniority ({', '.join(senior)})"
+    if not note:
+        return years, score, ""
+    if mode == "shadow":
+        effect = f"would score {new_score}" if new_score < score else "score unchanged"
+        return years, score, f"[shadow] {note}, {effect}"
+    return new_years, new_score, note + (f", capped at {new_score}" if new_score < score else "")
+
+
 def score_job_deterministic(
     job: dict,
     profile: dict,
@@ -780,6 +823,7 @@ def score_job_deterministic(
     years = extract_years_required(job.get("full_description") or "")
     cs_degree = extract_cs_degree_required(job.get("full_description") or "")
     score = deterministic_combine(family, years, cs_degree)
+    years, score, framing_note = apply_requirement_framing(job.get("full_description") or "", family, years, score)
 
     result = {
         "score": score,
@@ -787,6 +831,7 @@ def score_job_deterministic(
         "reasoning": (
             f"[deterministic fallback, model={effective_model}{' (escalated)' if escalated else ''}] "
             f"family={family} years_required={years} cs_degree_required={cs_degree}"
+            + (f" {framing_note}" if framing_note else "")
         ),
         "eligibility": "eligible",
     }
