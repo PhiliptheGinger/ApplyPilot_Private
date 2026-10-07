@@ -84,6 +84,7 @@ def scrape_one_employer(
     slug: str,
     emp: dict,
     accept_locs: list[str],
+    reject_locs: list[str] | None = None,
     max_retries: int = 2,
 ) -> tuple[list[dict], str | None]:
     """Fetch all postings for one Lever board → list of normalized job dicts."""
@@ -97,7 +98,7 @@ def scrape_one_employer(
     out: list[dict] = []
     for posting in postings:
         location = _location_string(posting)
-        if not _location_ok(location, accept_locs):
+        if not _location_ok(location, accept_locs, reject_locs or ()):
             continue
         hosted_url = posting.get("hostedUrl")
         if not hosted_url:
