@@ -61,7 +61,12 @@ locations:
   - location: "Remote"
     remote: true
 
-# Location filtering -- accept/reject patterns for job location text
+# Location filtering -- accept/reject patterns for job location text.
+# Remote postings are always kept. Patterns match whole words, case-insensitive
+# ("NC" matches "Greensboro, NC" but not "San Francisco"). A reject match wins
+# over an accept match. An empty accept list keeps every location.
+# Older configs may use top-level location_accept / location_reject_non_remote;
+# those are still read and merged with these.
 location:
   accept_patterns:
     - "San Francisco"

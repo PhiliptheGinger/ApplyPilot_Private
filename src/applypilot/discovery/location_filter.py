@@ -96,3 +96,44 @@ def location_ok(location: str | None, accept: Iterable[str] = (), reject: Iterab
     if not accept:
         return True
     return any(pattern_in_location(a, loc) for a in accept)
+
+
+US_STATES = {
+    "AL": "Alabama", "AK": "Alaska", "AZ": "Arizona", "AR": "Arkansas", "CA": "California",
+    "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware", "DC": "District of Columbia",
+    "FL": "Florida", "GA": "Georgia", "HI": "Hawaii", "ID": "Idaho", "IL": "Illinois",
+    "IN": "Indiana", "IA": "Iowa", "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana",
+    "ME": "Maine", "MD": "Maryland", "MA": "Massachusetts", "MI": "Michigan", "MN": "Minnesota",
+    "MS": "Mississippi", "MO": "Missouri", "MT": "Montana", "NE": "Nebraska", "NV": "Nevada",
+    "NH": "New Hampshire", "NJ": "New Jersey", "NM": "New Mexico", "NY": "New York",
+    "NC": "North Carolina", "ND": "North Dakota", "OH": "Ohio", "OK": "Oklahoma", "OR": "Oregon",
+    "PA": "Pennsylvania", "RI": "Rhode Island", "SC": "South Carolina", "SD": "South Dakota",
+    "TN": "Tennessee", "TX": "Texas", "UT": "Utah", "VT": "Vermont", "VA": "Virginia",
+    "WA": "Washington", "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming",
+}
+_STATE_BY_NAME = {name.lower(): abbr for abbr, name in US_STATES.items()}
+
+
+def suggest_accept_patterns(location: str, remote_only: bool = False) -> list[str]:
+    """Starting accept list for the setup wizard, built from what the user typed.
+
+    "Greensboro, NC" -> ["Greensboro", "NC", "North Carolina", "Remote"]. The
+    user edits this before it is saved. It deliberately never adds a country
+    ("United States", "US"): location strings like "Seattle, WA, United
+    States" would then match for a candidate who only wants their own area.
+    A remote-only search gets just ["Remote"], so onsite postings are dropped.
+    """
+    if remote_only or not location or location.strip().lower() in ("remote", "anywhere"):
+        return ["Remote"]
+    parts = [p.strip() for p in location.split(",") if p.strip()]
+    out: list[str] = []
+    for part in parts:
+        upper = part.upper()
+        if upper in US_STATES:
+            out += [upper, US_STATES[upper]]
+        elif part.lower() in _STATE_BY_NAME:
+            out += [US_STATES[_STATE_BY_NAME[part.lower()]], _STATE_BY_NAME[part.lower()]]
+        else:
+            out.append(part)
+    out.append("Remote")
+    return _merged(out)

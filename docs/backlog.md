@@ -13,11 +13,13 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 
 ## Suggested order
 
-**Stage 0 — this week, small, unblocks everything:** E7, E3, FW53, E9, FW48, FW24, FW23
+**Stage 0 — this week, small, unblocks everything:** E3, FW53, FW48, FW24, FW23
 
 **Stage 1 — keep the machine and budget healthy:** FW32, FW13, E1, FW51, FW17, FW55
 
 **Track A — reach LinkedIn jobs without automating LinkedIn:** FW64 → FW38
+
+**Track H — locality data:** FW71
 
 **Track B — cheaper, faster applies:** FW65 → FW62 → FW30
 
@@ -36,7 +38,6 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 | ID | Item | Track | Size | Where | Depends on | Why |
 |---|---|---|---|---|---|---|
 | E3 | Confirm the transaction-leak fix on the live machine, then close or redesign decision #183's DB-lock question | Reliability & operations | S | needs live machine | — | If leaked write transactions were the real cause, the 'capacity ceiling' work disappears. A one-night log comparison answers it. |
-| E7 | Make CI actually run (Actions enabled, trigger on PRs to main) | Engineering health | S | needs live machine | — | A GitHub repo setting, not code. No CI runs exist for this repo, which is how 47 failing tests and a broken 3.12+ install went unnoticed. |
 | FW53 | Notify (email via existing Gmail send) on needs_human pauses and on Claude usage exhausted/resumed | Reliability & operations | S | build in cloud, verify live | — | Jobs sat paused for hours unnoticed; the sender already exists from decision #184. |
 | FW38 | LinkedIn jobs have no application_url (6,108 jobs, 100% of manual_only) | Apply throughput & cost | L | needs live machine | FW64 | Biggest single source of unreachable jobs. Safest route is FW64's title+company lookup, not scraping LinkedIn. |
 | FW18 | Keep tailor -> cover -> apply moving (operational, ongoing) | Profile & tailoring quality | S | needs live machine | — | Standing bottleneck; this is running the pipeline, not new code. |
@@ -60,9 +61,9 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 | FW26 | Ask follow-up questions when an entry is too thin to bank (in expand-bank first) | Profile & tailoring quality | M | cloud-ok | — | Real fix for 'no survivors' without fabricating. |
 | FW9 | Build experience/project inventory from resume + GitHub in the wizard (then expand banks) | Profile & tailoring quality | L | cloud-ok | FW26 | Wizard never builds the inventory phrase banks need; every entry is hand-authored today. |
 | FW23 | Line-by-line review of resume degraded-mode output (grammar/pronoun bugs like #137 found in cover letters) | Profile & tailoring quality | S | needs live machine | — | Never reviewed at the same rigor as cover letters. |
-| E9 | Wizard writes a location filter (accept/reject) into searches.yaml; document the keys | Discovery coverage | S | cloud-ok | — | Found in this audit: init writes no location filter at all. |
+| FW71 | Locality data pack: nearby places (auto-fill the location filter) and local employers + their ATS, delivered by the wizard | Discovery coverage | L | cloud-ok | — | Turns E9's hand-edited accept list into an automatic one and generalizes the NC/Seattle employer lists to any locality. |
 | E1 | Move off the python-jobspy pin that forces numpy==1.24.2 (unlocks Python 3.12+) | Engineering health | M | build in cloud, verify live | — | Install fails on 3.12/3.13; the pin exists for a markdownify conflict. |
-| E4 | Split database.py, then local_tailor.py / launcher.py, one cohesive group per PR with patch targets updated | Engineering health | L | cloud-ok | E7 | 4.4k/3.3k/3k-line files; must not silently break module-path patches in tests. |
+| E4 | Split database.py, then local_tailor.py / launcher.py, one cohesive group per PR with patch targets updated | Engineering health | L | cloud-ok | — | 4.4k/3.3k/3k-line files; must not silently break module-path patches in tests. |
 
 ## Q3 — Quick wins (lower impact, cheap)
 
@@ -97,15 +98,17 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 | FW45 | First-run onboarding for the HITL banner | HITL & wizard UX | S | cloud-ok | — | Discoverability. |
 | FW47 | Bug-report icon (logs -> GitHub issue) and 'flag this job' icon in the banner | HITL & wizard UX | M | build in cloud, verify live | — | Feedback loop from real use. |
 | E5 | Remove identical helper copies (_strip_html, _get_ua, _fetch_page, _fetch_json) | Engineering health | S | cloud-ok | — | Cheap; prevents the next drift. |
-| E6 | Lint tests/ and widen ruff rules one family at a time (B, UP, SIM) | Engineering health | S | cloud-ok | E7 | 56 findings in tests/ today. |
+| E6 | Lint tests/ and widen ruff rules one family at a time (B, UP, SIM) | Engineering health | S | cloud-ok | — | 56 findings in tests/ today. |
 | FW58 | Companion mobile app / remote monitoring (Obtainium-distributed) | Long-horizon ideas | L | needs live machine | FW53 | Notifications (FW53) cover most of the need first. |
 | FW68 | Filter keyword store, preference questionnaire, wizard scope, multi-user accounts | Long-horizon ideas | L | cloud-ok | — | Each needs its own scoping conversation. |
 | FW59 | Research ideas (RSI search, DreamCoder, embodied-cognition sim) | Long-horizon ideas | L | cloud-ok | — | Thought experiments; possibly a side project. |
 
-## Closed or merged (removed from the active list)
+## Closed or merged (full text still kept in docs/future_work.md / docs/decisions_archive.md)
 
 | ID | Item | Status |
 |---|---|---|
+| E7 | Make CI run | it already runs on PRs/pushes to main; first runs after PR #16 exposed 2 real failures, fixed 2026-10-07 |
+| E9 | Wizard writes a location filter | built 2026-10-07; automatic nearby-places fill is FW71 |
 | FW16 | GB/CAN/AU/MX country codes | already shipped (#214) |
 | FW22 | Cover-letter degraded mode | built #137-#142; remaining parts folded into FW24 |
 | FW31 | Pre-apply expired-posting check | built #157 |

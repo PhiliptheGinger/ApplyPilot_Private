@@ -13,6 +13,7 @@ import json
 import shutil
 from pathlib import Path
 
+import yaml
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
@@ -229,6 +230,32 @@ def _verify_email(profile: dict) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _split_list(raw: str) -> list[str]:
+    return [p.strip() for p in (raw or "").split(",") if p.strip()]
+
+
+def _ask_location_filter(location: str, remote_only: bool) -> tuple[list[str], list[str]]:
+    """Ask which job locations to keep and which to drop (E9, 2026-10-07).
+
+    Before this, init wrote no location filter at all, so discovery either
+    kept every location or (in the scrapers that read the old keys) dropped
+    every non-remote one.
+    """
+    from applypilot.discovery.location_filter import suggest_accept_patterns
+
+    suggested = suggest_accept_patterns(location, remote_only=remote_only)
+    console.print(
+        "\n[bold]Location filter[/bold]\n"
+        "Jobs whose location matches one of these words are kept; remote jobs are always kept.\n"
+        "Add nearby cities you'd commute to. Leave it empty to keep every location."
+    )
+    accept = _split_list(Prompt.ask("Locations to keep (comma-separated)", default=", ".join(suggested)))
+    reject = _split_list(
+        Prompt.ask("Locations to always skip, even if they match above (comma-separated, optional)", default="")
+    )
+    return accept, reject
+
+
 def _setup_searches() -> None:
     """Generate a searches.yaml from user input."""
     console.print(Panel("[bold]Step 3: Job Search Config[/bold]\nDefine what you're looking for."))
@@ -246,6 +273,8 @@ def _setup_searches() -> None:
     if not roles:
         console.print("[yellow]No roles provided. Using a default set.[/yellow]")
         roles = ["Software Engineer"]
+
+    accept, reject = _ask_location_filter(location, remote_only=distance == 0)
 
     # Build YAML content
     lines = [
@@ -267,6 +296,18 @@ def _setup_searches() -> None:
     for i, role in enumerate(roles):
         lines.append(f'  - query: "{role}"')
         lines.append(f"    tier: {min(i + 1, 3)}")
+
+    lines += [
+        "",
+        "# Which job locations to keep. Remote postings are always kept.",
+        "# Patterns match whole words, case-insensitive (\"NC\" won't match \"Francisco\").",
+        "# An empty accept list keeps every location.",
+    ]
+    lines += yaml.safe_dump(
+        {"location": {"accept_patterns": accept, "reject_patterns": reject}},
+        sort_keys=False,
+        allow_unicode=True,
+    ).splitlines()
 
     SEARCH_CONFIG_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
     console.print(f"[green]Search config saved to {SEARCH_CONFIG_PATH}[/green]")
