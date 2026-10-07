@@ -539,12 +539,54 @@ def _build_human_first_banner_js(hash_: str, title: str, company: str, server_po
     confirmPanel.style.cssText = 'display:none;width:100%;align-items:center;gap:8px;' +
       'background:rgba(0,0,0,0.25);border-radius:6px;padding:8px 10px;margin-top:2px';
     var confirmText = document.createElement('div');
-    confirmText.style.cssText = 'flex:1;min-width:0;font-size:12px;word-break:break-all';
+    confirmText.style.cssText = 'flex:1;min-width:0;font-size:12px;overflow-wrap:anywhere';
+
+    // FW48 (2026-10-07): the confirmation used to print the raw URL (long
+    // ADP/Workday query strings), which most people can't read at a
+    // glance. Lead with the site name in large text; keep the full link
+    // available but folded away.
+    function _siteName() {{
+      return window.location.hostname.toLowerCase().replace(/^www\\./, '');
+    }}
+
+    function _handoffConfirmContent() {{
+      var wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;flex-direction:column;gap:3px';
+      var lead = document.createElement('div');
+      lead.textContent = 'Hand this application to automation on:';
+      var site = document.createElement('div');
+      site.className = 'ap-hf-site';
+      site.textContent = _siteName();
+      site.style.cssText = 'font-size:18px;font-weight:800;letter-spacing:.01em;line-height:1.2';
+      var hint = document.createElement('div');
+      hint.textContent = 'Only confirm if this is the company\\'s own application site, not LinkedIn or a job board.';
+      var more = document.createElement('details');
+      more.style.cssText = 'font-size:11px;opacity:.75';
+      var sum = document.createElement('summary');
+      sum.textContent = 'Show full link';
+      sum.style.cssText = 'cursor:pointer';
+      var full = document.createElement('div');
+      full.textContent = window.location.href;
+      full.style.cssText = 'word-break:break-all;margin-top:2px';
+      more.appendChild(sum);
+      more.appendChild(full);
+      wrap.appendChild(lead);
+      wrap.appendChild(site);
+      wrap.appendChild(hint);
+      wrap.appendChild(more);
+      return wrap;
+    }}
     var btnConfirmYes = null;
     var btnConfirmNo = null;
 
     function _showConfirmPanel(message, onYes) {{
-      confirmText.textContent = message;
+      // `message` is either plain text or a ready-built DOM node.
+      confirmText.innerHTML = '';
+      if (typeof message === 'string') {{
+        confirmText.textContent = message;
+      }} else {{
+        confirmText.appendChild(message);
+      }}
       confirmPanel.innerHTML = '';
       confirmPanel.appendChild(confirmText);
       btnConfirmYes = _makeBtn('Yes, Hand Off', '#22c55e', '#000', '');
@@ -624,8 +666,7 @@ def _build_human_first_banner_js(hash_: str, title: str, company: str, server_po
         return;
       }}
       _showConfirmPanel(
-        'Hand off automation on this page? ' + window.location.href +
-        ' -- only confirm if you have already been redirected to the company\\'s own application site.',
+        _handoffConfirmContent(),
         function() {{
           _disableAllBtns();
           btnHandoff.innerHTML = 'Handing off...';

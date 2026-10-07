@@ -68,3 +68,36 @@ class TestHumanFirstBlockedDomains:
         assert "BLOCKED_DOMAINS" in js
         assert "linkedin.com" in js
         assert "_onBlockedDomain" in js
+
+
+class TestReadableHandoffConfirmation:
+    """FW48 (2026-10-07): the Hand Off confirmation leads with the site name,
+    not the raw URL. Verified once in headless Chromium against a long ADP
+    URL (shows 'workforcenow.adp.com', full link folded under a toggle)."""
+
+    def _js(self):
+        from applypilot.apply.human_review import _build_human_first_banner_js
+
+        return _build_human_first_banner_js("abc123", "Help Desk", "Acme", 8800)
+
+    def test_confirmation_uses_site_name_builder(self):
+        js = self._js()
+        assert "_showConfirmPanel(\n        _handoffConfirmContent()," in js
+        assert "Show full link" in js
+        assert "replace(/^www\\./, '')" in js
+        # The old raw-URL-first message is gone.
+        assert "Hand off automation on this page? ' + window.location.href" not in js
+
+    def test_generated_js_parses(self, tmp_path):
+        import shutil
+        import subprocess
+
+        import pytest
+
+        node = shutil.which("node")
+        if not node:
+            pytest.skip("node not installed")
+        path = tmp_path / "banner.js"
+        path.write_text(self._js(), encoding="utf-8")
+        result = subprocess.run([node, "--check", str(path)], capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr

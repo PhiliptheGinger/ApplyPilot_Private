@@ -13,9 +13,9 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 
 ## Suggested order
 
-**Stage 0 — this week, small, unblocks everything:** E3, FW53, FW48, FW24, FW23
+**Stage 0 — this week, small, unblocks everything:** E3, FW24, FW23, FW49, FW51
 
-**Stage 1 — keep the machine and budget healthy:** FW32, FW13, E1, FW51, FW17, FW55
+**Stage 1 — keep the machine and budget healthy:** FW32, FW13, E1, FW17, FW55
 
 **Track A — reach LinkedIn jobs without automating LinkedIn:** FW64 → FW38
 
@@ -38,7 +38,6 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 | ID | Item | Track | Size | Where | Depends on | Why |
 |---|---|---|---|---|---|---|
 | E3 | Confirm the transaction-leak fix on the live machine, then close or redesign decision #183's DB-lock question | Reliability & operations | S | needs live machine | — | If leaked write transactions were the real cause, the 'capacity ceiling' work disappears. A one-night log comparison answers it. |
-| FW53 | Notify (email via existing Gmail send) on needs_human pauses and on Claude usage exhausted/resumed | Reliability & operations | S | build in cloud, verify live | — | Jobs sat paused for hours unnoticed; the sender already exists from decision #184. |
 | FW38 | LinkedIn jobs have no application_url (6,108 jobs, 100% of manual_only) | Apply throughput & cost | L | needs live machine | FW64 | Biggest single source of unreachable jobs. Safest route is FW64's title+company lookup, not scraping LinkedIn. |
 | FW18 | Keep tailor -> cover -> apply moving (operational, ongoing) | Profile & tailoring quality | S | needs live machine | — | Standing bottleneck; this is running the pipeline, not new code. |
 
@@ -74,7 +73,6 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 | FW17 | Bare Canadian province names in location (needs Ontario, CA disambiguation) | Scoring accuracy | S | build in cloud, verify live | — | Only 3-4 live rows; recurs occasionally. |
 | FW24 | Verify the cover-letter word-count shortfall is closed (decisions #162/#163 suggest yes) | Profile & tailoring quality | S | needs live machine | — | Probably done; confirm and close. |
 | FW55 | Company name for non-pattern ATSes (CareerPlug, Eightfold) + transcript fallback | Discovery coverage | S | cloud-ok | — | #214 wired the backfill; unknown ATS domains still get NULL company. |
-| FW48 | Hand-off confirmation shows the domain in large text, not a raw URL | HITL & wizard UX | S | cloud-ok | — | Safety check only works if people can read it. |
 | FW49 | 'Handing off...' button shows live progress instead of looking frozen | HITL & wizard UX | M | build in cloud, verify live | — | Needs a small status channel back from run_job. |
 
 ## Q4 — Later / maybe
@@ -99,7 +97,7 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 | FW47 | Bug-report icon (logs -> GitHub issue) and 'flag this job' icon in the banner | HITL & wizard UX | M | build in cloud, verify live | — | Feedback loop from real use. |
 | E5 | Remove identical helper copies (_strip_html, _get_ua, _fetch_page, _fetch_json) | Engineering health | S | cloud-ok | — | Cheap; prevents the next drift. |
 | E6 | Lint tests/ and widen ruff rules one family at a time (B, UP, SIM) | Engineering health | S | cloud-ok | — | 56 findings in tests/ today. |
-| FW58 | Companion mobile app / remote monitoring (Obtainium-distributed) | Long-horizon ideas | L | needs live machine | FW53 | Notifications (FW53) cover most of the need first. |
+| FW58 | Companion mobile app / remote monitoring (Obtainium-distributed) | Long-horizon ideas | L | needs live machine | — | FW53 email alerts (done) now cover most of the need. |
 | FW68 | Filter keyword store, preference questionnaire, wizard scope, multi-user accounts | Long-horizon ideas | L | cloud-ok | — | Each needs its own scoping conversation. |
 | FW59 | Research ideas (RSI search, DreamCoder, embodied-cognition sim) | Long-horizon ideas | L | cloud-ok | — | Thought experiments; possibly a side project. |
 
@@ -107,6 +105,8 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 
 | ID | Item | Status |
 |---|---|---|
+| FW48 | Readable hand-off confirmation | built 2026-10-07 (#220) |
+| FW53 | Email alerts for needs_human / Claude limits | built 2026-10-07 (#219); verify a real send |
 | E7 | Make CI run | it already runs on PRs/pushes to main; first runs after PR #16 exposed 2 real failures, fixed 2026-10-07 |
 | E9 | Wizard writes a location filter | built 2026-10-07; automatic nearby-places fill is FW71 |
 | FW16 | GB/CAN/AU/MX country codes | already shipped (#214) |

@@ -384,6 +384,12 @@ notes and stray files are never deleted. A closed Future Work item stays in
 | 212 | Global `threading.excepthook`; `dispatch_hitl` background worker and dashboard health loop guarded |
 | 213 | #212 validated live; launcher's 300s DB retry still exhausted under dual-process load; 2 jobs left in `applying` |
 | 214 | Smartextract JSON rescue, flaky test fixed, `backfill_categories` retry, `backfill_companies` wired into `init_db` (14,634 rows) |
+| 215 | CLAUDE.md 353KB->50KB (full text to archive/future_work); clean-checkout tests/lint/CI fixed; POSIX scheduler lock; archive-never-delete rule |
+| 216 | write_with_retry + HTTP handlers/store_qa now roll back on any error: leaked open transactions held the DB write lock (candidate root cause of #183) |
+| 217 | Discovery location filter consolidated (4 drifted copies); whole-word accept matching in discovery + scorer; wizard writes location filter (E9) |
+| 218 | One shared LLM-JSON parser (llm_json.parse_llm_json); phrase-bank generation no longer loses rounds to fenced/prose/<think> replies |
+| 219 | FW53: opt-in email alerts (APPLYPILOT_NOTIFY_EMAIL) for needs_human pauses and Claude exhaustion/recovery; `applypilot notify --test` |
+| 220 | FW48: Hand Off confirmation leads with the site name in large text; full URL folded under 'Show full link' |
 
 ---
 
