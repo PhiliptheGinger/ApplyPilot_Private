@@ -1586,6 +1586,7 @@ class TestFullCascadeIntegration(unittest.TestCase):
 
         self.assertEqual(result, "second openai model")
         self.assertIn(first.name, client._exhausted)
+        self.assertNotIn(second.name, client._exhausted)
         # Real quota (test above) marks ~24h out; billing failure must be
         # marked meaningfully longer -- checked as "> 7 days from now" so
         # this doesn't hardcode the exact 30-day constant and break on a

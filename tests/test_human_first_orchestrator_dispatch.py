@@ -13,8 +13,6 @@ import sys
 import threading
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
@@ -65,8 +63,7 @@ def _patch_common(monkeypatch, orch, launcher):
     monkeypatch.setattr(launcher, "_stop_event", threading.Event())
 
 
-def _call_worker_loop_body(orch, human_first_job=None):
-    job = human_first_job or _job()
+def _call_worker_loop_body(orch):
     return orch._worker_loop_body(
         worker_id=0,
         limit=1,

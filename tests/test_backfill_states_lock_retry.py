@@ -71,8 +71,8 @@ def test_persistent_lock_propagates_cleanly_not_silently(tmp_db, seed_job, monke
     exhausts and raises -- matching the real behavior confirmed live
     (`DB write locked: giving up after 8 attempts`) rather than silently
     swallowing the failure, returning a bogus empty result, or hanging."""
-    from applypilot.database import backfill_states
     import applypilot.database as db_mod
+    from applypilot.database import backfill_states
 
     conn = tmp_db()
     seed_job(conn, url_suffix="backfill-lock-persistent", fit_score=3)

@@ -15,7 +15,6 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from applypilot.discovery.github_profile import (
-    REPUTATIONAL_FLAG_CATEGORIES,
     build_draft_project_entry,
     classify_reputational_flags,
     flag_repo,

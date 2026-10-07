@@ -5,7 +5,6 @@ import pytest
 from applypilot.database import current_state, transition_state
 from applypilot.scoring.plan_experiment import build_structured_plan, validate_structured_plan
 
-
 PROFILE = {
     "experience_inventory": [
         {

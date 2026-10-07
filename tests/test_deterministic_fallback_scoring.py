@@ -19,9 +19,9 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from applypilot.scoring.deterministic_fallback import (
-    SCORE_METHOD,
     _AMBIGUOUS_TITLE_RE,
     _CLINICAL_LICENSE_TITLE_RE,
+    SCORE_METHOD,
     classify_family,
     classify_location_signal,
     deterministic_combine,
@@ -902,7 +902,6 @@ class TestRunDeterministicFallbackScoring:
             assert row["score_method"] == SCORE_METHOD
 
     def test_unknown_scope_raises(self, tmp_db, seed_job):
-        conn = tmp_db()
         with pytest.raises(ValueError, match="Unknown scope"):
             run_deterministic_fallback_scoring(conn=tmp_db(), scope="bogus")
 

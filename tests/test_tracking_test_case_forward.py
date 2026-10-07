@@ -11,8 +11,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-import pytest
-
 
 def _make_email(**overrides) -> dict:
     email = {

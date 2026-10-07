@@ -94,8 +94,8 @@ def test_backfill_categories_transient_lock_is_retried_not_discarded(tmp_db, see
 
 
 def test_backfill_categories_persistent_lock_propagates_cleanly(tmp_db, seed_job, monkeypatch):
-    from applypilot.database import backfill_categories
     import applypilot.database as db_mod
+    from applypilot.database import backfill_categories
 
     conn = tmp_db()
     seed_job(conn, url_suffix="cat-lock-persist", apply_status="applied", apply_category=None)
@@ -175,8 +175,8 @@ def test_backfill_companies_transient_lock_is_retried_not_discarded(tmp_db, seed
 
 
 def test_backfill_companies_persistent_lock_propagates_cleanly(tmp_db, seed_job, monkeypatch):
-    from applypilot.database import backfill_companies
     import applypilot.database as db_mod
+    from applypilot.database import backfill_companies
 
     conn = tmp_db()
     seed_job(

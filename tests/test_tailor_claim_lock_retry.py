@@ -15,7 +15,6 @@ during claiming is retried (not fatal) and the job still gets tailored.
 from __future__ import annotations
 
 import sqlite3
-from unittest.mock import patch
 
 
 def _fake_tailor_one_job(job, resume_text, profile, doc_format="docx"):

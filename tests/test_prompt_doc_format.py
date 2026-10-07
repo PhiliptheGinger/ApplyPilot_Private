@@ -221,8 +221,9 @@ class TestPromptDocFormatFallback:
         txt.write_text("Test User\n", encoding="utf-8")
         _mock_db_calls(monkeypatch)
 
-        from applypilot.apply.prompt import build_prompt
         import pytest
+
+        from applypilot.apply.prompt import build_prompt
 
         job = _build_job(txt)
         with pytest.raises(ValueError, match="not found in any format"):

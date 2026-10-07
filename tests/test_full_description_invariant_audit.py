@@ -56,6 +56,8 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
@@ -74,8 +76,6 @@ def _wrapper_under_test(module_path: str):
     fn_name = "strip_html" if module_path.endswith("workday") else "_strip_html"
     return mod, getattr(mod, fn_name)
 
-
-import pytest
 
 
 @pytest.mark.parametrize(

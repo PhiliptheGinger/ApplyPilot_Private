@@ -21,8 +21,6 @@ Covers:
 
 from unittest.mock import Mock
 
-import pytest
-
 from applypilot.scoring import local_tailor
 from applypilot.scoring.validator import validate_cover_letter
 

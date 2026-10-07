@@ -291,8 +291,9 @@ def test_persistent_lock_during_recovery_propagates_cleanly(tmp_db, seed_job, mo
     live traceback, which crashed run_tailoring's whole pass)."""
     import sqlite3
 
-    import applypilot.database as db_mod
     import pytest
+
+    import applypilot.database as db_mod
 
     conn = tmp_db()
     row = seed_job(conn, url_suffix="lock-persistent-recovery", state="tailoring")
