@@ -15,7 +15,6 @@ on job boards — startups, Series A/B companies, and technical co-founder
 searches post here almost exclusively.
 """
 
-import json
 import logging
 import re
 import sqlite3
@@ -129,12 +128,10 @@ def _prefilter_comment(text: str, accept_keywords: list[str]) -> bool:
 
 
 def _parse_extracted_job(raw: str) -> dict | None:
-    """Strip markdown fences and parse the extraction prompt's JSON response."""
-    if "```json" in raw:
-        raw = raw.split("```json")[1].split("```")[0]
-    elif "```" in raw:
-        raw = raw.split("```")[1].split("```")[0]
-    data = json.loads(raw.strip())
+    """Parse the extraction prompt's JSON response (fences, prose, <think> tolerated)."""
+    from applypilot.llm_json import parse_llm_json
+
+    data = parse_llm_json(raw)
     return data if isinstance(data, dict) else None
 
 

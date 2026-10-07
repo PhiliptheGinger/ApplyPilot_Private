@@ -750,6 +750,7 @@ def _local_json_fallback(prompt: str, label: str, max_tokens: int = 2048) -> dic
 
 def extract_json(text: str) -> dict:
     """Extract JSON from LLM response, handling think tags and code fences."""
+    original_text = text
     if "<think>" in text:
         after = text.split("</think>")[-1].strip()
         if after:
@@ -799,6 +800,14 @@ def extract_json(text: str) -> dict:
         except json.JSONDecodeError:
             pass
 
+    # 2026-10-07: last resort, the shared parser (first complete JSON
+    # document, fences, <think>) on the untouched reply.
+    from applypilot.llm_json import parse_llm_json
+
+    try:
+        return parse_llm_json(original_text)
+    except ValueError:
+        pass
     raise json.JSONDecodeError("Could not parse JSON", text, 0)
 
 

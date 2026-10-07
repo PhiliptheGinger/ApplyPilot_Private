@@ -2233,33 +2233,16 @@ def get_local_tailoring_plan(
         return _ret(None)
 
 
-_THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
-
-
 def _parse_plan(text: str) -> dict:
     """Parse plan JSON; raise ValueError if malformed.
 
-    Defense-in-depth for Qwen3/other hybrid-reasoning models: even with
-    "think": false requested (see get_local_tailoring_plan), some Ollama
-    builds still emit an empty (or populated) <think>...</think> block
-    before the real content. Stripped unconditionally before fence/brace
-    extraction -- a cheap, pure-text operation, not dependent on which
-    failure mode is actually occurring for a given model/build.
+    Qwen3/other hybrid-reasoning models can emit a <think>...</think> block
+    even with "think": false requested, plus fences or prose around the
+    JSON; applypilot.llm_json.parse_llm_json strips/handles all of these.
     """
-    text = text.strip()
-    text = _THINK_BLOCK_RE.sub("", text).strip()
-    # Strip markdown fences if present
-    if "```" in text:
-        for part in text.split("```")[1::2]:
-            part = part.lstrip("json").strip()
-            try:
-                return json.loads(part)
-            except json.JSONDecodeError:
-                continue
-    start, end = text.find("{"), text.rfind("}")
-    if start != -1 and end > start:
-        return json.loads(text[start : end + 1])
-    return json.loads(text)
+    from applypilot.llm_json import parse_llm_json
+
+    return parse_llm_json(text)
 
 
 def _as_list(value) -> list:
@@ -3655,7 +3638,11 @@ def build_phrase_bank(
                     max_tokens=1500,
                     temperature=0.6,
                 )
-                parsed = json.loads(raw)
+                # 2026-10-07: was a bare json.loads -- any reply wrapped in a
+                # fence, prose or a <think> block lost the whole round.
+                from applypilot.llm_json import parse_llm_json
+
+                parsed = parse_llm_json(raw)
                 candidates = [str(s).strip() for s in (parsed.get("variants") or []) if str(s).strip()]
             except Exception as exc:  # noqa: BLE001 -- one bad round shouldn't kill the whole bank build
                 log.warning("build_phrase_bank: generation round failed (%s: %s)", type(exc).__name__, exc)

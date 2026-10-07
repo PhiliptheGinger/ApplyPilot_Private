@@ -141,6 +141,24 @@ class TestBuildPhraseBank(unittest.TestCase):
         self.assertIn("Diagnosed and corrected vehicle alignment issues using specialized equipment.", result)
         self.assertEqual(len(result["Diagnosed and corrected vehicle alignment issues using specialized equipment."]), 2)
 
+    def test_fenced_or_think_wrapped_reply_still_produces_bank(self):
+        """2026-10-07: generation used a bare json.loads, so a local-model reply
+        wrapped in a <think> block and a code fence lost the whole round."""
+        payload = json.dumps(
+            {
+                "variants": [
+                    "Identified and resolved vehicle alignment problems using specialized equipment.",
+                    "Used specialized equipment to diagnose and fix alignment faults on vehicles.",
+                ]
+            }
+        )
+        response = "<think>ok</think>\nHere are the variants:\n```json\n" + payload + "\n```"
+        client = _mock_client([response])
+        with patch("applypilot.scoring.semantic_match.embed_texts", return_value=[[1.0, 0.0], [0.0, 1.0]]):
+            with patch("applypilot.scoring.semantic_match.select_diverse_indices", return_value=[0, 1]):
+                result = local_tailor.build_phrase_bank(ITEM, client, target_per_bullet=2, max_rounds=1)
+        self.assertEqual(len(result["Diagnosed and corrected vehicle alignment issues using specialized equipment."]), 2)
+
     def test_fabrication_violation_is_dropped_not_shipped(self):
         """A variant that overclaims (e.g. invents team-lead authority the
         evidence doesn't support) must never survive into the bank, even

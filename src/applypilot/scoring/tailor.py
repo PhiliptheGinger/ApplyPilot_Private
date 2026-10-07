@@ -726,46 +726,17 @@ don't change what is actually claimed."""
 
 
 def extract_json(raw: str) -> dict:
-    """Robustly extract JSON from LLM response (handles fences, preamble).
+    """Robustly extract JSON from an LLM response (fences, preamble, <think>).
 
-    Args:
-        raw: Raw LLM response text.
-
-    Returns:
-        Parsed JSON dict.
+    Delegates to applypilot.llm_json.parse_llm_json (shared by every
+    model-output parser since 2026-10-07).
 
     Raises:
         ValueError: If no valid JSON found.
     """
-    raw = raw.strip()
+    from applypilot.llm_json import parse_llm_json
 
-    # Direct parse
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-        pass
-
-    # Markdown fences
-    if "```" in raw:
-        for part in raw.split("```")[1::2]:
-            part = part.strip()
-            if part.startswith("json"):
-                part = part[4:].strip()
-            try:
-                return json.loads(part)
-            except json.JSONDecodeError:
-                continue
-
-    # Find outermost { ... }
-    start = raw.find("{")
-    end = raw.rfind("}")
-    if start != -1 and end > start:
-        try:
-            return json.loads(raw[start : end + 1])
-        except json.JSONDecodeError:
-            pass
-
-    raise ValueError("No valid JSON found in LLM response")
+    return parse_llm_json(raw)
 
 
 # ── Resume Assembly (profile-driven header) ──────────────────────────────
