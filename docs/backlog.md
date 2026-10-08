@@ -79,6 +79,11 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 | FW58 | Companion mobile app / remote monitoring (Obtainium-distributed) | Long-horizon ideas | L | needs live machine | — | FW53 email alerts (done) now cover most of the need. |
 | FW68 | Filter keyword store, preference questionnaire, wizard scope, multi-user accounts | Long-horizon ideas | L | cloud-ok | — | Each needs its own scoping conversation. |
 | FW59 | Research ideas (RSI search, DreamCoder, embodied-cognition sim) | Long-horizon ideas | L | cloud-ok | — | Thought experiments; possibly a side project. |
+| FW73 | LinkedIn employee-referral awareness ('recommended by someone who works here') | Discovery coverage | L | needs live machine | FW38/FW39 | Blocked on the same LinkedIn-scrape-risk caution as FW38/39. |
+| FW74 | Temp/staffing-platform discovery (e.g. IT Worx) | Discovery coverage | M | build in cloud, verify live | — | Unknown API/bot-detection posture; research before building. |
+| FW75 | Wizard asks candidate's risk/breadth preference (broad-net vs. selective) up front | HITL & wizard UX | S | cloud-ok | — | Real family-pressure example this session; default broad for unemployed candidates. |
+| FW76 | Explicit human "I finished this myself" hand-off signal for human-first/needs_human pauses | HITL & wizard UX | M | build in cloud, verify live | FW40 | Real gap found live: no way to tell the agent a human already finished the page. |
+| FW77 | Ask the candidate to disambiguate screening questions that don't reduce cleanly from the profile (e.g. "When can you start?") | Apply throughput & cost | M | needs live machine | FW30 | Needs a live channel back to the candidate mid-apply; none exists today. |
 
 ## Closed or merged (full text still kept in docs/future_work.md / docs/decisions_archive.md)
 

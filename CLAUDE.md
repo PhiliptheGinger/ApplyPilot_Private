@@ -407,6 +407,7 @@ notes and stray files are never deleted. A closed Future Work item stays in
 | 235 | Persistent Playwright MCP HTTP server per apply worker is the default; failed connect restarts it once, then falls back to per-job stdio |
 | 236 | FW28 requirement-framing classifier in the local scorer: additive, shadow mode until scripts/validate_requirement_framing.py passes live |
 | 237 | FW39 and FW52 declined by the user; E3 lock-error baseline recorded (~2-3 give-ups/hour, only in full discover+4more runs) |
+| 238 | `APPLYPILOT_LOCAL_FIRST=1` reorders the fallback chain to try local before cloud (decision #144 only fixed the no-cloud-key case); Best Buy test job marked `applied_manually` |
 
 ---
 

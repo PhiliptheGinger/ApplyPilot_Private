@@ -105,6 +105,50 @@ class TestRunHumanFirst:
         db_row = conn.execute("SELECT application_url FROM jobs WHERE url = ?", (job["url"],)).fetchone()
         assert db_row["application_url"] == ats_url
 
+    def test_exposes_resume_and_cover_paths_for_the_document_download_links(self, tmp_db, _patched_banner, _worker_state):
+        """Real gap found live (2026-10-06): a manual LinkedIn Easy Apply
+        had no way to grab the job's own tailored documents to upload --
+        the banner's Resume/Cover Letter links are served from this state.
+        Snapshot it from the background "click" thread, since run_human_first
+        clears it again as part of its own post-wait cleanup before returning.
+        """
+        tmp_db()
+        job = _job()
+        job["tailored_resume_path"] = "/fake/resume.pdf"
+        job["cover_letter_path"] = "/fake/cover.pdf"
+        snapshot = {}
+
+        def _fire():
+            time.sleep(1.3)  # same delay _fire_banner_click uses -- must clear run_human_first's own pre-listener time.sleep(1)
+            with launcher._worker_state_lock:
+                state = launcher._worker_state.get(0)
+            snapshot["resume"] = state["human_first_resume_path"]
+            snapshot["cover"] = state["human_first_cover_path"]
+            state["human_first_result"] = {"outcome": "applied", "url": None}
+            state["human_first_event"].set()
+
+        threading.Thread(target=_fire, daemon=True).start()
+
+        hitl.run_human_first(worker_id=0, port=9999, job=job, poll_interval=0.05)
+
+        assert snapshot == {"resume": "/fake/resume.pdf", "cover": "/fake/cover.pdf"}
+
+    def test_cleans_up_document_paths_after_return(self, tmp_db, _patched_banner, _worker_state):
+        """A stale path here would keep serving the PREVIOUS job's
+        documents after it's done, since the download route doesn't
+        hash-gate its response."""
+        tmp_db()
+        job = _job()
+        job["tailored_resume_path"] = "/fake/resume.pdf"
+        _fire_banner_click(0, "applied")
+
+        hitl.run_human_first(worker_id=0, port=9999, job=job, poll_interval=0.05)
+
+        with launcher._worker_state_lock:
+            state = launcher._worker_state.get(0)
+        assert state["human_first_resume_path"] is None
+        assert state["human_first_cover_path"] is None
+
     def test_released_on_timeout(self, tmp_db, _patched_banner, _worker_state):
         tmp_db()
         job = _job()

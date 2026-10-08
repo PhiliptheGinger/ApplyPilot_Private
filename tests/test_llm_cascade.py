@@ -1175,6 +1175,98 @@ class TestChatExcludeProviders(unittest.TestCase):
         self.assertEqual(result, "local reply")
 
 
+class TestLocalFirstOptIn(unittest.TestCase):
+    """2026-10-07: explicit, repeated user request to make the local model
+    PRIMARY, not just a last-resort fallback. Decision #144 only fixed the
+    narrow "no cloud key configured at all" case (_detect_provider) -- the
+    real fallback chain every score/tailor/cover call actually uses
+    (_build_fallback_chain) stayed hardcoded cloud-first regardless of
+    whether local is configured, since that ordering is also a measured,
+    deliberate quality decision for the fast/scoring tier (see
+    TestLocalExcludedFromScoringButAvailableForExplicitLocalTasks above).
+    APPLYPILOT_LOCAL_FIRST reorders a chain that already decided to
+    include local, moving it to the front without removing the cloud
+    entries behind it (so a struggling local model still has a real
+    fallback) and without overriding the fast tier's own exclusion."""
+
+    def _env(self, **overrides):
+        env = {
+            k: v
+            for k, v in __import__("os").environ.items()
+            if k
+            not in (
+                "GEMINI_API_KEY",
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "DEEPSEEK_API_KEY",
+                "LLM_URL",
+                "APPLYPILOT_LOCAL_LLM_URL",
+                "APPLYPILOT_LOCAL_LLM_MODEL",
+                "APPLYPILOT_LOCAL_FIRST",
+            )
+        }
+        env.update(overrides)
+        return env
+
+    def test_quality_chain_puts_local_first_when_opted_in(self):
+        from applypilot.llm import _build_fallback_chain
+
+        env = self._env(
+            GEMINI_API_KEY="fake-gemini-key",
+            APPLYPILOT_LOCAL_LLM_URL="http://localhost:11434/v1",
+            APPLYPILOT_LOCAL_LLM_MODEL="qwen3:8b",
+            APPLYPILOT_LOCAL_FIRST="1",
+        )
+        with patch.dict("os.environ", env, clear=True), patch("applypilot.llm._find_claude_cli", return_value=None):
+            chain = _build_fallback_chain("gemini-3.1-pro-preview", quality=True)
+
+        self.assertEqual(chain[0].provider, "local")
+        # cloud entries are still present behind it, not removed.
+        self.assertTrue(any(e.provider == "gemini" for e in chain[1:]))
+
+    def test_quality_chain_unaffected_when_not_opted_in(self):
+        """Default (unset) behavior is completely unchanged -- local stays
+        last, exactly as every pre-existing test in this file assumes."""
+        from applypilot.llm import _build_fallback_chain
+
+        env = self._env(
+            GEMINI_API_KEY="fake-gemini-key",
+            APPLYPILOT_LOCAL_LLM_URL="http://localhost:11434/v1",
+            APPLYPILOT_LOCAL_LLM_MODEL="qwen3:8b",
+        )
+        with patch.dict("os.environ", env, clear=True), patch("applypilot.llm._find_claude_cli", return_value=None):
+            chain = _build_fallback_chain("gemini-3.1-pro-preview", quality=True)
+
+        self.assertEqual(chain[-1].provider, "local")
+
+    def test_fast_tier_still_excludes_local_even_when_opted_in(self):
+        """The opt-in only reorders a chain that already includes local --
+        it must never force local into the fast/scoring tier against the
+        measured quality finding documented above."""
+        from applypilot.llm import _build_fallback_chain
+
+        env = self._env(
+            GEMINI_API_KEY="fake-gemini-key",
+            APPLYPILOT_LOCAL_LLM_URL="http://localhost:11434/v1",
+            APPLYPILOT_LOCAL_LLM_MODEL="qwen3:8b",
+            APPLYPILOT_LOCAL_FIRST="1",
+        )
+        with patch.dict("os.environ", env, clear=True), patch("applypilot.llm._find_claude_cli", return_value=None):
+            chain = _build_fallback_chain("gemini-3.6-flash", quality=False)
+
+        self.assertFalse(any(e.provider == "local" for e in chain))
+
+    def test_opt_in_with_no_local_configured_is_a_no_op(self):
+        from applypilot.llm import _build_fallback_chain
+
+        env = self._env(GEMINI_API_KEY="fake-gemini-key", APPLYPILOT_LOCAL_FIRST="1")
+        with patch.dict("os.environ", env, clear=True), patch("applypilot.llm._find_claude_cli", return_value=None):
+            chain = _build_fallback_chain("gemini-3.1-pro-preview", quality=True)
+
+        self.assertTrue(all(e.provider != "local" for e in chain))
+        self.assertTrue(any(e.provider == "gemini" for e in chain))
+
+
 class TestClaudeCliFailureClassification(unittest.TestCase):
     """_try_claude_cli's failure classification.
 

@@ -1453,7 +1453,18 @@ def get_stats(conn: sqlite3.Connection | None = None) -> dict:
     # Application stage
     stats["applied"] = conn.execute("SELECT COUNT(*) FROM jobs WHERE applied_at IS NOT NULL").fetchone()[0]
 
-    stats["apply_errors"] = conn.execute("SELECT COUNT(*) FROM jobs WHERE apply_error IS NOT NULL").fetchone()[0]
+    # 2026-10-06 fix: this used to count `manual_only` jobs (which get
+    # apply_error='no application_url' at the moment they're diverted, per
+    # divert_manual_only above) as "errors" -- real-world this is ~97% of
+    # the number (504/520 live) and isn't an error at all, it's a structural
+    # "no automation possible" classification. Split it out into its own
+    # stat so the two very different meanings ("something broke" vs. "this
+    # can only ever be done by hand") aren't blended into one scary number.
+    stats["manual_only"] = conn.execute("SELECT COUNT(*) FROM jobs WHERE state = 'manual_only'").fetchone()[0]
+
+    stats["apply_errors"] = conn.execute(
+        "SELECT COUNT(*) FROM jobs WHERE apply_error IS NOT NULL AND state != 'manual_only'"
+    ).fetchone()[0]
 
     stats["title_rejected"] = conn.execute(
         "SELECT COUNT(*) FROM jobs WHERE apply_error LIKE 'title_pattern_reject:%'"

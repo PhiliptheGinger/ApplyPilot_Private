@@ -385,6 +385,12 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
         "human_first_event": None,
         "human_first_job_hash": None,
         "human_first_result": None,
+        # Real gap found live: the human-first banner offered Apply/Hand Off
+        # with no way to actually get the tailored resume/cover letter to
+        # upload during a manual LinkedIn Easy Apply. Set by
+        # hitl.run_human_first, served by _handle_human_first_document.
+        "human_first_resume_path": None,
+        "human_first_cover_path": None,
     }
 
     takeover_event = threading.Event()
@@ -414,6 +420,10 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self._handle_task_stream()
             elif self.path == "/api/focus":
                 self._handle_focus()
+            elif self.path.startswith("/api/human-first/") and self.path.endswith("/resume"):
+                self._handle_human_first_document("resume")
+            elif self.path.startswith("/api/human-first/") and self.path.endswith("/cover-letter"):
+                self._handle_human_first_document("cover")
             elif self.path.startswith("/api/jobs"):
                 self._handle_jobs_list()
             elif self.path == "/api/integrations":
@@ -792,6 +802,49 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 state["status"] = "resuming"
                 evt.set()
             self._text_ok()
+
+        def _handle_human_first_document(self, kind: str) -> None:
+            """Serve the current human-first job's tailored resume/cover
+            letter so the user can grab it during a manual LinkedIn Easy
+            Apply -- real gap found live: the banner offered Apply/Hand Off
+            with no way to actually get the tailored document to upload.
+            """
+            path = state.get("human_first_resume_path") if kind == "resume" else state.get("human_first_cover_path")
+            if not path or not os.path.isfile(path):
+                self.send_response(404)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                return
+            import mimetypes
+
+            ctype = mimetypes.guess_type(path)[0] or "application/octet-stream"
+            with open(path, "rb") as f:
+                data = f.read()
+            # Real, live-caught issue: the on-disk filename is
+            # "{name}_{job title}_{hash}.{ext}" (per CLAUDE.md's File
+            # Locations table) -- fine for local storage, but a recruiter
+            # sees whatever name the browser saves the download under, and
+            # a job-title/location fragment plus a raw content hash makes
+            # a single candidate look like they're mass-generating
+            # resumes. The automated apply path already avoids this
+            # (prompt.py copies to "{name}_Resume.{ext}" before upload) --
+            # mirror that exact convention here via Content-Disposition's
+            # filename, without touching the real on-disk naming scheme at all.
+            try:
+                full_name = config.load_profile()["personal"]["full_name"]
+            except Exception:  # noqa: BLE001 - a malformed/missing profile must not block a document the user can already see exists
+                full_name = "Resume"
+            name_slug = full_name.replace(" ", "_")
+            ext = os.path.splitext(path)[1] or ".pdf"
+            clean_label = "Resume" if kind == "resume" else "Cover_Letter"
+            filename = f"{name_slug}_{clean_label}{ext}"
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(data)
 
         def _handle_action_log(self):
             """Stash a content-script-posted action log keyed by job hash.

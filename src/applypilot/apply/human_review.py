@@ -460,7 +460,9 @@ def _human_first_blocked_domains() -> list[str]:
     return out
 
 
-def _build_human_first_banner_js(hash_: str, title: str, company: str, server_port: int) -> str:
+def _build_human_first_banner_js(
+    hash_: str, title: str, company: str, server_port: int, *, has_resume: bool = False, has_cover: bool = False
+) -> str:
     """Build the banner overlay for the human-first LinkedIn apply flow.
 
     Unlike `_build_banner_js` (agent-stuck HITL, one "Done" outcome), this
@@ -482,6 +484,8 @@ def _build_human_first_banner_js(hash_: str, title: str, company: str, server_po
   var HASH = '{hash_}';
   var PORT = {server_port};
   var BLOCKED_DOMAINS = {blocked_domains_json};
+  var HAS_RESUME = {json.dumps(has_resume)};
+  var HAS_COVER = {json.dumps(has_cover)};
 
   function _onBlockedDomain() {{
     var host = window.location.hostname.toLowerCase();
@@ -716,7 +720,28 @@ def _build_human_first_banner_js(hash_: str, title: str, company: str, server_po
       );
     }};
 
+    function _makeDocLink(label, suffix) {{
+      var a = document.createElement('a');
+      a.href = 'http://localhost:' + PORT + '/api/human-first/' + HASH + '/' + suffix;
+      a.textContent = label;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.style.cssText = [
+        'background:rgba(255,255,255,0.15)', 'color:#fff',
+        'border-radius:6px', 'padding:6px 12px', 'font-size:12px',
+        'font-weight:700', 'text-decoration:none', 'white-space:nowrap',
+        'flex-shrink:0', 'line-height:1.2'
+      ].join(';');
+      return a;
+    }}
+
     mainRow.appendChild(info);
+    // Real gap found live: doing the Easy Apply yourself has no way to
+    // grab the tailored resume/cover letter to upload -- these just
+    // download the job's own already-tailored documents directly from
+    // this worker's listener (served by _handle_human_first_document).
+    if (HAS_RESUME) mainRow.appendChild(_makeDocLink('&#128196; Resume', 'resume'));
+    if (HAS_COVER) mainRow.appendChild(_makeDocLink('&#128196; Cover Letter', 'cover-letter'));
     mainRow.appendChild(btnApplied);
     mainRow.appendChild(btnHandoff);
     root.appendChild(mainRow);
@@ -749,8 +774,10 @@ def _inject_human_first_banner(port: int, job: dict, server_port: int) -> bool:
     h = _job_hash(job["url"])
     title = (job.get("title") or "Unknown Position").replace("\\", "\\\\").replace("'", "\\'")
     company = (job.get("site") or job.get("company") or "").replace("\\", "\\\\").replace("'", "\\'")
+    has_resume = bool(job.get("tailored_resume_path"))
+    has_cover = bool(job.get("cover_letter_path"))
 
-    js = _build_human_first_banner_js(h, title, company, server_port)
+    js = _build_human_first_banner_js(h, title, company, server_port, has_resume=has_resume, has_cover=has_cover)
     js_escaped = js.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${")
 
     node_script = f"""

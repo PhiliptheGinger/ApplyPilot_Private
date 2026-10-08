@@ -26,7 +26,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from applypilot.apply.human_review import _build_human_first_banner_js, _human_first_blocked_domains
+from applypilot.apply.human_review import (
+    _build_human_first_banner_js,
+    _human_first_blocked_domains,
+    _inject_human_first_banner,
+)
 
 
 class TestHumanFirstBlockedDomains:
@@ -136,3 +140,54 @@ class TestBannerProgressAndGuidance:
         path.write_text(_build_banner_js("abc123", "Help Desk", "Acme", 9, "Solve it", 7373), encoding="utf-8")
         result = subprocess.run([node, "--check", str(path)], capture_output=True, text=True)
         assert result.returncode == 0, result.stderr
+
+
+class TestHumanFirstDocumentLinks:
+    """Real gap found live (2026-10-06): doing a manual LinkedIn Easy Apply
+    left no way to grab the job's own already-tailored resume/cover letter
+    to upload -- the banner only ever offered Apply/Hand Off. Fixed by
+    serving the files from the same per-worker listener the banner already
+    talks to (launcher._handle_human_first_document) and only showing the
+    link when the job actually has that document.
+    """
+
+    def test_banner_js_omits_links_by_default(self):
+        js = _build_human_first_banner_js("hash1", "Some Job", "acme", 7380)
+
+        assert "HAS_RESUME = false" in js
+        assert "HAS_COVER = false" in js
+
+    def test_banner_js_includes_links_when_requested(self):
+        js = _build_human_first_banner_js("hash1", "Some Job", "acme", 7380, has_resume=True, has_cover=True)
+
+        assert "HAS_RESUME = true" in js
+        assert "HAS_COVER = true" in js
+        assert "_makeDocLink('&#128196; Resume', 'resume')" in js
+        assert "_makeDocLink('&#128196; Cover Letter', 'cover-letter')" in js
+
+    def test_inject_derives_has_resume_has_cover_from_job_dict(self, monkeypatch):
+        """The actual Python-side wiring: whether the banner offers a
+        document link must follow the real job row, not be hardcoded."""
+        import applypilot.apply.human_review as human_review
+
+        captured = {}
+
+        def _fake_build(hash_, title, company, server_port, *, has_resume=False, has_cover=False):
+            captured["has_resume"] = has_resume
+            captured["has_cover"] = has_cover
+            return "// fake js"
+
+        monkeypatch.setattr(human_review, "_build_human_first_banner_js", _fake_build)
+        monkeypatch.setattr(
+            human_review.subprocess,
+            "run",
+            lambda *a, **k: type("R", (), {"returncode": 0, "stderr": ""})(),
+        )
+
+        job_with_both = {"url": "https://www.linkedin.com/jobs/view/1", "tailored_resume_path": "r.pdf", "cover_letter_path": "c.pdf"}
+        _inject_human_first_banner(9222, job_with_both, server_port=7380)
+        assert captured == {"has_resume": True, "has_cover": True}
+
+        job_with_neither = {"url": "https://www.linkedin.com/jobs/view/2"}
+        _inject_human_first_banner(9222, job_with_neither, server_port=7380)
+        assert captured == {"has_resume": False, "has_cover": False}

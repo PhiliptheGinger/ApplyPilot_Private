@@ -319,6 +319,11 @@ def _stop_human_first_listener(worker_id: int) -> None:
         state["human_first_event"] = None
         state["human_first_job_hash"] = None
         state["human_first_result"] = None
+        # Must clear alongside the rest -- _handle_human_first_document
+        # doesn't hash-gate its response, so a stale path here would keep
+        # serving the PREVIOUS job's documents until the next one overwrites it.
+        state["human_first_resume_path"] = None
+        state["human_first_cover_path"] = None
 
 
 # ---------------------------------------------------------------------------
@@ -1020,6 +1025,15 @@ def run_human_first(
 
     done_event = threading.Event()
     hf_port = _start_human_first_listener(worker_id, done_event, job_hash)
+
+    # Real gap found live: the banner offered Apply/Hand Off with no way to
+    # actually get the tailored resume/cover letter to upload during a
+    # manual LinkedIn Easy Apply. Served by launcher._handle_human_first_document.
+    with launcher._worker_state_lock:
+        _state = launcher._worker_state.get(worker_id)
+        if _state is not None:
+            _state["human_first_resume_path"] = job.get("tailored_resume_path")
+            _state["human_first_cover_path"] = job.get("cover_letter_path")
 
     # Real, live-observed failure (2026-09-23), TWO layers deep:
     # (1) injecting into a REAL, heavy LinkedIn page (auth redirects, slow

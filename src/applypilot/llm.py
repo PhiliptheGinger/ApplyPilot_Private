@@ -296,6 +296,19 @@ def _build_fallback_chain(
     if include_local and _local_url:
         chain.append(ModelEntry(_local_model, "local", local_openai_base_url(_local_url), ""))
 
+    # 2026-10-07: explicit, repeated user request to make the local model
+    # PRIMARY, not just a last-resort fallback once every cloud provider is
+    # exhausted. Opt-in via APPLYPILOT_LOCAL_FIRST because the fast/scoring
+    # tier's cloud-first ordering above is a measured, deliberate quality
+    # finding (2026-08-23: qwen3:1.7b missed obvious SWE experience, scored
+    # known-9s as 7), not an oversight -- this only reorders a chain that
+    # already decided to include local (include_local); it never forces
+    # local into the fast tier against that finding.
+    if chain and os.environ.get("APPLYPILOT_LOCAL_FIRST", "").lower() in ("1", "true", "yes"):
+        local_entries = [e for e in chain if e.provider == "local"]
+        if local_entries:
+            chain = local_entries + [e for e in chain if e.provider != "local"]
+
     # If nothing was added (no keys, no local), raise
     if not chain:
         reserved_note = (

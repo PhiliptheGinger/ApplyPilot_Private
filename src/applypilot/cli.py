@@ -1990,6 +1990,7 @@ def status() -> None:
     summary.add_row("Cover letters", str(stats["with_cover_letter"]))
     summary.add_row("Ready to apply", str(stats["ready_to_apply"]))
     summary.add_row("Applied", str(stats["applied"]))
+    summary.add_row("Manual apply only (no automation)", str(stats["manual_only"]))
     summary.add_row("Apply errors", str(stats["apply_errors"]))
     summary.add_row("Title-pattern rejected", str(stats.get("title_rejected", 0)))
     if stats.get("needs_human", 0) > 0:
