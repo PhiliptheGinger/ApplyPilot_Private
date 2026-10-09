@@ -131,3 +131,6 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 | FW36/Stage A | Persistent Playwright MCP per worker | built #235, default; watch the first live apply run |
 | FW39 | Proxy/fingerprint hardening | declined #237; security work is FW72 |
 | FW52 | Imperfect assessment answers | declined #237 |
+| FW78 | Human-first banner "Not Available/Skip" button | found live 2026-10-08 during first supervised human-first batch; not built |
+| FW79 | Human-first banner injection 15s CDP timeout | observed live 2026-10-08; unconfirmed if self-healing, needs log follow-up |
+| FW80 | Deterministic engine as human-first hand-off automation (cut Claude budget) | proposed 2026-10-08; needs explicit policy call vs FW13/FW39/FW43 before building |
