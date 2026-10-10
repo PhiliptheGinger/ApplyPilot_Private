@@ -408,6 +408,9 @@ notes and stray files are never deleted. A closed Future Work item stays in
 | 236 | FW28 requirement-framing classifier in the local scorer: additive, shadow mode until scripts/validate_requirement_framing.py passes live |
 | 237 | FW39 and FW52 declined by the user; E3 lock-error baseline recorded (~2-3 give-ups/hour, only in full discover+4more runs) |
 | 238 | `APPLYPILOT_LOCAL_FIRST=1` reorders the fallback chain to try local before cloud (decision #144 only fixed the no-cloud-key case); Best Buy test job marked `applied_manually` |
+| 239 | FW78: human-first banner Skip button + `unavailable` outcome built; a real `textContent`-vs-`innerHTML` HTML-entity bug fixed live along the way |
+| 240 | FW41 (live queue UI), FW47 (flag-job + bug-report icons), FW50 (document dedup, storage half only) built; a real cross-filename dedup bug caught by the new test suite before shipping |
+| 241 | FW79 root-caused (per-poll fresh-Node-spawn cost + Defender/RAM pressure) and mitigated (15s->30s); 9 real CDP-unreachable events found across today's logs, already self-healing via #173 |
 
 ---
 

@@ -408,6 +408,12 @@ _ALL_COLUMNS: dict[str, str] = {
     # (which flags HOW a job was scored, not WHY it's in the pipeline) --
     # a job can be both, or a test case scored by a real cloud LLM.
     "test_case": "INTEGER DEFAULT 0",
+    # FW47(b): user-reported pipeline-logic fault on a specific job (e.g.
+    # "this shouldn't have scored this high"), from the banner's flag icon.
+    # Distinct from needs_human_reason (the AGENT reporting it's stuck) --
+    # this is the HUMAN reporting the pipeline got something wrong.
+    "user_flagged_reason": "TEXT",
+    "user_flagged_at": "TEXT",
 }
 
 

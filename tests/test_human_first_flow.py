@@ -105,6 +105,22 @@ class TestRunHumanFirst:
         db_row = conn.execute("SELECT application_url FROM jobs WHERE url = ?", (job["url"],)).fetchone()
         assert db_row["application_url"] == ats_url
 
+    def test_unavailable_outcome(self, tmp_db, _patched_banner, _worker_state):
+        """FW78: the banner's 'Skip' button posts outcome='unavailable' for
+        a dead posting (expired/filled/already applied) -- distinct from
+        'released' (timeout), since the caller must mark this permanent so
+        acquire_job() doesn't resurface it (see the orchestrator's
+        human_first branch, which feeds this into the same permanent-
+        failure path as the pre-apply expired-posting precheck)."""
+        tmp_db()
+        job = _job()
+        _fire_banner_click(0, "unavailable")
+
+        outcome, returned_job = hitl.run_human_first(worker_id=0, port=9999, job=job, poll_interval=0.05)
+
+        assert outcome == "unavailable"
+        assert returned_job["url"] == job["url"]
+
     def test_exposes_resume_and_cover_paths_for_the_document_download_links(self, tmp_db, _patched_banner, _worker_state):
         """Real gap found live (2026-10-06): a manual LinkedIn Easy Apply
         had no way to grab the job's own tailored documents to upload --
@@ -226,3 +242,57 @@ class TestRunHumanFirst:
 
         assert outcome == "applied"
         assert len(calls) >= 2, "banner injection must be retried, not attempted only once"
+
+
+def test_doc_link_labels_use_innerhtml_not_textcontent():
+    """Real, live-caught bug (2026-10-09): the Resume/Cover Letter banner
+    links were built with `a.textContent = label` where `label` is an HTML
+    entity string ('&#128196; Resume'). textContent doesn't parse entities,
+    so the user saw the literal text '&#128196; Resume' in the browser --
+    which, read quickly, looks exactly like a hash ('#128196') prefixed to
+    the filename. _makeBtn (the Applied/Hand Off buttons) already used
+    innerHTML and rendered correctly, which is why this one spot was
+    missed."""
+    import applypilot.apply.human_review as human_review
+
+    js = human_review._build_human_first_banner_js(
+        "abc123", "Test Job", "Acme", 9999, has_resume=True, has_cover=True
+    )
+
+    assert "a.innerHTML = label" in js
+    assert "a.textContent = label" not in js
+
+
+def test_banner_has_visible_skip_button_with_hotkey_hint():
+    """FW78: the only way to skip a dead posting used to be the terminal's
+    [S] hotkey, which doesn't work at all when the run isn't launched from
+    a real interactive console (no tty -- see orchestrator.py's own
+    sys.stdin.isatty() guard) and is bad, undiscoverable UI besides. A real
+    button must exist in the banner itself; the hotkey is a hover-tooltip
+    hint on it, not the only way to trigger it."""
+    import applypilot.apply.human_review as human_review
+
+    js = human_review._build_human_first_banner_js(
+        "abc123", "Test Job", "Acme", 9999, has_resume=True, has_cover=True
+    )
+
+    assert "btnSkip" in js
+    assert "mainRow.appendChild(btnSkip)" in js
+    assert "_signal('unavailable')" in js
+    assert "Hotkey: S" in js
+
+
+def test_human_first_banner_has_flag_and_bug_buttons():
+    """FW47: both the pipeline-logic flag icon and the tool-bug-report icon
+    must be present and wired in the human-first banner."""
+    import applypilot.apply.human_review as human_review
+
+    js = human_review._build_human_first_banner_js(
+        "abc123", "Test Job", "Acme", 9999, has_resume=True, has_cover=True, job_url="https://example.com/job/1"
+    )
+
+    assert "mainRow.appendChild(btnFlag)" in js
+    assert "mainRow.appendChild(btnBug)" in js
+    assert "/api/flag-job" in js
+    assert "/api/bug-report" in js
+    assert "JOB_URL = 'https://example.com/job/1'" in js

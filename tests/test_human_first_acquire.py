@@ -124,6 +124,53 @@ def test_picks_highest_score_first(tmp_db, seed_linkedin_job):
     assert job["fit_score"] == 9
 
 
+class TestPreviewHumanFirstQueue:
+    """FW41: a read-only preview of the same pool acquire_human_first_
+    linkedin_job draws from, for the worker homepage's 'Up Next' panel."""
+
+    def test_matches_same_eligibility_as_acquire(self, tmp_db, seed_linkedin_job):
+        from applypilot.apply.launcher import preview_human_first_queue
+
+        conn = tmp_db()
+        seed_linkedin_job(conn, fit_score=9)
+
+        upcoming = preview_human_first_queue()
+
+        assert len(upcoming) == 1
+        assert "linkedin.com/jobs/view" in upcoming[0]["url"]
+
+    def test_never_claims_the_job(self, tmp_db, seed_linkedin_job):
+        """A preview must be side-effect-free -- state stays exactly as it
+        was, unlike acquire_human_first_linkedin_job which transitions to
+        'applying'."""
+        from applypilot.apply.launcher import preview_human_first_queue
+        from applypilot.database import current_state
+
+        conn = tmp_db()
+        row = seed_linkedin_job(conn, fit_score=9)
+
+        preview_human_first_queue()
+
+        assert current_state(conn, row["url"]) == "manual_only"
+
+    def test_respects_limit(self, tmp_db, seed_linkedin_job):
+        from applypilot.apply.launcher import preview_human_first_queue
+
+        conn = tmp_db()
+        for i in range(3):
+            seed_linkedin_job(conn, li_id=f"100{i}", fit_score=9)
+
+        upcoming = preview_human_first_queue(limit=2)
+
+        assert len(upcoming) == 2
+
+    def test_empty_queue_returns_empty_list(self, tmp_db):
+        from applypilot.apply.launcher import preview_human_first_queue
+
+        tmp_db()
+        assert preview_human_first_queue() == []
+
+
 def test_manual_only_to_applying_is_a_legal_transition(tmp_db, seed_linkedin_job):
     """database.py's VALID_TRANSITIONS must allow this override edge —
     decision #172's sweep otherwise makes manual_only a dead end."""

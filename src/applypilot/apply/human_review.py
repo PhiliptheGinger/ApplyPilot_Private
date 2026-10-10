@@ -53,7 +53,7 @@ def _inject_banner(port: int, job: dict, server_port: int = 7373) -> bool:
         .replace("'", "\\'")
     )
 
-    js = _build_banner_js(h, title, company, score, instructions, server_port=server_port)
+    js = _build_banner_js(h, title, company, score, instructions, server_port=server_port, job_url=job["url"])
     # Escape backticks and backslashes for embedding in a JS template literal
     js_escaped = js.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${")
 
@@ -81,7 +81,19 @@ const {{ chromium }} = require('@playwright/test');
     try:
         result = subprocess.run(
             ["node", "-e", node_script],
-            timeout=15,
+            # FW79 (2026-10-09): this spawns a BRAND NEW Node process every
+            # call (once per 5s poll in the HITL wait loop) -- cold
+            # `require('@playwright/test')` alone measured 0.7-3.5s on this
+            # exact machine, BEFORE connectOverCDP + addInitScript +
+            # per-page evaluate. Confirmed live: Windows Defender real-time
+            # scanning is active (MsMpEng running) and free RAM sits ~27%
+            # (3.2/12GB) under a normal apply run -- both add real per-spawn
+            # latency on top of the bare require time. 15s was tight enough
+            # to legitimately false-positive as a timeout under that load,
+            # not a true hang; 30s gives real headroom without masking an
+            # actual hang (CDP connect itself has its own shorter internal
+            # timeout well under this).
+            timeout=30,
             capture_output=True,
             text=True,
             check=False,
@@ -96,7 +108,13 @@ const {{ chromium }} = require('@playwright/test');
 
 
 def _build_banner_js(
-    hash_: str, title: str, company: str, score: int | str, instructions: str, server_port: int = 7373
+    hash_: str,
+    title: str,
+    company: str,
+    score: int | str,
+    instructions: str,
+    server_port: int = 7373,
+    job_url: str = "",
 ) -> str:
     """Build the JavaScript banner overlay that persists across navigations.
 
@@ -115,6 +133,7 @@ def _build_banner_js(
         instructions_summary = instructions[:80] + ("..." if len(instructions) > 80 else "")
     instructions_summary_js = instructions_summary.replace("\\", "\\\\").replace("'", "\\'")
     instructions_full_js = instructions.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n")
+    job_url_js = job_url.replace("\\", "\\\\").replace("'", "\\'")
 
     return f"""
 (function() {{
@@ -122,7 +141,26 @@ def _build_banner_js(
   window.__ap_banner = true;
   var HASH = '{hash_}';
   var PORT = {server_port};
+  var JOB_URL = '{job_url_js}';
   var STORAGE_KEY = '__ap_banner_collapsed_' + HASH;
+
+  function _signalFlag(reason) {{
+    fetch('http://localhost:' + PORT + '/api/flag-job', {{
+      method: 'POST',
+      headers: {{'Content-Type': 'application/json'}},
+      body: JSON.stringify({{url: JOB_URL, reason: reason}})
+    }}).catch(function() {{}});
+  }}
+
+  function _signalBug(description, onDone) {{
+    fetch('http://localhost:' + PORT + '/api/bug-report', {{
+      method: 'POST',
+      headers: {{'Content-Type': 'application/json'}},
+      body: JSON.stringify({{description: description}})
+    }}).then(function(r) {{ return r.json(); }})
+      .then(function(d) {{ onDone(!!(d && d.ok), (d && d.detail) || ''); }})
+      .catch(function(e) {{ onDone(false, String(e)); }});
+  }}
 
   function _signalDone(customInstructions) {{
     window.__ap_hitl_done = HASH;
@@ -226,6 +264,17 @@ def _build_banner_js(
       'I completed the required action — hand back to agent');
     var btnOther = _makeBtn('Other &#9998;', 'rgba(255,255,255,0.15)', '#fff',
       'Enter custom instructions for the agent');
+    // FW47(b): report a PIPELINE-LOGIC fault on this specific job (e.g.
+    // "this shouldn't have scored this high"), distinct from Other/Done
+    // (which are about THIS pause, not the job's own data). Doesn't
+    // resume the agent -- the pause continues exactly as before.
+    var btnFlag = _makeBtn('&#128681; Flag', 'rgba(220,38,38,0.6)', '#fff',
+      'Report a problem with this job (wrong score, wrong ATS, etc.) -- does not resume the agent');
+    // FW47(a): report a TECHNICAL/UI fault in the tool itself as a GitHub
+    // issue (distinct from Flag, which is about this JOB's data/scoring).
+    // No-ops with a clear error if APPLYPILOT_GITHUB_TOKEN isn't configured.
+    var btnBug = _makeBtn('&#128027; Bug', 'rgba(255,255,255,0.15)', '#fff',
+      'Report a bug in ApplyPilot itself -- files a GitHub issue');
     var btnCollapse = _makeBtn('&#8722;', 'rgba(0,0,0,0.2)', '#fff',
       'Minimize banner');
     btnCollapse.id = '__ap_collapse_btn';
@@ -256,12 +305,28 @@ def _build_banner_js(
       }}
     }};
 
+    btnFlag.onclick = function() {{
+      var panel = document.getElementById('__ap_flag_panel');
+      if (panel) {{
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      }}
+    }};
+
+    btnBug.onclick = function() {{
+      var panel = document.getElementById('__ap_bug_panel');
+      if (panel) {{
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      }}
+    }};
+
     btnCollapse.onclick = function() {{ _showCollapsed(); }};
 
     topRow.appendChild(info);
     topRow.appendChild(btnContinue);
     topRow.appendChild(btnDone);
     topRow.appendChild(btnOther);
+    topRow.appendChild(btnFlag);
+    topRow.appendChild(btnBug);
     topRow.appendChild(btnCollapse);
     root.appendChild(topRow);
 
@@ -305,6 +370,97 @@ def _build_banner_js(
     otherPanel.appendChild(textarea);
     otherPanel.appendChild(otherBtnRow);
     root.appendChild(otherPanel);
+
+    // ── "Flag" panel (hidden by default) ─────────────────────────────────────
+    var flagPanel = document.createElement('div');
+    flagPanel.id = '__ap_flag_panel';
+    flagPanel.style.cssText = 'display:none;margin-top:8px';
+
+    var flagTextarea = document.createElement('textarea');
+    flagTextarea.placeholder = 'What\\'s wrong with this job? (e.g. "score too high for a role with no remote option")';
+    flagTextarea.rows = 2;
+    flagTextarea.style.cssText = textarea.style.cssText;
+
+    var flagBtnRow = document.createElement('div');
+    flagBtnRow.style.cssText = 'display:flex;gap:8px;margin-top:6px;justify-content:flex-end';
+
+    var btnFlagCancel = _makeBtn('Cancel', 'rgba(255,255,255,0.1)', '#fff', '');
+    var btnFlagSubmit = _makeBtn('Submit Flag &#8594;', '#dc2626', '#fff', 'Report this job; the agent keeps running');
+
+    btnFlagCancel.onclick = function() {{
+      flagPanel.style.display = 'none';
+      flagTextarea.value = '';
+    }};
+
+    btnFlagSubmit.onclick = function() {{
+      var txt = flagTextarea.value.trim();
+      btnFlagSubmit.innerHTML = 'Sent &#10003;';
+      btnFlagSubmit.disabled = true;
+      _signalFlag(txt);
+      setTimeout(function() {{
+        flagPanel.style.display = 'none';
+        flagTextarea.value = '';
+        btnFlagSubmit.innerHTML = 'Submit Flag &#8594;';
+        btnFlagSubmit.disabled = false;
+      }}, 1500);
+    }};
+
+    flagBtnRow.appendChild(btnFlagCancel);
+    flagBtnRow.appendChild(btnFlagSubmit);
+    flagPanel.appendChild(flagTextarea);
+    flagPanel.appendChild(flagBtnRow);
+    root.appendChild(flagPanel);
+
+    // ── "Bug report" panel (hidden by default) ───────────────────────────────
+    var bugPanel = document.createElement('div');
+    bugPanel.id = '__ap_bug_panel';
+    bugPanel.style.cssText = 'display:none;margin-top:8px';
+
+    var bugTextarea = document.createElement('textarea');
+    bugTextarea.placeholder = 'What went wrong in the TOOL itself? (e.g. "banner buttons unresponsive")';
+    bugTextarea.rows = 2;
+    bugTextarea.style.cssText = textarea.style.cssText;
+
+    var bugStatus = document.createElement('div');
+    bugStatus.style.cssText = 'font-size:11px;margin-top:4px;min-height:14px';
+
+    var bugBtnRow = document.createElement('div');
+    bugBtnRow.style.cssText = 'display:flex;gap:8px;margin-top:6px;justify-content:flex-end';
+
+    var btnBugCancel = _makeBtn('Cancel', 'rgba(255,255,255,0.1)', '#fff', '');
+    var btnBugSubmit = _makeBtn('File Issue &#8594;', '#dc2626', '#fff', 'Files a GitHub issue with this description');
+
+    btnBugCancel.onclick = function() {{
+      bugPanel.style.display = 'none';
+      bugTextarea.value = '';
+      bugStatus.textContent = '';
+    }};
+
+    btnBugSubmit.onclick = function() {{
+      var txt = bugTextarea.value.trim();
+      if (!txt) {{ bugTextarea.focus(); return; }}
+      btnBugSubmit.innerHTML = 'Filing...';
+      btnBugSubmit.disabled = true;
+      _signalBug(txt, function(ok, detail) {{
+        btnBugSubmit.innerHTML = 'File Issue &#8594;';
+        btnBugSubmit.disabled = false;
+        if (ok) {{
+          bugStatus.style.color = '#4ade80';
+          bugStatus.textContent = 'Filed: ' + detail;
+          bugTextarea.value = '';
+        }} else {{
+          bugStatus.style.color = '#fca5a5';
+          bugStatus.textContent = 'Failed: ' + detail;
+        }}
+      }});
+    }};
+
+    bugBtnRow.appendChild(btnBugCancel);
+    bugBtnRow.appendChild(btnBugSubmit);
+    bugPanel.appendChild(bugTextarea);
+    bugPanel.appendChild(bugStatus);
+    bugPanel.appendChild(bugBtnRow);
+    root.appendChild(bugPanel);
 
     // ── Details collapsible ───────────────────────────────────────────────────
     var details = document.createElement('details');
@@ -461,7 +617,14 @@ def _human_first_blocked_domains() -> list[str]:
 
 
 def _build_human_first_banner_js(
-    hash_: str, title: str, company: str, server_port: int, *, has_resume: bool = False, has_cover: bool = False
+    hash_: str,
+    title: str,
+    company: str,
+    server_port: int,
+    *,
+    has_resume: bool = False,
+    has_cover: bool = False,
+    job_url: str = "",
 ) -> str:
     """Build the banner overlay for the human-first LinkedIn apply flow.
 
@@ -477,15 +640,35 @@ def _build_human_first_banner_js(
     import json
 
     blocked_domains_json = json.dumps(_human_first_blocked_domains())
+    job_url_js = job_url.replace("\\", "\\\\").replace("'", "\\'")
     return f"""
 (function() {{
   if (window.__ap_hf_banner) return;
   window.__ap_hf_banner = true;
   var HASH = '{hash_}';
   var PORT = {server_port};
+  var JOB_URL = '{job_url_js}';
   var BLOCKED_DOMAINS = {blocked_domains_json};
   var HAS_RESUME = {json.dumps(has_resume)};
   var HAS_COVER = {json.dumps(has_cover)};
+
+  function _signalFlag(reason) {{
+    fetch('http://localhost:' + PORT + '/api/flag-job', {{
+      method: 'POST',
+      headers: {{'Content-Type': 'application/json'}},
+      body: JSON.stringify({{url: JOB_URL, reason: reason}})
+    }}).catch(function() {{}});
+  }}
+
+  function _signalBug(description, onDone) {{
+    fetch('http://localhost:' + PORT + '/api/bug-report', {{
+      method: 'POST',
+      headers: {{'Content-Type': 'application/json'}},
+      body: JSON.stringify({{description: description}})
+    }}).then(function(r) {{ return r.json(); }})
+      .then(function(d) {{ onDone(!!(d && d.ok), (d && d.detail) || ''); }})
+      .catch(function(e) {{ onDone(false, String(e)); }});
+  }}
 
   function _onBlockedDomain() {{
     var host = window.location.hostname.toLowerCase();
@@ -646,6 +829,28 @@ def _build_human_first_banner_js(
     var btnHandoff = _makeBtn('Hand Off &#9654;&#65038;', '#fff', '#4f46e5',
       'You were redirected to the company\\'s own site — let automation take over from here');
 
+    // FW78 (2026-10-08): the only way to skip a dead/unavailable posting
+    // used to be the terminal's [S] hotkey -- which doesn't even work when
+    // this run was launched non-interactively (no real stdin to watch), and
+    // is bad UI besides (invisible, undiscoverable). A real in-banner
+    // button is now the primary affordance; the hotkey is just a hover
+    // hint on it, not the only path.
+    var btnSkip = _makeBtn('Skip &#10005;', 'rgba(220,38,38,0.85)', '#fff',
+      "This posting isn't available (expired, filled, already applied, etc.) — " +
+      'mark it unavailable and move on. Hotkey: S');
+
+    // FW47(b): report a PIPELINE-LOGIC fault on this job (e.g. "this
+    // shouldn't have scored this high") -- distinct from Skip (which is
+    // about the POSTING being dead, not the pipeline's own judgment about
+    // it). Doesn't advance the job; the wait continues as before.
+    var btnFlag = _makeBtn('&#128681; Flag', 'rgba(255,255,255,0.15)', '#fff',
+      'Report a problem with this job (wrong score, wrong ATS, etc.)');
+
+    // FW47(a): report a TECHNICAL/UI fault in the tool itself as a GitHub
+    // issue -- no-ops with a clear error if APPLYPILOT_GITHUB_TOKEN isn't set.
+    var btnBug = _makeBtn('&#128027; Bug', 'rgba(255,255,255,0.15)', '#fff',
+      'Report a bug in ApplyPilot itself -- files a GitHub issue');
+
     // FW49 (2026-10-07): after Hand Off the button used to sit on a static
     // "Handing off..." for the whole automation run (often 5-10 minutes),
     // which read as frozen. Show elapsed time and plain-language progress,
@@ -720,10 +925,92 @@ def _build_human_first_banner_js(
       );
     }};
 
+    btnSkip.onclick = function() {{
+      if (btnSkip.disabled) return;
+      _disableAllBtns();
+      btnSkip.innerHTML = 'Skipping...';
+      _signal('unavailable');
+    }};
+
+    var flagPanel = document.createElement('div');
+    flagPanel.style.cssText = 'display:none;width:100%;align-items:center;gap:8px;' +
+      'background:rgba(0,0,0,0.25);border-radius:6px;padding:8px 10px;margin-top:2px';
+    var flagTextarea = document.createElement('textarea');
+    flagTextarea.placeholder = 'What\\'s wrong with this job?';
+    flagTextarea.rows = 2;
+    flagTextarea.style.cssText = [
+      'flex:1', 'box-sizing:border-box', 'background:rgba(0,0,0,0.3)', 'color:#fff',
+      'border:1px solid rgba(255,255,255,0.3)', 'border-radius:5px',
+      'padding:7px 10px', 'font-size:12px', 'font-family:system-ui,sans-serif',
+      'resize:vertical', 'outline:none'
+    ].join(';');
+    var btnFlagSubmit = _makeBtn('Submit &#8594;', '#dc2626', '#fff', '');
+    var btnFlagCancel = _makeBtn('Cancel', 'rgba(255,255,255,0.15)', '#fff', '');
+    btnFlagSubmit.onclick = function() {{
+      _signalFlag(flagTextarea.value.trim());
+      btnFlagSubmit.innerHTML = 'Sent &#10003;';
+      btnFlagSubmit.disabled = true;
+      setTimeout(function() {{
+        flagPanel.style.display = 'none';
+        flagTextarea.value = '';
+        btnFlagSubmit.innerHTML = 'Submit &#8594;';
+        btnFlagSubmit.disabled = false;
+      }}, 1200);
+    }};
+    btnFlagCancel.onclick = function() {{
+      flagPanel.style.display = 'none';
+      flagTextarea.value = '';
+    }};
+    flagPanel.appendChild(flagTextarea);
+    flagPanel.appendChild(btnFlagSubmit);
+    flagPanel.appendChild(btnFlagCancel);
+
+    btnFlag.onclick = function() {{
+      flagPanel.style.display = flagPanel.style.display === 'none' ? 'flex' : 'none';
+    }};
+
+    var bugPanel = document.createElement('div');
+    bugPanel.style.cssText = 'display:none;width:100%;align-items:center;gap:8px;' +
+      'background:rgba(0,0,0,0.25);border-radius:6px;padding:8px 10px;margin-top:2px;flex-wrap:wrap';
+    var bugTextarea = document.createElement('textarea');
+    bugTextarea.placeholder = 'What went wrong in the TOOL itself?';
+    bugTextarea.rows = 2;
+    bugTextarea.style.cssText = flagTextarea.style.cssText;
+    var bugStatus = document.createElement('div');
+    bugStatus.style.cssText = 'width:100%;font-size:11px';
+    var btnBugSubmit = _makeBtn('File Issue &#8594;', '#dc2626', '#fff', '');
+    var btnBugCancel = _makeBtn('Cancel', 'rgba(255,255,255,0.15)', '#fff', '');
+    btnBugSubmit.onclick = function() {{
+      var txt = bugTextarea.value.trim();
+      if (!txt) {{ bugTextarea.focus(); return; }}
+      btnBugSubmit.innerHTML = 'Filing...';
+      btnBugSubmit.disabled = true;
+      _signalBug(txt, function(ok, detail) {{
+        btnBugSubmit.innerHTML = 'File Issue &#8594;';
+        btnBugSubmit.disabled = false;
+        bugStatus.style.color = ok ? '#4ade80' : '#fca5a5';
+        bugStatus.textContent = (ok ? 'Filed: ' : 'Failed: ') + detail;
+        if (ok) bugTextarea.value = '';
+      }});
+    }};
+    btnBugCancel.onclick = function() {{
+      bugPanel.style.display = 'none';
+      bugTextarea.value = '';
+      bugStatus.textContent = '';
+    }};
+    bugPanel.appendChild(bugTextarea);
+    bugPanel.appendChild(btnBugSubmit);
+    bugPanel.appendChild(btnBugCancel);
+    bugPanel.appendChild(bugStatus);
+
+    btnBug.onclick = function() {{
+      bugPanel.style.display = bugPanel.style.display === 'none' ? 'flex' : 'none';
+    }};
+
     function _makeDocLink(label, suffix) {{
       var a = document.createElement('a');
       a.href = 'http://localhost:' + PORT + '/api/human-first/' + HASH + '/' + suffix;
-      a.textContent = label;
+      a.innerHTML = label;
       a.target = '_blank';
       a.rel = 'noopener';
       a.style.cssText = [
@@ -744,10 +1031,15 @@ def _build_human_first_banner_js(
     if (HAS_COVER) mainRow.appendChild(_makeDocLink('&#128196; Cover Letter', 'cover-letter'));
     mainRow.appendChild(btnApplied);
     mainRow.appendChild(btnHandoff);
+    mainRow.appendChild(btnSkip);
+    mainRow.appendChild(btnFlag);
+    mainRow.appendChild(btnBug);
     root.appendChild(mainRow);
     root.appendChild(subline);
     root.appendChild(confirmPanel);
     root.appendChild(blockedPanel);
+    root.appendChild(flagPanel);
+    root.appendChild(bugPanel);
 
     function _tryInsert() {{
       if (document.body) {{
@@ -777,7 +1069,9 @@ def _inject_human_first_banner(port: int, job: dict, server_port: int) -> bool:
     has_resume = bool(job.get("tailored_resume_path"))
     has_cover = bool(job.get("cover_letter_path"))
 
-    js = _build_human_first_banner_js(h, title, company, server_port, has_resume=has_resume, has_cover=has_cover)
+    js = _build_human_first_banner_js(
+        h, title, company, server_port, has_resume=has_resume, has_cover=has_cover, job_url=job["url"]
+    )
     js_escaped = js.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${")
 
     node_script = f"""
@@ -803,7 +1097,9 @@ const {{ chromium }} = require('@playwright/test');
     try:
         result = subprocess.run(
             ["node", "-e", node_script],
-            timeout=15,
+            # FW79: see the matching comment in _inject_banner -- same
+            # per-call cold-spawn cost, same live-measured justification.
+            timeout=30,
             capture_output=True,
             text=True,
             check=False,

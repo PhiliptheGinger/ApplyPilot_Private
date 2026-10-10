@@ -998,6 +998,11 @@ def run_human_first(
         release_lock() call to return to ready_to_apply (decision #172's
         sweep will naturally re-park it in manual_only next acquire, since
         application_url is still empty).
+      - ("unavailable", job) — human clicked "Skip" (FW78): the posting
+        itself is dead (expired, filled, already applied elsewhere, etc.),
+        not something a retry would fix. Caller should mark this a
+        permanent failure, distinct from "released", so it does not
+        resurface on a future acquire.
       - ("stopped", job) — stop_event fired mid-wait; caller should break
         out of its worker loop without further action.
 
@@ -1105,6 +1110,8 @@ def run_human_first(
             signalled = (result.get("outcome") or "").strip()
             if signalled == "applied":
                 outcome = "applied"
+            elif signalled == "unavailable":
+                outcome = "unavailable"
             elif signalled == "handoff" and result.get("url"):
                 job = dict(job)
                 job["application_url"] = result["url"]

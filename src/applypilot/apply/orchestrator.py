@@ -39,6 +39,7 @@ from applypilot import config
 from applypilot.apply import session_pool
 from applypilot.apply.chrome import (
     BASE_CDP_PORT,
+    HITL_LISTEN_BASE_PORT,
     _AdoptedChromeProcess,
     _chrome_lock,
     _chrome_procs,
@@ -735,6 +736,14 @@ def _worker_loop_body(
                     # a normal run_job() call had returned it — no separate
                     # mark_result/history/counter logic to keep in sync.
                     result, duration_ms, screening_qs = "applied", 0, []
+                elif hf_outcome == "unavailable":
+                    # FW78: human clicked "Skip" -- the posting itself is
+                    # dead (expired/filled/already applied), not a transient
+                    # issue a retry would fix. Feed the existing permanent-
+                    # failure branch below (mirrors the pre-apply expired-
+                    # posting precheck above) rather than "skipped", so
+                    # acquire_job() never resurfaces it.
+                    result, duration_ms, screening_qs = "unavailable", 0, []
                 elif hf_outcome == "released":
                     # Same reasoning: feed the existing "skipped" branch,
                     # which already does release_lock() + was_skipped=True.
@@ -807,6 +816,18 @@ def _worker_loop_body(
                     if ats_slug:
                         profile_dir = config.CHROME_WORKER_DIR / f"worker-{worker_id}"
                         save_ats_session(profile_dir, ats_slug)
+                    break
+
+                elif result == "unavailable":
+                    # FW78: human-first "Skip" -- posting is dead, not a
+                    # transient failure. Permanent, mirrors the pre-apply
+                    # expired-posting precheck's own mark_result call.
+                    mark_result(job["url"], "failed", "unavailable", permanent=True, duration_ms=0)
+                    _log_failed_attempt(job, "unavailable", worker_id, 0, True)
+                    _record_job_history(worker_id, job, result, duration_ms)
+                    add_event(f"[W{worker_id}] Skipped (unavailable): {(job.get('title') or '')[:30]}")
+                    failed += 1
+                    update_state(worker_id, jobs_failed=failed, jobs_done=applied + failed)
                     break
 
                 elif result == "takeover":
@@ -1270,6 +1291,16 @@ def main(
     console.print(
         "[dim]Hotkeys: [S] skip current job | [Q] quit all | Ctrl+C = skip current job(s) | Ctrl+C x2 = stop[/dim]"
     )
+    # FW41: the terminal dashboard (below) only renders when stdin is a
+    # real interactive console -- a run launched any other way (piped,
+    # backgrounded, driven by an external process manager) loses it
+    # entirely, with no substitute. Each worker already runs its own
+    # live-updating status page (launcher._handle_homepage, 5s auto-
+    # refresh) on its always-on HTTP listener; it was just never
+    # surfaced anywhere. Print it so a second browser window/tab always
+    # works as a visibility fallback, regardless of how this was launched.
+    for i in range(workers):
+        console.print(f"[dim]Dashboard (W{i}): http://localhost:{HITL_LISTEN_BASE_PORT + i}/[/dim]")
 
     def _skip_active_jobs() -> None:
         with _claude_lock:

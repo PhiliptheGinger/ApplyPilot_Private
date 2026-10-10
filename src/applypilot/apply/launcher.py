@@ -456,6 +456,10 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self._handle_done()
             elif self.path.startswith("/api/human-first/"):
                 self._handle_human_first()
+            elif self.path == "/api/flag-job":
+                self._handle_flag_job()
+            elif self.path == "/api/bug-report":
+                self._handle_bug_report()
             elif self.path.startswith("/api/action-log/"):
                 self._handle_action_log()
             elif self.path == "/api/add-job":
@@ -578,6 +582,34 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
   </table>
 </div>"""
 
+            # FW41: "Up Next" -- a read-only preview of the human-first
+            # LinkedIn queue, so a second-window view answers "what's
+            # waiting" without needing to watch the Chrome tab itself.
+            queue_section = ""
+            try:
+                upcoming = preview_human_first_queue(limit=5)
+            except Exception:  # noqa: BLE001 - a queue preview must never break the homepage
+                upcoming = []
+            if upcoming:
+                queue_rows = ""
+                for j in upcoming:
+                    q_title = _html.escape((j.get("title") or "")[:60])
+                    q_company = _html.escape((j.get("company") or "")[:30])
+                    q_score = j.get("fit_score") or 0
+                    queue_rows += (
+                        f"<tr><td>{q_title}<br>"
+                        f'<span style="font-size:10px;color:#64748b">{q_company}</span></td>'
+                        f'<td style="color:#60a5fa;font-size:11px;text-align:center">{q_score}/10</td></tr>'
+                    )
+                queue_section = f"""
+<div class="log-panel">
+  <div class="log-title">Up Next (human-first queue)</div>
+  <table class="log-table">
+    <thead><tr><th>Job</th><th>Score</th></tr></thead>
+    <tbody>{queue_rows}</tbody>
+  </table>
+</div>"""
+
             body = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -623,6 +655,7 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
   {instructions_block}
 </div>
 {log_section}
+{queue_section}
 <div class="hint">ApplyPilot Worker {worker_id} &nbsp;·&nbsp; <span id="ts"></span></div>
 <script>
   document.getElementById('ts').textContent = new Date().toLocaleTimeString();
@@ -845,6 +878,57 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             self.wfile.write(data)
+
+        def _handle_flag_job(self) -> None:
+            """FW47(b): record a user-reported pipeline-logic fault on a
+            specific job (e.g. "this shouldn't have scored this high"),
+            from the flag icon in either banner. The job URL travels in the
+            POST body (not resolved server-side from the hash) so this one
+            handler works for both banners regardless of what each one
+            currently tracks in `state`.
+            """
+            body = self._read_body()
+            url = (body.get("url") or "").strip()
+            reason = (body.get("reason") or "").strip()
+            if not url:
+                self.send_response(400)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                return
+            try:
+                conn = get_connection()
+                _db_retry_execute(
+                    conn,
+                    "UPDATE jobs SET user_flagged_reason = ?, user_flagged_at = datetime('now') WHERE url = ?",
+                    (reason or "(no reason given)", url),
+                )
+                _db_retry_commit(conn)
+                logger.info("Job flagged by user: %s -- %s", url, reason[:120])
+            except Exception:
+                logger.warning("Failed to record job flag for %s", url, exc_info=True)
+            self._text_ok()
+
+        def _handle_bug_report(self) -> None:
+            """FW47(a): in-banner bug-report icon -- files a GitHub issue via
+            tracking.github_issue, attaching this worker's current-job
+            context (not a raw log dump, see that module's own scope note).
+            Unlike _handle_flag_job, this reports a result (success/failure)
+            since it depends on a credential that may not be configured.
+            """
+            from applypilot.tracking.github_issue import file_bug_report
+
+            body = self._read_body()
+            description = (body.get("description") or "").strip()
+            job = state.get("job") or {}
+            context = {
+                "Worker": f"W{worker_id}",
+                "Job": job.get("title"),
+                "Job URL": job.get("url"),
+                "Status": state.get("status"),
+                "Reason": state.get("reason"),
+            }
+            ok, detail = file_bug_report(description, context=context)
+            self._json_ok({"ok": ok, "detail": detail})
 
         def _handle_action_log(self):
             """Stash a content-script-posted action log keyed by job hash.
@@ -2317,6 +2401,30 @@ def acquire_human_first_linkedin_job(worker_id: int = 0) -> dict | None:
     except Exception:
         conn.rollback()
         raise
+
+
+def preview_human_first_queue(limit: int = 5) -> list[dict]:
+    """Read-only preview of the next eligible human-first jobs (FW41), for
+    the worker homepage's "Up Next" panel. Mirrors
+    acquire_human_first_linkedin_job's own WHERE/ORDER exactly, but never
+    claims a row -- a plain SELECT, no BEGIN IMMEDIATE, no state change.
+    """
+    conn = get_connection()
+    rows = conn.execute(
+        """
+        SELECT url, title, company, fit_score
+        FROM jobs
+        WHERE state IN ('manual_only', 'ready_to_apply')
+          AND (application_url IS NULL OR application_url = '')
+          AND url LIKE '%linkedin.com/jobs/view%'
+          AND tailored_resume_path IS NOT NULL
+          AND (apply_attempts IS NULL OR apply_attempts < 3)
+        ORDER BY fit_score DESC, discovered_at DESC
+        LIMIT ?
+    """,
+        (limit,),
+    ).fetchall()
+    return [dict(r) for r in rows]
 
 
 def _export_submitted_resume_artifacts(conn: sqlite3.Connection, url: str) -> None:

@@ -67,15 +67,13 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 | ID | Item | Track | Size | Where | Depends on | Why |
 |---|---|---|---|---|---|---|
 | FW35 | One parameterized escalation primitive (cost/latency/capability ordering) to replace hand-rolled cascades | Reliability & operations | L | cloud-ok | — | Makes later escalation ideas (haiku fast path, editor 1.7b->8b) cheap to add. |
-| FW50 | Per-job download of application documents + dedup of recurring notices | Apply throughput & cost | M | build in cloud, verify live | — | Nice-to-have record keeping. |
+| FW50 | Per-job document download TRIGGER (live apply agent) -- dedup/storage half built #240 | Apply throughput & cost | M | needs live machine | — | Needs a look at playwright-mcp's actual download tool support before touching prompt.py. |
 | FW56 | Why the Lumen phone-2FA wall later disappeared | Apply throughput & cost | S | needs live machine | — | One data point; investigate if it recurs. |
 | FW46 | Separate human-interaction coordinator from the automation worker pool | Session / worker architecture | L | needs live machine | FW69 | Falls out of FW69. Avoid the name 'server'. |
-| FW41 | Live queue UI for human-first manual tasks | Session / worker architecture | M | build in cloud, verify live | FW69 | v1 already auto-advances; this adds visibility from a second window. |
 | FW21 | Retest whether stand-up's hardcoded title regex is still needed | Scoring accuracy | M | build in cloud, verify live | FW9 | Needs qualifications wired into evidence matching first. |
 | FW67 | Company-reputation research to ground the ethical filter | Scoring accuracy | L | build in cloud, verify live | — | Real cost and bias risks; needs its own scoping pass. |
 | D1 | Custom-ATS Playwright scrapers (Microsoft, Google, Apple, Meta) and Workday tenant registry | Discovery coverage | L | needs live machine | — | Seattle-specific lists are a fork leftover; generalize per locality first. |
 | FW33 | Wizard walkthroughs for external setup (Gmail OAuth, etc.) with known-failure decision tree | HITL & wizard UX | M | cloud-ok | — | Gmail OAuth setup had real snags. |
-| FW47 | Bug-report icon (logs -> GitHub issue) and 'flag this job' icon in the banner | HITL & wizard UX | M | build in cloud, verify live | — | Feedback loop from real use. |
 | FW58 | Companion mobile app / remote monitoring (Obtainium-distributed) | Long-horizon ideas | L | needs live machine | — | FW53 email alerts (done) now cover most of the need. |
 | FW68 | Filter keyword store, preference questionnaire, wizard scope, multi-user accounts | Long-horizon ideas | L | cloud-ok | — | Each needs its own scoping conversation. |
 | FW59 | Research ideas (RSI search, DreamCoder, embodied-cognition sim) | Long-horizon ideas | L | cloud-ok | — | Thought experiments; possibly a side project. |
@@ -84,6 +82,9 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 | FW75 | Wizard asks candidate's risk/breadth preference (broad-net vs. selective) up front | HITL & wizard UX | S | cloud-ok | — | Real family-pressure example this session; default broad for unemployed candidates. |
 | FW76 | Explicit human "I finished this myself" hand-off signal for human-first/needs_human pauses | HITL & wizard UX | M | build in cloud, verify live | FW40 | Real gap found live: no way to tell the agent a human already finished the page. |
 | FW77 | Ask the candidate to disambiguate screening questions that don't reduce cleanly from the profile (e.g. "When can you start?") | Apply throughput & cost | M | needs live machine | FW30 | Needs a live channel back to the candidate mid-apply; none exists today. |
+| FW80 | Deterministic engine as human-first hand-off automation (cut Claude budget) | Apply throughput & cost | M | needs live machine | FW13/FW39/FW43 | Proposed 2026-10-08; needs an explicit policy call before building (automation on a site human-first was built specifically to keep human-driven). |
+| FW81 | Structured flag-job categories (chips), not free text alone | HITL & wizard UX | S | build in cloud, verify live | FW47 | Scoped 2026-10-09 right after FW47 shipped; category list is a guess, revisit once real flags accumulate. |
+| FW82 | Persistent Node/CDP connection for banner injection (remove per-poll spawn cost) | Session / worker architecture | L | needs live machine | FW79 | Root cause of FW79; same pattern #235 already fixed for Playwright MCP. Deliberately deferred -- this subsystem has a history of subtle regressions (#167/#176/#221). |
 
 ## Closed or merged (full text still kept in docs/future_work.md / docs/decisions_archive.md)
 
@@ -131,6 +132,7 @@ Regenerate this file when items change; keep full write-ups in `docs/future_work
 | FW36/Stage A | Persistent Playwright MCP per worker | built #235, default; watch the first live apply run |
 | FW39 | Proxy/fingerprint hardening | declined #237; security work is FW72 |
 | FW52 | Imperfect assessment answers | declined #237 |
-| FW78 | Human-first banner "Not Available/Skip" button | found live 2026-10-08 during first supervised human-first batch; not built |
-| FW79 | Human-first banner injection 15s CDP timeout | observed live 2026-10-08; unconfirmed if self-healing, needs log follow-up |
-| FW80 | Deterministic engine as human-first hand-off automation (cut Claude budget) | proposed 2026-10-08; needs explicit policy call vs FW13/FW39/FW43 before building |
+| FW78 | Human-first banner "Not Available/Skip" button | built 2026-10-09 (#239); verified live in a real batch |
+| FW41 | Live queue UI for human-first manual tasks | built 2026-10-09 (#240), direction (b): worker homepage + printed URL + "Up Next" panel |
+| FW47 | Bug-report icon (logs -> GitHub issue) and 'flag this job' icon in the banner | built 2026-10-09 (#240); both banners, GitHub token configured live |
+| FW79 | Human-first banner injection 15s CDP timeout | root-caused + mitigated 2026-10-09 (#241): 15s->30s, real fix is FW82 |

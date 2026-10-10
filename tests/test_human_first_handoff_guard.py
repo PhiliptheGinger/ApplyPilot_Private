@@ -125,6 +125,19 @@ class TestBannerProgressAndGuidance:
         js = _build_banner_js("abc123", "Help Desk", "Acme", 9, "Solve the CAPTCHA", 7373)
         assert "Do the step in this tab, then click Done." in js
 
+    def test_pause_banner_has_flag_and_bug_buttons(self):
+        """FW47: pipeline-logic flag icon + tool bug-report icon, both wired."""
+        from applypilot.apply.human_review import _build_banner_js
+
+        js = _build_banner_js(
+            "abc123", "Help Desk", "Acme", 9, "Solve the CAPTCHA", 7373, job_url="https://example.com/job/1"
+        )
+        assert "topRow.appendChild(btnFlag)" in js
+        assert "topRow.appendChild(btnBug)" in js
+        assert "/api/flag-job" in js
+        assert "/api/bug-report" in js
+        assert "JOB_URL = 'https://example.com/job/1'" in js
+
     def test_pause_banner_js_parses(self, tmp_path):
         import shutil
         import subprocess
@@ -172,7 +185,7 @@ class TestHumanFirstDocumentLinks:
 
         captured = {}
 
-        def _fake_build(hash_, title, company, server_port, *, has_resume=False, has_cover=False):
+        def _fake_build(hash_, title, company, server_port, *, has_resume=False, has_cover=False, job_url=""):
             captured["has_resume"] = has_resume
             captured["has_cover"] = has_cover
             return "// fake js"
