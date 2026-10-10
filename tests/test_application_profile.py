@@ -51,8 +51,8 @@ def test_autofill_prompt_uses_application_profile():
     assert ap["work_authorization"]["requires_sponsorship"] is False
 
     assert "Work Authorization:" in summary
-    assert "authorized to work in the US: True" in summary
-    assert "requires sponsorship: False" in summary
+    assert "IS authorized to work in the US" in summary
+    assert "does NOT require visa/employment sponsorship" in summary
     assert "See profile" not in summary
     # Spanish CEFR should be present as B1-B2 in the summary
     assert re.search(r"Spanish.*B1-B2|B1-B2.*Spanish", summary, re.IGNORECASE)

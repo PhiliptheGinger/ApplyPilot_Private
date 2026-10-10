@@ -326,20 +326,43 @@ def _build_work_auth_line(work_auth: dict) -> str:
     profile representation lacking these exact fields must not break the
     apply flow."""
     authorized = work_auth.get("authorized_to_work_us")
-    if authorized is None:
+    authorized_is_legacy = authorized is None
+    if authorized_is_legacy:
         authorized = work_auth.get("legally_authorized_to_work")  # legacy key
     requires_sponsorship = work_auth.get("requires_sponsorship")
-    if requires_sponsorship is None:
+    sponsorship_is_legacy = requires_sponsorship is None
+    if sponsorship_is_legacy:
         requires_sponsorship = work_auth.get("require_sponsorship")  # legacy misspelling
 
     if authorized is None and requires_sponsorship is None:
         return "answer truthfully from the profile"
 
+    # 2026-10-10 fix: a real wrong-answer incident (Haiku answered "Yes" to
+    # a visa-sponsorship screening question when the profile says
+    # requires_sponsorship=False) was traced here. The old format rendered
+    # this as the literal string "requires sponsorship: False" -- a terse
+    # requires+False double negative, a well-known LLM misreading trap,
+    # stacked right next to a similar-looking "authorized...: True" line.
+    # Real schema values are always bool per the documented schema, so they
+    # can be safely rendered as unambiguous plain English. Legacy keys can
+    # hold arbitrary strings (e.g. "Yes"/"No") whose value space isn't
+    # guaranteed, so those still pass through literally rather than being
+    # reinterpreted as booleans.
     parts = []
     if authorized is not None:
-        parts.append(f"authorized to work in the US: {authorized}")
+        if authorized_is_legacy:
+            parts.append(f"authorized to work in the US: {authorized}")
+        else:
+            parts.append("IS authorized to work in the US" if authorized else "is NOT authorized to work in the US")
     if requires_sponsorship is not None:
-        parts.append(f"requires sponsorship: {requires_sponsorship}")
+        if sponsorship_is_legacy:
+            parts.append(f"requires sponsorship: {requires_sponsorship}")
+        else:
+            parts.append(
+                "WILL require visa/employment sponsorship now or in the future"
+                if requires_sponsorship
+                else "does NOT require visa/employment sponsorship, now or in the future"
+            )
     return "; ".join(parts)
 
 
@@ -405,6 +428,21 @@ Hard facts -> answer truthfully from the profile. No guessing. This includes:
   - Citizenship, clearance, licenses, certifications: answer from profile only
   - Criminal/background: answer from profile only
   - Languages: ONLY claim proficiency in languages listed in the APPLICANT PROFILE above. If asked about ANY other language (German, Mandarin, Japanese, etc.), answer NO / Not proficient. Never fabricate language skills.
+
+LEGALLY/MATERIALLY SIGNIFICANT FIELDS (work authorization, sponsorship, citizenship,
+clearance, criminal/background, disability, veteran status): a wrong answer here has
+real consequences for the candidate, not just a cosmetic mismatch. Before answering
+one of these:
+  1. Re-read the fact given above AND the question on the page slowly, word by word --
+     these questions are frequently phrased as double negatives or with unfamiliar
+     legal wording ("Will you require sponsorship," "Are you NOT authorized," "Do you
+     waive...") that is easy to flip by skimming.
+  2. If the question's wording doesn't clearly and confidently match a fact given
+     above, or the profile has no fact for it at all, do NOT infer, assume, or guess
+     an answer -- output RESULT:NEEDS_HUMAN:screening_questions:{{current_page_url}}
+     with the exact question text instead. A wrong confident guess is worse than
+     pausing for a human; once a human answers it, that answer is remembered for
+     every future job with the same or a similar question.
 
 {experience_line}
 

@@ -162,6 +162,10 @@ def _build_banner_js(
       .catch(function(e) {{ onDone(false, String(e)); }});
   }}
 
+  function _signalStop() {{
+    fetch('http://localhost:' + PORT + '/api/emergency-stop', {{method: 'POST'}}).catch(function() {{}});
+  }}
+
   function _signalDone(customInstructions) {{
     window.__ap_hitl_done = HASH;
     var body = customInstructions ? JSON.stringify({{instructions: customInstructions}}) : null;
@@ -321,7 +325,24 @@ def _build_banner_js(
 
     btnCollapse.onclick = function() {{ _showCollapsed(); }};
 
+    // Raised live 2026-10-10: the user had to say "Stop!!!" and wait for
+    // an external process-kill each time something looked wrong -- no
+    // in-page way to halt automation instantly. Fires immediately, no
+    // confirm panel (unlike Hand Off) -- the whole point is zero friction.
+    // Visually distinct (pure red, thicker border) and placed FIRST so
+    // it's the first thing a panicked eye/mouse reaches.
+    var btnStop = _makeBtn('&#9209; STOP', '#dc2626', '#fff',
+      'Immediately stop all automation (Chrome stays open so you can look)');
+    btnStop.style.border = '2px solid #fff';
+    btnStop.onclick = function() {{
+      if (btnStop.disabled) return;
+      _disableAllBtns();
+      btnStop.innerHTML = 'STOPPING...';
+      _signalStop();
+    }};
+
     topRow.appendChild(info);
+    topRow.appendChild(btnStop);
     topRow.appendChild(btnContinue);
     topRow.appendChild(btnDone);
     topRow.appendChild(btnOther);
@@ -670,6 +691,10 @@ def _build_human_first_banner_js(
       .catch(function(e) {{ onDone(false, String(e)); }});
   }}
 
+  function _signalStop() {{
+    fetch('http://localhost:' + PORT + '/api/emergency-stop', {{method: 'POST'}}).catch(function() {{}});
+  }}
+
   function _onBlockedDomain() {{
     var host = window.location.hostname.toLowerCase();
     for (var i = 0; i < BLOCKED_DOMAINS.length; i++) {{
@@ -819,6 +844,12 @@ def _build_human_first_banner_js(
       return b;
     }}
 
+    // Raised live 2026-10-10: see the matching comment in _build_banner_js.
+    // No confirm panel -- fires immediately, zero friction.
+    var btnStop = _makeBtn('&#9209; STOP', '#dc2626', '#fff',
+      'Immediately stop all automation (Chrome stays open so you can look)');
+    btnStop.style.border = '2px solid #fff';
+
     var btnApplied = _makeBtn('I Applied &#10003;', '#22c55e', '#000',
       'I finished this application myself — mark it done, no automation needed');
     // U+25B6 (BLACK RIGHT-POINTING TRIANGLE) followed by U+FE0E (the text-
@@ -889,6 +920,13 @@ def _build_human_first_banner_js(
     function _disableAllBtns() {{
       root.querySelectorAll('button').forEach(function(b) {{ b.disabled = true; }});
     }}
+
+    btnStop.onclick = function() {{
+      if (btnStop.disabled) return;
+      _disableAllBtns();
+      btnStop.innerHTML = 'STOPPING...';
+      _signalStop();
+    }};
 
     btnApplied.onclick = function() {{
       if (btnApplied.disabled) return;
@@ -1023,6 +1061,7 @@ def _build_human_first_banner_js(
     }}
 
     mainRow.appendChild(info);
+    mainRow.appendChild(btnStop);
     // Real gap found live: doing the Easy Apply yourself has no way to
     // grab the tailored resume/cover letter to upload -- these just
     // download the job's own already-tailored documents directly from

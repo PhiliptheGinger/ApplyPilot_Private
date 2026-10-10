@@ -155,9 +155,31 @@ def test_experience_line_falls_back_to_current_job_title_when_target_role_absent
 def test_work_auth_uses_real_schema_keys():
     work_auth = {"authorized_to_work_us": True, "requires_sponsorship": False}
     line = _build_work_auth_line(work_auth)
-    assert "True" in line
-    assert "False" in line
+    assert "IS authorized to work in the US" in line
+    assert "does NOT require visa/employment sponsorship" in line
     assert "see profile" not in line.lower()
+
+
+def test_work_auth_sponsorship_false_never_renders_as_bare_false():
+    """Real incident, 2026-10-10: the old format rendered requires_sponsorship=False
+    as the literal string "requires sponsorship: False" -- a terse double
+    negative (requires + False) that led a real apply run to answer "Yes"
+    to a visa-sponsorship screening question for a candidate whose profile
+    says they do NOT need sponsorship. The rendered line must never contain
+    a bare "False"/"True" for the real schema keys -- only unambiguous
+    plain English."""
+    work_auth = {"authorized_to_work_us": True, "requires_sponsorship": False}
+    line = _build_work_auth_line(work_auth)
+    assert "False" not in line
+    assert "True" not in line
+    assert "NOT" in line
+
+
+def test_work_auth_requires_sponsorship_true_is_unambiguous():
+    work_auth = {"authorized_to_work_us": False, "requires_sponsorship": True}
+    line = _build_work_auth_line(work_auth)
+    assert "WILL require visa/employment sponsorship" in line
+    assert "is NOT authorized to work in the US" in line
 
 
 def test_work_auth_legacy_keys_still_produce_a_truthful_line():
@@ -273,6 +295,27 @@ def test_full_screening_section_has_no_blanket_tool_fabrication_instruction():
     assert "Software engineers learn tools fast" not in section
 
 
+def test_screening_section_warns_about_legally_significant_double_negatives():
+    """Decision #244, raised live by the user right after #243: resilience
+    against OTHER wording traps of the same or different type, and an
+    explicit "don't answer what you don't know" guard, not just a fixed
+    wording for the one proven case. This instruction must live directly
+    next to the hard-facts list (not just buried in a distant generic
+    "WHEN TO GIVE UP" list far away in the prompt), since the sponsorship
+    bug wasn't the model recognizing uncertainty and guessing anyway -- it
+    was confidently wrong from a misleading fact presentation, which only a
+    LOCAL "re-read carefully" + "escalate rather than guess" instruction
+    right next to the facts themselves can realistically catch."""
+    profile = _profile(
+        application_profile={"work_authorization": {"authorized_to_work_us": True, "requires_sponsorship": False}},
+    )
+    section = _build_screening_section(profile)
+    assert "LEGALLY/MATERIALLY SIGNIFICANT FIELDS" in section
+    assert "double negatives" in section
+    assert "do NOT infer, assume, or guess" in section
+    assert "RESULT:NEEDS_HUMAN:screening_questions" in section
+
+
 # ---------------------------------------------------------------------------
 # Regression against the actual live data/profile.json
 # ---------------------------------------------------------------------------
@@ -339,8 +382,8 @@ def test_profile_summary_uses_real_schema_keys_no_see_profile():
     )
     summary = _build_profile_summary(profile)
     assert "See profile" not in summary
-    assert "authorized to work in the US: True" in summary
-    assert "requires sponsorship: False" in summary
+    assert "IS authorized to work in the US" in summary
+    assert "does NOT require visa/employment sponsorship" in summary
 
 
 def test_profile_summary_legacy_schema_still_produces_a_truthful_line():
@@ -367,8 +410,8 @@ def test_hard_rules_reflects_real_work_auth_data():
         application_profile={"work_authorization": {"authorized_to_work_us": True, "requires_sponsorship": False}}
     )
     rules = _build_hard_rules(profile)
-    assert "authorized to work in the US: True" in rules
-    assert "requires sponsorship: False" in rules
+    assert "IS authorized to work in the US" in rules
+    assert "does NOT require visa/employment sponsorship" in rules
     # The old generic fallback rule must not appear when real data exists.
     assert "Work auth: Answer truthfully from profile." not in rules
 
@@ -392,8 +435,8 @@ def test_profile_summary_and_hard_rules_regression_against_real_profile_json():
 
     assert "See profile" not in summary
     assert "See profile" not in rules
-    assert "authorized to work in the US: True" in summary
-    assert "authorized to work in the US: True" in rules
+    assert "IS authorized to work in the US" in summary
+    assert "IS authorized to work in the US" in rules
 
 
 # ---------------------------------------------------------------------------
@@ -549,4 +592,4 @@ def test_build_prompt_work_auth_sections_never_contradict_each_other(tmp_path, m
     assert "See profile" not in result
     # _MINIMAL_PROFILE sets authorized_to_work_us=True/requires_sponsorship=False --
     # every section that mentions work authorization must reflect that.
-    assert result.count("authorized to work in the US: True") >= 2  # profile summary + hard rules (+ screening)
+    assert result.count("IS authorized to work in the US") >= 2  # profile summary + hard rules (+ screening)

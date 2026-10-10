@@ -460,6 +460,8 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
                 self._handle_flag_job()
             elif self.path == "/api/bug-report":
                 self._handle_bug_report()
+            elif self.path == "/api/emergency-stop":
+                self._handle_emergency_stop()
             elif self.path.startswith("/api/action-log/"):
                 self._handle_action_log()
             elif self.path == "/api/add-job":
@@ -644,9 +646,13 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
   .log-table td {{padding:7px 10px;border-bottom:1px solid #0f172a;vertical-align:middle}}
   .log-table tr:last-child td {{border-bottom:none}}
   .hint {{font-size:10px;color:#334155;margin-top:4px}}
+  .stop-btn {{width:100%;max-width:600px;background:#dc2626;color:#fff;
+              border:2px solid #fff;border-radius:10px;padding:12px;
+              font-size:14px;font-weight:700;cursor:pointer}}
 </style>
 </head>
 <body>
+<button class="stop-btn" id="__ap_stop_btn" title="Immediately stop all automation (Chrome stays open so you can look)">&#9209; STOP</button>
 <div class="badge">
   <div class="wid">W{worker_id}</div>
   <div class="status">{status.upper().replace("_", " ")}</div>
@@ -660,6 +666,11 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
 <script>
   document.getElementById('ts').textContent = new Date().toLocaleTimeString();
   setTimeout(() => location.reload(), 5000);
+  document.getElementById('__ap_stop_btn').onclick = function() {{
+    this.disabled = true;
+    this.textContent = 'STOPPING...';
+    fetch('/api/emergency-stop', {{method: 'POST'}}).catch(function() {{}});
+  }};
 </script>
 </body>
 </html>""".encode()
@@ -708,6 +719,32 @@ def _start_worker_listener(worker_id: int, no_hitl: bool = False) -> int:
             except Exception:  # noqa: BLE001, S110 - best-effort cleanup/probe, must not crash the caller
                 pass
             self._text_ok()
+
+        def _handle_emergency_stop(self) -> None:
+            """A real, one-click STOP -- raised live 2026-10-10 after the
+            user had to say "Stop!!!" twice in one session and wait for
+            Claude to find and kill the right processes via PowerShell each
+            time (once for a suspected bot-detection scare, once for a
+            visibly wrong agent action). Sets the global stop event (no
+            worker acquires another job) and kills every worker's live
+            Claude subprocess immediately -- the same two actions that were
+            done by hand both times, just instant and in-process instead of
+            an external kill chain. Chrome is deliberately left running
+            (matches both manual incidents tonight -- the user may want to
+            look at the page); this only stops AUTOMATION from acting
+            further.
+            """
+            _stop_event.set()
+            killed = []
+            with _claude_lock:
+                procs = list(_claude_procs.items())
+            for wid, cproc in procs:
+                if cproc.poll() is None:
+                    _kill_process_tree(cproc.pid)
+                    killed.append(wid)
+            state["status"] = "stopped_by_user"
+            logger.warning("EMERGENCY STOP triggered by user from worker %d banner; killed workers: %s", worker_id, killed)
+            self._json_ok({"ok": True, "stopped_workers": killed})
 
         def _handle_takeover(self):
             takeover_event.set()
